@@ -83,6 +83,17 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filtroOrigine, setFiltroOrigine] = useState<FiltroOrigine>('tutti')
+  const [codaPage, setCodaPage] = useState(1)
+  const [codaPageSize, setCodaPageSize] = useState(25)
+  const [codaTotal, setCodaTotal] = useState(0)
+  const [codaConteggi, setCodaConteggi] = useState({
+    tutti: 0,
+    documenti_da_processare: 0,
+    fattura: 0,
+    errore_sincronizzazione: 0,
+    bolla_aperta: 0,
+    riga_statement: 0,
+  })
   const [suggerimenti, setSuggerimenti] = useState<Map<string, AiSuggestion>>(new Map())
   const [eseguendoId, setEseguendoId] = useState<string | null>(null)
   const [cmdPaletteAperta, setCmdPaletteAperta] = useState(false)
@@ -154,22 +165,55 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [dialogAperto, setDialogAperto] = useState<{ tipo: DialogType; item: CodaItem } | null>(null)
 
   // ── Caricamento coda ─────────────────────────────────────────────────────
-  const caricaCoda = useCallback(async () => {
+  const caricaCoda = useCallback(async (pageOverride?: number) => {
+    const page = pageOverride ?? codaPage
     setLoading(true)
     setError(null)
     try {
       const params = new URLSearchParams()
       if (sedeId) params.set('sede_id', sedeId)
+      if (filtroOrigine !== 'tutti') params.set('origine', filtroOrigine)
+      params.set('limit', String(codaPageSize))
+      params.set('offset', String((page - 1) * codaPageSize))
       const res = await fetch(`/api/centro-controllo/coda?${params}`)
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || `Errore ${res.status}`)
       }
-      const data = await res.json()
-      setItems(data.items || [])
+      const data = await res.json() as {
+        items?: CodaItem[]
+        total?: number
+        conteggi?: {
+          totale: number
+          documenti_da_processare: number
+          fatture_pending: number
+          errori_sincronizzazione: number
+          bolle_aperte: number
+          righe_statement: number
+        }
+      }
+      const queueItems = data.items || []
+      const total = data.total ?? queueItems.length
+      const maxPage = Math.max(1, Math.ceil(total / codaPageSize))
+      if (page > maxPage) {
+        if (pageOverride == null) setCodaPage(maxPage)
+        return
+      }
+      if (pageOverride != null) setCodaPage(pageOverride)
+      setItems(queueItems)
+      setCodaTotal(total)
+      if (data.conteggi) {
+        setCodaConteggi({
+          tutti: data.conteggi.totale,
+          documenti_da_processare: data.conteggi.documenti_da_processare,
+          fattura: data.conteggi.fatture_pending,
+          errore_sincronizzazione: data.conteggi.errori_sincronizzazione,
+          bolla_aperta: data.conteggi.bolle_aperte,
+          riga_statement: data.conteggi.righe_statement,
+        })
+      }
 
       const suggMap = new Map<string, AiSuggestion>()
-      const queueItems = (data.items || []) as CodaItem[]
       for (const item of queueItems) {
         const sugg = await suggerisciAzione(item)
         if (!sugg) continue
@@ -195,6 +239,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         if (reloadRes.ok) {
           const reloadData = await reloadRes.json()
           setItems(reloadData.items || [])
+          setCodaTotal(reloadData.total ?? 0)
         }
       }
     } catch (e) {
@@ -202,7 +247,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [sedeId])
+  }, [sedeId, filtroOrigine, codaPage, codaPageSize, showToast])
 
   // ── Caricamento statement ───────────────────────────────────────────────
   const caricaStatement = useCallback(async () => {
@@ -273,7 +318,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         if (!silent && (data.risolte ?? 0) > 0) {
           showToast(data.message ?? 'Auto-risoluzione completata', 'success')
         }
-        await Promise.all([caricaCoda(), caricaStatement()])
+        await Promise.all([caricaCoda(1), caricaStatement()])
       } else if (!silent) {
         showToast(data.error || 'Errore auto-risolvi', 'error')
       }
@@ -409,14 +454,17 @@ export default function CentroControlloClient({ sedeId }: Props) {
   useEffect(() => {
     caricaStatement()
     caricaMonitoraggio()
-    if (!sedeId) {
-      caricaCoda()
-      return
-    }
-    if (autoRisolviRanRef.current) return
+  }, [caricaStatement, caricaMonitoraggio])
+
+  useEffect(() => {
+    void caricaCoda()
+  }, [caricaCoda])
+
+  useEffect(() => {
+    if (!sedeId || autoRisolviRanRef.current) return
     autoRisolviRanRef.current = true
     void handleAutoRisolvi(true)
-  }, [sedeId, caricaCoda, caricaStatement, caricaMonitoraggio, handleAutoRisolvi])
+  }, [sedeId, handleAutoRisolvi])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -432,19 +480,16 @@ export default function CentroControlloClient({ sedeId }: Props) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  const itemsFiltrati = useMemo(() => {
-    if (filtroOrigine === 'tutti') return items
-    return items.filter((i) => i.origine === filtroOrigine)
-  }, [items, filtroOrigine])
+  const cambiaFiltroOrigine = (filtro: FiltroOrigine) => {
+    setFiltroOrigine(filtro)
+    setCodaPage(1)
+  }
 
-  const conteggi = useMemo(() => ({
-    tutti: items.length,
-    documenti_da_processare: items.filter((i) => i.origine === 'documento_da_processare').length,
-    fattura: items.filter((i) => i.origine === 'fattura').length,
-    errore_sincronizzazione: items.filter((i) => i.origine === 'errore_sincronizzazione').length,
-    bolla_aperta: items.filter((i) => i.origine === 'bolla_aperta').length,
-    riga_statement: items.filter((i) => i.origine === 'riga_statement').length,
-  }), [items])
+  const codaPageCount = Math.max(1, Math.ceil(codaTotal / codaPageSize))
+  const codaRangeFrom = codaTotal === 0 ? 0 : (codaPage - 1) * codaPageSize + 1
+  const codaRangeTo = codaTotal === 0 ? 0 : Math.min(codaPage * codaPageSize, codaTotal)
+
+  const conteggi = codaConteggi
 
   const eseguiComando = async (item: CodaItem, commandId: CommandId) => {
     const dialogCommands: Record<string, DialogType> = {
@@ -530,7 +575,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           icona={<AlertCircle className="w-5 h-5" />}
           colore="text-app-fg-muted"
           attivo={filtroOrigine === 'tutti'}
-          onClick={() => setFiltroOrigine('tutti')}
+          onClick={() => cambiaFiltroOrigine('tutti')}
         />
         <StatCard
           label="Documenti"
@@ -538,7 +583,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           icona={<FileText className="w-5 h-5" />}
           colore="text-sky-400"
           attivo={filtroOrigine === 'documento_da_processare'}
-          onClick={() => setFiltroOrigine('documento_da_processare')}
+          onClick={() => cambiaFiltroOrigine('documento_da_processare')}
         />
         <StatCard
           label="Fatture"
@@ -546,7 +591,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           icona={<CheckCircle className="w-5 h-5" />}
           colore="text-emerald-400"
           attivo={filtroOrigine === 'fattura'}
-          onClick={() => setFiltroOrigine('fattura')}
+          onClick={() => cambiaFiltroOrigine('fattura')}
         />
         <StatCard
           label="Bolle aperte"
@@ -554,7 +599,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           icona={<ExternalLink className="w-5 h-5" />}
           colore="text-amber-400"
           attivo={filtroOrigine === 'bolla_aperta'}
-          onClick={() => setFiltroOrigine('bolla_aperta')}
+          onClick={() => cambiaFiltroOrigine('bolla_aperta')}
         />
         <StatCard
           label="Statement"
@@ -562,7 +607,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           icona={<FileText className="w-5 h-5" />}
           colore="text-purple-400"
           attivo={filtroOrigine === 'riga_statement'}
-          onClick={() => setFiltroOrigine('riga_statement')}
+          onClick={() => cambiaFiltroOrigine('riga_statement')}
         />
         <StatCard
           label="Errori sincro"
@@ -570,7 +615,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           icona={<X className="w-5 h-5" />}
           colore="text-rose-400"
           attivo={filtroOrigine === 'errore_sincronizzazione'}
-          onClick={() => setFiltroOrigine('errore_sincronizzazione')}
+          onClick={() => cambiaFiltroOrigine('errore_sincronizzazione')}
         />
       </div>
 
@@ -668,7 +713,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
             </div>
           )}
 
-          {!loading && !error && itemsFiltrati.length === 0 && (
+          {!loading && !error && codaTotal === 0 && (
             <SectionCard title="Coda documenti">
               <div className="text-center py-8 text-app-fg-muted">
                 <CheckCircle className="w-10 h-10 mx-auto mb-2 text-white/[0.12]" />
@@ -678,10 +723,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
             </SectionCard>
           )}
 
-          {!loading && !error && itemsFiltrati.length > 0 && (
-            <SectionCard title="Coda documenti" badge={itemsFiltrati.length}>
-              <div className="divide-y divide-app-line-10">
-                {itemsFiltrati.map((item) => (
+          {!loading && !error && codaTotal > 0 && (
+            <SectionCard title="Coda documenti" badge={codaTotal}>
+              <div className="max-h-[min(70vh,42rem)] overflow-y-auto overscroll-contain divide-y divide-app-line-10">
+                {items.map((item) => (
                   <RigaDocumento
                     key={item.id}
                     item={item}
@@ -694,6 +739,47 @@ export default function CentroControlloClient({ sedeId }: Props) {
                     onApriAzioni={(item) => openActions(item)}
                   />
                 ))}
+              </div>
+              <div className="flex flex-col gap-3 border-t border-app-line-10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[11px] text-app-fg-muted">
+                  Mostrando {codaRangeFrom}–{codaRangeTo} di {codaTotal}
+                  {filtroOrigine !== 'tutti' ? ` (filtro attivo)` : ''}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-[11px] text-app-fg-muted">
+                    Per pagina
+                    <select
+                      value={codaPageSize}
+                      onChange={(e) => {
+                        setCodaPageSize(Number(e.target.value))
+                        setCodaPage(1)
+                      }}
+                      className="rounded-md border border-app-line-25 bg-black/20 px-2 py-1 text-[11px] text-app-fg"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={codaPage <= 1 || loading}
+                    onClick={() => setCodaPage((p) => Math.max(1, p - 1))}
+                    className="rounded-md border border-app-line-25 px-2.5 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:bg-white/5 disabled:opacity-40"
+                  >
+                    Precedente
+                  </button>
+                  <span className="text-[11px] tabular-nums text-app-fg-muted">
+                    {codaPage} / {codaPageCount}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={codaPage >= codaPageCount || loading}
+                    onClick={() => setCodaPage((p) => Math.min(codaPageCount, p + 1))}
+                    className="rounded-md border border-app-line-25 px-2.5 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:bg-white/5 disabled:opacity-40"
+                  >
+                    Successiva
+                  </button>
+                </div>
               </div>
             </SectionCard>
           )}
@@ -1021,7 +1107,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
 
       {cmdPaletteAperta && (
         <CommandPalette
-          items={itemsFiltrati}
+          items={items}
           ricerca={ricercaCmd}
           onRicercaChange={setRicercaCmd}
           onEsegui={(itemId, commandId) => {
