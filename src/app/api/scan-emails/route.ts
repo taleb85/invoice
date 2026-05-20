@@ -1965,8 +1965,18 @@ async function processEmails(
         ? await fetchFornitorePendingKindHint(supabase, fornitore.id, ocrTipoKey)
         : null
 
-      /** L’oggetto/corpo che dicono “estratto” o “ordine” vincono sull’hint appreso (es. fattura) per quel fornitore. */
-      const effectivePendingKind = autoPendingKind ?? learnedPendingKind
+      /**
+       * "estratto conto" auto-detected always wins (prevents statements going to bolla queue).
+       * "ordine" auto-detected is overridden by a learned hint, because some suppliers (e.g. UK wine
+       * distributors) name delivery notes "Order Confirmation" -- once the user teaches the system
+       * that these docs are bolle, the learned hint should stick.
+       */
+      const effectivePendingKind =
+        autoPendingKind === 'statement'
+          ? 'statement'
+          : (autoPendingKind === 'ordine' && learnedPendingKind != null && learnedPendingKind !== 'ordine')
+            ? learnedPendingKind
+            : autoPendingKind ?? learnedPendingKind
 
       const treatAsStatement = effectivePendingKind === 'statement'
 
