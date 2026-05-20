@@ -577,8 +577,7 @@ export default function ImpostazioniPage() {
       </div>
 
       {/* ══ DESKTOP: stessa strip del mobile (back + icona + tray) senza header duplicato in card ══ */}
-      <div className={`hidden min-h-0 w-full flex-1 flex-col md:flex ${APP_SHELL_SECTION_PAGE_STACK_CLASS}`}>
-        <div className="mx-auto flex min-h-0 min-w-0 w-full max-w-[var(--app-layout-max-width)] flex-1 flex-col">
+      <div className={`hidden md:flex ${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
           <AppPageHeaderStrip
             dense
             flushBottom
@@ -621,71 +620,64 @@ export default function ImpostazioniPage() {
               </div>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
-          <div className="mt-3 flex min-h-0 min-w-0 w-full flex-1 flex-col gap-10">
-            <div
-              className={
-                showSedeOcrBlocks && sedeResolved
-                  ? 'grid min-h-0 w-full grid-cols-1 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-8 xl:gap-x-10'
-                  : 'min-h-0 w-full'
-              }
-            >
-              <div className="flex min-h-0 min-w-0 flex-col gap-10">
-                <div className="min-h-0 min-w-0">
-                  <div className="app-card overflow-hidden">
-                    <LocalisationCardContent />
-                    {saved ? (
-                      <div className="flex items-center gap-2 border-t border-app-line-30 px-6 py-3.5 text-sm font-semibold text-green-300 app-workspace-inset-bg-soft sm:px-8">
-                        <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span suppressHydrationWarning>{t.impostazioni.saved}</span>
-                      </div>
-                    ) : null}
-                    <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span suppressHydrationWarning>{t.common.save}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex min-h-0 min-w-0 flex-col gap-4">
-                  {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
-                  <NotificationSettings />
-                  {showSedePickHint ? (
-                    <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
-                      <div className="app-workspace-inset-bg-soft p-5">
-                        <p className="text-xs leading-relaxed text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
-                        <Link
-                          href="/sedi"
-                          className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3.5 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
-                        >
-                          {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
-                        </Link>
-                      </div>
-                    </div>
-                  ) : null}
+          <div
+            className={
+              showSedeOcrBlocks && sedeResolved
+                ? 'grid w-full grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-x-8 xl:gap-x-10'
+                : 'flex w-full flex-col gap-10'
+            }
+          >
+            <div className="flex w-full min-w-0 flex-col gap-10">
+              <div className="app-card overflow-hidden">
+                <LocalisationCardContent />
+                {saved ? (
+                  <div className="flex items-center gap-2 border-t border-app-line-30 px-6 py-3.5 text-sm font-semibold text-green-300 app-workspace-inset-bg-soft sm:px-8">
+                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span suppressHydrationWarning>{t.impostazioni.saved}</span>
+                  </div>
+                ) : null}
+                <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span suppressHydrationWarning>{t.common.save}</span>
+                  </button>
                 </div>
               </div>
 
-              {showSedeOcrBlocks && sedeResolved ? (
-                <section
-                  className="min-h-0 min-w-0"
-                  aria-label={t.impostazioni.sedeDocsGroupingEyebrow}
-                >
-                  <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} />
-                </section>
-              ) : null}
+              <div className="flex w-full min-w-0 flex-col gap-4">
+                {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
+                <NotificationSettings />
+                {showSedePickHint ? (
+                  <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
+                    <div className="app-workspace-inset-bg-soft p-5">
+                      <p className="text-xs leading-relaxed text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
+                      <Link
+                        href="/sedi"
+                        className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3.5 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
+                      >
+                        {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
+                      </Link>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
+
+            {showSedeOcrBlocks && sedeResolved ? (
+              <section className="w-full min-w-0" aria-label={t.impostazioni.sedeDocsGroupingEyebrow}>
+                <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} />
+              </section>
+            ) : null}
           </div>
-        </div>
       </div>
     </>
   )
