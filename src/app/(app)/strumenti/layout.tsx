@@ -21,7 +21,6 @@ export default function StrumentiLayout({ children }: { children: React.ReactNod
   const showCentroOperazioni =
     meLoading || canAccessCentroOperazioniPage(me, activeOperator)
   const showCentroControllo = showCentroOperazioni
-  const showAnalisiPrezzi = meLoading || masterPlane || isAdminSede
   const showSedi = meLoading || masterPlane || isAdminSede
 
   const tabs = [
@@ -40,15 +39,6 @@ export default function StrumentiLayout({ children }: { children: React.ReactNod
             href: '/strumenti/centro-operazioni',
             label: t.strumentiCentroOperazioni.pageTitle,
             active: !!pathname?.startsWith('/strumenti/centro-operazioni'),
-          },
-        ]
-      : []),
-    ...(showAnalisiPrezzi
-      ? [
-          {
-            href: '/strumenti/analisi-prezzi',
-            label: t.strumentiAnalisiPrezzi.pageTitle,
-            active: !!pathname?.startsWith('/strumenti/analisi-prezzi'),
           },
         ]
       : []),
