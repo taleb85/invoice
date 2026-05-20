@@ -4476,7 +4476,7 @@ export function VerificationStatusTab({
                   <col className="w-0" />
                   <col className="w-0" />
                   <col className="w-14" />
-                  <col className="w-10" />
+                  <col className="w-0" />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-app-line-15">
@@ -4499,7 +4499,7 @@ export function VerificationStatusTab({
                     <th className="w-14 whitespace-nowrap px-1 py-2 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColChecks}
                     </th>
-                    <th className="w-10 whitespace-nowrap px-1 py-2 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
+                    <th className="w-0 whitespace-nowrap px-1 py-2 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.colAction}
                     </th>
                   </tr>
@@ -4633,18 +4633,18 @@ export function VerificationStatusTab({
                           </div>
                         </td>
 
-                        <td className="w-10 px-1 py-2 text-center align-middle">
+                        <td className="w-0 whitespace-nowrap px-1 py-2 text-center align-middle">
                           {needAction && (
                             sollecitoState === 'sent' ? (
                               <div className="mx-auto inline-flex flex-col items-center gap-0.5">
                                 <span
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200"
+                                  className="inline-flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-200"
                                   title={t.statements.btnSent}
                                 >
-                                  <svg className={`h-4 w-4 shrink-0 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className={`h-3.5 w-3.5 shrink-0 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                   </svg>
-                                  <span className="sr-only">{t.statements.btnSent}</span>
+                                  {t.statements.btnSent}
                                 </span>
                                 {sollEntry.sentAt && (
                                   <span className="text-[10px] tabular-nums text-app-fg-muted">
@@ -4661,19 +4661,21 @@ export function VerificationStatusTab({
                                 disabled={!hasEmail || sollecitoState === 'loading'}
                                 title={!hasEmail ? t.statements.noEmailForSupplier : t.statements.btnSendReminder}
                                 aria-label={t.statements.btnSendReminder}
-                                className={`mx-auto inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors ${
+                                className={`mx-auto inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors ${
                                   !hasEmail
                                     ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
-                                    : 'border-[rgba(34,211,238,0.15)] bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
+                                    : r.status === 'fattura_mancante'
+                                      ? 'border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
+                                      : 'border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'
                                 }`}
                               >
                                 {sollecitoState === 'loading' ? (
-                                  <svg className={`h-4 w-4 animate-spin ${icon.emailSync}`} fill="none" viewBox="0 0 24 24">
+                                  <svg className={`h-3.5 w-3.5 shrink-0 animate-spin ${icon.emailSync}`} fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                                   </svg>
                                 ) : (
-                                  <svg className={`h-4 w-4 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className={`h-3.5 w-3.5 shrink-0 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
                                       strokeLinecap="round"
                                       strokeLinejoin="round"
@@ -4682,6 +4684,7 @@ export function VerificationStatusTab({
                                     />
                                   </svg>
                                 )}
+                                {sollecitoState === 'loading' ? t.statements.btnSending : t.statements.btnSendReminder}
                               </button>
                             )
                           )}
