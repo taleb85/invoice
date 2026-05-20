@@ -4425,45 +4425,49 @@ export function VerificationStatusTab({
             })}
             </div>
 
-            {/* Per-line results — desktop table (table-fixed + % colgroup = usa tutta la larghezza) */}
-            <div className="hidden min-w-0 w-full overflow-x-auto md:block">
-              <table className="w-full min-w-[860px] table-fixed text-sm leading-tight">
+            {/* Per-line results — desktop table */}
+            <div className="hidden min-w-0 w-full overflow-x-auto overscroll-x-contain md:block [-webkit-overflow-scrolling:touch]">
+              <table
+                className={`w-full table-fixed text-sm leading-snug ${
+                  vsCompactS1 ? 'min-w-[940px]' : 'min-w-[1020px]'
+                }`}
+              >
                 <colgroup>
-                  <col className="w-[2%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[8%]" />
+                  <col className="w-[2.5rem]" />
+                  <col className="w-[11%]" />
                   <col className="w-[15%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[7%]" />
-                  <col className="w-[20%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[min(16rem,18%)]" />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-app-line-15">
-                    <th className="py-2 pl-1 pr-0" />
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-1 py-2.5" />
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.colRef}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.colStatus}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColStmtDate}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-2 py-2.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColSysDate}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-2 py-2.5 text-right text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColStmtAmount}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-2 py-2.5 text-right text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColSysAmount}
                     </th>
-                    <th className="py-2 px-0.5 text-center text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-2 py-2.5 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColChecks}
                     </th>
-                    <th className="py-2 pl-1 pr-2 text-center text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    <th className="px-2 py-2.5 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.colAction}
                     </th>
                   </tr>
@@ -4483,8 +4487,8 @@ export function VerificationStatusTab({
                     const sollEntry  = solleciti[r.numero] ?? { status: 'idle' }
                     const sollecitoState = sollEntry.status
                     const hasEmail   = !!(r.fornitore?.email)
-                    const fmtDate = (d: string | null | undefined) =>
-                      d ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(d)) : '—'
+                    const stmtDateLabel = r.data_doc ? formatStmtDate(r.data_doc) : '—'
+                    const sysDateLabel = r.fattura?.data ? formatStmtDate(r.fattura.data) : '—'
 
                     // 4 check segments: row-exists · invoice · bolle · amount-match
                     const checks = [
@@ -4497,7 +4501,7 @@ export function VerificationStatusTab({
                     return (
                       <tr
                         key={r.numero}
-                        className={`hover:bg-cyan-500/[0.06] transition-colors group ${
+                        className={`transition-colors hover:bg-cyan-500/[0.06] group ${
                         r.status === 'rekki_prezzo_discordanza'
                           ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
                           : r.status === 'errore_importo'
@@ -4506,9 +4510,9 @@ export function VerificationStatusTab({
                       }`}
                       >
                         {/* Chevron */}
-                        <td className="py-2 pl-1 pr-0 align-middle">
+                        <td className="px-1 py-3 align-middle">
                           <svg
-                            className="mx-auto h-3 w-3 text-app-fg-muted transition-colors group-hover:text-app-fg"
+                            className="mx-auto h-3.5 w-3.5 text-app-fg-muted transition-colors group-hover:text-app-fg"
                             fill="currentColor"
                             viewBox="0 0 24 24"
                           >
@@ -4517,7 +4521,7 @@ export function VerificationStatusTab({
                         </td>
 
                         {/* Reference */}
-                        <td className="min-w-0 py-2 pl-0 pr-1 align-middle">
+                        <td className="max-w-0 px-2 py-3 align-middle">
                           <span
                             className={`block truncate font-mono text-xs font-bold ${
                               r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
@@ -4529,45 +4533,54 @@ export function VerificationStatusTab({
                         </td>
 
                         {/* Status badge */}
-                        <td className="min-w-0 py-2 pl-0 pr-1 align-middle">
+                        <td className="max-w-0 px-2 py-3 align-middle">
                           <span
-                            className={`inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] font-semibold leading-tight ${cfg.cls}`}
+                            className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-snug sm:text-[11px] ${cfg.cls}`}
+                            title={cfg.label}
                           >
                             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
-                            <span className="min-w-0 break-words text-left">{cfg.label}</span>
+                            <span className="min-w-0 truncate">{cfg.label}</span>
                           </span>
                         </td>
 
                         {/* Stmt Date */}
-                        <td className="whitespace-nowrap py-2 pl-0 pr-1 align-middle text-xs text-app-fg-muted">
-                          {fmtDate(r.data_doc)}
+                        <td
+                          className="max-w-0 px-2 py-3 align-middle text-xs tabular-nums text-app-fg-muted"
+                          title={stmtDateLabel}
+                        >
+                          <span className="block truncate whitespace-nowrap">{stmtDateLabel}</span>
                         </td>
 
                         {/* Sys Date (fattura date) */}
-                        <td className="whitespace-nowrap py-2 pl-0 pr-1 align-middle text-xs text-app-fg-muted">
-                          {fmtDate(r.fattura?.data)}
+                        <td
+                          className="max-w-0 px-2 py-3 align-middle text-xs tabular-nums text-app-fg-muted"
+                          title={sysDateLabel}
+                        >
+                          <span className="block truncate whitespace-nowrap">{sysDateLabel}</span>
                         </td>
 
                         {/* Stmt Amount */}
                         <td
-                          className={`whitespace-nowrap py-2 pl-0 pr-1 text-right align-middle text-sm font-bold tabular-nums tracking-tight ${
+                          className={`max-w-0 px-2 py-3 text-right align-middle text-sm font-bold tabular-nums tracking-tight ${
                             r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-app-fg'
                           }`}
                         >
-                          {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
+                          <span className="block truncate whitespace-nowrap">
+                            {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
+                          </span>
                         </td>
 
                         {/* Sys Amount */}
-                        <td className="min-w-0 py-2 pl-0 pr-1 text-right align-middle tabular-nums text-sm whitespace-nowrap">
+                        <td className="max-w-0 px-2 py-3 text-right align-middle text-sm tabular-nums">
                           {r.fattura?.importo !== null && r.fattura?.importo !== undefined ? (
-                            <div className="inline-flex flex-col items-end gap-0.5">
-                              <span className={
+                            <div className="inline-flex max-w-full flex-col items-end gap-0.5">
+                              <span className={`truncate whitespace-nowrap ${
                                 r.status === 'errore_importo'
                                   ? 'text-red-300 font-bold'
                                   : r.status === 'rekki_prezzo_discordanza'
                                     ? 'text-amber-400 font-bold'
                                     : 'text-app-fg'
-                              }>
+                              }`}>
                                 {formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)}
                               </span>
                               {r.status === 'rekki_prezzo_discordanza' && r.deltaImporto !== null && (
@@ -4582,13 +4595,13 @@ export function VerificationStatusTab({
                               )}
                             </div>
                           ) : (
-                            <span className="text-sm text-app-fg-muted">—</span>
+                            <span className="block text-center text-sm text-app-fg-subtle">—</span>
                           )}
                         </td>
 
                         {/* Checks — 4 colored segments */}
-                        <td className="py-2 px-0.5 align-middle">
-                          <div className="flex items-center justify-center gap-px">
+                        <td className="px-2 py-3 align-middle">
+                          <div className="flex items-center justify-center gap-0.5">
                             {checks.map((pass, i) => {
                               const isLast = i === 3
                               if (r.status === 'rekki_prezzo_discordanza' && isLast) {
@@ -4596,14 +4609,15 @@ export function VerificationStatusTab({
                                   <div
                                     key={i}
                                     title={t.statements.rekkiCheckSegmentTooltip}
-                                    className="h-2 w-5 shrink-0 rounded-sm bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.45)]"
+                                    className="h-3 w-7 shrink-0 rounded-sm bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.45)]"
                                   />
                                 )
                               }
                               return (
                                 <div
                                   key={i}
-                                  className={`h-2 w-5 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-app-line-35'}`}
+                                  title={pass ? t.statements.kpiVerifiedOk : undefined}
+                                  className={`h-3 w-7 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-app-line-35'}`}
                                 />
                               )
                             })}
@@ -4611,11 +4625,11 @@ export function VerificationStatusTab({
                         </td>
 
                         {/* Action */}
-                        <td className="py-2 pl-1 pr-2 text-center align-middle">
+                        <td className="px-2 py-3 text-center align-middle">
                           {needAction && (
                             sollecitoState === 'sent' ? (
                               <div className="mx-auto inline-flex max-w-full flex-col items-center gap-0.5">
-                                <span className="flex items-center gap-0.5 rounded-md border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-1 text-[11px] font-bold text-emerald-200">
+                                <span className="flex items-center gap-1 rounded-md border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-bold text-emerald-200">
                                   <svg className={`h-3.5 w-3.5 shrink-0 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                   </svg>
@@ -4635,7 +4649,7 @@ export function VerificationStatusTab({
                                 onClick={() => inviaSollecito(r)}
                                 disabled={!hasEmail || sollecitoState === 'loading'}
                                 title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
-                                className={`mx-auto flex w-full max-w-[9.5rem] items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-bold transition-colors ${
+                                className={`mx-auto inline-flex min-h-[2.25rem] max-w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[11px] font-bold leading-tight transition-colors sm:text-xs ${
                                   !hasEmail
                                     ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
                                     : 'border-[rgba(34,211,238,0.15)] bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
@@ -4656,7 +4670,7 @@ export function VerificationStatusTab({
                                     />
                                   </svg>
                                 )}
-                                <span className="min-w-0 text-left leading-tight">
+                                <span className="min-w-0 truncate">
                                   {sollecitoState === 'loading' ? t.statements.btnSending : t.statements.btnSendReminder}
                                 </span>
                               </button>
