@@ -276,16 +276,20 @@ function statementColLabelParts(label: string): { primary: string; secondary: st
 function StatementTripleColHead({
   label,
   align = 'left',
+  shrink = false,
 }: {
   label: string
   align?: 'left' | 'right' | 'center'
+  shrink?: boolean
 }) {
   const { primary, secondary } = statementColLabelParts(label)
   const alignCls =
     align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
   return (
     <th
-      className={`whitespace-nowrap px-1 py-2 text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted ${alignCls}`}
+      className={`whitespace-nowrap px-1 py-2 text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted ${alignCls}${
+        shrink ? ' w-0' : ''
+      }`}
       title={label}
     >
       {secondary ? (
@@ -4467,8 +4471,8 @@ export function VerificationStatusTab({
                 <colgroup>
                   <col />
                   <col className="w-[8rem]" />
-                  <col />
-                  <col />
+                  <col className="w-0" />
+                  <col className="w-0" />
                   <col />
                   <col />
                   <col className="w-14" />
@@ -4488,8 +4492,8 @@ export function VerificationStatusTab({
                     >
                       {t.statements.colStatus}
                     </th>
-                    <StatementTripleColHead label={t.statements.tripleColStmtDate} />
-                    <StatementTripleColHead label={t.statements.tripleColSysDate} />
+                    <StatementTripleColHead label={t.statements.tripleColStmtDate} shrink />
+                    <StatementTripleColHead label={t.statements.tripleColSysDate} shrink />
                     <StatementTripleColHead label={t.statements.tripleColStmtAmount} align="right" />
                     <StatementTripleColHead label={t.statements.tripleColSysAmount} align="right" />
                     <th className="w-14 whitespace-nowrap px-1 py-2 text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
@@ -4563,14 +4567,14 @@ export function VerificationStatusTab({
                         </td>
 
                         <td
-                          className="whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
+                          className="w-0 whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
                           title={`${t.statements.tripleColStmtDate}: ${stmtDateLabel}`}
                         >
                           {stmtDateLabel}
                         </td>
 
                         <td
-                          className="whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
+                          className="w-0 whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
                           title={`${t.statements.tripleColSysDate}: ${sysDateLabel}`}
                         >
                           {sysDateLabel}
