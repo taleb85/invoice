@@ -3657,26 +3657,47 @@ export function VerificationStatusTab({
   // checkResults è dichiarato dopo, usiamo un ref per leggere il valore corrente senza
   // creare una dipendenza di ordine che romperebbe TypeScript.
   const checkResultsRef = useRef<CheckResult[] | null>(null)
+  const pipelineAbortRef = useRef<AbortController | null>(null)
+
+  const cancelAiPipeline = useCallback(() => {
+    pipelineAbortRef.current?.abort()
+    pipelineAbortRef.current = null
+    setAiPipelinePhase('idle')
+    setAiPipelineAnalisi(null)
+    setAiPipelineStatusMsg(null)
+  }, [])
 
   const handleAiPipeline = useCallback(async () => {
     if (!sedeId || !fornitoreId) return
+
+    const abort = new AbortController()
+    pipelineAbortRef.current = abort
+
     setAiPipelinePhase('analisi')
     setAiPipelineResult(null)
     setAiPipelineAnalisi(null)
     setAiPipelineStatusMsg('Analisi anomalie in corso…')
 
     try {
-      // ── Fase 1: analisi derivata da checkResults (già caricato) ───────────
-      // Non chiamiamo l'API globale — usiamo solo le righe visibili nello statement aperto.
+      // ── Fase 1: analisi da checkResults già caricato (nessuna API call) ──
       const anomaleRows = checkResultsRef.current?.filter(r => r.status !== 'ok' && r.status !== 'pending') ?? []
       const supplierEmail: string | null =
         checkResultsRef.current?.find(r => r.fornitore?.email)?.fornitore?.email ?? null
       const hasEmail = Boolean(supplierEmail)
 
+      const fatturaMancante = anomaleRows.filter(r => r.status === 'fattura_mancante').length
+      const bolleMancanti   = anomaleRows.filter(r => r.status === 'bolle_mancanti').length
+      const erroreImporto   = anomaleRows.filter(r => r.status === 'errore_importo').length
+
+      // Bolle mancanti e rekki_prezzo_discordanza non si risolvono con email scan:
+      // i DDT sono documenti fisici, non allegati email. Segnalare direttamente come manuale.
+      const needsEmailScan = fatturaMancante > 0 && hasEmail
+      const onlyManualAnomalies = bolleMancanti > 0 && fatturaMancante === 0 && erroreImporto === 0
+
       const pipelineAnalisi: FornitoreAIPipelineAnalisi = {
-        fatturaMancante: anomaleRows.filter(r => r.status === 'fattura_mancante').length,
-        bolleMancanti:   anomaleRows.filter(r => r.status === 'bolle_mancanti').length,
-        erroreImporto:   anomaleRows.filter(r => r.status === 'errore_importo').length,
+        fatturaMancante,
+        bolleMancanti,
+        erroreImporto,
         total: anomaleRows.length,
         hasEmail,
         supplierEmail,
@@ -3690,36 +3711,44 @@ export function VerificationStatusTab({
         return
       }
 
-      // Descrizione per la fase ricerca
-      const parts: string[] = []
-      if (pipelineAnalisi.fatturaMancante > 0)
-        parts.push(`${pipelineAnalisi.fatturaMancante} fattur${pipelineAnalisi.fatturaMancante === 1 ? 'a' : 'e'} mancant${pipelineAnalisi.fatturaMancante === 1 ? 'e' : 'i'}`)
-      if (pipelineAnalisi.bolleMancanti > 0)
-        parts.push(`${pipelineAnalisi.bolleMancanti} boll${pipelineAnalisi.bolleMancanti === 1 ? 'a' : 'e'} mancant${pipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}`)
-      if (pipelineAnalisi.erroreImporto > 0)
-        parts.push(`${pipelineAnalisi.erroreImporto} errore${pipelineAnalisi.erroreImporto === 1 ? '' : 'i'} importo`)
-
-      if (pipelineAnalisi.fatturaMancante > 0 && hasEmail) {
-        setAiPipelinePhase('ricerca')
-        setAiPipelineStatusMsg(
-          `Cercando ${parts.join(', ')}${supplierEmail ? ` in ${supplierEmail}` : ''}…`
-        )
-      } else {
-        setAiPipelinePhase('ricerca')
-        setAiPipelineStatusMsg(`Avvio associazione: ${parts.join(', ')}…`)
+      // Se ci sono solo bolle mancanti (DDT), l'email scan non serve: vai diretto alla fase manuale
+      if (onlyManualAnomalies) {
+        setAiPipelinePhase('done')
+        setAiPipelineResult({
+          resolved: 0,
+          remaining: pipelineAnalisi.total,
+          emailImported: 0,
+          analisiTotale: pipelineAnalisi.total,
+          fastFixed: 0,
+        })
+        setAiPipelineStatusMsg(null)
+        return
       }
 
-      // ── Fasi 2+3: pipeline server-side scoped a questo statement ──────────
+      // ── Fase 2: ricerca email (solo se ci sono fatture mancanti) ──────────
+      if (needsEmailScan) {
+        setAiPipelinePhase('ricerca')
+        setAiPipelineStatusMsg(
+          `Cercando ${fatturaMancante} fattur${fatturaMancante === 1 ? 'a' : 'e'} mancant${fatturaMancante === 1 ? 'e' : 'i'}${supplierEmail ? ` in ${supplierEmail}` : ''}…`
+        )
+      } else {
+        // Nessuna email scan, vai diretto all'associazione
+        setAiPipelinePhase('associazione')
+        setAiPipelineStatusMsg('Verifica incrociata righe…')
+      }
+
+      if (abort.signal.aborted) return
+
+      // ── Fasi 2+3: pipeline server-side scoped allo statement selezionato ──
       const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abort.signal,
         body: JSON.stringify({
           sede_id: sedeId,
           fornitore_id: fornitoreId,
-          // Scope al singolo statement selezionato
           statement_id: selectedStmt?.id ?? undefined,
-          // Passa i conteggi già calcolati per evitare query globale
-          fattura_mancante_count: pipelineAnalisi.fatturaMancante,
+          fattura_mancante_count: fatturaMancante,
           has_email: hasEmail,
         }),
       })
@@ -3748,9 +3777,12 @@ export function VerificationStatusTab({
           .finally(() => setStmtRecheckBusy(false))
       }
     } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return // annullato dall'utente
       showToast(e instanceof Error ? e.message : 'Errore pipeline AI', 'error')
       setAiPipelinePhase('idle')
       setAiPipelineStatusMsg(null)
+    } finally {
+      pipelineAbortRef.current = null
     }
   }, [sedeId, fornitoreId, selectedStmt, showToast])
 
@@ -4438,7 +4470,7 @@ export function VerificationStatusTab({
                   {/* Dettaglio anomalie trovate + cosa sta cercando */}
                   {aiPipelineAnalisi && (
                     <div className="rounded-md bg-black/20 px-2.5 py-1.5 space-y-1">
-                      {/* Anomalie trovate nell'analisi */}
+                      {/* Tipo di anomalie */}
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                         {aiPipelineAnalisi.fatturaMancante > 0 && (
                           <span className="text-[10px] text-orange-300">
@@ -4448,6 +4480,7 @@ export function VerificationStatusTab({
                         {aiPipelineAnalisi.bolleMancanti > 0 && (
                           <span className="text-[10px] text-amber-300">
                             <span className="font-bold">{aiPipelineAnalisi.bolleMancanti}</span> boll{aiPipelineAnalisi.bolleMancanti === 1 ? 'a' : 'e'} mancant{aiPipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}
+                            <span className="ml-1 text-amber-300/60">(DDT — inserimento manuale)</span>
                           </span>
                         )}
                         {aiPipelineAnalisi.erroreImporto > 0 && (
@@ -4456,20 +4489,21 @@ export function VerificationStatusTab({
                           </span>
                         )}
                       </div>
-                      {/* Email target */}
-                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.hasEmail && (
+                      {/* Email scan: solo se ci sono FATTURE mancanti (non DDT) */}
+                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.fatturaMancante > 0 && aiPipelineAnalisi.hasEmail && (
                         <p className="text-[10px] text-purple-200/80">
+                          Scansione casella{' '}
                           {aiPipelineAnalisi.supplierEmail
-                            ? <>Scansione casella <span className="font-mono font-semibold text-purple-200">{aiPipelineAnalisi.supplierEmail}</span>…</>
-                            : 'Scansione casella email del fornitore…'}
+                            ? <span className="font-mono font-semibold text-purple-200">{aiPipelineAnalisi.supplierEmail}</span>
+                            : 'del fornitore'}
+                          …
                         </p>
                       )}
-                      {aiPipelinePhase === 'ricerca' && !aiPipelineAnalisi.hasEmail && aiPipelineAnalisi.fatturaMancante > 0 && (
+                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.fatturaMancante > 0 && !aiPipelineAnalisi.hasEmail && (
                         <p className="text-[10px] text-amber-300/70">
-                          Nessuna email configurata per questo fornitore — salto ricerca email
+                          Nessuna email configurata — salto ricerca email
                         </p>
                       )}
-                      {/* Status message */}
                       {aiPipelineStatusMsg && aiPipelinePhase === 'associazione' && (
                         <p className="text-[10px] text-app-fg-muted">{aiPipelineStatusMsg}</p>
                       )}
@@ -4478,6 +4512,14 @@ export function VerificationStatusTab({
                   {!aiPipelineAnalisi && aiPipelineStatusMsg && (
                     <p className="text-[10px] text-purple-200/70">{aiPipelineStatusMsg}</p>
                   )}
+                  {/* Pulsante Annulla */}
+                  <button
+                    type="button"
+                    onClick={cancelAiPipeline}
+                    className="self-start text-[10px] text-app-fg-muted/60 hover:text-red-300 transition-colors underline"
+                  >
+                    Annulla
+                  </button>
                 </div>
               ) : (
                 /* ── Idle: invito all'azione ── */
