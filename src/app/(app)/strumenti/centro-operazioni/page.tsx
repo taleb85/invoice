@@ -18,10 +18,6 @@ import {
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { useReprocessDaAssociare } from '@/lib/use-reprocess-da-associare'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
-import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
-import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
-import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
-
 function OpsSectionTitle({ id, children }: { id?: string; children: ReactNode }) {
   return (
     <h2 id={id} className="mb-3 border-b border-app-line-10 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-app-fg-muted">
@@ -427,15 +423,6 @@ export default function CentroOperazioniPage() {
                 <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
               ) : null}
             </div>
-          </div>
-        </section>
-
-        <section className="flex w-full min-w-0 flex-col gap-6" aria-labelledby="ops-section-ocr">
-          <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
-          <div className="flex w-full min-w-0 flex-col gap-4">
-            <FixOcrDatesCard anchorId="ops-fix-ocr-dates" />
-            <ReclassifyPendingKindCard />
-            <AiReclassifyCard />
           </div>
         </section>
 

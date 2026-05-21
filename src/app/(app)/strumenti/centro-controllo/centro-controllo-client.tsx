@@ -5,17 +5,18 @@ import { useToast } from '@/lib/toast-context'
 import {
   AlertCircle,
   Brain,
+  Calendar,
   CheckCircle,
+  ChevronRight,
   ExternalLink,
   FileText,
   Loader2,
+  RefreshCw,
+  ScanLine,
   Search,
+  UserCheck,
   X,
   Zap,
-  RefreshCw,
-  UserCheck,
-  ScanLine,
-  Calendar,
 } from 'lucide-react'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
@@ -1493,116 +1494,124 @@ export default function CentroControlloClient({ sedeId }: Props) {
             </SectionCard>
           )}
 
-          {/* ── OCR & Qualità ── */}
-          <SectionCard title="OCR & Qualità">
-            <div className="divide-y divide-app-line-10">
-              <div className="px-4 py-3">
-                <ReclassifyPendingKindCard />
-              </div>
-              <div className="px-4 py-3">
-                <FixOcrDatesCard anchorId="cc-ocr-dates" />
-              </div>
-              <div className="px-4 py-3">
-                <AiReclassifyCard />
-              </div>
-            </div>
-          </SectionCard>
+          {/* ── Strumenti di Manutenzione Avanzata (collassabile) ── */}
+          <details className="group">
+            <summary className="flex cursor-pointer list-none select-none items-center gap-2 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-app-fg-muted transition-colors hover:bg-app-line-15 [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
+              Strumenti di Manutenzione Avanzata
+            </summary>
+            <div className="mt-4 flex flex-col gap-4">
 
-          {/* ── Sync & Email ── */}
-          <SectionCard title="Sync & Email">
-            <div className="divide-y divide-app-line-10">
-              <div className="px-4 py-3">
-                <p className="text-xs font-semibold text-app-fg">Sync storica (anno precedente)</p>
-                <p className="mt-1 text-xs text-app-fg-muted">
-                  Scarica tutte le email degli ultimi 365 giorni per il confronto con l'anno fiscale.
-                </p>
-                <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-100/90">
-                  Operazione lenta — può richiedere diversi minuti. Esegui solo una volta.
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    disabled={historicSyncLoading}
-                    onClick={handleHistoricSync}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/45 bg-violet-500/12 px-3 py-1.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:opacity-50"
-                  >
-                    {historicSyncLoading ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Calendar className="w-3 h-3" />
+              <SectionCard title="OCR & Qualità">
+                <div className="divide-y divide-app-line-10">
+                  <div className="px-4 py-3">
+                    <ReclassifyPendingKindCard />
+                  </div>
+                  <div className="px-4 py-3">
+                    <FixOcrDatesCard anchorId="cc-ocr-dates" />
+                  </div>
+                  <div className="px-4 py-3">
+                    <AiReclassifyCard />
+                  </div>
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Sync & Email">
+                <div className="divide-y divide-app-line-10">
+                  <div className="px-4 py-3">
+                    <p className="text-xs font-semibold text-app-fg">Sync storica (anno precedente)</p>
+                    <p className="mt-1 text-xs text-app-fg-muted">
+                      Scarica tutte le email degli ultimi 365 giorni per il confronto con l'anno fiscale.
+                    </p>
+                    <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-100/90">
+                      Operazione lenta — può richiedere diversi minuti. Esegui solo una volta.
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={historicSyncLoading}
+                        onClick={handleHistoricSync}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/45 bg-violet-500/12 px-3 py-1.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:opacity-50"
+                      >
+                        {historicSyncLoading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Calendar className="w-3 h-3" />
+                        )}
+                        Avvia sync storica
+                      </button>
+                      {historicSyncError && <span className="text-xs text-rose-300">{historicSyncError}</span>}
+                    </div>
+                    {historicProgressLine && (
+                      <p className="mt-2 text-xs text-app-fg-muted">{historicProgressLine}</p>
                     )}
-                    Avvia sync storica
-                  </button>
-                  {historicSyncError && <span className="text-xs text-rose-300">{historicSyncError}</span>}
+                    {historicSyncResult && (
+                      <p className="mt-2 whitespace-pre-line text-xs text-emerald-200/90">{historicSyncResult}</p>
+                    )}
+                  </div>
                 </div>
-                {historicProgressLine && (
-                  <p className="mt-2 text-xs text-app-fg-muted">{historicProgressLine}</p>
-                )}
-                {historicSyncResult && (
-                  <p className="mt-2 whitespace-pre-line text-xs text-emerald-200/90">{historicSyncResult}</p>
-                )}
-              </div>
-            </div>
-          </SectionCard>
+              </SectionCard>
 
-          {/* ── Manutenzione ── */}
-          <SectionCard title="Manutenzione">
-            <div className="divide-y divide-app-line-10">
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-app-fg">Cerca duplicati fatture</p>
-                  <p className="text-xs text-app-fg-muted">Stesso fornitore, stessa data e stesso numero fattura.</p>
+              <SectionCard title="Manutenzione">
+                <div className="divide-y divide-app-line-10">
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-app-fg">Cerca duplicati fatture</p>
+                      <p className="text-xs text-app-fg-muted">Stesso fornitore, stessa data e stesso numero fattura.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDupOpen(true)}
+                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18"
+                    >
+                      <ScanLine className="w-3 h-3" />
+                      Scansiona
+                    </button>
+                  </div>
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-app-fg">Audit abbinamenti fornitore</p>
+                      <p className="text-xs text-app-fg-muted">Allinea email mittente e fornitori assegnati.</p>
+                    </div>
+                    <a
+                      href="/inbox-ai?tab=audit"
+                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
+                    >
+                      <UserCheck className="w-3 h-3" />
+                      Apri audit
+                    </a>
+                  </div>
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-app-fg">Centro operazioni</p>
+                      <p className="text-xs text-app-fg-muted">Sync storica email, OCR batch, ripassaggio documenti e altri strumenti operativi.</p>
+                    </div>
+                    <a
+                      href="/strumenti/centro-operazioni"
+                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Apri
+                    </a>
+                  </div>
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-app-fg">Apprendimento AI</p>
+                      <p className="text-xs text-app-fg-muted">Statistiche e pattern di apprendimento automatico.</p>
+                    </div>
+                    <a
+                      href="/strumenti/centro-controllo/apprendimento"
+                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
+                    >
+                      <Brain className="w-3 h-3" />
+                      Apri
+                    </a>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setDupOpen(true)}
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18"
-                >
-                  <ScanLine className="w-3 h-3" />
-                  Scansiona
-                </button>
-              </div>
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-app-fg">Audit abbinamenti fornitore</p>
-                  <p className="text-xs text-app-fg-muted">Allinea email mittente e fornitori assegnati.</p>
-                </div>
-                <a
-                  href="/inbox-ai?tab=audit"
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
-                >
-                  <UserCheck className="w-3 h-3" />
-                  Apri audit
-                </a>
-              </div>
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-app-fg">Centro operazioni</p>
-                  <p className="text-xs text-app-fg-muted">Sync storica email, OCR batch, ripassaggio documenti e altri strumenti operativi.</p>
-                </div>
-                <a
-                  href="/strumenti/centro-operazioni"
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  Apri
-                </a>
-              </div>
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-app-fg">Apprendimento AI</p>
-                  <p className="text-xs text-app-fg-muted">Statistiche e pattern di apprendimento automatico.</p>
-                </div>
-                <a
-                  href="/strumenti/centro-controllo/apprendimento"
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
-                >
-                  <Brain className="w-3 h-3" />
-                  Apri
-                </a>
-              </div>
+              </SectionCard>
+
             </div>
-          </SectionCard>
+          </details>
         </div>
       </div>
 
