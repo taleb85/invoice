@@ -3587,8 +3587,18 @@ export function VerificationStatusTab({
     analisiTotale: number
     fastFixed: number
   }
+  type FornitoreAIPipelineAnalisi = {
+    fatturaMancante: number
+    bolleMancanti: number
+    erroreImporto: number
+    total: number
+    hasEmail: boolean
+    supplierEmail: string | null
+  }
   const [aiPipelinePhase, setAiPipelinePhase] = useState<FornitoreAIPipelinePhase>('idle')
   const [aiPipelineResult, setAiPipelineResult] = useState<FornitoreAIPipelineResult | null>(null)
+  const [aiPipelineAnalisi, setAiPipelineAnalisi] = useState<FornitoreAIPipelineAnalisi | null>(null)
+  const [aiPipelineStatusMsg, setAiPipelineStatusMsg] = useState<string | null>(null)
 
   const now = new Date()
   const loc = getLocale(countryCode)
@@ -3648,14 +3658,75 @@ export function VerificationStatusTab({
     if (!sedeId || !fornitoreId) return
     setAiPipelinePhase('analisi')
     setAiPipelineResult(null)
+    setAiPipelineAnalisi(null)
+    setAiPipelineStatusMsg('Analisi anomalie in corso…')
+
     try {
-      setAiPipelinePhase('ricerca')
+      // ── Fase 1: analisi separata per mostrare dettaglio all'utente ────────
+      const analisiRes = await fetch('/api/centro-controllo/analisi-anomalie', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sede_id: sedeId, offset: 0, chunk_size: 1, fornitore_id: fornitoreId }),
+      })
+      if (!analisiRes.ok) throw new Error(`Analisi HTTP ${analisiRes.status}`)
+      const analisiData = await analisiRes.json() as {
+        results: {
+          fatturaMancante: number
+          bolleMancanti: number
+          erroreImporto: number
+          total: number
+          hasEmail: boolean
+        }[]
+      }
+      const analisiRow = analisiData.results[0]
+
+      // Email already available on checkResults rows (no extra fetch needed)
+      const supplierEmail: string | null =
+        checkResults?.find(r => r.fornitore?.email)?.fornitore?.email ?? null
+
+      const pipelineAnalisi: FornitoreAIPipelineAnalisi = {
+        fatturaMancante: analisiRow?.fatturaMancante ?? 0,
+        bolleMancanti: analisiRow?.bolleMancanti ?? 0,
+        erroreImporto: analisiRow?.erroreImporto ?? 0,
+        total: analisiRow?.total ?? 0,
+        hasEmail: analisiRow?.hasEmail ?? false,
+        supplierEmail,
+      }
+      setAiPipelineAnalisi(pipelineAnalisi)
+
+      if (pipelineAnalisi.total === 0) {
+        setAiPipelineStatusMsg('Nessuna anomalia trovata.')
+        setAiPipelinePhase('done')
+        setAiPipelineResult({ resolved: 0, remaining: 0, emailImported: 0, analisiTotale: 0, fastFixed: 0 })
+        return
+      }
+
+      // Build descriptive message for ricerca phase
+      const parts: string[] = []
+      if (pipelineAnalisi.fatturaMancante > 0)
+        parts.push(`${pipelineAnalisi.fatturaMancante} fattur${pipelineAnalisi.fatturaMancante === 1 ? 'a' : 'e'} mancant${pipelineAnalisi.fatturaMancante === 1 ? 'e' : 'i'}`)
+      if (pipelineAnalisi.bolleMancanti > 0)
+        parts.push(`${pipelineAnalisi.bolleMancanti} boll${pipelineAnalisi.bolleMancanti === 1 ? 'a' : 'e'} mancant${pipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}`)
+      if (pipelineAnalisi.erroreImporto > 0)
+        parts.push(`${pipelineAnalisi.erroreImporto} errore${pipelineAnalisi.erroreImporto === 1 ? '' : 'i'} importo`)
+
+      // ── Fase 2: ricerca email (se necessario) ─────────────────────────────
+      if (pipelineAnalisi.fatturaMancante > 0 && pipelineAnalisi.hasEmail) {
+        setAiPipelinePhase('ricerca')
+        const emailTarget = supplierEmail ? ` in ${supplierEmail}` : ''
+        setAiPipelineStatusMsg(`Cercando ${parts.join(', ')}${emailTarget}…`)
+      } else {
+        setAiPipelineStatusMsg(`Trovate: ${parts.join(', ')}. Avvio associazione…`)
+      }
+
+      // ── Fasi 2+3: pipeline completa ───────────────────────────────────────
       const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sede_id: sedeId, fornitore_id: fornitoreId }),
       })
       setAiPipelinePhase('associazione')
+      setAiPipelineStatusMsg('Associazione e chiusura righe risolvibili…')
       if (!res.ok) throw new Error(`Pipeline HTTP ${res.status}`)
       const data = await res.json() as {
         analisi: { total: number }
@@ -3671,6 +3742,7 @@ export function VerificationStatusTab({
         fastFixed: data.assoc.fastFixed,
       })
       setAiPipelinePhase('done')
+      setAiPipelineStatusMsg(null)
       if (selectedStmt) {
         setStmtRecheckBusy(true)
         await fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
@@ -3679,6 +3751,7 @@ export function VerificationStatusTab({
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Errore pipeline AI', 'error')
       setAiPipelinePhase('idle')
+      setAiPipelineStatusMsg(null)
     }
   }, [sedeId, fornitoreId, selectedStmt, showToast])
 
@@ -4309,55 +4382,120 @@ export function VerificationStatusTab({
           if (totalAnomalie === 0 && aiPipelinePhase !== 'done') return null
           const isRunning = aiPipelinePhase !== 'idle' && aiPipelinePhase !== 'done'
           const isDone = aiPipelinePhase === 'done'
-          const phaseLabel =
-            aiPipelinePhase === 'analisi' ? 'Analisi…' :
-            aiPipelinePhase === 'ricerca' ? 'Ricerca email…' :
-            aiPipelinePhase === 'associazione' ? 'Associazione…' : ''
           return (
-            <div className={`flex items-center gap-2 flex-wrap border-b border-app-soft-border px-4 py-2 text-xs transition-colors ${isRunning ? 'bg-purple-950/25' : isDone ? 'bg-emerald-950/20' : 'bg-transparent'}`}>
+            <div className={`border-b border-app-soft-border px-4 py-2.5 text-xs transition-colors ${isRunning ? 'bg-purple-950/25' : isDone ? 'bg-emerald-950/20' : 'bg-transparent'}`}>
               {isDone && aiPipelineResult ? (
-                <>
-                  <span className={aiPipelineResult.resolved > 0 ? 'text-emerald-300 font-semibold' : 'text-amber-200/90'}>
-                    {aiPipelineResult.resolved > 0
-                      ? `✓ ${aiPipelineResult.resolved} anomali${aiPipelineResult.resolved === 1 ? 'a' : 'e'} risolt${aiPipelineResult.resolved === 1 ? 'a' : 'e'}`
-                      : 'Nessuna anomalia risolvibile automaticamente'}
-                    {aiPipelineResult.emailImported > 0 && ` · +${aiPipelineResult.emailImported} doc da email`}
-                    {aiPipelineResult.remaining > 0 && <span className="text-amber-300"> · {aiPipelineResult.remaining} intervento manuale</span>}
-                  </span>
+                /* ── Risultato finale ── */
+                <div className="flex items-start gap-2 flex-wrap">
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className={aiPipelineResult.resolved > 0 ? 'text-emerald-300 font-semibold' : 'text-amber-200/90'}>
+                      {aiPipelineResult.resolved > 0
+                        ? `✓ ${aiPipelineResult.resolved} anomali${aiPipelineResult.resolved === 1 ? 'a' : 'e'} risolt${aiPipelineResult.resolved === 1 ? 'a' : 'e'} automaticamente`
+                        : 'Nessuna anomalia risolvibile automaticamente'}
+                      {aiPipelineResult.emailImported > 0 && (
+                        <span className="text-emerald-400"> · +{aiPipelineResult.emailImported} document{aiPipelineResult.emailImported === 1 ? 'o' : 'i'} importat{aiPipelineResult.emailImported === 1 ? 'o' : 'i'} da email</span>
+                      )}
+                    </p>
+                    {aiPipelineResult.remaining > 0 && (
+                      <p className="text-amber-300/90">
+                        ⚠ {aiPipelineResult.remaining} anomali{aiPipelineResult.remaining === 1 ? 'a richiede' : 'e richiedono'} intervento manuale
+                      </p>
+                    )}
+                  </div>
                   <button
                     type="button"
-                    onClick={() => { setAiPipelinePhase('idle'); setAiPipelineResult(null) }}
-                    className="ml-auto text-[10px] text-app-fg-muted hover:text-app-fg transition-colors"
+                    onClick={() => { setAiPipelinePhase('idle'); setAiPipelineResult(null); setAiPipelineAnalisi(null) }}
+                    className="shrink-0 text-[10px] text-app-fg-muted hover:text-app-fg transition-colors"
                   >
                     Reimposta
                   </button>
-                </>
+                </div>
               ) : isRunning ? (
-                <>
-                  <svg className="w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                  <span className="text-purple-200">{phaseLabel}</span>
-                </>
+                /* ── In esecuzione: dettaglio per fase ── */
+                <div className="space-y-1.5">
+                  {/* Phase stepper */}
+                  <div className="flex items-center gap-2">
+                    {(['analisi', 'ricerca', 'associazione'] as const).map((ph, i) => {
+                      const phaseIdx = aiPipelinePhase === 'analisi' ? 0 : aiPipelinePhase === 'ricerca' ? 1 : 2
+                      const done = phaseIdx > i
+                      const active = phaseIdx === i
+                      return (
+                        <div key={ph} className="flex items-center gap-1">
+                          {i > 0 && <span className="text-app-fg-muted/30 text-[9px]">→</span>}
+                          <span className={`text-[10px] font-semibold ${active ? 'text-purple-200' : done ? 'text-emerald-300' : 'text-app-fg-muted/40'}`}>
+                            {done ? '✓ ' : active ? '' : ''}{ph === 'analisi' ? 'Analisi' : ph === 'ricerca' ? 'Ricerca email' : 'Associazione'}
+                          </span>
+                        </div>
+                      )
+                    })}
+                    <svg className="ml-1 w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                  </div>
+                  {/* Dettaglio anomalie trovate + cosa sta cercando */}
+                  {aiPipelineAnalisi && (
+                    <div className="rounded-md bg-black/20 px-2.5 py-1.5 space-y-1">
+                      {/* Anomalie trovate nell'analisi */}
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                        {aiPipelineAnalisi.fatturaMancante > 0 && (
+                          <span className="text-[10px] text-orange-300">
+                            <span className="font-bold">{aiPipelineAnalisi.fatturaMancante}</span> fattur{aiPipelineAnalisi.fatturaMancante === 1 ? 'a' : 'e'} mancant{aiPipelineAnalisi.fatturaMancante === 1 ? 'e' : 'i'}
+                          </span>
+                        )}
+                        {aiPipelineAnalisi.bolleMancanti > 0 && (
+                          <span className="text-[10px] text-amber-300">
+                            <span className="font-bold">{aiPipelineAnalisi.bolleMancanti}</span> boll{aiPipelineAnalisi.bolleMancanti === 1 ? 'a' : 'e'} mancant{aiPipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}
+                          </span>
+                        )}
+                        {aiPipelineAnalisi.erroreImporto > 0 && (
+                          <span className="text-[10px] text-red-300">
+                            <span className="font-bold">{aiPipelineAnalisi.erroreImporto}</span> errore{aiPipelineAnalisi.erroreImporto === 1 ? '' : 'i'} importo
+                          </span>
+                        )}
+                      </div>
+                      {/* Email target */}
+                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.hasEmail && (
+                        <p className="text-[10px] text-purple-200/80">
+                          {aiPipelineAnalisi.supplierEmail
+                            ? <>Scansione casella <span className="font-mono font-semibold text-purple-200">{aiPipelineAnalisi.supplierEmail}</span>…</>
+                            : 'Scansione casella email del fornitore…'}
+                        </p>
+                      )}
+                      {aiPipelinePhase === 'ricerca' && !aiPipelineAnalisi.hasEmail && aiPipelineAnalisi.fatturaMancante > 0 && (
+                        <p className="text-[10px] text-amber-300/70">
+                          Nessuna email configurata per questo fornitore — salto ricerca email
+                        </p>
+                      )}
+                      {/* Status message */}
+                      {aiPipelineStatusMsg && aiPipelinePhase === 'associazione' && (
+                        <p className="text-[10px] text-app-fg-muted">{aiPipelineStatusMsg}</p>
+                      )}
+                    </div>
+                  )}
+                  {!aiPipelineAnalisi && aiPipelineStatusMsg && (
+                    <p className="text-[10px] text-purple-200/70">{aiPipelineStatusMsg}</p>
+                  )}
+                </div>
               ) : (
-                <>
-                  <span className="text-amber-300/90 font-semibold">{totalAnomalie} anomali{totalAnomalie === 1 ? 'a' : 'e'} rilevat{totalAnomalie === 1 ? 'a' : 'e'}</span>
-                  <span className="text-app-fg-muted">— l&apos;AI può analizzare e risolvere automaticamente</span>
-                </>
-              )}
-              {!isRunning && !isDone && (
-                <button
-                  type="button"
-                  onClick={() => void handleAiPipeline()}
-                  disabled={isRunning || !sedeId || !fornitoreId}
-                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  Risolvi con AI
-                </button>
+                /* ── Idle: invito all'azione ── */
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-amber-300/90 font-semibold">{totalAnomalie} anomali{totalAnomalie === 1 ? 'a' : 'e'} rilevat{totalAnomalie === 1 ? 'a' : 'e'}</span>
+                    <span className="ml-1.5 text-app-fg-muted">— l&apos;AI può analizzare e risolvere automaticamente</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleAiPipeline()}
+                    disabled={!sedeId || !fornitoreId}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Risolvi con AI
+                  </button>
+                </div>
               )}
             </div>
           )
