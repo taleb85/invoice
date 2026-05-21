@@ -1315,29 +1315,37 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             )
                           })()}
 
-                          {/* Ricalcola triple-check (fallback manuale) */}
-                          <div className="rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5 space-y-2">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-[11px] font-semibold text-app-fg">Ricalcola tutto il triple-check</p>
-                                <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
-                                  Riesegue il confronto fattura ↔ bolla ↔ estratto conto su ogni riga. Usa dopo aver caricato nuove fatture o DDT per aggiornare i risultati.
-                                </p>
+                          {/* Ricalcola triple-check — nascosto in un toggle «avanzato» */}
+                          <details className="group">
+                            <summary className="cursor-pointer list-none text-[10px] text-app-fg-muted/60 hover:text-app-fg-muted transition-colors select-none flex items-center gap-1">
+                              <svg className="w-2.5 h-2.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                              Opzioni avanzate
+                            </summary>
+                            <div className="mt-2 rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5 space-y-2">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[11px] font-semibold text-app-fg">Ricalcola tutto il triple-check</p>
+                                  <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
+                                    Riesegue il confronto fattura ↔ bolla ↔ estratto conto su ogni riga. Usa dopo aver caricato manualmente nuove fatture o DDT.
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleReprocessChecks}
+                                  disabled={reprocessingChecks}
+                                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
+                                >
+                                  {reprocessingChecks ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                  {reprocessingChecks ? 'In corso…' : 'Ricalcola'}
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={handleReprocessChecks}
-                                disabled={reprocessingChecks}
-                                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
-                              >
-                                {reprocessingChecks ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                {reprocessingChecks ? 'In corso…' : 'Ricalcola'}
-                              </button>
+                              {reprocessChecksResult && (
+                                <p className="text-[11px] leading-relaxed text-emerald-300">{reprocessChecksResult}</p>
+                              )}
                             </div>
-                            {reprocessChecksResult && (
-                              <p className="text-[11px] leading-relaxed text-emerald-300">{reprocessChecksResult}</p>
-                            )}
-                          </div>
+                          </details>
                         </>
                       ) : (
                         <div className="flex items-center gap-2 text-xs text-app-fg-muted">

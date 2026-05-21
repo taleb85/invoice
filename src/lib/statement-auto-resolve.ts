@@ -18,12 +18,14 @@ export type FornitoreAnomaliaBreakdown = {
 /**
  * Analisi read-only delle anomalie per fornitore.
  * Non modifica dati — usata come Fase 1 della pipeline AI.
+ * Se `fornitoreId` è fornito, limita l'analisi a quel fornitore (offset/chunkSize ignorati).
  */
 export async function analyzeAnomaliePerFornitore(
   supabase: SupabaseClient,
   sedeId: string,
   offset: number,
   chunkSize: number,
+  fornitoreId?: string,
 ): Promise<{
   done: boolean
   offset: number
@@ -31,10 +33,12 @@ export async function analyzeAnomaliePerFornitore(
   results: FornitoreAnomaliaBreakdown[]
 }> {
   // Load all statements for sede (with fornitore info)
-  const { data: statements } = await supabase
+  let query = supabase
     .from('statements')
     .select('id, fornitore_id, fornitori(nome)')
     .eq('sede_id', sedeId)
+  if (fornitoreId) query = query.eq('fornitore_id', fornitoreId)
+  const { data: statements } = await query
   if (!statements?.length) return { done: true, offset: 0, total: 0, results: [] }
 
   // Build fornitore map
@@ -270,11 +274,15 @@ type FornitoreGroup = {
 async function loadFornitoriWithActionableAnomalies(
   supabase: SupabaseClient,
   sedeId: string,
+  filterFornitoreId?: string,
 ): Promise<FornitoreGroup[]> {
   const stmtsWithAnomalies = await loadStatementIdsWithAnomalies(supabase, sedeId, true)
-  if (!stmtsWithAnomalies.length) return []
+  const filtered = filterFornitoreId
+    ? stmtsWithAnomalies.filter((s) => s.fornitore_id === filterFornitoreId)
+    : stmtsWithAnomalies
+  if (!filtered.length) return []
 
-  const fornitoreIds = [...new Set(stmtsWithAnomalies.map((s) => s.fornitore_id).filter(Boolean) as string[])]
+  const fornitoreIds = [...new Set(filtered.map((s) => s.fornitore_id).filter(Boolean) as string[])]
   const fornitoreNomeMap = new Map<string, string>()
   for (let i = 0; i < fornitoreIds.length; i += IN_CHUNK) {
     const chunk = fornitoreIds.slice(i, i + IN_CHUNK)
@@ -283,7 +291,7 @@ async function loadFornitoriWithActionableAnomalies(
   }
 
   const groups = new Map<string, FornitoreGroup>()
-  for (const stmt of stmtsWithAnomalies) {
+  for (const stmt of filtered) {
     const key = stmt.fornitore_id ?? '__unknown__'
     if (!groups.has(key)) {
       groups.set(key, {
@@ -332,6 +340,7 @@ export async function autoRisolviPerFornitoreChunk(
   sedeId: string,
   offset: number,
   chunkSize: number,
+  filterFornitoreId?: string,
 ): Promise<AutoRisolviFornitoreChunkResult> {
   let fastFixed: number | undefined
 
@@ -339,7 +348,7 @@ export async function autoRisolviPerFornitoreChunk(
     fastFixed = await fastCloseResolvedRows(supabase, sedeId)
   }
 
-  const allGroups = await loadFornitoriWithActionableAnomalies(supabase, sedeId)
+  const allGroups = await loadFornitoriWithActionableAnomalies(supabase, sedeId, filterFornitoreId)
   const total = allGroups.length
 
   if (total === 0) {

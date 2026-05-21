@@ -3577,6 +3577,19 @@ export function VerificationStatusTab({
   const router = useRouter()
   const [stmtHeaderRefreshPending, startStmtHeaderRefresh] = useTransition()
   const [stmtRecheckBusy, setStmtRecheckBusy] = useState(false)
+
+  // ── Pipeline AI per fornitore (state only; handler declared after selectedStmt) ──
+  type FornitoreAIPipelinePhase = 'idle' | 'analisi' | 'ricerca' | 'associazione' | 'done'
+  type FornitoreAIPipelineResult = {
+    resolved: number
+    remaining: number
+    emailImported: number
+    analisiTotale: number
+    fastFixed: number
+  }
+  const [aiPipelinePhase, setAiPipelinePhase] = useState<FornitoreAIPipelinePhase>('idle')
+  const [aiPipelineResult, setAiPipelineResult] = useState<FornitoreAIPipelineResult | null>(null)
+
   const now = new Date()
   const loc = getLocale(countryCode)
   const resolvedCurrency = currency ?? loc.currency ?? 'EUR'
@@ -3629,6 +3642,45 @@ export function VerificationStatusTab({
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
   const [needsMigration, setNeedsMigration] = useState(false)
   const [selectedStmt,   setSelectedStmt]   = useState<StmtRecord | null>(null)
+
+  // ── Pipeline AI per fornitore — handler (after selectedStmt + showToast) ──
+  const handleAiPipeline = useCallback(async () => {
+    if (!sedeId || !fornitoreId) return
+    setAiPipelinePhase('analisi')
+    setAiPipelineResult(null)
+    try {
+      setAiPipelinePhase('ricerca')
+      const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sede_id: sedeId, fornitore_id: fornitoreId }),
+      })
+      setAiPipelinePhase('associazione')
+      if (!res.ok) throw new Error(`Pipeline HTTP ${res.status}`)
+      const data = await res.json() as {
+        analisi: { total: number }
+        ricerca: { imported: number } | null
+        assoc: { resolved: number; remaining: number; fastFixed: number }
+        remainingAnomalies: number
+      }
+      setAiPipelineResult({
+        resolved: data.assoc.resolved + data.assoc.fastFixed,
+        remaining: data.remainingAnomalies,
+        emailImported: data.ricerca?.imported ?? 0,
+        analisiTotale: data.analisi.total,
+        fastFixed: data.assoc.fastFixed,
+      })
+      setAiPipelinePhase('done')
+      if (selectedStmt) {
+        setStmtRecheckBusy(true)
+        await fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
+          .finally(() => setStmtRecheckBusy(false))
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Errore pipeline AI', 'error')
+      setAiPipelinePhase('idle')
+    }
+  }, [sedeId, fornitoreId, selectedStmt, showToast])
 
   /* ── Triple-check state ───────────────────────────── */
   const [checkResults,   setCheckResults]   = useState<CheckResult[] | null>(null)
@@ -4251,6 +4303,66 @@ export function VerificationStatusTab({
         )}
 
         {/* Results */}
+        {/* ── Pipeline AI banner (solo scheda fornitore, quando ci sono anomalie) ── */}
+        {vsEmbeddedSupplier && checkResults && (() => {
+          const totalAnomalie = checkResults.filter(r => r.status !== 'ok' && r.status !== 'pending').length
+          if (totalAnomalie === 0 && aiPipelinePhase !== 'done') return null
+          const isRunning = aiPipelinePhase !== 'idle' && aiPipelinePhase !== 'done'
+          const isDone = aiPipelinePhase === 'done'
+          const phaseLabel =
+            aiPipelinePhase === 'analisi' ? 'Analisi…' :
+            aiPipelinePhase === 'ricerca' ? 'Ricerca email…' :
+            aiPipelinePhase === 'associazione' ? 'Associazione…' : ''
+          return (
+            <div className={`flex items-center gap-2 flex-wrap border-b border-app-soft-border px-4 py-2 text-xs transition-colors ${isRunning ? 'bg-purple-950/25' : isDone ? 'bg-emerald-950/20' : 'bg-transparent'}`}>
+              {isDone && aiPipelineResult ? (
+                <>
+                  <span className={aiPipelineResult.resolved > 0 ? 'text-emerald-300 font-semibold' : 'text-amber-200/90'}>
+                    {aiPipelineResult.resolved > 0
+                      ? `✓ ${aiPipelineResult.resolved} anomali${aiPipelineResult.resolved === 1 ? 'a' : 'e'} risolt${aiPipelineResult.resolved === 1 ? 'a' : 'e'}`
+                      : 'Nessuna anomalia risolvibile automaticamente'}
+                    {aiPipelineResult.emailImported > 0 && ` · +${aiPipelineResult.emailImported} doc da email`}
+                    {aiPipelineResult.remaining > 0 && <span className="text-amber-300"> · {aiPipelineResult.remaining} intervento manuale</span>}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setAiPipelinePhase('idle'); setAiPipelineResult(null) }}
+                    className="ml-auto text-[10px] text-app-fg-muted hover:text-app-fg transition-colors"
+                  >
+                    Reimposta
+                  </button>
+                </>
+              ) : isRunning ? (
+                <>
+                  <svg className="w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  <span className="text-purple-200">{phaseLabel}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-amber-300/90 font-semibold">{totalAnomalie} anomali{totalAnomalie === 1 ? 'a' : 'e'} rilevat{totalAnomalie === 1 ? 'a' : 'e'}</span>
+                  <span className="text-app-fg-muted">— l&apos;AI può analizzare e risolvere automaticamente</span>
+                </>
+              )}
+              {!isRunning && !isDone && (
+                <button
+                  type="button"
+                  onClick={() => void handleAiPipeline()}
+                  disabled={isRunning || !sedeId || !fornitoreId}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  Risolvi con AI
+                </button>
+              )}
+            </div>
+          )
+        })()}
+
         {checkResults && (
           <div className="min-w-0 w-full">
             {/* ── Inline header: title + filter chips + clear ── */}
