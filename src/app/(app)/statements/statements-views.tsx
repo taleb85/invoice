@@ -3335,6 +3335,7 @@ type CheckStatus =
   | 'rekki_prezzo_discordanza'
 
 interface CheckResult {
+  id:               string
   numero:           string
   importoStatement: number
   status:           CheckStatus
@@ -4016,6 +4017,7 @@ export function VerificationStatusTab({
     }
     const rows = raw as RowFromDb[]
     const mapped: CheckResult[] = rows.map(r => ({
+      id:               r.id,
       numero:           r.numero_doc,
       importoStatement: Number(r.importo),
       status:           normalizeCheckStatus(r.check_status),
@@ -4614,7 +4616,7 @@ export function VerificationStatusTab({
 
               return (
                 <div
-                  key={r.numero}
+                  key={r.id}
                   className={`flex items-start gap-3 border-b border-app-line-15 px-4 py-3 last:border-0 ${
                     r.status === 'rekki_prezzo_discordanza'
                       ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
@@ -4829,7 +4831,7 @@ export function VerificationStatusTab({
 
                     return (
                       <tr
-                        key={r.numero}
+                        key={r.id}
                         className={`transition-colors hover:bg-cyan-500/[0.06] ${
                         r.status === 'rekki_prezzo_discordanza'
                           ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
