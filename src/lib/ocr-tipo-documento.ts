@@ -1,17 +1,23 @@
 /**
  * Normalizza `tipo_documento` da OCR / metadata (solo stringhe, nessuna dipendenza server).
  * Usato da client e da scan email senza trascinare `ocr-invoice` + vision.
- * `curriculum` = CV / résumé — non va in coda fatture/bolle.
+ *
+ * Enum canonico (allineato a OCR_INVOICE_SCHEMA e al prompt di sistema):
+ *   fattura | nota_credito | bolla_ddt | ordine | estratto_conto | comunicazione
+ *
+ * Legacy → canonico (per retrocompatibilità con valori già presenti in DB):
+ *   bolla / ddt           → bolla_ddt
+ *   comunicazione_cliente → comunicazione
+ *   curriculum / cv       → comunicazione  (non è un doc fiscale)
+ *   listino / altro       → null           (non più tracciati come tipo distinto)
  */
 export type NormalizedTipoDocumento =
   | 'fattura'
   | 'nota_credito'
-  | 'bolla'
-  | 'listino'
+  | 'bolla_ddt'
   | 'ordine'
-  | 'altro'
-  | 'curriculum'
-  | 'comunicazione_cliente'
+  | 'estratto_conto'
+  | 'comunicazione'
   | null
 
 /**
@@ -46,7 +52,7 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   if (raw == null || raw === '') return null
   const s = String(raw).toLowerCase().replace(/\s+/g, ' ').trim()
 
-  /** CV / resume personale — prima di heuristiche invoice/bolla che potrebbero confondersi. */
+  // ── CV / résumé personale → comunicazione (non fiscale) ──────────────────
   if (
     s === 'cv' ||
     s === 'c.v' ||
@@ -61,19 +67,22 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     /\b(résumé|resumé|resume)\b/.test(s) ||
     /\blebenslauf\b/.test(s)
   ) {
-    return 'curriculum'
+    return 'comunicazione'
   }
 
+  // ── Comunicazione cliente (legacy alias inclusi) ──────────────────────────
   if (
+    s === 'comunicazione' ||
     s === 'comunicazione_cliente' ||
     s === 'comunicazione-cliente' ||
     s === 'customer_communication' ||
     s === 'client_communication' ||
     /\bcomunicazione\s+cliente\b/.test(s)
   ) {
-    return 'comunicazione_cliente'
+    return 'comunicazione'
   }
 
+  // ── Nota credito ──────────────────────────────────────────────────────────
   if (
     s === 'nota_credito' ||
     s === 'credito' ||
@@ -87,6 +96,7 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     return 'nota_credito'
   }
 
+  // ── Fattura ───────────────────────────────────────────────────────────────
   if (
     s === 'fattura' ||
     s === 'invoice' ||
@@ -102,20 +112,38 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   ) {
     return 'fattura'
   }
-  if (s === 'bolla' || s === 'ddt' || s === 'delivery' || s === 'delivery_note' || s === 'lieferschein' || s === 'albaran') return 'bolla'
-  if (s === 'listino' || s === 'listino_prezzi' || s === 'price_list' || s === 'catalogue' || s === 'catalog') return 'listino'
-  if (s === 'ordine' || s === 'order' || s === 'purchase_order' || s === 'po') return 'ordine'
+
+  // ── Bolla / DDT (legacy 'bolla' incluso come alias) ──────────────────────
   if (
-    s === 'altro' ||
-    s === 'other' ||
+    s === 'bolla_ddt' ||
+    s === 'bolla' ||
+    s === 'ddt' ||
+    s === 'delivery' ||
+    s === 'delivery_note' ||
+    s === 'lieferschein' ||
+    s === 'albaran'
+  ) {
+    return 'bolla_ddt'
+  }
+
+  // ── Estratto conto (legacy 'altro'/'estratto' inclusi come alias) ─────────
+  if (
     s === 'estratto_conto' ||
     s === 'estratto' ||
     s === 'statement' ||
     s === 'account_statement'
   ) {
-    return 'altro'
+    return 'estratto_conto'
   }
 
+  // ── Ordine ────────────────────────────────────────────────────────────────
+  if (s === 'ordine' || s === 'order' || s === 'purchase_order' || s === 'po') return 'ordine'
+
+  // ── Listino / altro → null (non più tipi distinti nell'enum) ─────────────
+  if (s === 'listino' || s === 'listino_prezzi' || s === 'price_list' || s === 'catalogue' || s === 'catalog') return null
+  if (s === 'altro' || s === 'other') return null
+
+  // ── Fuzzy matching ────────────────────────────────────────────────────────
   if (
     /\bfattura\b/.test(s) ||
     /\binvoice\b/.test(s) ||
@@ -145,10 +173,13 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     /bon\s+de\s+livraison/.test(s) ||
     /documento\s+di\s+trasporto/.test(s)
   ) {
-    return 'bolla'
+    return 'bolla_ddt'
+  }
+  if (/\bestratto\s+conto\b/.test(s) || /\baccount\s+statement\b/.test(s)) {
+    return 'estratto_conto'
   }
   if (/preventivo|quotation|\bquote\b|pro[\s_-]?forma/.test(s)) {
-    return 'altro'
+    return null
   }
   if (/order\s+confirmation|\bordine\b/.test(s)) {
     return 'ordine'

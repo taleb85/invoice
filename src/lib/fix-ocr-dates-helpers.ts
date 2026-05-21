@@ -1,4 +1,5 @@
 import { scanContextSuggestsBolla, scanContextSuggestsFattura } from '@/lib/document-bozza-routing'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
 /**
  * Nome file dall’URL (per euristiche fattura vs DDT in assenza di contesto email).
@@ -87,16 +88,11 @@ export function normalizeNumeroBolla(raw: string | null | undefined): string | n
  */
 export function shouldMigrateBollaRowToFattura(params: {
   ocr: {
-    tipo_documento:
-      | 'fattura'
-      | 'nota_credito'
-      | 'bolla'
-      | 'listino'
-      | 'ordine'
-      | 'altro'
-      | 'curriculum'
-      | 'comunicazione_cliente'
-      | null
+    /**
+     * Accetta sia i nuovi valori canonici (bolla_ddt, comunicazione, …) sia i legacy
+     * (bolla, comunicazione_cliente, altro, curriculum) presenti in DB pre-migrazione.
+     */
+    tipo_documento: string | null
     numero_fattura: string | null
     totale_iva_inclusa: number | null
   }
@@ -108,10 +104,12 @@ export function shouldMigrateBollaRowToFattura(params: {
   existingImporto?: number | null
 }): boolean {
   const { ocr, fileUrl, bollaIdForce, allowTipoMigrate, existingNumeroBolla, existingImporto } = params
-  const t = ocr.tipo_documento
+  // Normalizza sia valori nuovi (bolla_ddt) sia legacy (bolla, altro, curriculum…)
+  const t = normalizeTipoDocumento(ocr.tipo_documento)
   if (!allowTipoMigrate) return t === 'fattura'
   if (t === 'fattura') return true
-  if (t === 'curriculum' || t === 'comunicazione_cliente') return false
+  // comunicazione include ex-curriculum e ex-comunicazione_cliente: non migrare
+  if (t === 'comunicazione') return false
   if (!bollaIdForce) return false
 
   const fname = fileNameFromStorageUrl(fileUrl)
@@ -141,11 +139,11 @@ export function shouldMigrateBollaRowToFattura(params: {
    */
   if (ctxFat && !ctxBol) return true
 
-  if (t === 'bolla' || t === 'altro') {
+  // bolla_ddt (ex-bolla) o null con dati: heuristica migrazione attiva
+  if (t === 'bolla_ddt' || t === null) {
     if (!hasNumeroImporto) return false
     return true
   }
-  if (t == null && hasNumeroImporto) return true
   return false
 }
 

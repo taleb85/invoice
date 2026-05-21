@@ -19,30 +19,32 @@ describe('normalizeTipoDocumento', () => {
     expect(normalizeTipoDocumento('credit_note')).toBe('nota_credito')
   })
 
-  it('riconosce bolla/DDT in vari formati', () => {
-    expect(normalizeTipoDocumento('bolla')).toBe('bolla')
-    expect(normalizeTipoDocumento('ddt')).toBe('bolla')
-    expect(normalizeTipoDocumento('delivery_note')).toBe('bolla')
-    expect(normalizeTipoDocumento('delivery note')).toBe('bolla')
-    expect(normalizeTipoDocumento('Lieferschein')).toBe('bolla')
+  it('riconosce bolla/DDT in vari formati → bolla_ddt', () => {
+    expect(normalizeTipoDocumento('bolla')).toBe('bolla_ddt')
+    expect(normalizeTipoDocumento('bolla_ddt')).toBe('bolla_ddt')
+    expect(normalizeTipoDocumento('ddt')).toBe('bolla_ddt')
+    expect(normalizeTipoDocumento('delivery_note')).toBe('bolla_ddt')
+    expect(normalizeTipoDocumento('delivery note')).toBe('bolla_ddt')
+    expect(normalizeTipoDocumento('Lieferschein')).toBe('bolla_ddt')
   })
 
-  it('mappa ordine come tipo distinto, estratto conto come altro', () => {
+  it('mappa ordine come tipo distinto, estratto conto come estratto_conto', () => {
     expect(normalizeTipoDocumento('ordine')).toBe('ordine')
-    expect(normalizeTipoDocumento('estratto_conto')).toBe('altro')
+    expect(normalizeTipoDocumento('estratto_conto')).toBe('estratto_conto')
     expect(normalizeTipoDocumento('purchase_order')).toBe('ordine')
-    expect(normalizeTipoDocumento('statement')).toBe('altro')
+    expect(normalizeTipoDocumento('statement')).toBe('estratto_conto')
   })
 
-  it('preserva comunicazione_cliente dal modello', () => {
-    expect(normalizeTipoDocumento('comunicazione_cliente')).toBe('comunicazione_cliente')
-    expect(normalizeTipoDocumento('customer_communication')).toBe('comunicazione_cliente')
+  it('normalizza comunicazione_cliente e alias → comunicazione', () => {
+    expect(normalizeTipoDocumento('comunicazione')).toBe('comunicazione')
+    expect(normalizeTipoDocumento('comunicazione_cliente')).toBe('comunicazione')
+    expect(normalizeTipoDocumento('customer_communication')).toBe('comunicazione')
   })
 
-  it('riconosce curriculum / CV / résumé', () => {
-    expect(normalizeTipoDocumento('curriculum vitae')).toBe('curriculum')
-    expect(normalizeTipoDocumento('Resume')).toBe('curriculum')
-    expect(normalizeTipoDocumento('lebenslauf')).toBe('curriculum')
+  it('normalizza curriculum / CV / résumé → comunicazione', () => {
+    expect(normalizeTipoDocumento('curriculum vitae')).toBe('comunicazione')
+    expect(normalizeTipoDocumento('Resume')).toBe('comunicazione')
+    expect(normalizeTipoDocumento('lebenslauf')).toBe('comunicazione')
   })
 
   it('restituisce null per valori assenti o non riconosciuti', () => {
@@ -109,7 +111,15 @@ describe('inferPendingDocumentKindForQueueRow', () => {
     ).toBe('fattura')
   })
 
-  it('classifica come bolla quando OCR dice "bolla"', () => {
+  it('classifica come bolla quando OCR dice "bolla_ddt" (o legacy "bolla")', () => {
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: null,
+        file_name: null,
+        metadata: { tipo_documento: 'bolla_ddt', numero_fattura: '50229873', totale_iva_inclusa: 500 },
+      }),
+    ).toBe('bolla')
+    // Retrocompatibilità: il valore legacy 'bolla' viene normalizzato a 'bolla_ddt'
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: null,
@@ -129,7 +139,7 @@ describe('inferPendingDocumentKindForQueueRow', () => {
     ).toBe('bolla')
   })
 
-  it('classifica come comunicazione quando OCR indica curriculum/CV (non forzare fattura da nome file)', () => {
+  it('classifica come comunicazione quando OCR indica curriculum/CV (normalizzato a comunicazione)', () => {
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: null,
@@ -139,7 +149,14 @@ describe('inferPendingDocumentKindForQueueRow', () => {
     ).toBe('comunicazione')
   })
 
-  it('classifica come comunicazione quando OCR dice "comunicazione_cliente"', () => {
+  it('classifica come comunicazione quando OCR dice "comunicazione" o legacy "comunicazione_cliente"', () => {
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: null,
+        file_name: null,
+        metadata: { tipo_documento: 'comunicazione' },
+      }),
+    ).toBe('comunicazione')
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: null,

@@ -256,16 +256,15 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   const md = opts.metadata
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
 
-  if (tipo === 'curriculum') return 'comunicazione'
-  if (tipo === 'bolla') return 'bolla'
+  if (tipo === 'comunicazione') return 'comunicazione'
+  if (tipo === 'bolla_ddt') return 'bolla'
   if (tipo === 'fattura') return 'fattura'
   if (tipo === 'nota_credito') return 'nota_credito'
-  if (tipo === 'listino') return 'listino'
   if (tipo === 'ordine') return 'ordine'
+  if (tipo === 'estratto_conto') return 'statement'
 
-  // Se l'OCR ha classificato come "altro" / "statement" / "estratto_conto",
-  // controlliamo comunque l'euristica email: l'oggetto/nome file è più affidabile
-  // dell'OCR per capire se è una fattura, bolla, listino etc.
+  // Se l'OCR ha classificato come tipo noto ma non un documento direttamente
+  // instradabile (es. null con contesto email), controlliamo l'euristica email.
   if (tipo !== null) {
     // L'OCR dice 'altro' ma l'oggetto/nome file è esplicito
     const subj = opts.oggetto_mail

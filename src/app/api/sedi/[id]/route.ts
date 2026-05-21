@@ -199,10 +199,28 @@ export async function PATCH(
     update.imap_user = body.imap_user && String(body.imap_user).trim() ? String(body.imap_user).trim() : null
   }
   if (body.imap_password !== undefined) {
-    update.imap_password =
-      body.imap_password === null || body.imap_password === ''
-        ? null
-        : String(body.imap_password)
+    if (body.imap_password === null || body.imap_password === '') {
+      update.imap_password = null
+    } else {
+      const plain = String(body.imap_password)
+      try {
+        const { data: encrypted, error: encErr } = await service.rpc('imap_encrypt', { plaintext: plain })
+        if (encErr || !encrypted) {
+          console.error('[sedi PATCH] imap_encrypt RPC fallita:', encErr?.message ?? 'risposta vuota')
+          return NextResponse.json(
+            { error: 'Impossibile cifrare la password IMAP. Verificare la configurazione della chiave di cifratura.' },
+            { status: 500 },
+          )
+        }
+        update.imap_password = String(encrypted)
+      } catch (e) {
+        console.error('[sedi PATCH] imap_encrypt eccezione:', e)
+        return NextResponse.json(
+          { error: 'Errore interno durante la cifratura della password IMAP.' },
+          { status: 500 },
+        )
+      }
+    }
   }
   if (body.imap_lookback_days !== undefined) {
     const n = Number(body.imap_lookback_days)

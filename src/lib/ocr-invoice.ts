@@ -31,9 +31,11 @@ export interface OcrResult {
   numero_fattura: string | null
   /**
    * Model classification: delivery note vs tax invoice vs other commercial PDF.
-   * Used by email scan to choose bolla vs fattura bozza without misrouting DDT numbers.
+   * Canonical enum: fattura | nota_credito | bolla_ddt | ordine | estratto_conto | comunicazione
+   * Legacy DB values (bolla, comunicazione_cliente, curriculum, listino, altro) are normalised
+   * by normalizeTipoDocumento() before being stored here.
    */
-  tipo_documento: 'fattura' | 'nota_credito' | 'bolla' | 'listino' | 'ordine' | 'altro' | 'curriculum' | 'comunicazione_cliente' | null
+  tipo_documento: 'fattura' | 'nota_credito' | 'bolla_ddt' | 'ordine' | 'estratto_conto' | 'comunicazione' | null
   /**
    * Email body promises a fiscal document soon while no PDF/fiscal attachment is in this extraction.
    * Set by the model per prompt rules; used for follow-up / reminder workflows.
@@ -306,6 +308,7 @@ function buildSystemPrompt(
 - Invoice (EN) = Fattura (IT) = Factura (ES) = Facture (FR) = Rechnung (DE)
 - Delivery note (EN) = Bolla/DDT (IT) = Albarán (ES) = Bon de livraison (FR) = Lieferschein (DE)
 - Credit note (EN) = Nota credito (IT) = Nota de crédito (ES) = Avoir (FR) = Gutschrift (DE) — classify as **nota_credito** (not fattura)
+- Delivery note (bolla/DDT/Lieferschein/Albarán) → **bolla_ddt**; account/bank statement → **estratto_conto**; CV/résumé or conversational email → **comunicazione**
 
 Return ONLY valid JSON — no markdown, no explanation:
 {
@@ -314,7 +317,7 @@ Return ONLY valid JSON — no markdown, no explanation:
   "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
   "numero_fattura": "Document reference: invoice number, DDT/bolla number, credit note number — or null if none visible",
-  "tipo_documento": "Exactly one of: fattura | nota_credito | ddt | bolla | ordine | estratto_conto | comunicazione_cliente | altro | curriculum | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
+  "tipo_documento": "Exactly one of: fattura | nota_credito | bolla_ddt | ordine | estratto_conto | comunicazione | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
   "promessa_invio_documento": false,
   "totale_iva_inclusa": "The gross total amount — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format",
   "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",
@@ -325,8 +328,7 @@ Rules:
 ${DOCUMENT_EXTRACTION_PROMPT}
 
 - **promessa_invio_documento:** boolean per the shared rules in the system prompt (email promises a document soon + no fiscal PDF in this extraction). When this request is **attachment PDF/image only** with no email body section, use **false**. Default **false** when absent from model output (caller coerces). If **true**, set **estrazione_utile** to **true** (follow-up is needed).
-- **comunicazione_cliente:** for **email-only** or **no usable attachment** threads that are purely conversational without fiscal data; usually set **estrazione_utile** to **false** unless there are still useful references (PO numbers, dates) worth keeping.
-- **curriculum (CV / résumé):** If the PDF is a **personal résumé / curriculum vitae / CV** (education, work experience, skills — not a commercial purchase document), set **tipo_documento** to **curriculum** — never fattura or altro. Do not invent supplier VAT for private CVs.
+- **comunicazione:** for **email-only** or **no usable attachment** threads that are purely conversational without fiscal data (including CVs / résumés); usually set **estrazione_utile** to **false** unless there are still useful references (PO numbers, dates) worth keeping.
 - ragione_sociale: the party **ISSUING** the document (seller), **never** the recipient/buyer. Look for labels such as Vendor, Supplier, Fornitore, Mittente, Absender, Fournisseur, Proveedor, **Cedente**, **Prestatore**, Seller — the SELLER, not the buyer.
 - **EU / Italian layout (PDF and scans):** Fiscal PDFs often split the page: **buyer/customer** (*Cessionario / Committente / Bill to / Ship to*) tends to appear **top-left** or in a left column; the **issuer/seller** (*Cedente / Prestatore / Supplier*) with **seller VAT (P.IVA)** is commonly in the **upper-right** block. **ragione_sociale** must match the legal entity shown next to the seller/issuer VAT, in that issuer block — **not** the customer block, **not** a marketplace "deliver to" line, **not** a carrier.
 - **Logo vs legal name:** A prominent **brand, chain, or distributor name** (large type top-centre or top-left) may differ from the **legal company** printed with **VAT in the issuer header (often top-right)**. Prefer the **VAT-adjacent legal company name** from the issuer block for ragione_sociale. If only a marketing name without VAT is visible in one area and a full legal header with VAT appears top-right, **use the top-right issuer name**.
@@ -505,6 +507,7 @@ async function finalizeParseOutcomeAndSanitize(
    PDF text extraction
 ───────────────────────────────────────────────────────────── */
 import { extractPdfText, extractPdfTextDetailed } from '@/lib/pdf-parse-utils'
+import { prepareImageBufferForVision } from '@/lib/ocr-invoice-vision-prepare'
 
 /* ─────────────────────────────────────────────────────────────
    Main OCR function
@@ -667,10 +670,13 @@ export async function ocrInvoice(
   }
 
   try {
-    const base64 = buf.toString('base64')
+    // Ridimensiona, ruota (EXIF) e normalizza a JPEG prima di inviare a Gemini Vision.
+    const prepared = await prepareImageBufferForVision(buf, contentType)
+    logger.info(`[OCR] ${ctxLabel}: Immagine preparata per vision (${prepared.contentType}, ${(prepared.buffer.length / 1024).toFixed(0)} KB)`)
+    const base64 = prepared.buffer.toString('base64')
     const res = await geminiGenerateVision(
       SYSTEM_PROMPT,
-      contentType,
+      prepared.contentType,
       base64,
       visionTextPrompt,
       900,

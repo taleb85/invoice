@@ -20,7 +20,8 @@ const ocrBollaHeuristic = {
   indirizzo: null,
   data_fattura: '2024-03-10',
   numero_fattura: 'INV-99',
-  tipo_documento: 'bolla' as const,
+  // 'bolla_ddt' è il nuovo valore canonico; 'bolla' è mantenuto per retrocompatibilità DB
+  tipo_documento: 'bolla_ddt' as const,
   totale_iva_inclusa: 100.5,
   note_corpo_mail: null,
   nome: null,
