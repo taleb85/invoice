@@ -74,7 +74,7 @@ export function snippetFieldsLookLikeStatementDoc(
 }
 
 /** L'oggetto dice esplicitamente che si tratta di una fattura. */
-function subjectLooksLikeInvoice(s: string | null | undefined): boolean {
+export function subjectLooksLikeInvoice(s: string | null | undefined): boolean {
   const subj = (s ?? '').toLowerCase().replace(/[_.\-]/g, ' ')
   if (!subj.trim()) return false
   return (

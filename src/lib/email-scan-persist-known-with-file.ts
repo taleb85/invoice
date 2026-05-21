@@ -12,6 +12,7 @@ import {
   emailSubjectLooksLikeStatement,
   inferAutoPendingKindFromEmailScan,
   inferPendingDocumentKindForQueueRow,
+  subjectLooksLikeInvoice,
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
@@ -261,7 +262,11 @@ export async function persistKnownFornitoreEmailScanWithFile(
   const learnedPendingKind = fornitore.id
     ? await fetchFornitorePendingKindHint(supabase, fornitore.id, ocrTipoKey)
     : null
-  const effectivePendingKind = autoPendingKind ?? learnedPendingKind
+  // A learned 'statement' hint must not win when the subject explicitly signals an invoice.
+  const subjectIsExplicitlyInvoice = subjectLooksLikeInvoice(email.subject) || subjectLooksLikeInvoice(storedFileName)
+  const effectivePendingKind = autoPendingKind ?? (
+    subjectIsExplicitlyInvoice && learnedPendingKind === 'statement' ? null : learnedPendingKind
+  )
   const treatAsStatement = effectivePendingKind === 'statement'
   const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
   const isStatementDoc = effectivePendingKind === 'statement'

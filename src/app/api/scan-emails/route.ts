@@ -37,6 +37,7 @@ import {
   inferAutoPendingKindFromEmailScan,
   inferPendingDocumentKindForQueueRow,
   scanContextLooksLikeServiceReport,
+  subjectLooksLikeInvoice,
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
@@ -1970,13 +1971,17 @@ async function processEmails(
        * "ordine" auto-detected is overridden by a learned hint, because some suppliers (e.g. UK wine
        * distributors) name delivery notes "Order Confirmation" -- once the user teaches the system
        * that these docs are bolle, the learned hint should stick.
+       *
+       * Guard: a learned 'statement' hint must NOT win when the subject explicitly signals an invoice.
+       * The subject is the most reliable signal and takes precedence over learned OCR-tipo hints.
        */
+      const subjectIsExplicitlyInvoice = subjectLooksLikeInvoice(email.subject) || subjectLooksLikeInvoice(storedFileName)
       const effectivePendingKind =
         autoPendingKind === 'statement'
           ? 'statement'
           : (autoPendingKind === 'ordine' && learnedPendingKind != null && learnedPendingKind !== 'ordine')
             ? learnedPendingKind
-            : autoPendingKind ?? learnedPendingKind
+            : autoPendingKind ?? (subjectIsExplicitlyInvoice && learnedPendingKind === 'statement' ? null : learnedPendingKind)
 
       const treatAsStatement = effectivePendingKind === 'statement'
 
