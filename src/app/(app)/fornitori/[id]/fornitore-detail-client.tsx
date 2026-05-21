@@ -54,6 +54,8 @@ const VerificationStatusTab = dynamic(
 )
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
+import { useToast } from '@/lib/toast-context'
+import { parseAnyAmount } from '@/lib/ocr-amount'
 import { formatDate as formatDateLib, formatCurrency, formatMonthYearUppercase } from '@/lib/locale'
 import type { Locale } from '@/lib/translations'
 import {
@@ -2494,6 +2496,48 @@ function FattureTab({
     [],
   )
 
+  const { showToast } = useToast()
+  const [editingCell, setEditingCell] = useState<{ id: string; field: 'numero_fattura' | 'importo' } | null>(null)
+  const [editValue, setEditValue] = useState('')
+
+  const startEdit = useCallback((id: string, field: 'numero_fattura' | 'importo', current: string) => {
+    setEditingCell({ id, field })
+    setEditValue(current)
+  }, [])
+
+  const cancelEdit = useCallback(() => {
+    setEditingCell(null)
+    setEditValue('')
+  }, [])
+
+  const commitEdit = useCallback(async () => {
+    if (!editingCell) return
+    const { id, field } = editingCell
+    const value = editValue
+    setEditingCell(null)
+    setEditValue('')
+
+    const supabase = createClient()
+    if (field === 'numero_fattura') {
+      const trimmed = value.trim()
+      const { error } = await supabase.from('fatture').update({ numero_fattura: trimmed || null }).eq('id', id)
+      if (error) { showToast(t.ui.networkError, 'error'); return }
+      setFatture((prev) => prev.map((r) => r.id === id ? { ...r, numero_fattura: trimmed || null } : r))
+      onLedgerMutated?.()
+    } else {
+      const trimmed = value.trim()
+      const parsed = trimmed === '' ? null : parseAnyAmount(trimmed)
+      if (trimmed !== '' && (parsed === null || parsed <= 0)) {
+        showToast('Importo non valido', 'error')
+        return
+      }
+      const { error } = await supabase.from('fatture').update({ importo: parsed }).eq('id', id)
+      if (error) { showToast(t.ui.networkError, 'error'); return }
+      setFatture((prev) => prev.map((r) => r.id === id ? { ...r, importo: parsed } : r))
+      onLedgerMutated?.()
+    }
+  }, [editingCell, editValue, onLedgerMutated, showToast, t])
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -2694,24 +2738,41 @@ function FattureTab({
                         />
                       </div>
                     </td>
-                    <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">
-                      <span className="break-words">{f.numero_fattura ?? '—'}</span>
-                      {!readOnly ? (
-                        <DuplicateLedgerRowExtras
-                          rowId={f.id}
-                          payload={dupPayload}
-                          kind="fattura"
-                          duplicateBadgeLabel={t.common.duplicateBadge}
-                          duplicateDeleteConfirm={t.fatture.duplicateDeleteConfirm.replace(
-                            '{numero}',
-                            (f.numero_fattura ?? '').trim() || '—',
-                          )}
-                          removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
-                          deleteFailedPrefix={t.appStrings.deleteFailed}
-                          refreshRouter={false}
-                          onAfterDelete={() => onDuplicateRemoved(f.id)}
+                    <td
+                      className="px-5 py-3 font-mono text-xs text-app-fg-muted"
+                      onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'numero_fattura', f.numero_fattura ?? '')}
+                    >
+                      {editingCell?.id === f.id && editingCell.field === 'numero_fattura' ? (
+                        <input
+                          autoFocus
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={commitEdit}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur() } else if (e.key === 'Escape') { cancelEdit() } }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full min-w-0 bg-transparent outline-none border-b border-cyan-500/60 text-app-fg placeholder-app-fg-muted/40 font-mono text-xs"
                         />
-                      ) : null}
+                      ) : (
+                        <>
+                          <span className={`break-words${!readOnly ? ' cursor-text' : ''}`}>{f.numero_fattura ?? '—'}</span>
+                          {!readOnly ? (
+                            <DuplicateLedgerRowExtras
+                              rowId={f.id}
+                              payload={dupPayload}
+                              kind="fattura"
+                              duplicateBadgeLabel={t.common.duplicateBadge}
+                              duplicateDeleteConfirm={t.fatture.duplicateDeleteConfirm.replace(
+                                '{numero}',
+                                (f.numero_fattura ?? '').trim() || '—',
+                              )}
+                              removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                              deleteFailedPrefix={t.appStrings.deleteFailed}
+                              refreshRouter={false}
+                              onAfterDelete={() => onDuplicateRemoved(f.id)}
+                            />
+                          ) : null}
+                        </>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       {!fileKind ? (
@@ -2722,8 +2783,25 @@ function FattureTab({
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
-                      {f.importo != null ? formatCurrency(f.importo, currency, locale) : '—'}
+                    <td
+                      className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted"
+                      onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'importo', f.importo != null ? String(f.importo) : '')}
+                    >
+                      {editingCell?.id === f.id && editingCell.field === 'importo' ? (
+                        <input
+                          autoFocus
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={commitEdit}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur() } else if (e.key === 'Escape') { cancelEdit() } }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full min-w-0 bg-transparent outline-none border-b border-cyan-500/60 text-right text-app-fg font-mono text-sm font-semibold tabular-nums placeholder-app-fg-muted/40"
+                        />
+                      ) : (
+                        <span className={!readOnly ? 'cursor-text' : ''}>
+                          {f.importo != null ? formatCurrency(f.importo, currency, locale) : '—'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <Link
