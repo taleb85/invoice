@@ -6,14 +6,16 @@ import type { DupBollaGroup, DupFatturaGroup } from '@/lib/inbox-ai-duplicate-gr
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { createClient } from '@/utils/supabase/client'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
-import DocumentActionsButton from '@/components/DocumentActionsButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 import {
   GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF,
   inboxClassificationShouldAutoDiscard,
 } from '@/lib/gemini-inbox-classify'
 import { useT } from '@/lib/use-t'
-import { Ban, UserPlus } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
+import { useContextMenu } from '@/components/ui/ContextMenuProvider'
+import { useDocumentActions } from '@/lib/document-actions-context'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
 import { extractEmailFromSenderHeader } from '@/lib/sender-email'
 import { useToast } from '@/lib/toast-context'
@@ -198,6 +200,27 @@ function pendingDocFileLabel(row: PendingDocRow): string {
   return rag || `${row.id.slice(0, 8)}…`
 }
 
+type FinalizeKind = 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'listino'
+const FINALIZE_KINDS = new Set<string>(['fattura', 'nota_credito', 'comunicazione', 'bolla', 'listino'])
+
+const KIND_LABEL: Record<FinalizeKind, string> = {
+  fattura: 'Registra fattura',
+  nota_credito: 'Registra nota credito',
+  bolla: 'Registra bolla',
+  listino: 'Registra listino',
+  comunicazione: 'Registra comunicazione',
+}
+
+const KIND_BTN_CLASS: Record<FinalizeKind, string> = {
+  fattura: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100',
+  nota_credito: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100',
+  bolla: 'border-violet-500/40 bg-violet-500/15 text-violet-100',
+  listino: 'border-sky-500/45 bg-sky-500/15 text-sky-100',
+  comunicazione: 'border-slate-500/40 bg-slate-500/15 text-slate-200',
+}
+
+const SECONDARY_KINDS: FinalizeKind[] = ['fattura', 'bolla', 'listino', 'nota_credito', 'comunicazione']
+
 export default function InboxAiClient(props: {
   sedeId: string | null
   /** Nessuna sede operativa per operatore — blocco totale */
@@ -210,6 +233,8 @@ export default function InboxAiClient(props: {
   const { locale } = useLocale()
   const { showToast } = useToast()
   const router = useRouter()
+  const { show: showContextMenu } = useContextMenu()
+  const { openActions } = useDocumentActions()
   const [tab, setTab] = useState<TabId>(() => parseInitialTab(initialTab ?? undefined))
   const [docs, setDocs] = useState<PendingDocRow[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
@@ -1170,77 +1195,98 @@ export default function InboxAiClient(props: {
                           ) : null}
                           </div>
                         </div>
-                        <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[min(100%,24rem)] sm:justify-end">
-                          {needsSupplier ? (
-                            <>
+                        {/* ── Azioni compatte: 1 CTA primario + menu dots ── */}
+                        {(() => {
+                          const aiKind = sug ? tipoAiToPendingKind(sug.tipo_suggerito) : null
+                          const finalizeKind = aiKind && FINALIZE_KINDS.has(aiKind) ? aiKind as FinalizeKind : null
+
+                          const primaryLabel = needsSupplier
+                            ? t.log.activityInboxAddSupplier
+                            : finalizeKind
+                              ? KIND_LABEL[finalizeKind]
+                              : 'Registra fattura'
+                          const primaryClass = needsSupplier
+                            ? 'border-teal-500/45 bg-teal-500/15 text-teal-100'
+                            : KIND_BTN_CLASS[finalizeKind ?? 'fattura']
+                          const primaryDisabled = busyRow || (!needsSupplier && !d.fornitore_id)
+                          const primaryTitle = !d.fornitore_id && !needsSupplier
+                            ? 'Associa un fornitore al documento prima di registrare'
+                            : undefined
+
+                          const dotsItems = [
+                            ...SECONDARY_KINDS
+                              .filter((k) => !(k === (finalizeKind ?? 'fattura') && !needsSupplier))
+                              .map((k) => ({
+                                key: `reg-${k}`,
+                                label: KIND_LABEL[k],
+                                disabled: !d.fornitore_id || busyRow,
+                                onClick: () => { void finalizeAs(d.id, k) },
+                              })),
+                            ...(needsSupplier ? [{
+                              key: 'ignore-sender',
+                              label: t.log.activityInboxIgnoreSender,
+                              danger: true as const,
+                              disabled: busyRow,
+                              onClick: () => { void ignoreSenderAndDiscard(d) },
+                            }] : []),
+                            {
+                              key: 'scarta',
+                              label: t.log.activityInboxDiscard,
+                              danger: true as const,
+                              disabled: busyRow,
+                              onClick: () => { void ignoreDoc(d.id) },
+                            },
+                            {
+                              key: 'doc-actions',
+                              label: 'Altre azioni…',
+                              onClick: () => openActions({
+                                id: d.id,
+                                origine: 'documento_da_processare',
+                                fornitore_id: d.fornitore_id,
+                                fornitore_nome: d.fornitore?.nome ?? null,
+                                numero_documento: null,
+                                file_url: d.file_url ?? null,
+                                mittente: d.mittente ?? null,
+                              }),
+                            },
+                          ]
+
+                          return (
+                            <div className="flex shrink-0 items-center gap-1.5 sm:self-start sm:pt-0.5">
+                              {busyRow ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-app-fg-muted">
+                                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+                                  In corso…
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={primaryDisabled}
+                                  title={primaryTitle}
+                                  onClick={needsSupplier
+                                    ? () => openSupplierModal(d)
+                                    : () => void finalizeAs(d.id, finalizeKind ?? 'fattura')}
+                                  className={`rounded-md border px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-35 ${primaryClass}`}
+                                >
+                                  {primaryLabel}
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 disabled={busyRow}
-                                onClick={() => void ignoreSenderAndDiscard(d)}
-                                className="inline-flex items-center gap-1 rounded-md border border-rose-500/40 bg-rose-950/35 px-2 py-1 text-[11px] font-bold text-rose-100 disabled:opacity-35"
+                                onClick={(e) => {
+                                  const r = e.currentTarget.getBoundingClientRect()
+                                  showContextMenu({ x: r.right, y: r.bottom + 4, items: dotsItems })
+                                }}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/15 text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg disabled:opacity-35"
+                                title="Altre azioni"
+                                aria-label="Altre azioni"
                               >
-                                <Ban className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
-                                {t.log.activityInboxIgnoreSender}
+                                <MoreHorizontal className="h-4 w-4" />
                               </button>
-                              <button
-                                type="button"
-                                disabled={busyRow}
-                                onClick={() => openSupplierModal(d)}
-                                className="inline-flex items-center gap-1 rounded-md border border-teal-500/45 bg-teal-500/15 px-2 py-1 text-[11px] font-bold text-teal-100 disabled:opacity-35"
-                              >
-                                <UserPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
-                                {t.log.activityInboxAddSupplier}
-                              </button>
-                            </>
-                          ) : null}
-                          <button
-                            type="button"
-                            disabled={busyRow || !d.fornitore_id}
-                            title={!d.fornitore_id ? 'Associa un fornitore al documento prima di registrare' : ''}
-                            onClick={() => void finalizeAs(d.id, 'fattura')}
-                            className="rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 text-[11px] font-bold text-emerald-100 disabled:opacity-35"
-                          >
-                            Registra fattura
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busyRow || !d.fornitore_id}
-                            onClick={() => void finalizeAs(d.id, 'bolla')}
-                            className="rounded-md border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-bold text-violet-100 disabled:opacity-35"
-                          >
-                            Registra bolla
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busyRow || !d.fornitore_id}
-                            title={
-                              !d.fornitore_id
-                                ? 'Associa un fornitore al documento prima di registrare'
-                                : 'Salva come fattura tecnica — poi dal listino fornitore puoi estrarre i prezzi (Analizza)'
-                            }
-                            onClick={() => void finalizeAs(d.id, 'listino')}
-                            className="rounded-md border border-sky-500/45 bg-sky-500/15 px-2 py-1 text-[11px] font-bold text-sky-100 disabled:opacity-35"
-                          >
-                            Registra listino
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busyRow}
-                            onClick={() => void ignoreDoc(d.id)}
-                            className="rounded-md border border-white/15 px-2 py-1 text-[11px] font-semibold text-app-fg-muted hover:bg-white/10"
-                          >
-                            {t.log.activityInboxDiscard}
-                          </button>
-                          <DocumentActionsButton item={{
-                            id: d.id,
-                            origine: 'documento_da_processare',
-                            fornitore_id: d.fornitore_id,
-                            fornitore_nome: d.fornitore?.nome ?? null,
-                            numero_documento: null,
-                            file_url: d.file_url ?? null,
-                            mittente: d.mittente ?? null,
-                          }} />
-                        </div>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </li>
                   )
