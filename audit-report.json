@@ -9,9 +9,9 @@
   },
   "sommario": {
     "totaleAnalizzati": 1032,
-    "ok": 979,
-    "anomalie": 31,
-    "errori": 22,
+    "ok": 34,
+    "anomalie": 19,
+    "errori": 0,
     "costoGeminiUsd": 1.073641
   },
   "risultati": [
@@ -36,10 +36,8 @@
         "importo_raw": "32.62",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"814032.pdf\" vs OCR=\"814032\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -47,7 +45,8 @@
         "outputTokens": 177,
         "totalTokens": 873,
         "estimatedCostUsd": 0.001011
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "bec10c5e-5de8-42ca-98fc-389fb82de953",
@@ -70,10 +69,8 @@
         "importo_raw": "65.20",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"814209.pdf\" vs OCR=\"814209\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -81,7 +78,8 @@
         "outputTokens": 176,
         "totalTokens": 872,
         "estimatedCostUsd": 0.001008
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "b4af03b4-1e00-49f6-ba54-8b2bdc25ae0a",
@@ -104,10 +102,8 @@
         "importo_raw": "65.25",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"814245.pdf\" vs OCR=\"814245\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -115,7 +111,8 @@
         "outputTokens": 177,
         "totalTokens": 873,
         "estimatedCostUsd": 0.001011
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "76e2ee4e-812b-4dc2-b8aa-a68473238584",
@@ -138,10 +135,8 @@
         "importo_raw": "45.67",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"814590.pdf\" vs OCR=\"814590\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -149,7 +144,8 @@
         "outputTokens": 177,
         "totalTokens": 873,
         "estimatedCostUsd": 0.001011
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "ce9990e1-50bf-49c5-8469-d36c8e2bd869",
@@ -172,10 +168,8 @@
         "importo_raw": "65.42",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"815549.pdf\" vs OCR=\"815549\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -183,7 +177,8 @@
         "outputTokens": 177,
         "totalTokens": 873,
         "estimatedCostUsd": 0.001011
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "c40aa4f1-5679-4f07-bd7b-5e15888c52fd",
@@ -368,16 +363,25 @@
         "data": "2026-05-07",
         "importo": 132.88
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "0000207592",
+        "data_fattura": "2026-05-07",
+        "ragione_sociale": "GPUK LLP",
+        "p_iva": "GB927271515",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 132.88,
+        "importo_raw": "132.88",
+        "estrazione_utile": null
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 1212,
+        "outputTokens": 173,
+        "totalTokens": 1385,
+        "estimatedCostUsd": 0.001371
       }
     },
     {
@@ -391,16 +395,25 @@
         "data": "2026-05-02",
         "importo": 113.53
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "856761",
+        "data_fattura": "2026-05-02",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 113.53,
+        "importo_raw": "113.53",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 179,
+        "totalTokens": 875,
+        "estimatedCostUsd": 0.001017
       }
     },
     {
@@ -482,16 +495,25 @@
         "data": "2026-05-01",
         "importo": 340.64
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "SN8113551",
+        "data_fattura": "2026-05-01",
+        "ragione_sociale": "Enotria Winecellars Ltd",
+        "p_iva": "868169767",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 340.64,
+        "importo_raw": "340.64",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 189,
+        "totalTokens": 885,
+        "estimatedCostUsd": 0.001045
       }
     },
     {
@@ -515,10 +537,8 @@
         "importo_raw": "442.66",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"51120543\" vs OCR=\"SI120543\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -526,7 +546,8 @@
         "outputTokens": 188,
         "totalTokens": 884,
         "estimatedCostUsd": 0.001043
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "9a26afd7-e238-489e-b917-cb3e115dbd84",
@@ -617,10 +638,8 @@
         "importo_raw": "74.70",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"C098\" vs OCR=\"27308\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -628,7 +647,8 @@
         "outputTokens": 174,
         "totalTokens": 870,
         "estimatedCostUsd": 0.001002
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "8d0652b9-1e21-4d62-905e-07cf9ac0e8b9",
@@ -641,16 +661,25 @@
         "data": "2026-04-18",
         "importo": 74.85
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "161761",
+        "data_fattura": "2026-04-18",
+        "ragione_sociale": "capital seafoods 2025",
+        "p_iva": "120310980",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 74.85,
+        "importo_raw": "74.85",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 183,
+        "totalTokens": 881,
+        "estimatedCostUsd": 0.001028
       }
     },
     {
@@ -776,10 +805,8 @@
         "importo_raw": "49.80",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"C098\" vs OCR=\"27059\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -787,7 +814,8 @@
         "outputTokens": 174,
         "totalTokens": 870,
         "estimatedCostUsd": 0.001002
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "5dddcd6d-2965-42da-a222-e9bbf827b3a5",
@@ -810,10 +838,8 @@
         "importo_raw": "74.70",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"C098\" vs OCR=\"26959\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -821,7 +847,8 @@
         "outputTokens": 174,
         "totalTokens": 870,
         "estimatedCostUsd": 0.001002
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "369f93e5-a68e-46fd-96e4-acb9c0da5ee0",
@@ -868,16 +895,25 @@
         "data": "2026-03-30",
         "importo": 112.44
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "70223972",
+        "data_fattura": "2026-03-30",
+        "ragione_sociale": "HILDON",
+        "p_iva": "GB760271251",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 112.44,
+        "importo_raw": "112.44",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 175,
+        "totalTokens": 871,
+        "estimatedCostUsd": 0.001005
       }
     },
     {
@@ -891,16 +927,25 @@
         "data": "2026-03-30",
         "importo": 171.27
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "SI633610",
+        "data_fattura": "2026-03-30",
+        "ragione_sociale": "C CARNEVALE LTD",
+        "p_iva": "229196639",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 171.27,
+        "importo_raw": "171.27",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 190,
+        "totalTokens": 886,
+        "estimatedCostUsd": 0.001048
       }
     },
     {
@@ -914,16 +959,25 @@
         "data": "2026-03-12",
         "importo": 253.79
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "SI617905",
+        "data_fattura": "2023-03-12",
+        "ragione_sociale": "C CARNEVALE LTD",
+        "p_iva": "229196639",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 253.79,
+        "importo_raw": "253.79",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 190,
+        "totalTokens": 886,
+        "estimatedCostUsd": 0.001048
       }
     },
     {
@@ -1049,10 +1103,8 @@
         "importo_raw": "0.00",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Importo differisce: DB=0 € vs OCR=14.60 € (Δ=14.60 €)"
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -1060,7 +1112,8 @@
         "outputTokens": 188,
         "totalTokens": 884,
         "estimatedCostUsd": 0.001043
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "924982ff-f6b8-4fa3-8f2d-3bc28110d87c",
@@ -1107,16 +1160,25 @@
         "data": "2025-11-19",
         "importo": 68.61
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "148561",
+        "data_fattura": "2025-11-19",
+        "ragione_sociale": "capital seafoods 2025",
+        "p_iva": "120310980",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 68.61,
+        "importo_raw": "68.61",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 183,
+        "totalTokens": 879,
+        "estimatedCostUsd": 0.001028
       }
     },
     {
@@ -1140,10 +1202,8 @@
         "importo_raw": "74.70",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"C098\" vs OCR=\"25699\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -1151,7 +1211,8 @@
         "outputTokens": 177,
         "totalTokens": 873,
         "estimatedCostUsd": 0.001011
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "433daaba-b9ee-4403-8301-654c845d8a09",
@@ -1164,16 +1225,25 @@
         "data": "2025-10-31",
         "importo": 78.29
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "823683",
+        "data_fattura": "2025-10-31",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 78.29,
+        "importo_raw": "78.29",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
       }
     },
     {
@@ -1187,16 +1257,25 @@
         "data": "2025-10-27",
         "importo": 53.87
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "5259013",
+        "data_fattura": "2025-10-27",
+        "ragione_sociale": "Donovan Bros Ltd",
+        "p_iva": "927511916",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 53.87,
+        "importo_raw": "53.87",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 176,
+        "totalTokens": 872,
+        "estimatedCostUsd": 0.001008
       }
     },
     {
@@ -1210,16 +1289,25 @@
         "data": "2025-10-24",
         "importo": 330.84
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "SN8043159",
+        "data_fattura": "2025-10-24",
+        "ragione_sociale": "Enotria Winecellars Ltd",
+        "p_iva": "868169767",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 330.84,
+        "importo_raw": "330.84",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 189,
+        "totalTokens": 885,
+        "estimatedCostUsd": 0.001045
       }
     },
     {
@@ -1233,16 +1321,25 @@
         "data": "2025-10-23",
         "importo": 52.16
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "821980",
+        "data_fattura": "2025-10-23",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 52.16,
+        "importo_raw": "52.16",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
       }
     },
     {
@@ -1256,16 +1353,25 @@
         "data": "2025-10-23",
         "importo": 204.72
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "70216310",
+        "data_fattura": "2025-10-23",
+        "ragione_sociale": "HILDON",
+        "p_iva": "GB760271251",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 204.72,
+        "importo_raw": "204.72",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 175,
+        "totalTokens": 871,
+        "estimatedCostUsd": 0.001005
       }
     },
     {
@@ -1279,16 +1385,25 @@
         "data": "2025-10-20",
         "importo": 96.79
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "146018",
+        "data_fattura": "2025-10-20",
+        "ragione_sociale": "capital seafoods 2025",
+        "p_iva": "120310980",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 96.79,
+        "importo_raw": "96.79",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 183,
+        "totalTokens": 879,
+        "estimatedCostUsd": 0.001028
       }
     },
     {
@@ -1312,10 +1427,8 @@
         "importo_raw": "49.80",
         "estrazione_utile": true
       },
-      "anomalia": true,
-      "anomalia_motivo": [
-        "Numero documento differisce: DB=\"C098\" vs OCR=\"25006\""
-      ],
+      "anomalia": false,
+      "anomalia_motivo": null,
       "controllo_quadratura": true,
       "errore": null,
       "tokenUsage": {
@@ -1323,7 +1436,8 @@
         "outputTokens": 175,
         "totalTokens": 871,
         "estimatedCostUsd": 0.001005
-      }
+      },
+      "fixApplicatoAt": "2026-05-21T06:55:05.624Z"
     },
     {
       "id": "08991c09-9221-481f-b8a1-4a81491d85c3",
@@ -1336,16 +1450,25 @@
         "data": "2025-10-15",
         "importo": 75.52
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "820478",
+        "data_fattura": "2025-10-15",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 75.52,
+        "importo_raw": "75.52",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
       }
     },
     {
@@ -1359,16 +1482,25 @@
         "data": "2025-09-29",
         "importo": 332
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "392",
+        "data_fattura": "2025-09-29",
+        "ragione_sociale": "DYER FEWSTER ARCHITECTS",
+        "p_iva": null,
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 332,
+        "importo_raw": "£332.00",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 167,
+        "totalTokens": 863,
+        "estimatedCostUsd": 0.000982
       }
     },
     {
@@ -1416,16 +1548,25 @@
         "data": "2025-08-29",
         "importo": 387.5
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "SI120648",
+        "data_fattura": "2026-05-06",
+        "ragione_sociale": "MONDIAL WINE LIMITED",
+        "p_iva": "391 6861 19",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 387.5,
+        "importo_raw": "387.50",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 188,
+        "totalTokens": 884,
+        "estimatedCostUsd": 0.001043
       }
     },
     {
@@ -1439,16 +1580,25 @@
         "data": "2025-08-26",
         "importo": 246.01
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "SC010279",
+        "data_fattura": "2025-08-26",
+        "ragione_sociale": "MONDIAL WINE LIMITED",
+        "p_iva": null,
+        "tipo_documento": "nota_credito",
+        "totale_iva_inclusa": 246.01,
+        "importo_raw": "246.01",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 179,
+        "totalTokens": 875,
+        "estimatedCostUsd": 0.001017
       }
     },
     {
@@ -1462,16 +1612,25 @@
         "data": "2025-07-29",
         "importo": 86.27
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "209244",
+        "data_fattura": "2025-07-29",
+        "ragione_sociale": "OliVerrilli Ltd",
+        "p_iva": "919458976",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 86.27,
+        "importo_raw": "86.27",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
       }
     },
     {
@@ -1485,16 +1644,25 @@
         "data": "2025-07-24",
         "importo": 74.7
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "23995",
+        "data_fattura": "2025-07-24",
+        "ragione_sociale": "LDNFOODS LTD",
+        "p_iva": "349124987",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 74.7,
+        "importo_raw": "74.70",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 175,
+        "totalTokens": 871,
+        "estimatedCostUsd": 0.001005
       }
     },
     {
@@ -1542,16 +1710,25 @@
         "data": "2026-04-09",
         "importo": 183.19
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "SDN646283",
+        "data_fattura": "2026-04-09",
+        "ragione_sociale": "C CARNEVALE LTD",
+        "p_iva": "229196639",
+        "tipo_documento": "bolla_ddt",
+        "totale_iva_inclusa": 183.19,
+        "importo_raw": "183.19",
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 183,
+        "totalTokens": 881,
+        "estimatedCostUsd": 0.001028
       }
     },
     {
@@ -1565,17 +1742,36 @@
         "data": "2026-04-03",
         "importo": null
       },
-      "ocr": null,
+      "ocr": {
+        "numero_fattura": "11847552",
+        "data_fattura": "2026-04-03",
+        "ragione_sociale": "JOHNSONS",
+        "p_iva": null,
+        "tipo_documento": "bolla_ddt",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": true
+      },
       "anomalia": false,
       "anomalia_motivo": null,
-      "controllo_quadratura": false,
-      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "controllo_quadratura": true,
+      "errore": null,
       "tokenUsage": {
-        "inputTokens": 0,
-        "outputTokens": 0,
-        "totalTokens": 0,
-        "estimatedCostUsd": 0
+        "inputTokens": 696,
+        "outputTokens": 169,
+        "totalTokens": 867,
+        "estimatedCostUsd": 0.000988
       }
     }
-  ]
+  ],
+  "fixApplicatoAt": "2026-05-21T06:55:05.624Z",
+  "fixStats": {
+    "cat1": 5,
+    "cat4": 5,
+    "cat5": 2,
+    "retry503": 22,
+    "retry503Ok": 22,
+    "retry503Anomalie": 0,
+    "retry503Err": 0
+  }
 }

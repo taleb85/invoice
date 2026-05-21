@@ -30,7 +30,9 @@
     "ai:analyze": "node scripts/ai-analyze.mjs",
     "audit:ocr": "node scripts/audit-processed-ocr.mjs",
     "audit:ocr:fatture": "node scripts/audit-processed-ocr.mjs --table=fatture",
-    "audit:ocr:bolle": "node scripts/audit-processed-ocr.mjs --table=bolle"
+    "audit:ocr:bolle": "node scripts/audit-processed-ocr.mjs --table=bolle",
+    "fix:audit": "node scripts/fix-audit-anomalies.mjs",
+    "fix:audit:dry": "node scripts/fix-audit-anomalies.mjs --dry-run"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
