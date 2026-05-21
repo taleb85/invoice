@@ -27,7 +27,10 @@
     "process:backup": "node scripts/run-cron-local.mjs /api/cron/backup",
     "process": "node scripts/run-cron-local.mjs",
     "reprocess:statements": "REPROCESS_STMT_ALL=1 vitest run src/lib/__tests__/reprocess-statement-checks-all.integration.test.ts",
-    "ai:analyze": "node scripts/ai-analyze.mjs"
+    "ai:analyze": "node scripts/ai-analyze.mjs",
+    "audit:ocr": "node scripts/audit-processed-ocr.mjs",
+    "audit:ocr:fatture": "node scripts/audit-processed-ocr.mjs --table=fatture",
+    "audit:ocr:bolle": "node scripts/audit-processed-ocr.mjs --table=bolle"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
