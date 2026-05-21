@@ -14,6 +14,7 @@ type Props = {
   readOnly?: boolean
   onDataUpdated: (newIsoDate: string) => void
   onImportoUpdated?: (newImporto: number) => void
+  onNumeroFatturaUpdated?: (newNumero: string) => void
   onLedgerMutated?: () => void
   className?: string
 }
@@ -24,6 +25,7 @@ export default function FatturaRefreshDateButton({
   readOnly,
   onDataUpdated,
   onImportoUpdated,
+  onNumeroFatturaUpdated,
   onLedgerMutated,
   className = '',
 }: Props) {
@@ -57,6 +59,8 @@ export default function FatturaRefreshDateButton({
         data_changed?: boolean
         importo?: number | null
         importo_changed?: boolean
+        numero_fattura?: string | null
+        numero_fattura_changed?: boolean
       }
       if (!res.ok) {
         showToast(j.error ?? t.ui.networkError, 'error')
@@ -64,13 +68,17 @@ export default function FatturaRefreshDateButton({
       }
       const dataChanged = j.data_changed === true
       const importoChanged = j.importo_changed === true && j.importo != null
+      const numeroChanged = j.numero_fattura_changed === true && j.numero_fattura != null
       if (j.data) {
         onDataUpdated(j.data)
       }
       if (importoChanged) {
         onImportoUpdated?.(j.importo as number)
       }
-      if (j.data || importoChanged) {
+      if (numeroChanged) {
+        onNumeroFatturaUpdated?.(j.numero_fattura as string)
+      }
+      if (j.data || importoChanged || numeroChanged) {
         onLedgerMutated?.()
         if (dataChanged) {
           showToast(
@@ -79,6 +87,8 @@ export default function FatturaRefreshDateButton({
           )
         } else if (importoChanged) {
           showToast(t.fatture.refreshImportoFromDocSuccess, 'success')
+        } else if (numeroChanged) {
+          showToast(t.fatture.refreshNumeroFatturaFromDocSuccess, 'success')
         } else {
           showToast(t.fatture.refreshDateFromDocUnchanged, 'info')
         }

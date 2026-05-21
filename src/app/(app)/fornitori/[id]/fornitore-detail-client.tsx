@@ -2485,6 +2485,15 @@ function FattureTab({
     [],
   )
 
+  const onFatturaNumeroFatturaRefreshed = useCallback(
+    (fatturaId: string, newNumero: string) => {
+      setFatture((prev) =>
+        prev.map((r) => (r.id === fatturaId ? { ...r, numero_fattura: newNumero } : r)),
+      )
+    },
+    [],
+  )
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -2598,6 +2607,7 @@ function FattureTab({
                         hasFile
                         onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
                         onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
+                        onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
                         onLedgerMutated={onLedgerMutated}
                         className="mt-1.5 w-fit"
                       />
@@ -2679,6 +2689,7 @@ function FattureTab({
                           readOnly={readOnly}
                           onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
                           onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
+                          onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
                           onLedgerMutated={onLedgerMutated}
                         />
                       </div>

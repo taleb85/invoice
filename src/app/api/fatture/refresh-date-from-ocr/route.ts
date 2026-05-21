@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { data: fattura, error: qErr } = await service
     .from('fatture')
-    .select('id, data, importo, file_url')
+    .select('id, data, importo, numero_fattura, file_url')
     .eq('id', fatturaId)
     .single()
 
@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
 
   let normalized: string | null
   let importFromOcr: number | null = null
+  let numeroFatturaFromOcr: string | null = null
   try {
     const ocr = await ocrInvoice(new Uint8Array(buffer), contentType)
     const raw = ocr.data_fattura ?? ocr.data
@@ -93,6 +94,8 @@ export async function POST(req: NextRequest) {
     if (ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))) {
       importFromOcr = Number(ocr.totale_iva_inclusa)
     }
+    const rawNumero = ocr.numero_fattura?.trim()
+    if (rawNumero) numeroFatturaFromOcr = rawNumero
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) {
       return NextResponse.json({ error: e.message }, { status: 503 })
@@ -101,23 +104,27 @@ export async function POST(req: NextRequest) {
   }
 
   const importNeedsFill = fattura.importo == null && importFromOcr != null
-  /** Se né data né totale dall’OCR, non abbiamo nulla da scrivere. */
-  if (normalized == null && !importNeedsFill) {
+  const numeroNeedsFill = !fattura.numero_fattura?.trim() && numeroFatturaFromOcr != null
+  /** Se né data né totale né numero dall'OCR, non abbiamo nulla da scrivere. */
+  if (normalized == null && !importNeedsFill && !numeroNeedsFill) {
     return NextResponse.json(
       {
         error:
-          'Data del documento non riconosciuta dal file e impossibile derivare il totale. Prova a sostituire l’allegato o inserire i dati a mano.',
+          "Data del documento non riconosciuta dal file e impossibile derivare il totale. Prova a sostituire l\u2019allegato o inserire i dati a mano.",
       },
       { status: 422 },
     )
   }
 
-  const updates: { data?: string; importo?: number } = {}
+  const updates: { data?: string; importo?: number; numero_fattura?: string } = {}
   if (normalized != null && normalized !== fattura.data) {
     updates.data = normalized
   }
   if (importNeedsFill && importFromOcr != null) {
     updates.importo = importFromOcr
+  }
+  if (numeroNeedsFill && numeroFatturaFromOcr != null) {
+    updates.numero_fattura = numeroFatturaFromOcr
   }
 
   if (Object.keys(updates).length === 0) {
@@ -128,6 +135,8 @@ export async function POST(req: NextRequest) {
       previous: fattura.data,
       importo: fattura.importo,
       importo_changed: false,
+      numero_fattura: fattura.numero_fattura ?? null,
+      numero_fattura_changed: false,
     })
   }
 
@@ -144,5 +153,7 @@ export async function POST(req: NextRequest) {
     previous: fattura.data,
     importo: updates.importo ?? fattura.importo ?? null,
     importo_changed: updates.importo !== undefined,
+    numero_fattura: updates.numero_fattura ?? fattura.numero_fattura ?? null,
+    numero_fattura_changed: updates.numero_fattura !== undefined,
   })
 }

@@ -946,6 +946,7 @@ const translations: Translations = {
     refreshDateFromDocSuccess: 'Data aggiornata a {data}.',
     refreshDateFromDocUnchanged: 'La data è già allineata a quella letta dal documento.',
     refreshImportoFromDocSuccess: 'Importo aggiornato dal documento.',
+    refreshNumeroFatturaFromDocSuccess: 'Numero fattura aggiornato dal documento.',
     contextMenuOpenAttachment: 'Apri allegato',
     contextMenuOpenDetail: 'Apri dettaglio fattura',
     contextMenuAssignSupplier: 'Assegna a fornitore',
