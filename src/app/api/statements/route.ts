@@ -217,11 +217,92 @@ export async function GET(req: NextRequest) {
 
   const hasMissing = deduped.some((s) => ((s.missing_rows as number | null) ?? 0) > 0)
 
-  // Pulizia automatica: elimina statement errati (documenti non processabili come estratti conto)
-  // e ripristina i documenti originali nella coda. Fire-and-forget per non rallentare la risposta.
+  // Pulizia automatica: elimina statement errati e converte in fatture quelli con soggetto invoice.
+  // Fire-and-forget per non rallentare la risposta.
   cleanupBadStatements(service).catch(() => {})
+  autoConvertInvoiceStatements(service).catch(() => {})
 
   return NextResponse.json({ statements: deduped, hasMissing })
+}
+
+/**
+ * Soggetti email che identificano con certezza una fattura (non una bolla/DDT/ordine).
+ * Usato solo per l'auto-conversione retroattiva — esclude i pattern di bolla/DDT
+ * per non spostare in fatture documenti che appartengono alla coda bolle.
+ */
+function subjectIsInvoiceNotBolla(subject: string | null | undefined): boolean {
+  const s = (subject ?? '').toLowerCase().replace(/[_.\-]/g, ' ')
+  if (!s.trim()) return false
+  return (
+    /\binvoice\b/.test(s) ||
+    /\bfattura\b/.test(s) ||
+    /\bfacture\b/.test(s) ||
+    /\bfactura\b/.test(s) ||
+    /\brechnung\b/.test(s) ||
+    /\btax\s?invoice\b/.test(s) ||
+    /\bsales\s?invoice\b/.test(s) ||
+    /\bvat\s?invoice\b/.test(s) ||
+    /\bcredit\s?note\b/.test(s) ||
+    /nota\s+credito/.test(s)
+  )
+}
+
+/**
+ * Converte automaticamente gli statement il cui oggetto email identifica chiaramente
+ * una fattura (non un estratto conto). Inserisce la fattura se non esiste già e
+ * rimuove lo statement dalla coda. Fire-and-forget: non blocca la risposta.
+ */
+async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createServiceClient>) {
+  const { data: candidates } = await supabase
+    .from('statements')
+    .select('id, fornitore_id, sede_id, file_url, document_date, email_subject')
+    .neq('status', 'processing')
+    .not('fornitore_id', 'is', null)
+    .not('file_url', 'is', null)
+    .limit(200)
+
+  if (!candidates?.length) return
+
+  type StmtCandidate = {
+    id: string
+    fornitore_id: string
+    sede_id: string | null
+    file_url: string
+    document_date: string | null
+    email_subject: string | null
+  }
+
+  const invoiceStmts = (candidates as StmtCandidate[]).filter(s =>
+    subjectIsInvoiceNotBolla(s.email_subject),
+  )
+  if (!invoiceStmts.length) return
+
+  const fileUrls = invoiceStmts.map(s => s.file_url)
+  const { data: existingFatture } = await supabase
+    .from('fatture')
+    .select('file_url')
+    .in('file_url', fileUrls)
+  const existingFileUrls = new Set((existingFatture ?? []).map((f: { file_url: string }) => f.file_url))
+
+  const oggi = new Date().toISOString().split('T')[0]
+
+  for (const stmt of invoiceStmts) {
+    if (!existingFileUrls.has(stmt.file_url)) {
+      const dataDoc = stmt.document_date?.trim() || oggi
+      const { error: insErr } = await supabase.from('fatture').insert([{
+        fornitore_id: stmt.fornitore_id,
+        sede_id: stmt.sede_id,
+        data: dataDoc,
+        file_url: stmt.file_url,
+        importo: null,
+        verificata_estratto_conto: false,
+      }])
+      if (insErr) continue
+    }
+    // Rimuove le righe e lo statement (la fattura esiste già o è appena stata creata)
+    await supabase.from('statement_rows').delete().eq('statement_id', stmt.id)
+    await supabase.from('statements').delete().eq('id', stmt.id)
+  }
 }
 
 /** Trova statement con status=error e total_rows=0, li elimina e ripristina i documenti originali. */
