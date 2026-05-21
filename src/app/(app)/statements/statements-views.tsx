@@ -111,7 +111,7 @@ type OcrMetadata = {
     | string
     | null
   estrazione_utile?: boolean | null
-  tipo_documento?:    'fattura' | 'bolla' | 'altro' | null
+  tipo_documento?:    string | null
   note_corpo_mail?:   string | null
   /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
   pending_kind?:      'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | 'listino' | null
@@ -1525,11 +1525,10 @@ export function PendingMatchesTab({
         const pk = doc.metadata?.pending_kind
         if (pk) continue
         const tipo = normalizeTipoDocumento(doc.metadata?.tipo_documento)
-        if (!tipo || tipo === 'curriculum' || tipo === 'comunicazione_cliente' || tipo === 'altro') continue
+        if (!tipo || tipo === 'comunicazione') continue
         let inferredKind: string | null = null
         if (tipo === 'fattura' || tipo === 'nota_credito') inferredKind = tipo
-        else if (tipo === 'bolla') inferredKind = 'bolla'
-        else if (tipo === 'listino') inferredKind = 'listino'
+        else if (tipo === 'bolla_ddt') inferredKind = 'bolla'
         if (!inferredKind) continue
         const res = await fetch('/api/documenti-da-processare', {
           method: 'POST',
