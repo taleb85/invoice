@@ -302,7 +302,7 @@ export async function qualityDocumentType(
 
   // Segnale 1: OCR
   const tipoNorm = normalizeTipoDocumento(ocrTipo)
-  if (tipoNorm && tipoNorm !== 'altro') {
+  if (tipoNorm) {
     signals.push({ value: tipoNorm, source: 'ocr' })
   }
 

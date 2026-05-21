@@ -118,15 +118,15 @@ function tipoFromQueueRow(opts: {
 
   if (m) {
     const fromTipoDoc = normalizeTipoDocumento(m.tipo_documento)
-    if (fromTipoDoc === 'comunicazione_cliente') return 'queue'
+    if (fromTipoDoc === 'comunicazione') return 'queue'
     if (fromTipoDoc === 'fattura') return 'invoice'
     if (fromTipoDoc === 'nota_credito') return 'invoice'
-    if (fromTipoDoc === 'bolla') return 'ddt'
+    if (fromTipoDoc === 'bolla_ddt') return 'ddt'
 
     const fromOcrTipo = normalizeTipoDocumento(m.ocr_tipo)
     if (fromOcrTipo === 'fattura') return 'invoice'
     if (fromOcrTipo === 'nota_credito') return 'invoice'
-    if (fromOcrTipo === 'bolla') return 'ddt'
+    if (fromOcrTipo === 'bolla_ddt') return 'ddt'
 
     const inferred = inferPendingDocumentKindForQueueRow({
       oggetto_mail: oggettoMail ?? null,
