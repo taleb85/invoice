@@ -651,6 +651,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
                  </svg>
                  <span className="truncate">Apprendimento AI</span>
                </Link>
+              <Link href="/strumenti/centro-operazioni" onClick={onClose} className={navLink(pathname?.startsWith('/strumenti/centro-operazioni'))}>
+                <svg className={`w-4 h-4 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                </svg>
+                <span className="truncate">Centro Operazioni</span>
+              </Link>
             </>
           )}
 
@@ -885,19 +891,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </svg>
                 <span className="truncate">{t.nav.impostazioni}</span>
               </Link>
-              <Link
-                href="/strumenti"
-                title={t.strumentiCentroOperazioni.pageTitle}
-                onClick={() => setFooterOpen(false)}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
-                  pathname?.startsWith('/strumenti') ? 'text-app-fg bg-app-line-10' : 'text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'
-                }`}
-              >
-                <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-                </svg>
-                <span className="truncate">{t.nav.strumenti}</span>
-              </Link>
               {/* Help */}
               <Link
                 href="/guida"
@@ -991,15 +984,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </svg>
             </Link>
 
-            <Link
-              href="/strumenti"
-              title={t.strumentiCentroOperazioni.pageTitle}
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname?.startsWith('/strumenti') ? 'text-cyan-300' : 'text-app-fg-subtle hover:text-app-fg'}`}
-            >
-              <svg className={`h-4 w-4 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-              </svg>
-            </Link>
             {/* Help */}
             <Link
               href="/guida"

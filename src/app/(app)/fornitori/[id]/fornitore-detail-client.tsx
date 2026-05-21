@@ -5281,8 +5281,6 @@ function FornitoreDetailClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodStatsLoading, periodStats])
 
-  const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
-
   /** Allineati ai KPI sopra la griglia (stesso filtro `data` sul periodo), non ai totali storici da caricamento pagina. */
   const bolleTabBadge = periodStatsLoading ? undefined : (periodStats?.bolleTotal ?? 0) > 0 ? periodStats!.bolleTotal : undefined
   const fattureTabBadge = periodStatsLoading ? undefined : (periodStats?.fattureTotal ?? 0) > 0 ? periodStats!.fattureTotal : undefined
@@ -5295,12 +5293,9 @@ function FornitoreDetailClient({
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
     const all: { id: Tab; label: string; badge?: number }[] = [
       { id: 'dashboard', label: t.fornitori.tabRiepilogo },
-      { id: 'conferme', label: t.fornitori.kpiOrdini, badge: ordiniCount > 0 ? ordiniCount : undefined },
       { id: 'bolle', label: t.nav.bolle, badge: bolleTabBadge },
       { id: 'fatture', label: t.nav.fatture, badge: fattureTabBadge },
-      { id: 'verifica', label: t.statements.tabVerifica },
       { id: 'listino', label: t.fornitori.tabListino },
-      { id: 'audit', label: t.fornitori.tabAuditPrezzi },
       { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
     ]
     if (supplierReadOnlyMobile) {
@@ -5309,7 +5304,6 @@ function FornitoreDetailClient({
     return all
   }, [
     t,
-    ordiniCount,
     bolleTabBadge,
     fattureTabBadge,
     pendingCount,
