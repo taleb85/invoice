@@ -13,6 +13,8 @@ cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 rsync -a \
   --exclude '.git' \
+  --exclude '.cursor' \
+  --exclude '.vscode' \
   --exclude 'node_modules' \
   --exclude '.next' \
   --exclude '.vercel/cache' \
