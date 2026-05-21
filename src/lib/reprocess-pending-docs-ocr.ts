@@ -328,7 +328,7 @@ export async function processLegacyPendingDoc(
   const suggestedPendingKind: 'fattura' | 'bolla' =
     effectivePendingKind === 'fattura' || effectivePendingKind === 'bolla'
       ? effectivePendingKind
-      : normalizeTipoDocumento(ocr.tipo_documento) === 'bolla'
+      : normalizeTipoDocumento(ocr.tipo_documento) === 'bolla_ddt'
         ? 'bolla'
         : 'fattura'
 

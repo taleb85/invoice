@@ -112,7 +112,7 @@ function tipoFromQueueRow(opts: {
         })
       : null
 
-  if (m?.rejected_reason === 'curriculum' || normalizeTipoDocumento(m?.tipo_documento) === 'curriculum') {
+  if (m?.rejected_reason === 'curriculum' || m?.rejected_reason === 'comunicazione' || normalizeTipoDocumento(m?.tipo_documento) === 'comunicazione') {
     return 'resume'
   }
 
