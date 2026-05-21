@@ -253,12 +253,12 @@ export async function processLegacyPendingDoc(
       ? { ...row.metadata }
       : {}
 
-  if (ocr.tipo_documento === 'curriculum') {
+  if (ocr.tipo_documento === 'comunicazione') {
     const metadata: Record<string, unknown> = {
       ...existingMeta,
       ...buildMetadata(ocr, matchedBy, { fileName: row.file_name, oggettoMail: row.oggetto_mail }),
-      ocr_tipo: 'curriculum',
-      rejected_reason: 'curriculum',
+      ocr_tipo: 'comunicazione',
+      rejected_reason: 'comunicazione',
     }
     const noteFromEmailBody = ocr.note_corpo_mail?.trim() || row.note?.trim() || null
     const { error: cvErr } = await service

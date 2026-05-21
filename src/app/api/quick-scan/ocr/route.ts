@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Map OCR tipo_documento to QuickScan tipo
     let tipo: QuickScanResult['tipo'] = 'unknown'
     if (ocr.tipo_documento === 'fattura') tipo = 'fattura'
-    else if (ocr.tipo_documento === 'bolla') tipo = 'bolla'
+    else if (ocr.tipo_documento === 'bolla_ddt') tipo = 'bolla'
 
     // Try to match fornitore from the anagrafica
     let fornitoreId: string | null = null

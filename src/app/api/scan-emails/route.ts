@@ -1883,8 +1883,8 @@ async function processEmails(
         continue
       }
 
-      /** CV / résumé — niente upload né `documenti_da_processare`; fingerprint chiuso nel log. */
-      if (ocr.tipo_documento === 'curriculum') {
+      /** CV / résumé / comunicazione — niente upload né `documenti_da_processare`; fingerprint chiuso nel log. */
+      if (ocr.tipo_documento === 'comunicazione') {
         mailDebugLog(
           `[PROCESS] Allegato non fiscale (curriculum/CV) — nessun insert coda: ${attachment?.filename ?? 'corpo mail'} | "${fornitore.nome}"`,
         )

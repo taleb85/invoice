@@ -624,7 +624,7 @@ export async function POST(req: NextRequest) {
       } else {
         const f = item.row as FatturaRow
         const toBolla =
-          allowTipoMigrate && ocrTipo === 'bolla' && (await canMigrateFatturaToBolla(service, f))
+          allowTipoMigrate && ocrTipo === 'bolla_ddt' && (await canMigrateFatturaToBolla(service, f))
         if (toBolla) {
           const bollaPayload = {
             user_id: ownerUserId,
