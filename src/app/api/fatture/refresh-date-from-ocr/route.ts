@@ -104,9 +104,9 @@ export async function POST(req: NextRequest) {
   }
 
   const importNeedsFill = fattura.importo == null && importFromOcr != null
-  const numeroNeedsFill = !fattura.numero_fattura?.trim() && numeroFatturaFromOcr != null
+  const numeroChanged = numeroFatturaFromOcr != null && numeroFatturaFromOcr !== fattura.numero_fattura
   /** Se né data né totale né numero dall'OCR, non abbiamo nulla da scrivere. */
-  if (normalized == null && !importNeedsFill && !numeroNeedsFill) {
+  if (normalized == null && !importNeedsFill && !numeroChanged) {
     return NextResponse.json(
       {
         error:
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
   if (importNeedsFill && importFromOcr != null) {
     updates.importo = importFromOcr
   }
-  if (numeroNeedsFill && numeroFatturaFromOcr != null) {
+  if (numeroChanged && numeroFatturaFromOcr != null) {
     updates.numero_fattura = numeroFatturaFromOcr
   }
 
