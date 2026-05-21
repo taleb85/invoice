@@ -2449,8 +2449,8 @@ function FattureTab({
       .gte('data', from)
       .lt('data', to)
       .order('data', { ascending: false })
-      .then(({ data }: { data: Fattura[] | null }) => {
-        setFatture(data ?? [])
+      .then(({ data, error }: { data: Fattura[] | null; error: unknown }) => {
+        if (!error) setFatture(data ?? [])
         setLoading(false)
       })
   }, [fornitoreId, dateFrom, dateToExclusive, epoch])
@@ -2559,8 +2559,8 @@ function FattureTab({
                 .gte('data', dateFrom)
                 .lt('data', dateToExclusive)
                 .order('data', { ascending: false })
-                .then(({ data }: { data: Fattura[] | null }) => {
-                  setFatture(data ?? [])
+                .then(({ data, error }: { data: Fattura[] | null; error: unknown }) => {
+                  if (!error) setFatture(data ?? [])
                   setLoading(false)
                 })
             }}
@@ -2678,6 +2678,7 @@ function FattureTab({
                           hasFile={Boolean(f.file_url?.trim())}
                           readOnly={readOnly}
                           onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
+                          onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
                           onLedgerMutated={onLedgerMutated}
                         />
                       </div>
