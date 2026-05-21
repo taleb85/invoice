@@ -404,7 +404,7 @@ function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>
   if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'comunicazione' || pk === 'ordine' || pk === 'listino') {
     // Se pending_kind è in conflitto col tipo documento OCR, va ri-sincronizzato
     if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === 'nota_credito') return true
-    if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === 'altro') return true
+    if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === null) return true
     return false
   }
   if (statementDocs.has(doc.id) || doc.is_statement) return false
