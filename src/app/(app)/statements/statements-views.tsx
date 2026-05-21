@@ -3654,6 +3654,10 @@ export function VerificationStatusTab({
   const [selectedStmt,   setSelectedStmt]   = useState<StmtRecord | null>(null)
 
   // ── Pipeline AI per fornitore — handler (after selectedStmt + showToast) ──
+  // checkResults è dichiarato dopo, usiamo un ref per leggere il valore corrente senza
+  // creare una dipendenza di ordine che romperebbe TypeScript.
+  const checkResultsRef = useRef<CheckResult[] | null>(null)
+
   const handleAiPipeline = useCallback(async () => {
     if (!sedeId || !fornitoreId) return
     setAiPipelinePhase('analisi')
@@ -3662,46 +3666,31 @@ export function VerificationStatusTab({
     setAiPipelineStatusMsg('Analisi anomalie in corso…')
 
     try {
-      // ── Fase 1: analisi separata per mostrare dettaglio all'utente ────────
-      const analisiRes = await fetch('/api/centro-controllo/analisi-anomalie', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sede_id: sedeId, offset: 0, chunk_size: 1, fornitore_id: fornitoreId }),
-      })
-      if (!analisiRes.ok) throw new Error(`Analisi HTTP ${analisiRes.status}`)
-      const analisiData = await analisiRes.json() as {
-        results: {
-          fatturaMancante: number
-          bolleMancanti: number
-          erroreImporto: number
-          total: number
-          hasEmail: boolean
-        }[]
-      }
-      const analisiRow = analisiData.results[0]
-
-      // Email already available on checkResults rows (no extra fetch needed)
+      // ── Fase 1: analisi derivata da checkResults (già caricato) ───────────
+      // Non chiamiamo l'API globale — usiamo solo le righe visibili nello statement aperto.
+      const anomaleRows = checkResultsRef.current?.filter(r => r.status !== 'ok' && r.status !== 'pending') ?? []
       const supplierEmail: string | null =
-        checkResults?.find(r => r.fornitore?.email)?.fornitore?.email ?? null
+        checkResultsRef.current?.find(r => r.fornitore?.email)?.fornitore?.email ?? null
+      const hasEmail = Boolean(supplierEmail)
 
       const pipelineAnalisi: FornitoreAIPipelineAnalisi = {
-        fatturaMancante: analisiRow?.fatturaMancante ?? 0,
-        bolleMancanti: analisiRow?.bolleMancanti ?? 0,
-        erroreImporto: analisiRow?.erroreImporto ?? 0,
-        total: analisiRow?.total ?? 0,
-        hasEmail: analisiRow?.hasEmail ?? false,
+        fatturaMancante: anomaleRows.filter(r => r.status === 'fattura_mancante').length,
+        bolleMancanti:   anomaleRows.filter(r => r.status === 'bolle_mancanti').length,
+        erroreImporto:   anomaleRows.filter(r => r.status === 'errore_importo').length,
+        total: anomaleRows.length,
+        hasEmail,
         supplierEmail,
       }
       setAiPipelineAnalisi(pipelineAnalisi)
 
       if (pipelineAnalisi.total === 0) {
-        setAiPipelineStatusMsg('Nessuna anomalia trovata.')
         setAiPipelinePhase('done')
         setAiPipelineResult({ resolved: 0, remaining: 0, emailImported: 0, analisiTotale: 0, fastFixed: 0 })
+        setAiPipelineStatusMsg(null)
         return
       }
 
-      // Build descriptive message for ricerca phase
+      // Descrizione per la fase ricerca
       const parts: string[] = []
       if (pipelineAnalisi.fatturaMancante > 0)
         parts.push(`${pipelineAnalisi.fatturaMancante} fattur${pipelineAnalisi.fatturaMancante === 1 ? 'a' : 'e'} mancant${pipelineAnalisi.fatturaMancante === 1 ? 'e' : 'i'}`)
@@ -3710,20 +3699,29 @@ export function VerificationStatusTab({
       if (pipelineAnalisi.erroreImporto > 0)
         parts.push(`${pipelineAnalisi.erroreImporto} errore${pipelineAnalisi.erroreImporto === 1 ? '' : 'i'} importo`)
 
-      // ── Fase 2: ricerca email (se necessario) ─────────────────────────────
-      if (pipelineAnalisi.fatturaMancante > 0 && pipelineAnalisi.hasEmail) {
+      if (pipelineAnalisi.fatturaMancante > 0 && hasEmail) {
         setAiPipelinePhase('ricerca')
-        const emailTarget = supplierEmail ? ` in ${supplierEmail}` : ''
-        setAiPipelineStatusMsg(`Cercando ${parts.join(', ')}${emailTarget}…`)
+        setAiPipelineStatusMsg(
+          `Cercando ${parts.join(', ')}${supplierEmail ? ` in ${supplierEmail}` : ''}…`
+        )
       } else {
-        setAiPipelineStatusMsg(`Trovate: ${parts.join(', ')}. Avvio associazione…`)
+        setAiPipelinePhase('ricerca')
+        setAiPipelineStatusMsg(`Avvio associazione: ${parts.join(', ')}…`)
       }
 
-      // ── Fasi 2+3: pipeline completa ───────────────────────────────────────
+      // ── Fasi 2+3: pipeline server-side scoped a questo statement ──────────
       const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sede_id: sedeId, fornitore_id: fornitoreId }),
+        body: JSON.stringify({
+          sede_id: sedeId,
+          fornitore_id: fornitoreId,
+          // Scope al singolo statement selezionato
+          statement_id: selectedStmt?.id ?? undefined,
+          // Passa i conteggi già calcolati per evitare query globale
+          fattura_mancante_count: pipelineAnalisi.fatturaMancante,
+          has_email: hasEmail,
+        }),
       })
       setAiPipelinePhase('associazione')
       setAiPipelineStatusMsg('Associazione e chiusura righe risolvibili…')
@@ -3738,11 +3736,12 @@ export function VerificationStatusTab({
         resolved: data.assoc.resolved + data.assoc.fastFixed,
         remaining: data.remainingAnomalies,
         emailImported: data.ricerca?.imported ?? 0,
-        analisiTotale: data.analisi.total,
+        analisiTotale: pipelineAnalisi.total,
         fastFixed: data.assoc.fastFixed,
       })
       setAiPipelinePhase('done')
       setAiPipelineStatusMsg(null)
+      // Ricarica le righe del triple-check per lo statement corrente
       if (selectedStmt) {
         setStmtRecheckBusy(true)
         await fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
@@ -3928,6 +3927,7 @@ export function VerificationStatusTab({
   useEffect(() => {
     setSelectedStmt(null)
     setCheckResults(null)
+    checkResultsRef.current = null
     setCheckError(null)
   }, [sedeId, fornitoreId])
 
@@ -3936,6 +3936,7 @@ export function VerificationStatusTab({
     if (stmts.some(s => s.id === selectedStmt.id)) return
     setSelectedStmt(null)
     setCheckResults(null)
+    checkResultsRef.current = null
     setCheckError(null)
   }, [stmts, stmtsLoading, selectedStmt])
 
@@ -3997,6 +3998,7 @@ export function VerificationStatusTab({
       fornitore:        r.fornitori ? { id: r.fornitori.id, nome: r.fornitori.nome, email: r.fornitori.email } : null,
     }))
     setCheckResults(mapped)
+    checkResultsRef.current = mapped
     setCheckLoading(false)
   }
 
