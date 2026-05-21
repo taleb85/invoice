@@ -1,0 +1,1581 @@
+{
+  "generatedAt": "2026-05-21T06:40:43.964Z",
+  "parametri": {
+    "table": "all",
+    "sedeId": null,
+    "fornitoreId": null,
+    "limit": null,
+    "onlyAnomalie": true
+  },
+  "sommario": {
+    "totaleAnalizzati": 1032,
+    "ok": 979,
+    "anomalie": 31,
+    "errori": 22,
+    "costoGeminiUsd": 1.073641
+  },
+  "risultati": [
+    {
+      "id": "0a7df239-3149-47b8-a562-24153581cbcd",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_d78608e9-7250-4cfb-ab16-30e4eac5f9a0.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "814032.pdf",
+        "data": "2026-05-19",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": "814032",
+        "data_fattura": "2025-09-12",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 32.62,
+        "importo_raw": "32.62",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"814032.pdf\" vs OCR=\"814032\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
+      }
+    },
+    {
+      "id": "bec10c5e-5de8-42ca-98fc-389fb82de953",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_611ce274-a6df-4a72-90c8-c14004fbb211.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "814209.pdf",
+        "data": "2026-05-19",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": "814209",
+        "data_fattura": "2025-09-13",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 65.2,
+        "importo_raw": "65.20",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"814209.pdf\" vs OCR=\"814209\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 176,
+        "totalTokens": 872,
+        "estimatedCostUsd": 0.001008
+      }
+    },
+    {
+      "id": "b4af03b4-1e00-49f6-ba54-8b2bdc25ae0a",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_acbde9f1-8fc7-4685-85a9-d3d260372d13.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "814245.pdf",
+        "data": "2026-05-19",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": "814245",
+        "data_fattura": "2025-09-13",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 65.25,
+        "importo_raw": "65.25",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"814245.pdf\" vs OCR=\"814245\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
+      }
+    },
+    {
+      "id": "76e2ee4e-812b-4dc2-b8aa-a68473238584",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_42358468-ce82-4b27-b374-0769363fd46f.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "814590.pdf",
+        "data": "2026-05-19",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": "814590",
+        "data_fattura": "2025-09-16",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 45.67,
+        "importo_raw": "45.67",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"814590.pdf\" vs OCR=\"814590\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
+      }
+    },
+    {
+      "id": "ce9990e1-50bf-49c5-8469-d36c8e2bd869",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_8462e4ce-189b-49ae-898d-8352bdfdc6bb.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "815549.pdf",
+        "data": "2026-05-19",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": "815549",
+        "data_fattura": "2025-09-20",
+        "ragione_sociale": "LA TUA PASTA",
+        "p_iva": "872539592",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 65.42,
+        "importo_raw": "65.42",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"815549.pdf\" vs OCR=\"815549\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
+      }
+    },
+    {
+      "id": "c40aa4f1-5679-4f07-bd7b-5e15888c52fd",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_32d51516-3122-4f8e-b4e3-3b6ee14f7c53.pdf",
+      "fornitore_id": "ad0d523c-58ec-478c-b47a-e93163f2acd7",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "0000201819",
+        "data": "2026-05-19",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "BLEEP UK (PLC)",
+        "p_iva": null,
+        "tipo_documento": "comunicazione",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": null
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "OCR non ha estratto dati utili (controllo_quadratura = false)"
+      ],
+      "controllo_quadratura": false,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 6888,
+        "outputTokens": 138,
+        "totalTokens": 7028,
+        "estimatedCostUsd": 0.005357
+      }
+    },
+    {
+      "id": "629047d2-18c3-4d95-82e7-7374f9f68dcc",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_05e5d545-c23e-45b4-8c3c-c042a80c586c.pdf",
+      "fornitore_id": "196deae0-b17e-430f-a2de-676913cdab7e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "0000201087",
+        "data": "2026-05-19",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "BLEEP UK (PLC)",
+        "p_iva": null,
+        "tipo_documento": "comunicazione",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": null
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "OCR non ha estratto dati utili (controllo_quadratura = false)"
+      ],
+      "controllo_quadratura": false,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 6888,
+        "outputTokens": 138,
+        "totalTokens": 7028,
+        "estimatedCostUsd": 0.005357
+      }
+    },
+    {
+      "id": "bc6ad9e6-b882-480f-9c21-75949581ae75",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_d9b166cc-4b65-4db6-afe8-f5a33361b7d6.pdf",
+      "fornitore_id": "196deae0-b17e-430f-a2de-676913cdab7e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "0000204453",
+        "data": "2026-05-17",
+        "importo": 132.88
+      },
+      "ocr": {
+        "numero_fattura": "0000204453",
+        "data_fattura": "2026-01-01",
+        "ragione_sociale": "GPUK LLP",
+        "p_iva": "927271515",
+        "tipo_documento": "bolla_ddt",
+        "totale_iva_inclusa": 133,
+        "importo_raw": "132.88",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Importo differisce: DB=132.88 € vs OCR=133.00 € (Δ=0.12 €)"
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 187,
+        "totalTokens": 883,
+        "estimatedCostUsd": 0.00104
+      }
+    },
+    {
+      "id": "18cf1a57-cad2-4d17-93e6-80ad655d8bdc",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_93e6c51f-0437-41fc-84fd-726bc4318ef8.pdf",
+      "fornitore_id": "9da857f7-aaab-4591-a151-d297a92d7c8e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "4",
+        "data": "2026-05-16",
+        "importo": 64.62
+      },
+      "ocr": {
+        "numero_fattura": "INV-2800",
+        "data_fattura": "2026-03-10",
+        "ragione_sociale": "Tacco",
+        "p_iva": "GB301916728",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 706.39,
+        "importo_raw": "706.39",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Importo differisce: DB=64.62 € vs OCR=706.39 € (Δ=641.77 €)",
+        "Numero documento differisce: DB=\"4\" vs OCR=\"INV-2800\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 954,
+        "outputTokens": 191,
+        "totalTokens": 1145,
+        "estimatedCostUsd": 0.001237
+      }
+    },
+    {
+      "id": "8e07cace-9f46-4595-8729-ab84c754add1",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_93e6c51f-0437-41fc-84fd-726bc4318ef8.pdf",
+      "fornitore_id": "9da857f7-aaab-4591-a151-d297a92d7c8e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "STMT-d4d4d915",
+        "data": "2026-05-16",
+        "importo": 524.04
+      },
+      "ocr": {
+        "numero_fattura": "INV-2800",
+        "data_fattura": "2026-03-10",
+        "ragione_sociale": "Tacco",
+        "p_iva": "GB301916728",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 706.39,
+        "importo_raw": "706.39",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Importo differisce: DB=524.04 € vs OCR=706.39 € (Δ=182.35 €)",
+        "Numero documento differisce: DB=\"STMT-d4d4d915\" vs OCR=\"INV-2800\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 954,
+        "outputTokens": 191,
+        "totalTokens": 1145,
+        "estimatedCostUsd": 0.001237
+      }
+    },
+    {
+      "id": "0010daad-d032-4fe5-8650-a43376a6ce43",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co\n/storage/v1/object/public/documenti/email_auto_36aec750-aab7-446f-bfba-a3cd1cd24a0a.pdf",
+      "fornitore_id": "196deae0-b17e-430f-a2de-676913cdab7e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "0000207592",
+        "data": "2026-05-07",
+        "importo": 132.88
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "5a262a75-697f-40e6-85f5-52a5196407fe",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co\n/storage/v1/object/public/documenti/email_auto_ecff39db-7f8a-45c4-be5a-2d6376542332.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "856761",
+        "data": "2026-05-02",
+        "importo": 113.53
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "dd0cc10a-f5b2-476c-a626-839f41b737e2",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co\n/storage/v1/object/public/documenti/email_auto_8e53e740-15de-4bcc-8b23-35ce939846b8.pdf",
+      "fornitore_id": "c98b8d16-2a1a-40e6-aa1e-ff51ab1db959",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SQ1962962",
+        "data": "2026-05-01",
+        "importo": 544.01
+      },
+      "ocr": {
+        "numero_fattura": "SN8103261",
+        "data_fattura": "2026-04-01",
+        "ragione_sociale": "Enotria Winecellars Ltd",
+        "p_iva": "868169767",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 544.01,
+        "importo_raw": "544.01",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"SQ1962962\" vs OCR=\"SN8103261\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 189,
+        "totalTokens": 885,
+        "estimatedCostUsd": 0.001045
+      }
+    },
+    {
+      "id": "5b99b7bc-2424-47f9-ba3c-c0a743becb34",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_50c60274-7f69-4290-b4ba-f9dbf60fcc56.pdf",
+      "fornitore_id": "196deae0-b17e-430f-a2de-676913cdab7e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": null,
+        "data": "2026-05-01",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "BLEEP UK (PLC)",
+        "p_iva": null,
+        "tipo_documento": "comunicazione",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": null
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "OCR non ha estratto dati utili (controllo_quadratura = false)"
+      ],
+      "controllo_quadratura": false,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 6888,
+        "outputTokens": 138,
+        "totalTokens": 7028,
+        "estimatedCostUsd": 0.005357
+      }
+    },
+    {
+      "id": "45f658e8-ca85-4b99-9719-049ab2b509f9",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co\n/storage/v1/object/public/documenti/email_auto_212ec99d-d78c-454f-9d70-31c457b8eac0.pdf",
+      "fornitore_id": "c98b8d16-2a1a-40e6-aa1e-ff51ab1db959",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SN8113551",
+        "data": "2026-05-01",
+        "importo": 340.64
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "9fdd2be3-4802-4d59-a943-26b6861e731f",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co\n/storage/v1/object/public/documenti/email_auto_2ee302f6-8bf8-4126-be2f-591ebf6e2488.pdf",
+      "fornitore_id": "70ec962d-58be-4274-8d42-b19e683020a8",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "51120543",
+        "data": "2026-04-30",
+        "importo": 442.66
+      },
+      "ocr": {
+        "numero_fattura": "SI120543",
+        "data_fattura": "2026-04-30",
+        "ragione_sociale": "MONDIAL WINE LIMITED",
+        "p_iva": "391 6861 19",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 442.66,
+        "importo_raw": "442.66",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"51120543\" vs OCR=\"SI120543\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 188,
+        "totalTokens": 884,
+        "estimatedCostUsd": 0.001043
+      }
+    },
+    {
+      "id": "9a26afd7-e238-489e-b917-cb3e115dbd84",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_05e5d545-c23e-45b4-8c3c-c042a80c586c.pdf",
+      "fornitore_id": "196deae0-b17e-430f-a2de-676913cdab7e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "0000201087",
+        "data": "2026-04-30",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "BLEEP UK (PLC)",
+        "p_iva": null,
+        "tipo_documento": "comunicazione",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": null
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "OCR non ha estratto dati utili (controllo_quadratura = false)"
+      ],
+      "controllo_quadratura": false,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 6888,
+        "outputTokens": 138,
+        "totalTokens": 7028,
+        "estimatedCostUsd": 0.005357
+      }
+    },
+    {
+      "id": "dd5bb9c1-1242-4f9b-afa6-cc4716d80235",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_32d51516-3122-4f8e-b4e3-3b6ee14f7c53.pdf",
+      "fornitore_id": "ad0d523c-58ec-478c-b47a-e93163f2acd7",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "0000201819",
+        "data": "2026-04-30",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "BLEEP UK (PLC)",
+        "p_iva": null,
+        "tipo_documento": "comunicazione",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": null
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "OCR non ha estratto dati utili (controllo_quadratura = false)"
+      ],
+      "controllo_quadratura": false,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 6888,
+        "outputTokens": 138,
+        "totalTokens": 7028,
+        "estimatedCostUsd": 0.005357
+      }
+    },
+    {
+      "id": "94ecc0d0-40f7-4fd5-9bf8-bfcb51fb1797",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co\n/storage/v1/object/public/documenti/email_auto_173c095c-ffd2-4450-a98a-e9f189c63c4a.pdf",
+      "fornitore_id": "bd93d000-a2ab-45f8-91b6-b1358eec40fc",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "C098",
+        "data": "2026-04-30",
+        "importo": 74.7
+      },
+      "ocr": {
+        "numero_fattura": "27308",
+        "data_fattura": "2026-04-30",
+        "ragione_sociale": "LDNFOODS LTD",
+        "p_iva": "349124987",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 74.7,
+        "importo_raw": "74.70",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"C098\" vs OCR=\"27308\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 174,
+        "totalTokens": 870,
+        "estimatedCostUsd": 0.001002
+      }
+    },
+    {
+      "id": "8d0652b9-1e21-4d62-905e-07cf9ac0e8b9",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_8c399371-82e5-4227-8d49-b094293ec65e.pdf",
+      "fornitore_id": "bf164929-dea5-4327-8e60-494adcdc911c",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "161761",
+        "data": "2026-04-18",
+        "importo": 74.85
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "c77cc156-b6a4-4ffe-b697-493dcad88bd3",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_6533d136-031a-4aa4-a089-2729c8da4cd6.pdf",
+      "fornitore_id": "80eda38b-42e3-47b3-97b5-15ae743c4942",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "00140373",
+        "data": "2026-04-16",
+        "importo": 180
+      },
+      "ocr": {
+        "numero_fattura": "00140373",
+        "data_fattura": "2026-04-16",
+        "ragione_sociale": "Stella Imports Limited",
+        "p_iva": "927184409",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 160,
+        "importo_raw": "160.00",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Importo differisce: DB=180 € vs OCR=160.00 € (Δ=20.00 €)"
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 180,
+        "totalTokens": 876,
+        "estimatedCostUsd": 0.00102
+      }
+    },
+    {
+      "id": "deed2654-2379-484a-9bef-104579138808",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_c1c3e938-7d58-4d6a-bbf4-9df2876d5273.pdf",
+      "fornitore_id": "35bf7a89-cbda-4832-9055-70bda19735db",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SDN651611",
+        "data": "2026-04-15",
+        "importo": 142.52
+      },
+      "ocr": {
+        "numero_fattura": "SDN651611",
+        "data_fattura": "2026-04-15",
+        "ragione_sociale": "CARNEVALE LTD",
+        "p_iva": "229196639",
+        "tipo_documento": "bolla_ddt",
+        "totale_iva_inclusa": 147.19,
+        "importo_raw": "147.19",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Importo differisce: DB=142.52 € vs OCR=147.19 € (Δ=4.67 €)"
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 182,
+        "totalTokens": 878,
+        "estimatedCostUsd": 0.001025
+      }
+    },
+    {
+      "id": "80bb1380-ca87-4555-9a89-5703e1cfad4a",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_185e3cb6-7b2d-4205-9f96-e656c95aaef5.pdf",
+      "fornitore_id": "ad0d523c-58ec-478c-b47a-e93163f2acd7",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "0000201819",
+        "data": "2026-04-14",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "BLEEP UK (PLC)",
+        "p_iva": null,
+        "tipo_documento": "comunicazione",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": null
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "OCR non ha estratto dati utili (controllo_quadratura = false)"
+      ],
+      "controllo_quadratura": false,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 6888,
+        "outputTokens": 138,
+        "totalTokens": 7028,
+        "estimatedCostUsd": 0.005357
+      }
+    },
+    {
+      "id": "b1199fde-8765-4442-a616-bf38baaf85d1",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_b7e3852a-a975-4b98-affd-f00140e9c17d.pdf",
+      "fornitore_id": "bd93d000-a2ab-45f8-91b6-b1358eec40fc",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "C098",
+        "data": "2026-04-10",
+        "importo": 49.8
+      },
+      "ocr": {
+        "numero_fattura": "27059",
+        "data_fattura": "2026-04-10",
+        "ragione_sociale": "LDNFOODS LTD",
+        "p_iva": "349124987",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 49.8,
+        "importo_raw": "49.80",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"C098\" vs OCR=\"27059\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 174,
+        "totalTokens": 870,
+        "estimatedCostUsd": 0.001002
+      }
+    },
+    {
+      "id": "5dddcd6d-2965-42da-a222-e9bbf827b3a5",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_24b2ca17-f2bc-49dc-aecf-5fb62962996b.pdf",
+      "fornitore_id": "bd93d000-a2ab-45f8-91b6-b1358eec40fc",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "C098",
+        "data": "2026-04-01",
+        "importo": 74.7
+      },
+      "ocr": {
+        "numero_fattura": "26959",
+        "data_fattura": "2026-04-01",
+        "ragione_sociale": "LDNFOODS LTD",
+        "p_iva": "349124987",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 74.7,
+        "importo_raw": "74.70",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"C098\" vs OCR=\"26959\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 174,
+        "totalTokens": 870,
+        "estimatedCostUsd": 0.001002
+      }
+    },
+    {
+      "id": "369f93e5-a68e-46fd-96e4-acb9c0da5ee0",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_e7e4788e-7674-4328-9f58-fe474d794818.pdf",
+      "fornitore_id": "c98b8d16-2a1a-40e6-aa1e-ff51ab1db959",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SN8094870",
+        "data": "2026-03-31",
+        "importo": 1807.04
+      },
+      "ocr": {
+        "numero_fattura": "000117",
+        "data_fattura": "2026-03-31",
+        "ragione_sociale": "Enotria Winecellars Ltd",
+        "p_iva": "868169767",
+        "tipo_documento": "estratto_conto",
+        "totale_iva_inclusa": 1807.04,
+        "importo_raw": "1,807.04",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"SN8094870\" vs OCR=\"000117\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 192,
+        "totalTokens": 888,
+        "estimatedCostUsd": 0.001054
+      }
+    },
+    {
+      "id": "171860d7-c888-414a-8068-95ff4dac8683",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_08b07050-efc3-4de8-8b77-40c81e896ca8.pdf",
+      "fornitore_id": "a7d2dedd-4b18-484b-a49a-e584e4929dd3",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "70223972",
+        "data": "2026-03-30",
+        "importo": 112.44
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "4444ec48-82cf-4498-b201-251e188d7b3d",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_06ca67c7-310b-4fa6-9561-8cd3f228db7d.pdf",
+      "fornitore_id": "35bf7a89-cbda-4832-9055-70bda19735db",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SI633610",
+        "data": "2026-03-30",
+        "importo": 171.27
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "ac74ee32-34a8-4d62-bc8a-9dec84054b15",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_65cc199a-b872-46df-a08a-459378a00c54.pdf",
+      "fornitore_id": "35bf7a89-cbda-4832-9055-70bda19735db",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SI617905",
+        "data": "2026-03-12",
+        "importo": 253.79
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "83c34700-3989-4f05-a891-6ba0cb331613",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_67e2fd14-474a-4469-9929-d9f182ee7d1b.pdf",
+      "fornitore_id": "02d3283c-c74a-4e2c-8bd4-63e1989466ce",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "30/01/26",
+        "data": "2026-01-30",
+        "importo": 121.85
+      },
+      "ocr": {
+        "numero_fattura": "1280640",
+        "data_fattura": "2026-01-30",
+        "ragione_sociale": "OSTERIA BASILICO",
+        "p_iva": null,
+        "tipo_documento": "bolla_ddt",
+        "totale_iva_inclusa": 121.85,
+        "importo_raw": "121.85",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"30/01/26\" vs OCR=\"1280640\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 174,
+        "totalTokens": 870,
+        "estimatedCostUsd": 0.001002
+      }
+    },
+    {
+      "id": "7e1f0f25-ef77-4344-8716-cc274f3c2fa3",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_f2e91ea9-f694-4cb8-a105-e8573deb0b94.pdf",
+      "fornitore_id": "424f6827-99ab-4412-a1bf-d480f485106a",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "X087360",
+        "data": "2026-01-19",
+        "importo": 86.64
+      },
+      "ocr": {
+        "numero_fattura": "OP/IHI4508",
+        "data_fattura": "2026-01-19",
+        "ragione_sociale": "Zenith Hygiene Systems",
+        "p_iva": "859964253",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 86.64,
+        "importo_raw": "86.64",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"X087360\" vs OCR=\"OP/IHI4508\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 181,
+        "totalTokens": 877,
+        "estimatedCostUsd": 0.001022
+      }
+    },
+    {
+      "id": "0871b086-1b38-4d45-b277-f44316c8b278",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_b7dec192-c59a-4eea-9e73-58db5071fdfd.pdf",
+      "fornitore_id": "424f6827-99ab-4412-a1bf-d480f485106a",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "X085245",
+        "data": "2025-12-19",
+        "importo": 0
+      },
+      "ocr": {
+        "numero_fattura": "OP/IHG7478",
+        "data_fattura": "2025-12-19",
+        "ragione_sociale": "Zenith Hygiene Systems",
+        "p_iva": "859964253",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 0,
+        "importo_raw": "0.00",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"X085245\" vs OCR=\"OP/IHG7478\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 179,
+        "totalTokens": 875,
+        "estimatedCostUsd": 0.001017
+      }
+    },
+    {
+      "id": "cde931a0-c85b-40a7-91dc-1d031d5cd523",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_382ec3ef-4bb6-4bfa-b2a7-5c23f526abad.pdf",
+      "fornitore_id": "70ec962d-58be-4274-8d42-b19e683020a8",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "2410091",
+        "data": "2025-12-01",
+        "importo": 0
+      },
+      "ocr": {
+        "numero_fattura": "2410091",
+        "data_fattura": "2025-12-01",
+        "ragione_sociale": "Parts Town UK Limited",
+        "p_iva": "729951295000",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 14.6,
+        "importo_raw": "0.00",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Importo differisce: DB=0 € vs OCR=14.60 € (Δ=14.60 €)"
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 188,
+        "totalTokens": 884,
+        "estimatedCostUsd": 0.001043
+      }
+    },
+    {
+      "id": "924982ff-f6b8-4fa3-8f2d-3bc28110d87c",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_bbd4909e-b94b-4bd4-aecb-2f1cfb53e217.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": null,
+        "data": "2025-11-23",
+        "importo": 69.73
+      },
+      "ocr": {
+        "numero_fattura": "499314",
+        "data_fattura": "2025-11-23",
+        "ragione_sociale": "La Tua Pasta",
+        "p_iva": "872539592",
+        "tipo_documento": "ordine",
+        "totale_iva_inclusa": 71.78,
+        "importo_raw": "71.78",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Importo differisce: DB=69.73 € vs OCR=71.78 € (Δ=2.05 €)"
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 174,
+        "totalTokens": 870,
+        "estimatedCostUsd": 0.001002
+      }
+    },
+    {
+      "id": "5262c3e4-12dc-48a2-9675-91c72cab236a",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_06de1db7-cfca-4a02-b6ff-a60fdacb2ee4.pdf",
+      "fornitore_id": "bf164929-dea5-4327-8e60-494adcdc911c",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "148561",
+        "data": "2025-11-19",
+        "importo": 68.61
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "5d8fc9ba-5f88-4918-83e9-bb7925bb6d32",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_0bff61b1-469b-47c1-a37b-591b5efc8b0d.pdf",
+      "fornitore_id": "bd93d000-a2ab-45f8-91b6-b1358eec40fc",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "C098",
+        "data": "2025-11-12",
+        "importo": 74.7
+      },
+      "ocr": {
+        "numero_fattura": "25699",
+        "data_fattura": "2025-12-11",
+        "ragione_sociale": "LDNFOODS LTD",
+        "p_iva": "349124987",
+        "tipo_documento": "nota_credito",
+        "totale_iva_inclusa": 74.7,
+        "importo_raw": "74.70",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"C098\" vs OCR=\"25699\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 177,
+        "totalTokens": 873,
+        "estimatedCostUsd": 0.001011
+      }
+    },
+    {
+      "id": "433daaba-b9ee-4403-8301-654c845d8a09",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_d5843c26-3dfb-44be-a6eb-840827ec8e97.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "823683",
+        "data": "2025-10-31",
+        "importo": 78.29
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "7a26e230-a014-4a1b-8df0-cad56a49028b",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_30be2593-6721-4f94-b883-5515bb9259ba.pdf",
+      "fornitore_id": "02d3283c-c74a-4e2c-8bd4-63e1989466ce",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "5259013",
+        "data": "2025-10-27",
+        "importo": 53.87
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "4cdf61be-86f2-495d-8f3d-21f9a13673dc",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_bb86662f-cde2-432f-935e-e04cd8cb4fc9.pdf",
+      "fornitore_id": "c98b8d16-2a1a-40e6-aa1e-ff51ab1db959",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SN8043159",
+        "data": "2025-10-24",
+        "importo": 330.84
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "5bc12a2d-90ce-4f1a-a596-1aa903af7262",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_a28d8d87-fddd-45fd-a592-efef51381cb2.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "821980",
+        "data": "2025-10-23",
+        "importo": 52.16
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "cfe03e9b-fc27-46e5-b445-309e81b47fe9",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_b4141285-55a1-4d50-a8ea-07c6024249fd.pdf",
+      "fornitore_id": "a7d2dedd-4b18-484b-a49a-e584e4929dd3",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "70216310",
+        "data": "2025-10-23",
+        "importo": 204.72
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "8e318c6b-8f3d-49b6-84c5-8d393e7a9e36",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_5dd7c1df-d51f-4656-898b-252c8a31671a.pdf",
+      "fornitore_id": "bf164929-dea5-4327-8e60-494adcdc911c",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "146018",
+        "data": "2025-10-20",
+        "importo": 96.79
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "76f20b49-6b42-413b-829d-1c190ccd7e08",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_68588951-a405-4a1c-896f-17f828bac6f5.pdf",
+      "fornitore_id": "bd93d000-a2ab-45f8-91b6-b1358eec40fc",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "C098",
+        "data": "2025-10-16",
+        "importo": 49.8
+      },
+      "ocr": {
+        "numero_fattura": "25006",
+        "data_fattura": "2025-10-16",
+        "ragione_sociale": "LDNFOODS LTD",
+        "p_iva": "349124987",
+        "tipo_documento": "fattura",
+        "totale_iva_inclusa": 49.8,
+        "importo_raw": "49.80",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento differisce: DB=\"C098\" vs OCR=\"25006\""
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 175,
+        "totalTokens": 871,
+        "estimatedCostUsd": 0.001005
+      }
+    },
+    {
+      "id": "08991c09-9221-481f-b8a1-4a81491d85c3",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_5fb07c3e-494b-474d-a4aa-33ac5fadec6a.pdf",
+      "fornitore_id": "556d17bb-507c-4784-9be5-c7f9e2135159",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "820478",
+        "data": "2025-10-15",
+        "importo": 75.52
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "5beed658-bc9b-414c-b669-6186b2a18c0a",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_93a9a006-df88-4725-9cda-ad4691923326.pdf",
+      "fornitore_id": "61beeb65-ce61-4ced-8590-db3c4f7ac4bc",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "392",
+        "data": "2025-09-29",
+        "importo": 332
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "6ea7f2f3-1513-4f90-8bb3-9c1238e69b62",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_f2479cc9-a72b-4736-8c91-f4f3ed55da19.pdf",
+      "fornitore_id": "9da857f7-aaab-4591-a151-d297a92d7c8e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "INV-2392",
+        "data": "2025-09-09",
+        "importo": 1185.18
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "Tacco",
+        "p_iva": "GB301916728",
+        "tipo_documento": "estratto_conto",
+        "totale_iva_inclusa": 1185.18,
+        "importo_raw": "1,185.18",
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento presente in DB (\"INV-2392\") ma non estratto da OCR"
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 1212,
+        "outputTokens": 180,
+        "totalTokens": 1392,
+        "estimatedCostUsd": 0.001391
+      }
+    },
+    {
+      "id": "9db34c2b-b805-4381-b25e-a3bd56cba917",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co\n/storage/v1/object/public/documenti/email_auto_e03df26f-1b82-4496-ae2c-ea70705a562a.pdf",
+      "fornitore_id": "70ec962d-58be-4274-8d42-b19e683020a8",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SI120648",
+        "data": "2025-08-29",
+        "importo": 387.5
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "e0f9ff40-896f-40f9-95ad-b421bd8d9753",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_6fb2f1f6-1e0c-448a-bad6-3b6655e6684c.pdf",
+      "fornitore_id": "70ec962d-58be-4274-8d42-b19e683020a8",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SC010279",
+        "data": "2025-08-26",
+        "importo": 246.01
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "99b7d2b1-8ee7-4ab3-91d4-3595d505f645",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_40b844f7-d3e2-461c-bb2f-b714db3d8558.pdf",
+      "fornitore_id": "8bad2122-d851-47e8-aa14-79c4e3177a4e",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "209244",
+        "data": "2025-07-29",
+        "importo": 86.27
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "1a57ca52-9f3c-4e5e-a9ae-8d98d6269aa4",
+      "tabella": "fatture",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_16d48bd0-856d-40d3-b1bf-1cd1c92d9383.pdf",
+      "fornitore_id": "bd93d000-a2ab-45f8-91b6-b1358eec40fc",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "23995",
+        "data": "2025-07-24",
+        "importo": 74.7
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "2f9e9977-8d94-4336-a68d-883d86289e84",
+      "tabella": "bolle",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_853f613d-9b49-4f20-98fe-4bf0fd84d1ef.pdf",
+      "fornitore_id": "424f6827-99ab-4412-a1bf-d480f485106a",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "260713247144048",
+        "data": "2026-04-16",
+        "importo": null
+      },
+      "ocr": {
+        "numero_fattura": null,
+        "data_fattura": null,
+        "ragione_sociale": "RAYNOR HYGIENE",
+        "p_iva": null,
+        "tipo_documento": "comunicazione",
+        "totale_iva_inclusa": null,
+        "importo_raw": null,
+        "estrazione_utile": true
+      },
+      "anomalia": true,
+      "anomalia_motivo": [
+        "Numero documento presente in DB (\"260713247144048\") ma non estratto da OCR"
+      ],
+      "controllo_quadratura": true,
+      "errore": null,
+      "tokenUsage": {
+        "inputTokens": 696,
+        "outputTokens": 142,
+        "totalTokens": 838,
+        "estimatedCostUsd": 0.00091
+      }
+    },
+    {
+      "id": "c1f96cdc-f209-4113-bc4a-ad56c8f10efb",
+      "tabella": "bolle",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_287dd006-fb96-402f-a288-3fdae95f754b.pdf",
+      "fornitore_id": "35bf7a89-cbda-4832-9055-70bda19735db",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "SDN646283",
+        "data": "2026-04-09",
+        "importo": 183.19
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    },
+    {
+      "id": "14b477d8-5ae7-4896-ae8c-e73cfe63bc53",
+      "tabella": "bolle",
+      "file_url": "https://dubocvwsdzrqrrxsedas.supabase.co/storage/v1/object/public/documenti/email_auto_f03cca89-0ae3-4a2d-a930-69c6eae7f498.pdf",
+      "fornitore_id": "4713bee9-b379-4d17-be3e-fce655b90730",
+      "sede_id": "98b7a2a4-29b5-4461-bed7-b8297ac4b27f",
+      "db": {
+        "numero": "11847552",
+        "data": "2026-04-03",
+        "importo": null
+      },
+      "ocr": null,
+      "anomalia": false,
+      "anomalia_motivo": null,
+      "controllo_quadratura": false,
+      "errore": "[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+      "tokenUsage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "estimatedCostUsd": 0
+      }
+    }
+  ]
+}
