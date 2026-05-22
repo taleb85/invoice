@@ -15,7 +15,6 @@ import {
   DASHBOARD_OPERATOR_KPI_SUPPLIER_HEXES,
   DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS,
   hexToRgbTuple,
-  operatorKpiVisual,
   supplierDesktopKpiOuterShadow,
 } from '@/lib/kpi-accent-palette'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
@@ -28,7 +27,7 @@ import {
 import { formatCurrency } from '@/lib/locale-shared'
 import { useNetworkStatusOptional } from '@/lib/network-context'
 
-/** Solo layout; tinta da `operatorKpiVisual[].iconWrapClass`. */
+/** Solo layout; tinta da `KPI_TILE_ICON_WRAP`. */
 const kpiTileIconWrapBase =
   'col-start-2 row-start-1 flex h-7 w-7 shrink-0 items-center justify-center self-start justify-self-end rounded-md sm:h-8 sm:w-8'
 /** Sottotitolo sotto il valore: larghezza piena, niente affiancamento stretto al numero. */
@@ -69,26 +68,16 @@ const kpiTileInnerGridClass =
 /** Stessa altezza minima per tutte le tile (ridotta; le tile con più righe crescono oltre il minimo). */
 const OPERATOR_KPI_CARD_MIN_H = 'min-h-[7.25rem] sm:min-h-[7.5rem] lg:min-h-[7.75rem]'
 
-/**
- * Ordine tile: Ordini → Bolle → Fatturato → Estratti → Documenti da revisionare.
- * Colore SVG: sequenza della scheda fornitore (`DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS`).
- */
-/** Allinea accenti `operatorKpiVisual` all’ordine delle 5 tile dashboard. */
-const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 2] as const
+/** Bordo, hover e icon-wrap neutrali: identici su tutte e 5 le tile operatore. */
+const KPI_TILE_BORDER = 'border-[rgba(34,211,238,0.15)]'
+const KPI_TILE_HOVER = 'hover:border-[rgba(34,211,238,0.25)]'
+const KPI_TILE_ICON_WRAP = 'bg-white/[0.07] ring-1 ring-white/10'
 
-/** Colore icona SVG: stessa sequenza della scheda fornitore (`DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS`). */
+
+/** Colore icona SVG: sequenza della scheda fornitore (`DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS`). */
 function dashboardKpiIconTextClass(index: number) {
   const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS.length - 1))
   return DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS[i]!
-}
-
-function operatorKpiVisualAt(tileIndex: number) {
-  const k = Math.max(0, Math.min(tileIndex, OPERATOR_KPI_VISUAL_INDEX.length - 1))
-  const v = OPERATOR_KPI_VISUAL_INDEX[k]!
-  if (v >= 0 && v < operatorKpiVisual.length) {
-    return operatorKpiVisual[v]!
-  }
-  return operatorKpiVisual[0]!
 }
 
 export function DashboardOperatorKpiSkeleton({ glassShell = false }: { glassShell?: boolean }) {
@@ -108,19 +97,17 @@ export function DashboardOperatorKpiSkeleton({ glassShell = false }: { glassShel
       ) : null}
       <div className={innerPad}>
         <div className={DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS}>
-          {[0, 1, 2, 3, 4].map((i) => {
-            const ov = operatorKpiVisualAt(i)
-            return (
+          {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className={`operator-kpi-card relative flex h-full min-h-0 min-w-0 w-full animate-pulse flex-col overflow-hidden rounded-2xl ${OPERATOR_KPI_CARD_MIN_H} ${glassShell ? '' : `${ov.borderClass} ${ov.ringClass}`}`}
+                className={`operator-kpi-card relative flex h-full min-h-0 min-w-0 w-full animate-pulse flex-col overflow-hidden rounded-2xl ${OPERATOR_KPI_CARD_MIN_H} ${glassShell ? '' : `${KPI_TILE_BORDER}`}`}
                 style={glassShell ? undefined : { boxShadow: operatorKpiCardShadow() }}
               >
                                 <div className={kpiTileInnerGridClass}>
                   <div className="col-start-1 row-start-1 flex min-h-[1.875rem] items-start sm:min-h-[2rem]">
                     <div className="mt-0.5 h-2.5 w-4/5 max-w-[8rem] rounded bg-white/12 sm:h-3" />
                   </div>
-                  <div className={`${kpiTileIconWrapBase} ${ov.iconWrapClass} animate-pulse`}>
+                  <div className={`${kpiTileIconWrapBase} ${KPI_TILE_ICON_WRAP} animate-pulse`}>
                     <div className="h-3 w-3 rounded bg-white/15 sm:h-3.5 sm:w-3.5" />
                   </div>
                   <div className="col-span-2 col-start-1 row-start-2 flex min-h-0 min-w-0 flex-col items-stretch gap-0.5 self-start">
@@ -129,8 +116,7 @@ export function DashboardOperatorKpiSkeleton({ glassShell = false }: { glassShel
                   </div>
                 </div>
               </div>
-            )
-          })}
+          ))}
         </div>
       </div>
     </div>
@@ -146,12 +132,6 @@ type KpiItem = {
   duplicateBolleSub?: string
   /** Seconda riga sotto il sottotitolo (es. hint Rekki su Bolle). */
   microSub?: string
-  accentHex: string
-  glowRgb: string
-  borderClass: string
-  ringClass: string
-  hoverClass: string
-  iconWrapClass: string
   icon: ReactNode
   /** Tile Bolle: link secondario verso elenco solo `pending=1` (evita `<a>` annidato: gestito nel render). */
   bollePendingHref?: string
@@ -250,12 +230,6 @@ export default function DashboardOperatorKpiGrid({
       label: t.fornitori.kpiOrdini,
       value: k.ordiniCount,
       sub: t.fornitori.subOrdiniPeriodo,
-      accentHex: operatorKpiVisualAt(0).accentHex,
-      glowRgb: operatorKpiVisualAt(0).glowRgb,
-      borderClass: operatorKpiVisualAt(0).borderClass,
-      ringClass: operatorKpiVisualAt(0).ringClass,
-      hoverClass: operatorKpiVisualAt(0).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(0).iconWrapClass,
       icon: (
         <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
@@ -285,12 +259,6 @@ export default function DashboardOperatorKpiGrid({
           : undefined,
       bollePendingHref,
       bollePendingCta,
-      accentHex: operatorKpiVisualAt(1).accentHex,
-      glowRgb: operatorKpiVisualAt(1).glowRgb,
-      borderClass: operatorKpiVisualAt(1).borderClass,
-      ringClass: operatorKpiVisualAt(1).ringClass,
-      hoverClass: operatorKpiVisualAt(1).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(1).iconWrapClass,
       icon: (
         <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
@@ -316,12 +284,6 @@ export default function DashboardOperatorKpiGrid({
         k.duplicatiCount > 0
           ? t.dashboard.kpiDuplicateInvoicesDetected.replace('{n}', String(k.duplicatiCount))
           : undefined,
-      accentHex: operatorKpiVisualAt(2).accentHex,
-      glowRgb: operatorKpiVisualAt(2).glowRgb,
-      borderClass: operatorKpiVisualAt(2).borderClass,
-      ringClass: operatorKpiVisualAt(2).ringClass,
-      hoverClass: operatorKpiVisualAt(2).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(2).iconWrapClass,
       icon: (
         <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
@@ -338,12 +300,6 @@ export default function DashboardOperatorKpiGrid({
       label: t.statements.tabVerifica,
       value: k.statementsTotal,
       sub: stmtSub,
-      accentHex: operatorKpiVisualAt(3).accentHex,
-      glowRgb: operatorKpiVisualAt(3).glowRgb,
-      borderClass: operatorKpiVisualAt(3).borderClass,
-      ringClass: operatorKpiVisualAt(3).ringClass,
-      hoverClass: operatorKpiVisualAt(3).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(3).iconWrapClass,
       icon: (
         <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(3)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
@@ -364,12 +320,6 @@ export default function DashboardOperatorKpiGrid({
         glassShell && fy != null && kpiRevisionFiscalCountryCode
           ? t.dashboard.kpiDocumentiDaRevisionareGlassExplain.replace('{fyLabel}', formatFiscalYearShort(kpiRevisionFiscalCountryCode, fy)).replace('{da_associare}', String(k.documentiDaAssociare)).replace('{total}', String(k.documentiDaRevisionare))
           : undefined,
-      accentHex: operatorKpiVisualAt(4).accentHex,
-      glowRgb: operatorKpiVisualAt(4).glowRgb,
-      borderClass: operatorKpiVisualAt(4).borderClass,
-      ringClass: operatorKpiVisualAt(4).ringClass,
-      hoverClass: operatorKpiVisualAt(4).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(4).iconWrapClass,
       icon: (
         <svg
           className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4)}`}
@@ -479,7 +429,7 @@ export default function DashboardOperatorKpiGrid({
                     {item.label}
                   </p>
                   <span
-                    className={`${kpiTileIconWrapBase} ${item.iconWrapClass}${glassShell ? ' opacity-95' : ''}`}
+                    className={`${kpiTileIconWrapBase} ${KPI_TILE_ICON_WRAP}${glassShell ? ' opacity-95' : ''}`}
                   >
                     {item.icon}
                   </span>
@@ -556,7 +506,7 @@ export default function DashboardOperatorKpiGrid({
             const shellClass = [
               `operator-kpi-card relative z-[1] group flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${OPERATOR_KPI_CARD_MIN_H}`,
               glassShell ? `ring-0 ${GLASS_KPI_TILE_HOVER_SHADOW}` : 'transition-[transform,border-color,background-color] duration-200',
-              glassShell ? '' : `${item.borderClass} ${item.ringClass} ${item.hoverClass}`,
+              glassShell ? '' : `${KPI_TILE_BORDER} ${KPI_TILE_HOVER}`,
               glassShell ? '' : online ? 'hover:bg-white/[0.04]' : '',
               cardInteractive,
             ]
