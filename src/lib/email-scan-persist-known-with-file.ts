@@ -264,9 +264,16 @@ export async function persistKnownFornitoreEmailScanWithFile(
     : null
   // A learned 'statement' hint must not win when the subject explicitly signals an invoice.
   const subjectIsExplicitlyInvoice = subjectLooksLikeInvoice(email.subject) || subjectLooksLikeInvoice(storedFileName)
-  const effectivePendingKind = autoPendingKind ?? (
-    subjectIsExplicitlyInvoice && learnedPendingKind === 'statement' ? null : learnedPendingKind
-  )
+  // A learned 'fattura'/'bolla'/'nota_credito' hint beats auto-inferred 'statement' from email heuristics:
+  // se l'utente ha già corretto manualmente questo tipo di documento per questo fornitore, lo rispettiamo.
+  const learnedOverridesAutoStatement =
+    autoPendingKind === 'statement' &&
+    (learnedPendingKind === 'fattura' || learnedPendingKind === 'bolla' || learnedPendingKind === 'nota_credito')
+  const effectivePendingKind = learnedOverridesAutoStatement
+    ? learnedPendingKind
+    : autoPendingKind ?? (
+        subjectIsExplicitlyInvoice && learnedPendingKind === 'statement' ? null : learnedPendingKind
+      )
   const treatAsStatement = effectivePendingKind === 'statement'
   const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
   const isStatementDoc = effectivePendingKind === 'statement'

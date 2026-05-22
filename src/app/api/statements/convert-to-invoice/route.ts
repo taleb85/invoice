@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { logActivity } from '@/lib/activity-logger'
+import { ocrTipoHintKey, recordFornitorePendingKindHint } from '@/lib/fornitore-doc-type-hints'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +68,21 @@ export async function POST(req: NextRequest) {
 
   await service.from('statement_rows').delete().eq('statement_id', statementId)
   await service.from('statements').delete().eq('id', statementId)
+
+  // Impara: per questo fornitore, documenti di questo tipo OCR → fattura (non estratto conto).
+  // Al prossimo scan email, la classificazione automatica sarà overridden.
+  const { data: docMeta } = await service
+    .from('documenti_da_processare')
+    .select('metadata')
+    .eq('file_url', stmt.file_url as string)
+    .maybeSingle()
+  const rawTipo = (docMeta?.metadata as Record<string, unknown> | null)?.tipo_documento
+  const ocrTipoKey = ocrTipoHintKey(normalizeTipoDocumento(rawTipo))
+  recordFornitorePendingKindHint(service, {
+    fornitoreId: stmt.fornitore_id as string,
+    ocrTipoKey,
+    pendingKind: 'fattura',
+  }).catch(() => {})
 
   await logActivity(service, {
     userId: profile.id,
