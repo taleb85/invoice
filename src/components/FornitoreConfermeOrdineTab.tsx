@@ -6,7 +6,7 @@ import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
-import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
+
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR } from '@/lib/app-shell-layout'
 import { openDocumentUrl } from '@/lib/open-document-url'
@@ -85,12 +85,6 @@ export default function FornitoreConfermeOrdineTab({
     (iso: string) => formatDateLib(iso, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' }),
     [locale, timezone],
   )
-
-  const pdfOpenMenuLabels = {
-    preview: t.dashboard.ordiniPdfPreview,
-    copyLink: t.dashboard.ordiniPdfCopyLink,
-    linkCopied: t.dashboard.ordiniPdfLinkCopied,
-  }
 
   const pdfOpenTrigger = (
     <>
@@ -404,13 +398,14 @@ export default function FornitoreConfermeOrdineTab({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <PublicPdfOpenMenu
-                      fileUrl={openDocumentUrl({ confermaOrdineId: r.id })}
-                      triggerClassName={CONFERME_OPEN_PILL}
-                      labels={pdfOpenMenuLabels}
+                    <a
+                      href={openDocumentUrl({ confermaOrdineId: r.id })}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={CONFERME_OPEN_PILL}
                     >
                       {pdfOpenTrigger}
-                    </PublicPdfOpenMenu>
+                    </a>
                     {!readOnly ? (
                     <>
                       <button
@@ -478,13 +473,14 @@ export default function FornitoreConfermeOrdineTab({
                         {r.note?.trim() ? <p className={`mt-1 text-xs ${confermeSecondaryClass}`}>{r.note}</p> : null}
                       </td>
                       <td className="px-5 py-3">
-                        <PublicPdfOpenMenu
-                          fileUrl={openDocumentUrl({ confermaOrdineId: r.id })}
-                          triggerClassName={`${CONFERME_OPEN_PILL} inline-flex`}
-                          labels={pdfOpenMenuLabels}
+                        <a
+                          href={openDocumentUrl({ confermaOrdineId: r.id })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${CONFERME_OPEN_PILL} inline-flex`}
                         >
                           {pdfOpenTrigger}
-                        </PublicPdfOpenMenu>
+                        </a>
                       </td>
                       <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
                         —
