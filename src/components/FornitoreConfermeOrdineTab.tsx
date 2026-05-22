@@ -7,6 +7,7 @@ import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR } from '@/lib/app-shell-layout'
 import { openDocumentUrl } from '@/lib/open-document-url'
@@ -398,14 +399,13 @@ export default function FornitoreConfermeOrdineTab({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <a
-                      href={openDocumentUrl({ confermaOrdineId: r.id })}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <OpenDocumentInAppButton
+                      confermaOrdineId={r.id}
+                      fileUrl={r.file_url}
                       className={CONFERME_OPEN_PILL}
                     >
                       {pdfOpenTrigger}
-                    </a>
+                    </OpenDocumentInAppButton>
                     {!readOnly ? (
                     <>
                       <button
@@ -473,14 +473,13 @@ export default function FornitoreConfermeOrdineTab({
                         {r.note?.trim() ? <p className={`mt-1 text-xs ${confermeSecondaryClass}`}>{r.note}</p> : null}
                       </td>
                       <td className="px-5 py-3">
-                        <a
-                          href={openDocumentUrl({ confermaOrdineId: r.id })}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <OpenDocumentInAppButton
+                          confermaOrdineId={r.id}
+                          fileUrl={r.file_url}
                           className={`${CONFERME_OPEN_PILL} inline-flex`}
                         >
                           {pdfOpenTrigger}
-                        </a>
+                        </OpenDocumentInAppButton>
                       </td>
                       <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
                         —

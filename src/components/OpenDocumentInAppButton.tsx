@@ -50,6 +50,7 @@ type Props = {
   logId?: string
   documentoId?: string
   statementId?: string
+  confermaOrdineId?: string
   fileUrl: string | null | undefined
   children: React.ReactNode
   /** Default: pill cyan da tabella bolle/fatture. */
@@ -71,7 +72,7 @@ type Props = {
   onCategoriaChange?: (nuovaCategoria: string) => void
 }
 
-function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId'>): {
+function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId' | 'confermaOrdineId'>): {
   jsonHref: string
   tabHref: string
 } | null {
@@ -80,38 +81,15 @@ function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'do
   const l = p.logId?.trim()
   const d = p.documentoId?.trim()
   const s = p.statementId?.trim()
-  const count = [b, f, l, d, s].filter(Boolean).length
+  const co = p.confermaOrdineId?.trim()
+  const count = [b, f, l, d, s, co].filter(Boolean).length
   if (count !== 1) return null
-  if (b) {
-    return {
-      jsonHref: openDocumentUrl({ bollaId: b, json: true }),
-      tabHref: openDocumentUrl({ bollaId: b }),
-    }
-  }
-  if (f) {
-    return {
-      jsonHref: openDocumentUrl({ fatturaId: f, json: true }),
-      tabHref: openDocumentUrl({ fatturaId: f }),
-    }
-  }
-  if (l) {
-    return {
-      jsonHref: openDocumentUrl({ logId: l, json: true }),
-      tabHref: openDocumentUrl({ logId: l }),
-    }
-  }
-  if (d) {
-    return {
-      jsonHref: openDocumentUrl({ documentoId: d, json: true }),
-      tabHref: openDocumentUrl({ documentoId: d }),
-    }
-  }
-  if (s) {
-    return {
-      jsonHref: openDocumentUrl({ statementId: s, json: true }),
-      tabHref: openDocumentUrl({ statementId: s }),
-    }
-  }
+  if (b) return { jsonHref: openDocumentUrl({ bollaId: b, json: true }), tabHref: openDocumentUrl({ bollaId: b }) }
+  if (f) return { jsonHref: openDocumentUrl({ fatturaId: f, json: true }), tabHref: openDocumentUrl({ fatturaId: f }) }
+  if (l) return { jsonHref: openDocumentUrl({ logId: l, json: true }), tabHref: openDocumentUrl({ logId: l }) }
+  if (d) return { jsonHref: openDocumentUrl({ documentoId: d, json: true }), tabHref: openDocumentUrl({ documentoId: d }) }
+  if (s) return { jsonHref: openDocumentUrl({ statementId: s, json: true }), tabHref: openDocumentUrl({ statementId: s }) }
+  if (co) return { jsonHref: openDocumentUrl({ confermaOrdineId: co, json: true }), tabHref: openDocumentUrl({ confermaOrdineId: co }) }
   return null
 }
 
@@ -141,6 +119,7 @@ export function OpenDocumentInAppButton({
   logId,
   documentoId,
   statementId,
+  confermaOrdineId,
   fileUrl,
   children,
   className,
@@ -161,7 +140,7 @@ export function OpenDocumentInAppButton({
   const imageScrollRef = useRef<HTMLDivElement>(null)
   const imageZoomRef = useRef(1)
 
-  const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId })
+  const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId, confermaOrdineId })
   const jsonHref = hrefs?.jsonHref ?? ''
   const tabHref = hrefs?.tabHref ?? ''
   const canOpen = Boolean(hrefs)
