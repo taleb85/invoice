@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Errore creazione fattura: ${insErr.message}` }, { status: 500 })
   }
 
-  await service.from('statements').update({ status: 'done' }).eq('id', statementId)
+  await service.from('statement_rows').delete().eq('statement_id', statementId)
+  await service.from('statements').delete().eq('id', statementId)
 
   await logActivity(service, {
     userId: profile.id,

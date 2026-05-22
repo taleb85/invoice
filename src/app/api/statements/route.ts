@@ -272,22 +272,35 @@ async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createSe
     email_subject: string | null
   }
 
-  const invoiceStmts = (candidates as StmtCandidate[]).filter(s =>
-    subjectIsInvoiceNotBolla(s.email_subject),
-  )
-  if (!invoiceStmts.length) return
+  const allCandidates = candidates as StmtCandidate[]
+  const invoiceStmts = allCandidates.filter(s => subjectIsInvoiceNotBolla(s.email_subject))
 
-  const fileUrls = invoiceStmts.map(s => s.file_url)
-  const { data: existingFatture } = await supabase
+  // Pulizia secondaria: statement il cui file_url ha già una fattura corrispondente
+  // (es. convertiti manualmente in passato ma non ancora rimossi dalla tabella).
+  const allFileUrls = allCandidates.map(s => s.file_url)
+  const { data: existingFattureAll } = await supabase
     .from('fatture')
     .select('file_url')
-    .in('file_url', fileUrls)
-  const existingFileUrls = new Set((existingFatture ?? []).map((f: { file_url: string }) => f.file_url))
+    .in('file_url', allFileUrls)
+  const alreadyFatturaUrls = new Set(
+    (existingFattureAll ?? []).map((f: { file_url: string }) => f.file_url),
+  )
+
+  // Elimina gli statement che corrispondono già a una fattura ma non fanno parte degli invoiceStmts
+  const orphanedStmts = allCandidates.filter(
+    s => !subjectIsInvoiceNotBolla(s.email_subject) && alreadyFatturaUrls.has(s.file_url),
+  )
+  for (const stmt of orphanedStmts) {
+    await supabase.from('statement_rows').delete().eq('statement_id', stmt.id)
+    await supabase.from('statements').delete().eq('id', stmt.id)
+  }
+
+  if (!invoiceStmts.length) return
 
   const oggi = new Date().toISOString().split('T')[0]
 
   for (const stmt of invoiceStmts) {
-    if (!existingFileUrls.has(stmt.file_url)) {
+    if (!alreadyFatturaUrls.has(stmt.file_url)) {
       const dataDoc = stmt.document_date?.trim() || oggi
       const { error: insErr } = await supabase.from('fatture').insert([{
         fornitore_id: stmt.fornitore_id,
