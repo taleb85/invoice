@@ -1,6 +1,6 @@
 'use client'
 'use no memo'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -11,6 +11,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
 import type { FatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import {
   APP_SECTION_AMOUNT_POSITIVE_CLASS,
@@ -114,6 +115,16 @@ export default function FattureListWithDuplicates({
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const { show: showContextMenu } = useContextMenu()
+
+  useEffect(() => {
+    const handler = () => router.refresh()
+    window.addEventListener('document-type-changed', handler)
+    window.addEventListener('fattura-mutated', handler)
+    return () => {
+      window.removeEventListener('document-type-changed', handler)
+      window.removeEventListener('fattura-mutated', handler)
+    }
+  }, [router])
 
   const excessSet = useMemo(() => new Set(duplicatePayload.excessIds), [duplicatePayload.excessIds])
   const memberSet = useMemo(() => new Set(duplicatePayload.memberIds), [duplicatePayload.memberIds])
@@ -508,7 +519,20 @@ export default function FattureListWithDuplicates({
                 </div>
               </td>
               <td className={`${APP_SECTION_TABLE_TD_COMPACT} text-right`}>
-                <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />
+                <div className="flex flex-nowrap items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <DocumentActionsButton
+                    item={{
+                      id: f.id,
+                      origine: 'fattura',
+                      fornitore_id: f.fornitore_id ?? null,
+                      fornitore_nome: f.fornitoreNome ?? null,
+                      numero_documento: f.numero_fattura ?? null,
+                      file_url: f.file_url ?? null,
+                    }}
+                    className="h-7 w-7"
+                  />
+                  <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />
+                </div>
               </td>
             </tr>
           ))}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, Eye } from 'lucide-react'
@@ -16,6 +16,7 @@ import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
 import { deleteDuplicateRow } from '@/lib/duplicate-invoice-actions'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
 import {
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
@@ -70,6 +71,12 @@ export default function BolleListClient({
   const excessBollaIds = useMemo(() => new Set(excessBollaIdList), [excessBollaIdList])
 
   const [aiAnalysisForBolla, setAiAnalysisForBolla] = useState<BollaListRow | null>(null)
+
+  useEffect(() => {
+    const handler = () => router.refresh()
+    window.addEventListener('bolla-mutated', handler)
+    return () => window.removeEventListener('bolla-mutated', handler)
+  }, [router])
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, b: BollaListRow) => {
@@ -299,13 +306,25 @@ export default function BolleListClient({
                   </div>
                 </td>
                 <td className={APP_SECTION_TABLE_TD_COMPACT}>
-                  <div className="flex flex-nowrap items-center justify-end gap-1.5">
+                  <div className="flex flex-nowrap items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                     {b.file_url && (
                       <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
                         <Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
                         {t.bolle.viewDocument}
                       </OpenDocumentInAppButton>
                     )}
+                    <DocumentActionsButton
+                      item={{
+                        id: b.id,
+                        origine: 'bolla',
+                        fornitore_id: b.fornitore_id ?? null,
+                        fornitore_nome: b.fornitori?.display_name ?? b.fornitori?.nome ?? null,
+                        numero_documento: b.numero_bolla ?? null,
+                        file_url: b.file_url ?? null,
+                        data_doc: b.data ?? null,
+                      }}
+                      className="h-7 w-7"
+                    />
                     {!excessBollaIds.has(b.id) ? (
                       <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
                     ) : null}

@@ -16,6 +16,7 @@ import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
 import {
   findUniqueFornitoreForPendingDoc,
   MATCH_BOLLA_DATE_WINDOW_DAYS,
@@ -2871,6 +2872,20 @@ export function PendingMatchesTab({
                       >
                         {t.statements.openFile}
                       </OpenDocumentInAppButton>
+                      <DocumentActionsButton
+                        item={{
+                          id: doc.id,
+                          origine: 'documento_da_processare',
+                          fornitore_id: doc.fornitore_id ?? null,
+                          fornitore_nome: nomeFornitore,
+                          sede_id: doc.sede_id ?? null,
+                          file_url: doc.file_url ?? null,
+                          mittente: doc.mittente ?? null,
+                          oggetto_mail: doc.oggetto_mail ?? null,
+                          pending_kind: pendingKindForDoc(doc, statementDocs) ?? undefined,
+                        }}
+                        className="h-6 w-6 shrink-0"
+                      />
                       {docNeedsManualProcessing(doc.stato) && doc.file_url && (
                         <button
                           type="button"

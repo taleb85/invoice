@@ -27,6 +27,7 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { AppActivitiesProvider } from '@/lib/app-activities-context'
 import { DocumentActionsProvider } from '@/lib/document-actions-context'
 import type { DocumentActionItem } from '@/components/DocumentActionsModal'
+import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
 import EmailSyncProgressBar from './EmailSyncProgressBar'
 import { isFornitoreProfileRoute, normalizeAppPath, showsMobileBottomBar } from '@/lib/mobile-hub-routes'
@@ -369,6 +370,14 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       return
     }
     showToast('Operazione completata', 'success')
+    // Notify lists to refresh after modal actions
+    if (typeof window !== 'undefined') {
+      if (actionId.startsWith('documento.') && item.origine === 'documento_da_processare') {
+        window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+      } else if (actionId.startsWith('fattura.') || actionId === 'statement.segna_come_ok') {
+        window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: item.id } }))
+      }
+    }
   }, [showToast])
 
   return (
