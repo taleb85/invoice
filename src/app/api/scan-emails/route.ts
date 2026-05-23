@@ -2020,7 +2020,13 @@ async function processEmails(
 
         let targetKind: 'fattura' | 'bolla' | null = null
         if (docKind === 'fattura') targetKind = 'fattura'
-        else if (docKind === 'bolla') targetKind = 'bolla'
+        else if (docKind === 'bolla') {
+          // When scanning for bolle, still respect the OCR if it explicitly
+          // identifies the document as an invoice — avoids misfiling invoices
+          // that happen to arrive in the same emails as delivery notes.
+          if (normalizeTipoDocumento(ocr.tipo_documento) === 'fattura') targetKind = 'fattura'
+          else targetKind = 'bolla'
+        }
         else if (inferredKind === 'fattura') targetKind = 'fattura'
         else if (inferredKind === 'bolla') targetKind = 'bolla'
         else targetKind = null
