@@ -3827,7 +3827,7 @@ export function VerificationStatusTab({
     } finally {
       pipelineAbortRef.current = null
     }
-  }, [sedeId, fornitoreId, selectedStmt, showToast])
+  }, [sedeId, fornitoreId, selectedStmt, showToast, t, deliveryNoteLabel])
 
   /* ── Triple-check state ───────────────────────────── */
   const [checkResults,   setCheckResults]   = useState<CheckResult[] | null>(null)
