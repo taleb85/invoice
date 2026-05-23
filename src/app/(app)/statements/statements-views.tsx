@@ -3881,17 +3881,7 @@ export function VerificationStatusTab({
     }
   }, [searchParams])
 
-  // Auto-run the pipeline as soon as check results load for a statement — no manual button needed.
-  useEffect(() => {
-    if (!vsEmbeddedSupplier || !selectedStmt || !sedeId || !fornitoreId) return
-    if (aiPipelinePhase !== 'idle') return
-    if (autoRunDoneForStmtRef.current === selectedStmt.id) return
-    if (!checkResults) return
-    const hasAnomalies = checkResults.some(r => r.status !== 'ok' && r.status !== 'pending')
-    if (!hasAnomalies) return
-    autoRunDoneForStmtRef.current = selectedStmt.id
-    void handleAiPipeline()
-  }, [vsEmbeddedSupplier, selectedStmt, sedeId, fornitoreId, aiPipelinePhase, checkResults, handleAiPipeline])
+  // Auto-run disabled: pipeline starts only on explicit user action.
 
   const verificaProdottoRaw = searchParams.get('verifica_prodotto')?.trim() ?? ''
 
