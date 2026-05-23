@@ -3592,6 +3592,10 @@ export function VerificationStatusTab({
   const router = useRouter()
   const [stmtHeaderRefreshPending, startStmtHeaderRefresh] = useTransition()
   const [stmtRecheckBusy, setStmtRecheckBusy] = useState(false)
+  const [alsoFatturaOpen, setAlsoFatturaOpen] = useState(false)
+  const [alsoFatturaBusy, setAlsoFatturaBusy] = useState(false)
+  const [alsoFatturaImporto, setAlsoFatturaImporto] = useState('')
+  const [alsoFatturaNumero, setAlsoFatturaNumero] = useState('')
 
   // ── Pipeline AI per fornitore (state only; handler declared after selectedStmt) ──
   type FornitoreAIPipelinePhase = 'idle' | 'analisi' | 'ricerca' | 'associazione' | 'done'
@@ -3619,6 +3623,7 @@ export function VerificationStatusTab({
   const loc = getLocale(countryCode)
   const resolvedCurrency = currency ?? loc.currency ?? 'EUR'
   const { showToast } = useToast()
+  const { me } = useMe()
   const t = useT()
   const formatStmtDate = useFmt()
   const MONTHS = t.statements.months
@@ -3662,6 +3667,7 @@ export function VerificationStatusTab({
     total_rows: number
     missing_rows: number
     fornitore_nome: string | null
+    linked_fattura_id?: string | null
   }
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
@@ -4392,36 +4398,173 @@ export function VerificationStatusTab({
                 )}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setStmtRecheckBusy(true)
-                fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
-                  .then(async (res) => {
-                    if (res.ok) {
-                      const updated = await res.json() as { status?: string }
-                      if (updated.status === 'done' || updated.status === 'error') {
-                        setStmts(prev => prev.map(s => s.id === selectedStmt.id ? { ...s, status: updated.status as StmtRecord['status'] } : s))
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5 self-start">
+              {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && (
+                selectedStmt.linked_fattura_id ? (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200"
+                    title="Una fattura è già stata creata da questo PDF"
+                  >
+                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Fattura creata
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAlsoFatturaOpen(true)}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2.5 py-1.5 text-xs font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                    title="Il PDF contiene anche una fattura: registra come fattura mantenendo l'estratto conto"
+                  >
+                    <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Crea anche fattura
+                  </button>
+                )
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setStmtRecheckBusy(true)
+                  fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
+                    .then(async (res) => {
+                      if (res.ok) {
+                        const updated = await res.json() as { status?: string }
+                        if (updated.status === 'done' || updated.status === 'error') {
+                          setStmts(prev => prev.map(s => s.id === selectedStmt.id ? { ...s, status: updated.status as StmtRecord['status'] } : s))
+                        }
                       }
-                    }
-                    loadStatementRows(selectedStmt)
-                  })
-                  .finally(() => setStmtRecheckBusy(false))
-              }}
-              disabled={stmtRecheckBusy}
-              aria-busy={stmtRecheckBusy}
-              className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                      loadStatementRows(selectedStmt)
+                    })
+                    .finally(() => setStmtRecheckBusy(false))
+                }}
+                disabled={stmtRecheckBusy}
+                aria-busy={stmtRecheckBusy}
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+              >
+                <svg className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.emailSync} app-refresh-icon`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {t.statements.reanalyze}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: registra come fattura mantenendo lo statement */}
+        {alsoFatturaOpen && selectedStmt && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => { if (!alsoFatturaBusy) setAlsoFatturaOpen(false) }}
+          >
+            <div
+              className="mx-4 w-full max-w-md rounded-xl border border-app-line-28 bg-app-bg shadow-2xl shadow-black/20"
+              onClick={(e) => e.stopPropagation()}
             >
-              <svg className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.emailSync} app-refresh-icon`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              {t.statements.reanalyze}
-            </button>
+              <div className="border-b border-app-line-28 px-5 py-3.5">
+                <p className="text-sm font-semibold text-app-fg">Crea anche fattura</p>
+                <p className="mt-0.5 text-[11px] text-app-fg-muted">
+                  Lo statement resta attivo per la riconciliazione. Una fattura separata verrà aggiunta con lo stesso file PDF.
+                </p>
+              </div>
+              <div className="space-y-3 px-5 py-4">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                    Numero fattura
+                  </label>
+                  <input
+                    type="text"
+                    value={alsoFatturaNumero}
+                    onChange={(e) => setAlsoFatturaNumero(e.target.value)}
+                    placeholder="Opzionale — lascia vuoto se non noto"
+                    disabled={alsoFatturaBusy}
+                    className="w-full rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                    Importo
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={alsoFatturaImporto}
+                    onChange={(e) => setAlsoFatturaImporto(e.target.value)}
+                    placeholder="Opzionale — può essere aggiornato in seguito"
+                    disabled={alsoFatturaBusy}
+                    className="w-full rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
+                  />
+                </div>
+                <div className="rounded-lg border border-app-line-15 bg-app-line-5 px-3 py-2 text-[11px] text-app-fg-muted">
+                  Data documento: <span className="font-semibold text-app-fg">{formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}</span><br />
+                  Fornitore: <span className="font-semibold text-app-fg">{selectedStmt.fornitore_nome}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-app-line-28 px-5 py-3">
+                <button
+                  type="button"
+                  onClick={() => { if (!alsoFatturaBusy) setAlsoFatturaOpen(false) }}
+                  disabled={alsoFatturaBusy}
+                  className="rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:bg-app-line-10 disabled:opacity-50"
+                >
+                  Annulla
+                </button>
+                <button
+                  type="button"
+                  disabled={alsoFatturaBusy}
+                  onClick={async () => {
+                    setAlsoFatturaBusy(true)
+                    try {
+                      const res = await fetch('/api/statements/register-also-as-invoice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          statement_id: selectedStmt.id,
+                          importo: alsoFatturaImporto.trim() || null,
+                          numero_fattura: alsoFatturaNumero.trim() || null,
+                        }),
+                      })
+                      if (!res.ok) {
+                        const j = await res.json().catch(() => ({ error: 'Errore' }))
+                        showToast(j.error ?? 'Errore creazione fattura', 'error')
+                        return
+                      }
+                      const j = await res.json() as { fattura_id?: string }
+                      showToast('Fattura registrata. Statement attivo per la riconciliazione.', 'success')
+                      setAlsoFatturaOpen(false)
+                      setAlsoFatturaImporto('')
+                      setAlsoFatturaNumero('')
+                      if (j.fattura_id) {
+                        setStmts(prev => prev.map(s => s.id === selectedStmt.id ? { ...s, linked_fattura_id: j.fattura_id! } : s))
+                      }
+                      window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: j.fattura_id } }))
+                    } catch {
+                      showToast('Errore di connessione', 'error')
+                    } finally {
+                      setAlsoFatturaBusy(false)
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+                >
+                  {alsoFatturaBusy ? (
+                    <>
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-emerald-200 border-t-transparent" />
+                      Creazione…
+                    </>
+                  ) : (
+                    'Crea fattura'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

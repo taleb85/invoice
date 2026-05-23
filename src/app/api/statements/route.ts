@@ -133,6 +133,7 @@ export async function GET(req: NextRequest) {
         'status',
         'total_rows',
         'missing_rows',
+        'linked_fattura_id',
       ].join(', '),
     )
     .order('received_at', { ascending: false })
@@ -255,7 +256,7 @@ function subjectIsInvoiceNotBolla(subject: string | null | undefined): boolean {
 async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createServiceClient>) {
   const { data: candidates } = await supabase
     .from('statements')
-    .select('id, fornitore_id, sede_id, file_url, document_date, email_subject')
+    .select('id, fornitore_id, sede_id, file_url, document_date, email_subject, linked_fattura_id')
     .neq('status', 'processing')
     .not('fornitore_id', 'is', null)
     .not('file_url', 'is', null)
@@ -270,18 +271,23 @@ async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createSe
     file_url: string
     document_date: string | null
     email_subject: string | null
+    linked_fattura_id: string | null
   }
 
-  const allCandidates = candidates as StmtCandidate[]
+  // Salta statement esplicitamente collegati a una fattura: il PDF contiene
+  // sia estratto conto sia fattura, vanno tenuti entrambi.
+  const allCandidates = (candidates as StmtCandidate[]).filter(s => !s.linked_fattura_id)
   const invoiceStmts = allCandidates.filter(s => subjectIsInvoiceNotBolla(s.email_subject))
 
   // Pulizia secondaria: statement il cui file_url ha già una fattura corrispondente
   // (es. convertiti manualmente in passato ma non ancora rimossi dalla tabella).
   const allFileUrls = allCandidates.map(s => s.file_url)
-  const { data: existingFattureAll } = await supabase
-    .from('fatture')
-    .select('file_url')
-    .in('file_url', allFileUrls)
+  const { data: existingFattureAll } = allFileUrls.length
+    ? await supabase
+        .from('fatture')
+        .select('file_url')
+        .in('file_url', allFileUrls)
+    : { data: [] as { file_url: string }[] }
   const alreadyFatturaUrls = new Set(
     (existingFattureAll ?? []).map((f: { file_url: string }) => f.file_url),
   )
