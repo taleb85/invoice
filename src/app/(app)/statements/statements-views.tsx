@@ -4055,6 +4055,42 @@ export function VerificationStatusTab({
     setCheckError(null)
   }, [sedeId, fornitoreId])
 
+  /**
+   * After the statement list loads, silently re-verify any statement that shows
+   * missing_rows = 0 but might be stale (processed before the "bolle obbligatorie" rule).
+   * Depends on `stmts.length` only — avoids re-triggering when missing_rows is updated.
+   */
+  const staleCorrectionDoneRef = useRef<Set<string>>(new Set())
+  const stmtsRef = useRef<StmtRecord[]>([])
+  stmtsRef.current = stmts
+  useEffect(() => {
+    const candidates = stmtsRef.current.filter(
+      (s) => s.status === 'done' && s.total_rows > 0 && s.missing_rows === 0 && !staleCorrectionDoneRef.current.has(s.id),
+    )
+    if (!candidates.length) return
+    for (const s of candidates) staleCorrectionDoneRef.current.add(s.id)
+    void (async () => {
+      for (const s of candidates) {
+        try {
+          const res = await fetch(`/api/statements?id=${s.id}`)
+          if (!res.ok) continue
+          const rows = await res.json() as { check_status?: string; bolle_json?: unknown[] | null }[]
+          if (!Array.isArray(rows)) continue
+          const corrected = rows.filter((r) => {
+            if (!r.check_status || r.check_status === 'pending') return false
+            if (r.check_status !== 'ok') return true
+            const bolle = r.bolle_json ?? []
+            return bolle.length === 0
+          }).length
+          if (corrected > 0) {
+            setStmts((prev) => prev.map((x) => x.id === s.id ? { ...x, missing_rows: corrected } : x))
+          }
+        } catch { /* non-critical */ }
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stmts.length])
+
   useEffect(() => {
     if (stmtsLoading || !selectedStmt) return
     if (stmts.some(s => s.id === selectedStmt.id)) return
