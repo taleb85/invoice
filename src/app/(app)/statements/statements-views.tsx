@@ -5030,14 +5030,28 @@ export function VerificationStatusTab({
                       }`}
                       >
                         <td className="w-0 max-w-[6.25rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
-                          <span
-                            className={`block truncate font-mono font-bold ${
-                              r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
-                            }`}
-                            title={r.numero}
-                          >
-                            {r.numero}
-                          </span>
+                          {r.fattura?.file_url ? (
+                            <OpenDocumentInAppButton
+                              fatturaId={r.fattura.id}
+                              fileUrl={r.fattura.file_url}
+                              stopTriggerPropagation
+                              className={`block w-full truncate text-left font-mono font-bold underline-offset-2 hover:underline ${
+                                r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-cyan-500'
+                              }`}
+                              title={r.numero}
+                            >
+                              {r.numero}
+                            </OpenDocumentInAppButton>
+                          ) : (
+                            <span
+                              className={`block truncate font-mono font-bold ${
+                                r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
+                              }`}
+                              title={r.numero}
+                            >
+                              {r.numero}
+                            </span>
+                          )}
                         </td>
 
                         <td className="w-0 max-w-[7rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
