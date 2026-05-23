@@ -135,6 +135,7 @@ export function OpenDocumentInAppButton({
   const [open, setOpen] = useState(false)
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [portalReady, setPortalReady] = useState(false)
   const [imageZoom, setImageZoom] = useState(1)
   const imageScrollRef = useRef<HTMLDivElement>(null)
@@ -214,22 +215,32 @@ export function OpenDocumentInAppButton({
     if (!open) {
       setSignedUrl(null)
       setLoading(false)
+      setFetchError(null)
       return
     }
     if (!jsonHref) return
     let cancelled = false
     setLoading(true)
     setSignedUrl(null)
+    setFetchError(null)
     void fetch(jsonHref, { credentials: 'include' })
       .then(async (r) => {
-        if (!r.ok) throw new Error(String(r.status))
+        if (!r.ok) {
+          const errStatus = r.status
+          // Try to read error message from JSON body
+          const body = await r.json().catch(() => ({})) as { error?: string }
+          throw new Error(body.error ?? String(errStatus))
+        }
         return r.json() as Promise<{ url?: string }>
       })
       .then((j) => {
         if (!cancelled) setSignedUrl(j.url?.trim() ?? null)
       })
-      .catch(() => {
-        if (!cancelled) setSignedUrl(null)
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setSignedUrl(null)
+          setFetchError(e instanceof Error ? e.message : 'Errore caricamento documento')
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -420,7 +431,17 @@ export function OpenDocumentInAppButton({
                 className="app-aurora-viewer-fill min-h-0 w-full flex-1 border-0 bg-slate-950/35"
               />
             ) : null}
-            {!loading && !signedUrl ? (
+            {!loading && !signedUrl && fetchError ? (
+              <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+                <div className="max-w-sm space-y-2 text-center">
+                  <svg className="mx-auto h-10 w-10 text-app-fg-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-sm font-medium text-app-fg-muted">Nessun documento allegato</p>
+                  <p className="text-xs text-app-fg-muted/60">{fetchError}</p>
+                </div>
+              </div>
+            ) : !loading && !signedUrl ? (
               <iframe
                 title={t.common.attachment}
                 src={embedSrcForInlineViewer(tabHref, kind)}
