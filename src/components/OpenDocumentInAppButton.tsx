@@ -220,16 +220,16 @@ export function OpenDocumentInAppButton({
     }
     if (!jsonHref) return
     let cancelled = false
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15_000)
     setLoading(true)
     setSignedUrl(null)
     setFetchError(null)
-    void fetch(jsonHref, { credentials: 'include' })
+    void fetch(jsonHref, { credentials: 'include', signal: controller.signal })
       .then(async (r) => {
         if (!r.ok) {
-          const errStatus = r.status
-          // Try to read error message from JSON body
           const body = await r.json().catch(() => ({})) as { error?: string }
-          throw new Error(body.error ?? String(errStatus))
+          throw new Error(body.error ?? String(r.status))
         }
         return r.json() as Promise<{ url?: string }>
       })
@@ -238,15 +238,19 @@ export function OpenDocumentInAppButton({
       })
       .catch((e: unknown) => {
         if (!cancelled) {
+          const isAbort = e instanceof DOMException && e.name === 'AbortError'
           setSignedUrl(null)
-          setFetchError(e instanceof Error ? e.message : 'Errore caricamento documento')
+          setFetchError(isAbort ? 'Timeout (15 s) — document not available' : e instanceof Error ? e.message : 'Error loading document')
         }
       })
       .finally(() => {
+        clearTimeout(timeoutId)
         if (!cancelled) setLoading(false)
       })
     return () => {
       cancelled = true
+      controller.abort()
+      clearTimeout(timeoutId)
     }
   }, [open, jsonHref])
 
@@ -288,13 +292,27 @@ export function OpenDocumentInAppButton({
           aria-modal="true"
           aria-label={t.common.attachment}
         >
-          <button
-            type="button"
-            className="absolute right-2 top-2 z-20 rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
-            onClick={() => setOpen(false)}
-          >
-            {t.statements.btnClose}
-          </button>
+          <div className="absolute right-2 top-2 z-20 flex items-center gap-1.5">
+            {tabHref && (
+              <a
+                href={tabHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
+                onClick={(e) => e.stopPropagation()}
+                title={t.common.openAttachment}
+              >
+                ↗
+              </a>
+            )}
+            <button
+              type="button"
+              className="rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
+              onClick={() => setOpen(false)}
+            >
+              {t.statements.btnClose}
+            </button>
+          </div>
           {anomalie && anomalie.length > 0 && viewerActions && viewerActions.length > 0 && (
             <div className="absolute left-2 right-2 top-2 z-20 flex flex-wrap items-center gap-1.5 sm:right-auto sm:left-16">
               {categoria && onCategoriaChange ? (
@@ -361,7 +379,11 @@ export function OpenDocumentInAppButton({
           )}
           <div className="app-aurora-viewer-fill flex min-h-0 flex-1 flex-col overflow-hidden pt-12 bg-slate-950/35">
             {loading ? (
-              <div className="flex min-h-0 flex-1 items-center justify-center">
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+                <svg className="h-8 w-8 animate-spin text-app-cyan-500/70" fill="none" viewBox="0 0 24 24" aria-hidden>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
                 <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
               </div>
             ) : null}
