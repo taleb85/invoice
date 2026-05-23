@@ -3613,6 +3613,7 @@ export function VerificationStatusTab({
     total: number
     hasEmail: boolean
     supplierEmail: string | null
+    ddtLookbackDays: number
   }
   const [aiPipelinePhase, setAiPipelinePhase] = useState<FornitoreAIPipelinePhase>('idle')
   const [aiPipelineResult, setAiPipelineResult] = useState<FornitoreAIPipelineResult | null>(null)
@@ -3716,6 +3717,36 @@ export function VerificationStatusTab({
       const needsEmailScan = (fatturaMancante > 0 || bolleMancanti > 0) && hasEmail
       const needsDdtScan   = bolleMancanti > 0
 
+      // ── Calcola finestra di ricerca mirata sui DDT ──
+      // Parte dalla data più vecchia tra le righe bolle_mancanti, meno 14gg di buffer.
+      // Se non ci sono date di riga, usa la data ufficiale dello statement.
+      let ddtLookbackDays = 90 // fallback conservativo
+      {
+        const bolleRows = checkResultsRef.current?.filter(r => r.status === 'bolle_mancanti') ?? []
+        const rowDates = bolleRows
+          .map(r => r.data_doc)
+          .filter((d): d is string => Boolean(d))
+          .map(d => new Date(d))
+          .filter(d => !isNaN(d.getTime()))
+
+        if (rowDates.length > 0) {
+          const earliest = new Date(Math.min(...rowDates.map(d => d.getTime())))
+          earliest.setDate(earliest.getDate() - 14) // 14gg buffer prima della riga più vecchia
+          const diff = Math.ceil((Date.now() - earliest.getTime()) / 86_400_000)
+          ddtLookbackDays = Math.min(365, Math.max(30, diff))
+        } else if (selectedStmt) {
+          const stmtDateStr = statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at
+          const stmtDate = new Date(stmtDateStr)
+          if (!isNaN(stmtDate.getTime())) {
+            // Inizio del mese dello statement meno 14gg
+            const windowStart = new Date(stmtDate.getFullYear(), stmtDate.getMonth(), 1)
+            windowStart.setDate(windowStart.getDate() - 14)
+            const diff = Math.ceil((Date.now() - windowStart.getTime()) / 86_400_000)
+            ddtLookbackDays = Math.min(365, Math.max(30, diff))
+          }
+        }
+      }
+
       const pipelineAnalisi: FornitoreAIPipelineAnalisi = {
         fatturaMancante,
         bolleMancanti,
@@ -3723,6 +3754,7 @@ export function VerificationStatusTab({
         total: anomaleRows.length,
         hasEmail,
         supplierEmail,
+        ddtLookbackDays,
       }
       setAiPipelineAnalisi(pipelineAnalisi)
 
@@ -3737,7 +3769,11 @@ export function VerificationStatusTab({
       let bolleImportate = 0
       if (needsDdtScan && sedeId) {
         setAiPipelinePhase('ricerca')
-        setAiPipelineStatusMsg(t.statements.aiPipelineStatusSearchingDeliveryNotes.replace('{label}', deliveryNoteLabel))
+        setAiPipelineStatusMsg(
+          t.statements.aiPipelineStatusSearchingDeliveryNotes
+            .replace('{label}', deliveryNoteLabel)
+            .replace('{days}', String(pipelineAnalisi.ddtLookbackDays))
+        )
         if (!abort.signal.aborted) {
           try {
             const fid = selectedStmt?.fornitore_id ?? fornitoreId
@@ -3751,7 +3787,7 @@ export function VerificationStatusTab({
                 filter_sede_id:            sedeId,
                 mode:                      'historical',
                 email_sync_scope:          'lookback',
-                email_sync_lookback_days:  120,
+                email_sync_lookback_days:  pipelineAnalisi.ddtLookbackDays,
                 email_sync_document_kind:  'bolla',
                 client_locale:             supplierLoc.currencyLocale,
               }),
@@ -4691,7 +4727,7 @@ export function VerificationStatusTab({
                       {/* DDT scan: bolle mancanti */}
                       {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.bolleMancanti > 0 && (
                         <p className="text-[10px] text-amber-200/80">
-                          {t.statements.aiPipelineSearchingDeliveryNotes.replace('{label}', deliveryNoteLabel)}{' '}
+                          {t.statements.aiPipelineSearchingDeliveryNotes.replace('{label}', deliveryNoteLabel).replace('{days}', String(aiPipelineAnalisi.ddtLookbackDays))}{' '}
                           {aiPipelineAnalisi.supplierEmail
                             ? <>{t.statements.aiPipelineForEmail} <span className="font-mono font-semibold text-amber-200">{aiPipelineAnalisi.supplierEmail}</span></>
                             : t.statements.aiPipelineForSupplier}
