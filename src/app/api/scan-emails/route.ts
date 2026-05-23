@@ -2085,6 +2085,9 @@ async function processEmails(
               registratoAutoBollaId = rb.id
               bozzaCreate++
               mailDebugLog(`[AUTO] OK Bolla registrata (in attesa fattura): id=${rb.id}`)
+            } else if ('duplicateId' in rb) {
+              registratoAutoBollaId = rb.duplicateId
+              mailDebugLog(`[AUTO] Bolla duplicata saltata, esiste già: id=${rb.duplicateId}`)
             }
           }
         } else {

@@ -2066,6 +2066,49 @@ function BolleTab({
     [onLedgerMutated],
   )
 
+  /** Bolle con lo stesso file_url di un'altra bolla nello stesso elenco: sono copie extra da eliminare. */
+  const sameFileUrlExcessIds = useMemo(() => {
+    const byUrl = new Map<string, string[]>()
+    for (const b of bolle) {
+      if (!b.file_url?.trim()) continue
+      const url = b.file_url.trim()
+      const arr = byUrl.get(url) ?? []
+      arr.push(b.id)
+      byUrl.set(url, arr)
+    }
+    const excess = new Set<string>()
+    for (const [, ids] of byUrl) {
+      if (ids.length <= 1) continue
+      // Keep the one with a numero_bolla (most data), or the lexicographically smallest id (oldest).
+      const withNumero = ids.find((id) => bolle.find((x) => x.id === id)?.numero_bolla?.trim())
+      const canonical = withNumero ?? [...ids].sort((a, b) => a.localeCompare(b))[0]!
+      for (const id of ids) {
+        if (id !== canonical) excess.add(id)
+      }
+    }
+    return excess
+  }, [bolle])
+
+  const [deletingBollaId, setDeletingBollaId] = useState<string | null>(null)
+
+  const deleteExcessBolla = useCallback(
+    async (bollaId: string) => {
+      setDeletingBollaId(bollaId)
+      try {
+        await fetch('/api/delete-record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ table: 'bolle', id: bollaId }),
+        })
+        onBollaDuplicateRemoved(bollaId)
+      } catch { /* ignore */ } finally {
+        setDeletingBollaId(null)
+      }
+    },
+    [onBollaDuplicateRemoved],
+  )
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -2203,7 +2246,16 @@ function BolleTab({
               )}
             </div>
             <div className="flex items-center gap-2">
-                {b.stato === 'completato' ? (
+                {!readOnly && canRianalizzaOcr && sameFileUrlExcessIds.has(b.id) ? (
+                <button
+                  type="button"
+                  disabled={deletingBollaId === b.id}
+                  onClick={(e) => { e.stopPropagation(); void deleteExcessBolla(b.id) }}
+                  className="shrink-0 touch-manipulation rounded-lg border border-rose-500/35 bg-rose-500/8 px-2 py-1 text-[11px] font-semibold text-rose-300/90 transition-colors hover:bg-rose-500/15 disabled:opacity-50"
+                >
+                  {deletingBollaId === b.id ? '…' : t.fatture.duplicateRemoveThisCopy}
+                </button>
+              ) : b.stato === 'completato' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> {t.bolle.statoCompletato}
                 </span>
@@ -2347,6 +2399,17 @@ function BolleTab({
                         {attachmentOpenFileLinkLabel(fileKind, t)}
                       </OpenDocumentInAppButton>
                     )}
+                    {!readOnly && canRianalizzaOcr && sameFileUrlExcessIds.has(b.id) ? (
+                      <button
+                        type="button"
+                        disabled={deletingBollaId === b.id}
+                        onClick={(e) => { e.stopPropagation(); void deleteExcessBolla(b.id) }}
+                        title={t.bolle.duplicateCopyDeleteConfirm}
+                        className="shrink-0 rounded-lg border border-rose-500/35 bg-rose-500/8 px-2 py-1 text-[11px] font-semibold text-rose-300/90 transition-colors hover:bg-rose-500/15 disabled:opacity-50"
+                      >
+                        {deletingBollaId === b.id ? '…' : t.fatture.duplicateRemoveThisCopy}
+                      </button>
+                    ) : null}
                     {!readOnly ? (
                       <DocumentActionsButton
                         item={{

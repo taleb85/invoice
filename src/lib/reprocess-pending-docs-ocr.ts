@@ -380,6 +380,7 @@ export async function processLegacyPendingDoc(
         importo: ocr.totale_iva_inclusa ?? null,
       })
       if ('id' in rb) registratoAutoBollaId = rb.id
+      else if ('duplicateId' in rb) registratoAutoBollaId = rb.duplicateId
     } else {
       needsDocRevision = true
     }

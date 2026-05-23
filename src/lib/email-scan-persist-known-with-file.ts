@@ -368,6 +368,8 @@ export async function persistKnownFornitoreEmailScanWithFile(
       if ('id' in rb) {
         registratoAutoBollaId = rb.id
         counters.bozzaCreate++
+      } else if ('duplicateId' in rb) {
+        registratoAutoBollaId = rb.duplicateId
       }
     } else {
       needsDocRevision = true

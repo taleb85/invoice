@@ -107,7 +107,17 @@ export async function insertEmailAutoBolla(
     numeroBolla: string | null
     importo: number | null
   }
-): Promise<{ id: string } | { error: string }> {
+): Promise<{ id: string } | { duplicateId: string } | { error: string }> {
+  // Prevent duplicate import of the same PDF attachment.
+  const { data: existingByUrl } = await supabase
+    .from('bolle')
+    .select('id')
+    .eq('fornitore_id', opts.fornitoreId)
+    .eq('file_url', opts.fileUrl)
+    .limit(1)
+    .maybeSingle()
+  if (existingByUrl) return { duplicateId: existingByUrl.id }
+
   const autoAt = AUTO_SAVED_AT()
   const { data: bolla, error: insErr } = await supabase
     .from('bolle')
