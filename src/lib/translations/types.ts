@@ -1679,6 +1679,27 @@ export type Translations = {
     aiPipelineRemaining_one: string
     aiPipelineRemaining_other: string
     aiPipelineReset: string
+    aiPipelinePhaseAnalisi: string
+    aiPipelinePhaseRicerca: string
+    aiPipelinePhaseAssociazione: string
+    aiPipelineFatturaMancante_one: string
+    aiPipelineFatturaMancante_other: string
+    aiPipelineDeliveryNoteMissing_one: string
+    aiPipelineDeliveryNoteMissing_other: string
+    aiPipelineSearchInProgress: string
+    aiPipelineErroreImporto_one: string
+    aiPipelineErroreImporto_other: string
+    aiPipelineSearchingDeliveryNotes: string
+    aiPipelineForEmail: string
+    aiPipelineForSupplier: string
+    aiPipelineScanningMailbox: string
+    aiPipelineNoEmailConfigured: string
+    aiPipelineStatusAnalysing: string
+    aiPipelineStatusSearchingDeliveryNotes: string
+    aiPipelineStatusSearchingInvoices_one: string
+    aiPipelineStatusSearchingInvoices_other: string
+    aiPipelineStatusCrossChecking: string
+    aiPipelineStatusMatching: string
   }
   status: {
     inAttesa: string

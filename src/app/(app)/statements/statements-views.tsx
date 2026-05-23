@@ -3700,7 +3700,7 @@ export function VerificationStatusTab({
     setAiPipelinePhase('analisi')
     setAiPipelineResult(null)
     setAiPipelineAnalisi(null)
-    setAiPipelineStatusMsg('Analisi anomalie in corso…')
+    setAiPipelineStatusMsg(t.statements.aiPipelineStatusAnalysing)
 
     try {
       // ── Fase 1: analisi da checkResults già caricato (nessuna API call) ──
@@ -3737,7 +3737,7 @@ export function VerificationStatusTab({
       let bolleImportate = 0
       if (needsDdtScan && sedeId) {
         setAiPipelinePhase('ricerca')
-        setAiPipelineStatusMsg(`Cercando ${deliveryNoteLabel} nelle email degli ultimi 120 giorni…`)
+        setAiPipelineStatusMsg(t.statements.aiPipelineStatusSearchingDeliveryNotes.replace('{label}', deliveryNoteLabel))
         if (!abort.signal.aborted) {
           try {
             const fid = selectedStmt?.fornitore_id ?? fornitoreId
@@ -3770,11 +3770,14 @@ export function VerificationStatusTab({
       if (needsEmailScan && fatturaMancante > 0) {
         setAiPipelinePhase('ricerca')
         setAiPipelineStatusMsg(
-          `Cercando ${fatturaMancante} fattur${fatturaMancante === 1 ? 'a' : 'e'} mancant${fatturaMancante === 1 ? 'e' : 'i'}${supplierEmail ? ` in ${supplierEmail}` : ''}…`
+          (fatturaMancante === 1
+            ? t.statements.aiPipelineStatusSearchingInvoices_one
+            : t.statements.aiPipelineStatusSearchingInvoices_other.replace('{n}', String(fatturaMancante))
+          ).replace('{location}', supplierEmail ? ` in ${supplierEmail}` : '')
         )
       } else if (!needsDdtScan) {
         setAiPipelinePhase('associazione')
-        setAiPipelineStatusMsg('Verifica incrociata righe…')
+        setAiPipelineStatusMsg(t.statements.aiPipelineStatusCrossChecking)
       }
 
       if (abort.signal.aborted) return
@@ -3793,7 +3796,7 @@ export function VerificationStatusTab({
         }),
       })
       setAiPipelinePhase('associazione')
-      setAiPipelineStatusMsg('Associazione e chiusura righe risolvibili…')
+      setAiPipelineStatusMsg(t.statements.aiPipelineStatusMatching)
       if (!res.ok) throw new Error(`Pipeline HTTP ${res.status}`)
       const data = await res.json() as {
         analisi: { total: number }
@@ -4646,7 +4649,7 @@ export function VerificationStatusTab({
                         <div key={ph} className="flex items-center gap-1">
                           {i > 0 && <span className="text-app-fg-muted/30 text-[9px]">→</span>}
                           <span className={`text-[10px] font-semibold ${active ? 'text-purple-200' : done ? 'text-emerald-300' : 'text-app-fg-muted/40'}`}>
-                            {done ? '✓ ' : active ? '' : ''}{ph === 'analisi' ? 'Analisi' : ph === 'ricerca' ? 'Ricerca email' : 'Associazione'}
+                            {done ? '✓ ' : active ? '' : ''}{ph === 'analisi' ? t.statements.aiPipelinePhaseAnalisi : ph === 'ricerca' ? t.statements.aiPipelinePhaseRicerca : t.statements.aiPipelinePhaseAssociazione}
                           </span>
                         </div>
                       )
@@ -4663,44 +4666,51 @@ export function VerificationStatusTab({
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                         {aiPipelineAnalisi.fatturaMancante > 0 && (
                           <span className="text-[10px] text-orange-300">
-                            <span className="font-bold">{aiPipelineAnalisi.fatturaMancante}</span> fattur{aiPipelineAnalisi.fatturaMancante === 1 ? 'a' : 'e'} mancant{aiPipelineAnalisi.fatturaMancante === 1 ? 'e' : 'i'}
+                            {aiPipelineAnalisi.fatturaMancante === 1
+                              ? t.statements.aiPipelineFatturaMancante_one
+                              : t.statements.aiPipelineFatturaMancante_other.replace('{n}', String(aiPipelineAnalisi.fatturaMancante))}
                           </span>
                         )}
                         {aiPipelineAnalisi.bolleMancanti > 0 && (
                           <span className="text-[10px] text-amber-300">
-                            <span className="font-bold">{aiPipelineAnalisi.bolleMancanti}</span> {deliveryNoteLabel} mancant{aiPipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}
-                            <span className="ml-1 text-amber-300/60">(ricerca in corso)</span>
+                            {(aiPipelineAnalisi.bolleMancanti === 1
+                              ? t.statements.aiPipelineDeliveryNoteMissing_one
+                              : t.statements.aiPipelineDeliveryNoteMissing_other.replace('{n}', String(aiPipelineAnalisi.bolleMancanti))
+                            ).replace('{label}', deliveryNoteLabel)}
+                            <span className="ml-1 text-amber-300/60">{t.statements.aiPipelineSearchInProgress}</span>
                           </span>
                         )}
                         {aiPipelineAnalisi.erroreImporto > 0 && (
                           <span className="text-[10px] text-red-300">
-                            <span className="font-bold">{aiPipelineAnalisi.erroreImporto}</span> errore{aiPipelineAnalisi.erroreImporto === 1 ? '' : 'i'} importo
+                            {aiPipelineAnalisi.erroreImporto === 1
+                              ? t.statements.aiPipelineErroreImporto_one
+                              : t.statements.aiPipelineErroreImporto_other.replace('{n}', String(aiPipelineAnalisi.erroreImporto))}
                           </span>
                         )}
                       </div>
                       {/* DDT scan: bolle mancanti */}
                       {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.bolleMancanti > 0 && (
                         <p className="text-[10px] text-amber-200/80">
-                          Ricerca {deliveryNoteLabel} negli ultimi 120 gg{' '}
+                          {t.statements.aiPipelineSearchingDeliveryNotes.replace('{label}', deliveryNoteLabel)}{' '}
                           {aiPipelineAnalisi.supplierEmail
-                            ? <>per <span className="font-mono font-semibold text-amber-200">{aiPipelineAnalisi.supplierEmail}</span></>
-                            : 'del fornitore'}
+                            ? <>{t.statements.aiPipelineForEmail} <span className="font-mono font-semibold text-amber-200">{aiPipelineAnalisi.supplierEmail}</span></>
+                            : t.statements.aiPipelineForSupplier}
                           …
                         </p>
                       )}
                       {/* Email scan: fatture mancanti */}
                       {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.fatturaMancante > 0 && aiPipelineAnalisi.hasEmail && (
                         <p className="text-[10px] text-purple-200/80">
-                          Scansione casella{' '}
+                          {t.statements.aiPipelineScanningMailbox}{' '}
                           {aiPipelineAnalisi.supplierEmail
                             ? <span className="font-mono font-semibold text-purple-200">{aiPipelineAnalisi.supplierEmail}</span>
-                            : 'del fornitore'}
+                            : t.statements.aiPipelineForSupplier}
                           …
                         </p>
                       )}
                       {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.fatturaMancante > 0 && !aiPipelineAnalisi.hasEmail && (
                         <p className="text-[10px] text-amber-300/70">
-                          Nessuna email configurata — salto ricerca email
+                          {t.statements.aiPipelineNoEmailConfigured}
                         </p>
                       )}
                       {aiPipelineStatusMsg && aiPipelinePhase === 'associazione' && (
@@ -4717,7 +4727,7 @@ export function VerificationStatusTab({
                     onClick={cancelAiPipeline}
                     className="self-start text-[10px] text-app-fg-muted/60 hover:text-red-300 transition-colors underline"
                   >
-                    Annulla
+                    {t.statements.cancel}
                   </button>
                 </div>
               ) : (
