@@ -303,7 +303,14 @@ function scrollSupplierTabPanelIntoView() {
   if (main) {
     const rect = panel.getBoundingClientRect()
     const mainRect = main.getBoundingClientRect()
-    const padding = 8
+    // When the desktop supplier header is fixed-docked, it overlays the scroll container from
+    // the top. We need to add its height to the padding so the tab region scrolls below it.
+    const dockedHeader = document.querySelector<HTMLElement>('[data-supplier-docked-header]')
+    const dockedOffset =
+      dockedHeader && getComputedStyle(dockedHeader).position === 'fixed'
+        ? dockedHeader.getBoundingClientRect().height
+        : 0
+    const padding = 8 + dockedOffset
     const delta = rect.top - mainRect.top - padding
     const nextTop = main.scrollTop + delta
     main.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' })
@@ -5668,6 +5675,7 @@ function FornitoreDetailClient({
         {/* Intestazione + tab — bordo/fill allineati alla card «Attività recente». */}
         <div
           ref={supplierDesktopFixedHeaderRef}
+          data-supplier-docked-header
           className={`isolate w-full max-w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1 backdrop-blur-md ${
             mdUp && supplierDesktopHeaderDock != null ? 'fixed' : 'sticky top-0 z-30'
           }`}
