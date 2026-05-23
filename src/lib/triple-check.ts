@@ -18,7 +18,7 @@ import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 export type CheckStatus =
   | 'ok'                       // ✅ verde   — fattura + bolle + importi OK
   | 'fattura_mancante'         // 🟡 giallo  — nessuna fattura trovata
-  | 'bolle_mancanti'           // 🟠 arancio — fattura presente, bolle mancanti
+  | 'bolle_mancanti'           // 🟠 arancio — fattura presente ma bolle assenti o importo discordante
   | 'errore_importo'           // 🔴 rosso   — documenti presenti, importo non coincide
   | 'rekki_prezzo_discordanza' // 🟠 ambra   — fattura/bolle coerenti tra loro ma importo Rekki ≠ fattura
 
@@ -181,8 +181,7 @@ function resolveCheckStatus(
   if (!importiCombaciano) {
     status = 'errore_importo'
   } else if (bolle.length === 0) {
-    // Fattura trovata e importo allineato: verifica sufficiente senza bolla collegata.
-    status = 'ok'
+    status = 'bolle_mancanti'
   } else {
     const bolleSum = bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
     const bolleOk =
