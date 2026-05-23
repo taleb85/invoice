@@ -45,18 +45,23 @@ export async function GET(req: NextRequest) {
       for (const f of fRows ?? []) fMap[f.id] = f
     }
 
-    // Resolve fattura dates separately (same reason — avoid FK join issues)
+    // Resolve fattura dates and file_url separately (same reason — avoid FK join issues)
     const fatturaIds = [...new Set((rows ?? []).map((r: { fattura_id: string | null }) => r.fattura_id).filter(Boolean))]
     const fatturaDateMap: Record<string, string> = {}
+    const fatturaFileUrlMap: Record<string, string | null> = {}
     if (fatturaIds.length) {
-      const { data: fRows } = await service.from('fatture').select('id, data').in('id', fatturaIds)
-      for (const f of fRows ?? []) fatturaDateMap[f.id] = f.data
+      const { data: fRows } = await service.from('fatture').select('id, data, file_url').in('id', fatturaIds)
+      for (const f of fRows ?? []) {
+        fatturaDateMap[f.id] = f.data
+        fatturaFileUrlMap[f.id] = f.file_url ?? null
+      }
     }
 
     const enriched = (rows ?? []).map((r: Record<string, unknown>) => ({
       ...r,
       fornitori: fMap[(r.fornitore_id as string) ?? ''] ?? null,
       fattura_data: fatturaDateMap[(r.fattura_id as string) ?? ''] ?? null,
+      fattura_file_url: fatturaFileUrlMap[(r.fattura_id as string) ?? ''] ?? null,
     }))
 
     return NextResponse.json(enriched)
