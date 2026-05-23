@@ -31,9 +31,11 @@ type FRow = {
   approval_status: string | null
 }
 
+type DupGroupKind = 'same_file_url' | 'shell_fatture' | 'same_numero' | 'same_day_cluster'
+
 type DupGroup = {
   group_key: string
-  group_kind: 'same_file_url' | 'shell_fatture'
+  group_kind: DupGroupKind
   file_url: string | null
   fornitore_id: string | null
   fornitore_nome: string | null
@@ -53,6 +55,11 @@ type DupGroup = {
     approval_status: string | null
     keep: boolean
   }>
+}
+
+function normalizeNumero(n: string | null | undefined): string | null {
+  const t = (n ?? '').trim().replace(/\s+/g, ' ')
+  return t || null
 }
 
 /** Restituisce un punteggio: più alto = più "forte" (candidato a essere mantenuto). */
@@ -101,9 +108,6 @@ async function buildGroups(
   sedeId: string,
   fornitoreFilter: string | null,
 ): Promise<DupGroup[]> {
-  // Includiamo anche righe con file_url null per intercettare "shell fatture"
-  // create da auto-convert con allegato perso. La dedup per file_url ignora
-  // i null comunque.
   let query = supabase
     .from('fatture')
     .select('id, file_url, fornitore_id, sede_id, data, importo, numero_fattura, bolla_id, created_at, approval_status')
@@ -116,7 +120,11 @@ async function buildGroups(
   const { data: rows, error } = await query.returns<FRow[]>()
   if (error || !rows) return []
 
-  // ── Gruppo 1: stesso file_url (chiari duplicati di registrazione automatica) ──
+  type RawGroup = { key: string; kind: DupGroupKind; items: FRow[] }
+  const rawGroups: RawGroup[] = []
+  const usedIds = new Set<string>()
+
+  // ── Gruppo 1: stesso file_url ───────────────────────────────────────────
   const byFile = new Map<string, FRow[]>()
   for (const r of rows) {
     if (!r.file_url) continue
@@ -124,42 +132,72 @@ async function buildGroups(
     arr.push(r)
     byFile.set(r.file_url, arr)
   }
-  const fileGroups: { key: string; items: FRow[] }[] = []
-  const usedInFileGroup = new Set<string>()
   for (const [file_url, items] of byFile.entries()) {
     if (items.length < 2) continue
-    fileGroups.push({ key: `file:${file_url}`, items })
-    items.forEach(i => usedInFileGroup.add(i.id))
+    rawGroups.push({ key: `file:${file_url}`, kind: 'same_file_url', items })
+    items.forEach(i => usedIds.add(i.id))
   }
 
-  // ── Gruppo 2: "shell fatture" — stesso (fornitore, data) con numero E importo nulli ──
-  // È la firma esatta delle conversioni automatiche da autoConvertInvoiceStatements
-  // (insert con importo:null e nessun numero_fattura). Catturate anche quando il
-  // file_url cambia perché lo statement è stato ricevuto più volte (signed URL diverso).
+  // ── Gruppo 2: stesso (fornitore, data, numero_fattura) ────────────────
+  const byNumero = new Map<string, FRow[]>()
+  for (const r of rows) {
+    if (usedIds.has(r.id)) continue
+    const numero = normalizeNumero(r.numero_fattura)
+    if (!numero || !r.fornitore_id || !r.data) continue
+    const k = `${r.fornitore_id}|${r.data}|${numero.toLowerCase()}`
+    const arr = byNumero.get(k) ?? []
+    arr.push(r)
+    byNumero.set(k, arr)
+  }
+  for (const [k, items] of byNumero.entries()) {
+    if (items.length < 2) continue
+    rawGroups.push({ key: `numero:${k}`, kind: 'same_numero', items })
+    items.forEach(i => usedIds.add(i.id))
+  }
+
+  // ── Gruppo 3: "shell" — stesso (fornitore, data), null numero E null importo ──
   const shellCandidates = rows.filter(r =>
-    !usedInFileGroup.has(r.id) &&
+    !usedIds.has(r.id) &&
     r.fornitore_id &&
     r.data &&
-    !(r.numero_fattura && r.numero_fattura.trim()) &&
+    !normalizeNumero(r.numero_fattura) &&
     r.importo == null,
   )
-  const byFornitoreData = new Map<string, FRow[]>()
+  const byFornitoreDataShell = new Map<string, FRow[]>()
   for (const r of shellCandidates) {
     const k = `${r.fornitore_id}|${r.data}`
-    const arr = byFornitoreData.get(k) ?? []
+    const arr = byFornitoreDataShell.get(k) ?? []
     arr.push(r)
-    byFornitoreData.set(k, arr)
+    byFornitoreDataShell.set(k, arr)
   }
-  const shellGroups: { key: string; items: FRow[] }[] = []
-  for (const [k, items] of byFornitoreData.entries()) {
+  for (const [k, items] of byFornitoreDataShell.entries()) {
     if (items.length < 2) continue
-    shellGroups.push({ key: `shell:${k}`, items })
+    rawGroups.push({ key: `shell:${k}`, kind: 'shell_fatture', items })
+    items.forEach(i => usedIds.add(i.id))
   }
 
-  if (!fileGroups.length && !shellGroups.length) return []
+  // ── Gruppo 4: cluster ≥3 per (fornitore, data) — bassa confidenza ─────
+  // Es. Eden Springs 31/03/2026: 9+ righe con numero misto. Sopra 3 record
+  // nello stesso giorno per lo stesso fornitore è quasi certamente un loop
+  // di registrazione automatica.
+  const byFornitoreDataAll = new Map<string, FRow[]>()
+  for (const r of rows) {
+    if (usedIds.has(r.id)) continue
+    if (!r.fornitore_id || !r.data) continue
+    const k = `${r.fornitore_id}|${r.data}`
+    const arr = byFornitoreDataAll.get(k) ?? []
+    arr.push(r)
+    byFornitoreDataAll.set(k, arr)
+  }
+  for (const [k, items] of byFornitoreDataAll.entries()) {
+    if (items.length < 3) continue
+    rawGroups.push({ key: `cluster:${k}`, kind: 'same_day_cluster', items })
+    items.forEach(i => usedIds.add(i.id))
+  }
 
-  // Risolvi nomi fornitori
-  const allItems = [...fileGroups, ...shellGroups].flatMap(g => g.items)
+  if (!rawGroups.length) return []
+
+  const allItems = rawGroups.flatMap(g => g.items)
   const fIds = [...new Set(allItems.map(i => i.fornitore_id).filter(Boolean) as string[])]
   const nameMap = new Map<string, string>()
   if (fIds.length) {
@@ -170,20 +208,27 @@ async function buildGroups(
     }
   }
 
-  const fileGroupResults: DupGroup[] = fileGroups.map(({ key, items }) => {
+  const reasonForKind: Record<DupGroupKind, (base: string) => string> = {
+    same_file_url: r => `${r} · stesso file PDF`,
+    same_numero: r => `${r} · stesso fornitore + data + numero fattura`,
+    shell_fatture: r => `${r} · "shell" — stesso fornitore + data, senza numero né importo`,
+    same_day_cluster: r => `${r} · cluster sospetto: ≥3 fatture stesso fornitore + giorno`,
+  }
+
+  return rawGroups.map(({ key, kind, items }) => {
     const { keep, reason } = pickKeep(items)
     const delete_ids = items.filter(x => x.id !== keep.id).map(x => x.id)
     const fornitore_id = items[0]!.fornitore_id
     return {
       group_key: key,
-      group_kind: 'same_file_url',
-      file_url: items[0]!.file_url,
+      group_kind: kind,
+      file_url: kind === 'same_file_url' ? items[0]!.file_url : null,
       fornitore_id,
       fornitore_nome: fornitore_id ? (nameMap.get(fornitore_id) ?? null) : null,
       data_doc: items[0]!.data,
       count: items.length,
       keep_id: keep.id,
-      keep_reason: reason,
+      keep_reason: reasonForKind[kind](reason),
       delete_ids,
       fatture: items.map(f => ({
         id: f.id,
@@ -198,38 +243,6 @@ async function buildGroups(
       })),
     }
   })
-
-  const shellGroupResults: DupGroup[] = shellGroups.map(({ key, items }) => {
-    const { keep, reason } = pickKeep(items)
-    const delete_ids = items.filter(x => x.id !== keep.id).map(x => x.id)
-    const fornitore_id = items[0]!.fornitore_id
-    const reasonFull = `${reason} · gruppo "shell fattura" (stesso fornitore + stessa data, senza numero né importo)`
-    return {
-      group_key: key,
-      group_kind: 'shell_fatture',
-      file_url: null,
-      fornitore_id,
-      fornitore_nome: fornitore_id ? (nameMap.get(fornitore_id) ?? null) : null,
-      data_doc: items[0]!.data,
-      count: items.length,
-      keep_id: keep.id,
-      keep_reason: reasonFull,
-      delete_ids,
-      fatture: items.map(f => ({
-        id: f.id,
-        file_url: f.file_url,
-        data: f.data,
-        importo: f.importo,
-        numero_fattura: f.numero_fattura,
-        bolla_id: f.bolla_id,
-        created_at: f.created_at,
-        approval_status: f.approval_status,
-        keep: f.id === keep.id,
-      })),
-    }
-  })
-
-  return [...fileGroupResults, ...shellGroupResults]
 }
 
 export async function GET(req: NextRequest) {

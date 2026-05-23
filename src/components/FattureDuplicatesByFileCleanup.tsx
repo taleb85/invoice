@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useToast } from '@/lib/toast-context'
 
+type DupGroupKind = 'same_file_url' | 'same_numero' | 'shell_fatture' | 'same_day_cluster'
+
 type DupGroup = {
   group_key: string
-  group_kind: 'same_file_url' | 'shell_fatture'
+  group_kind: DupGroupKind
   file_url: string | null
   fornitore_id: string | null
   fornitore_nome: string | null
@@ -27,6 +29,13 @@ type DupGroup = {
     approval_status: string | null
     keep: boolean
   }>
+}
+
+const KIND_BADGE: Record<DupGroupKind, { label: string; cls: string }> = {
+  same_file_url: { label: 'stesso PDF', cls: 'bg-rose-500/15 text-rose-100' },
+  same_numero: { label: 'stesso numero', cls: 'bg-rose-500/15 text-rose-100' },
+  shell_fatture: { label: 'shell fattura', cls: 'bg-amber-500/15 text-amber-100' },
+  same_day_cluster: { label: 'cluster sospetto', cls: 'bg-orange-500/15 text-orange-100' },
 }
 
 type Props = {
@@ -73,7 +82,9 @@ export default function FattureDuplicatesByFileCleanup({ fornitoreId, className 
 
   const extrasToDelete = groups.reduce((acc, g) => acc + g.delete_ids.length, 0)
   const sameFileCount = groups.filter(g => g.group_kind === 'same_file_url').length
+  const sameNumeroCount = groups.filter(g => g.group_kind === 'same_numero').length
   const shellCount = groups.filter(g => g.group_kind === 'shell_fatture').length
+  const clusterCount = groups.filter(g => g.group_kind === 'same_day_cluster').length
 
   const handleDelete = async () => {
     setBusy(true)
@@ -115,12 +126,10 @@ export default function FattureDuplicatesByFileCleanup({ fornitoreId, className 
             {' '}({extrasToDelete} record in eccesso)
           </p>
           <p className="mt-0.5 text-[11px] text-rose-100/80">
-            {sameFileCount > 0 && (
-              <>{sameFileCount} {sameFileCount === 1 ? 'gruppo' : 'gruppi'} con stesso file PDF. </>
-            )}
-            {shellCount > 0 && (
-              <>{shellCount} {shellCount === 1 ? 'gruppo' : 'gruppi'} di fatture senza numero né importo (stesso fornitore + data) — tipiche conversioni automatiche da estratti conto duplicati. </>
-            )}
+            {sameFileCount > 0 && (<>{sameFileCount} con stesso file PDF · </>)}
+            {sameNumeroCount > 0 && (<>{sameNumeroCount} con stesso numero fattura · </>)}
+            {shellCount > 0 && (<>{shellCount} "shell" (senza numero né importo) · </>)}
+            {clusterCount > 0 && (<>{clusterCount} cluster sospetti (≥3 fatture stesso giorno) · </>)}
             Per ogni gruppo verrà tenuta una sola fattura (con bolla, numero o importo se presenti).
           </p>
         </div>
@@ -175,8 +184,8 @@ export default function FattureDuplicatesByFileCleanup({ fornitoreId, className 
           {groups.map((g) => (
             <div key={g.group_key} className="rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2 text-xs">
               <p className="font-semibold text-rose-100">
-                <span className={`mr-2 rounded-full px-1.5 py-0.5 text-[10px] uppercase ${g.group_kind === 'same_file_url' ? 'bg-rose-500/15 text-rose-100' : 'bg-amber-500/15 text-amber-100'}`}>
-                  {g.group_kind === 'same_file_url' ? 'stesso PDF' : 'shell fattura'}
+                <span className={`mr-2 rounded-full px-1.5 py-0.5 text-[10px] uppercase ${KIND_BADGE[g.group_kind].cls}`}>
+                  {KIND_BADGE[g.group_kind].label}
                 </span>
                 {g.fornitore_nome ?? 'Fornitore sconosciuto'}
                 {g.data_doc ? <> · <span className="tabular-nums">{g.data_doc}</span></> : null}
