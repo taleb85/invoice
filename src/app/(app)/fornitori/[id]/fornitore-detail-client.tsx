@@ -2109,6 +2109,28 @@ function BolleTab({
     [onBollaDuplicateRemoved],
   )
 
+  /** Auto-delete excess same-file-url bolle once per load (admin only). */
+  const autoDeleteDoneRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (loading || readOnly || !canRianalizzaOcr || sameFileUrlExcessIds.size === 0) return
+    const toDelete = [...sameFileUrlExcessIds].filter((id) => !autoDeleteDoneRef.current.has(id))
+    if (!toDelete.length) return
+    for (const id of toDelete) autoDeleteDoneRef.current.add(id)
+    void (async () => {
+      for (const id of toDelete) {
+        try {
+          await fetch('/api/delete-record', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ table: 'bolle', id }),
+          })
+          onBollaDuplicateRemoved(id)
+        } catch { /* ignore */ }
+      }
+    })()
+  }, [loading, readOnly, canRianalizzaOcr, sameFileUrlExcessIds, onBollaDuplicateRemoved])
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
