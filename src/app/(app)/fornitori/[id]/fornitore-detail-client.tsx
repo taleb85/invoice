@@ -1866,7 +1866,7 @@ function BolleTab({
   )
 
   const runBollaOcr = useCallback(
-    async (bollaId: string) => {
+    async (bollaId: string, bollaSedeId?: string | null) => {
       if (!bollaId) return
       if (ocrStepTimerRef.current) {
         clearInterval(ocrStepTimerRef.current)
@@ -1886,7 +1886,8 @@ function BolleTab({
           sede_id?: string
           allow_tipo_migrate: boolean
         } = { bolla_id: bollaId, limit: 1, allow_tipo_migrate: true }
-        if (me?.is_admin_sede && me.sede_id) body.sede_id = me.sede_id
+        const resolvedSedeId = me?.sede_id?.trim() || bollaSedeId?.trim() || fornitore.sede_id?.trim() || undefined
+        if (resolvedSedeId) body.sede_id = resolvedSedeId
         const res = await fetch('/api/admin/fix-ocr-dates', {
           method: 'POST',
           cache: 'no-store',
@@ -1937,7 +1938,7 @@ function BolleTab({
         setOcrBusyId(null)
       }
     },
-    [me?.is_admin_sede, me?.sede_id, onLedgerMutated, t.bolle],
+    [me?.sede_id, fornitore.sede_id, onLedgerMutated, t.bolle],
   )
 
   const runConvertBollaToFattura = useCallback(
@@ -2214,7 +2215,7 @@ function BolleTab({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    void runBollaOcr(b.id)
+                    void runBollaOcr(b.id, b.sede_id)
                   }}
                   disabled={ocrBusyId === b.id || convertBusyId === b.id}
                   title={
