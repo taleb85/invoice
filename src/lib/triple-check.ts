@@ -71,7 +71,7 @@ export interface CheckSummary {
   rekki_prezzo_discordanza:  number
 }
 
-/** Tolleranza generale triple-check (fattura ↔ riga estratto ↔ bolle). */
+/** Tolleranza generale triple-check (fattura ↔ riga estratto ↔ bolle). Bolle obbligatorie. */
 export const TRIPLE_CHECK_TOLERANCE = 0.05
 
 /**

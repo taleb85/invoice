@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
-import { runTripleCheck } from '@/lib/triple-check'
+import { runTripleCheck } from '@/lib/triple-check' // bolle obbligatorie v2
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
 
 export async function GET(req: NextRequest) {
@@ -83,7 +83,12 @@ export async function GET(req: NextRequest) {
     }
 
     const lines = existingRows.map(r => ({ numero: r.numero_doc, importo: Number(r.importo) }))
-    const { results } = await runTripleCheck(supabase, lines, stmt.sede_id, stmt.fornitore_id)
+    const { results: rawResults } = await runTripleCheck(supabase, lines, stmt.sede_id, stmt.fornitore_id)
+
+    // Bolle sono obbligatorie: 'ok' senza bolle → 'bolle_mancanti'.
+    const results = rawResults.map(r =>
+      r.status === 'ok' && r.bolle.length === 0 ? { ...r, status: 'bolle_mancanti' as const } : r
+    )
 
     // Single upsert replaces R sequential UPDATE calls (N+1 pattern).
     // Conflict target: the (statement_id, numero_doc) unique constraint on statement_rows.
