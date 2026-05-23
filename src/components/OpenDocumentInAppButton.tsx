@@ -431,22 +431,26 @@ export function OpenDocumentInAppButton({
                 className="app-aurora-viewer-fill min-h-0 w-full flex-1 border-0 bg-slate-950/35"
               />
             ) : null}
-            {!loading && !signedUrl && fetchError ? (
+            {!loading && !signedUrl ? (
               <div className="flex min-h-0 flex-1 items-center justify-center p-6">
                 <div className="max-w-sm space-y-2 text-center">
                   <svg className="mx-auto h-10 w-10 text-app-fg-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <p className="text-sm font-medium text-app-fg-muted">Nessun documento allegato</p>
-                  <p className="text-xs text-app-fg-muted/60">{fetchError}</p>
+                  <p className="text-sm font-medium text-app-fg-muted">{t.common.document}: {t.common.noData}</p>
+                  {fetchError && <p className="text-xs text-app-fg-muted/60">{fetchError}</p>}
+                  {tabHref && (
+                    <a
+                      href={tabHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-xs text-app-cyan-500 hover:underline"
+                    >
+                      {t.common.openAttachment} ↗
+                    </a>
+                  )}
                 </div>
               </div>
-            ) : !loading && !signedUrl ? (
-              <iframe
-                title={t.common.attachment}
-                src={embedSrcForInlineViewer(tabHref, kind)}
-                className="app-aurora-viewer-fill min-h-0 w-full min-h-[50vh] flex-1 border-0 bg-slate-950/35"
-              />
             ) : null}
           </div>
         </div>
