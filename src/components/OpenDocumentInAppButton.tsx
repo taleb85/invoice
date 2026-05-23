@@ -140,6 +140,8 @@ export function OpenDocumentInAppButton({
   const [imageZoom, setImageZoom] = useState(1)
   const imageScrollRef = useRef<HTMLDivElement>(null)
   const imageZoomRef = useRef(1)
+  /** Tracks the current blob: URL so we can revoke it when no longer needed. */
+  const blobUrlRef = useRef<string | null>(null)
 
   const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId, confermaOrdineId })
   const jsonHref = hrefs?.jsonHref ?? ''
@@ -216,43 +218,76 @@ export function OpenDocumentInAppButton({
       setSignedUrl(null)
       setLoading(false)
       setFetchError(null)
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current)
+        blobUrlRef.current = null
+      }
       return
     }
     if (!jsonHref) return
     let cancelled = false
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15_000)
+    // 30 s covers both the API call and the PDF blob download
+    const timeoutId = setTimeout(() => controller.abort(), 30_000)
     setLoading(true)
     setSignedUrl(null)
     setFetchError(null)
-    void fetch(jsonHref, { credentials: 'include', signal: controller.signal })
-      .then(async (r) => {
-        if (!r.ok) {
-          const body = await r.json().catch(() => ({})) as { error?: string }
-          throw new Error(body.error ?? String(r.status))
+
+    void (async () => {
+      try {
+        // Step 1: resolve the signed URL from our API
+        const res1 = await fetch(jsonHref, { credentials: 'include', signal: controller.signal })
+        if (!res1.ok) {
+          const body = await res1.json().catch(() => ({})) as { error?: string }
+          throw new Error(body.error ?? String(res1.status))
         }
-        return r.json() as Promise<{ url?: string }>
-      })
-      .then((j) => {
-        if (!cancelled) setSignedUrl(j.url?.trim() ?? null)
-      })
-      .catch((e: unknown) => {
+        const json = await res1.json() as { url?: string }
+        const remoteUrl = json.url?.trim()
+        if (!remoteUrl) throw new Error('No document URL')
+
+        // Step 2: download PDF/file as a blob so the iframe receives a same-origin
+        // blob: URL — this bypasses X-Frame-Options headers on the storage domain.
+        const res2 = await fetch(remoteUrl, { signal: controller.signal })
+        if (!res2.ok) throw new Error(`Could not download document (${res2.status})`)
+        const blob = await res2.blob()
+        if (cancelled) return
+
+        // Revoke any previous blob URL before creating a new one
+        if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+        const blobUrl = URL.createObjectURL(blob)
+        blobUrlRef.current = blobUrl
+        setSignedUrl(blobUrl)
+      } catch (e: unknown) {
         if (!cancelled) {
           const isAbort = e instanceof DOMException && e.name === 'AbortError'
           setSignedUrl(null)
-          setFetchError(isAbort ? 'Timeout (15 s) — document not available' : e instanceof Error ? e.message : 'Error loading document')
+          setFetchError(
+            isAbort
+              ? 'Timeout (30 s) — document not available'
+              : e instanceof Error
+                ? e.message
+                : 'Error loading document',
+          )
         }
-      })
-      .finally(() => {
+      } finally {
         clearTimeout(timeoutId)
         if (!cancelled) setLoading(false)
-      })
+      }
+    })()
+
     return () => {
       cancelled = true
       controller.abort()
       clearTimeout(timeoutId)
     }
   }, [open, jsonHref])
+
+  // Revoke blob URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!open || !canOpen) return
