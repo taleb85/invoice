@@ -3647,6 +3647,9 @@ export function VerificationStatusTab({
     ? vsS2NestedBorder
     : `${vsCardWrap} overflow-hidden ${vsCardBorder}`
 
+  const supplierLoc = getLocale(countryCode)
+  const deliveryNoteLabel = supplierLoc.deliveryNoteLabel
+
   const verificaMode: SupplierDesktopVerificaMode =
     fornitoreId && supplierDesktopVerificaMode ? supplierDesktopVerificaMode : 'full'
   const s2ShellMb = verificaMode === 'classicToolbar' ? 'mb-0' : 'mb-5'
@@ -3734,7 +3737,7 @@ export function VerificationStatusTab({
       let bolleImportate = 0
       if (needsDdtScan && sedeId) {
         setAiPipelinePhase('ricerca')
-        setAiPipelineStatusMsg(`Cercando DDT/bolle nelle email degli ultimi 120 giorni…`)
+        setAiPipelineStatusMsg(`Cercando ${deliveryNoteLabel} nelle email degli ultimi 120 giorni…`)
         if (!abort.signal.aborted) {
           try {
             const fid = selectedStmt?.fornitore_id ?? fornitoreId
@@ -3750,6 +3753,7 @@ export function VerificationStatusTab({
                 email_sync_scope:          'lookback',
                 email_sync_lookback_days:  120,
                 email_sync_document_kind:  'bolla',
+                client_locale:             supplierLoc.currencyLocale,
               }),
             })
             if (ddtRes.ok) {
@@ -4664,8 +4668,8 @@ export function VerificationStatusTab({
                         )}
                         {aiPipelineAnalisi.bolleMancanti > 0 && (
                           <span className="text-[10px] text-amber-300">
-                            <span className="font-bold">{aiPipelineAnalisi.bolleMancanti}</span> boll{aiPipelineAnalisi.bolleMancanti === 1 ? 'a' : 'e'} mancant{aiPipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}
-                            <span className="ml-1 text-amber-300/60">(DDT — ricerca in corso)</span>
+                            <span className="font-bold">{aiPipelineAnalisi.bolleMancanti}</span> {deliveryNoteLabel} mancant{aiPipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}
+                            <span className="ml-1 text-amber-300/60">(ricerca in corso)</span>
                           </span>
                         )}
                         {aiPipelineAnalisi.erroreImporto > 0 && (
@@ -4677,7 +4681,7 @@ export function VerificationStatusTab({
                       {/* DDT scan: bolle mancanti */}
                       {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.bolleMancanti > 0 && (
                         <p className="text-[10px] text-amber-200/80">
-                          Ricerca DDT/bolle negli ultimi 120 gg{' '}
+                          Ricerca {deliveryNoteLabel} negli ultimi 120 gg{' '}
                           {aiPipelineAnalisi.supplierEmail
                             ? <>per <span className="font-mono font-semibold text-amber-200">{aiPipelineAnalisi.supplierEmail}</span></>
                             : 'del fornitore'}
