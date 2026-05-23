@@ -4059,6 +4059,11 @@ export function VerificationStatusTab({
     })
     setCheckResults(mapped)
     checkResultsRef.current = mapped
+
+    // Aggiorna il badge nella lista con il conteggio corretto (bolle obbligatorie)
+    const correctedMissing = mapped.filter(r => r.status !== 'ok' && r.status !== 'pending').length
+    setStmts(prev => prev.map(s => s.id === stmt.id ? { ...s, missing_rows: correctedMissing } : s))
+
     setCheckLoading(false)
   }
 
