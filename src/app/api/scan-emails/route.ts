@@ -2575,7 +2575,9 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     mailDebugLog(`[FORNITORE] Scansione mirata id=${params.fornitoreId} sede=${filterSedeId}`)
   }
 
-  const effectiveDocKind: EmailSyncDocumentKind = directFornitore ? 'all' : (params.documentKind ?? 'all')
+  // Quando si fa una scansione mirata per fornitore, si permette di passare un docKind esplicito
+  // (es. 'bolla' per cercare DDT). Se non specificato, default 'all'.
+  const effectiveDocKind: EmailSyncDocumentKind = params.documentKind ?? 'all'
 
   let totalRicevuti = 0
   let totalIgnorate = 0
