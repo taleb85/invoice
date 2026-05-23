@@ -113,43 +113,48 @@ export async function GET(req: NextRequest) {
   // ── List statements for a sede ─────────────────────────────────────────
   // Avoid FK join (fornitori) to sidestep PostgREST schema-cache issues on
   // freshly-created tables. We resolve the supplier name in a second query.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let q = (supabase as any)
-    .from('statements')
-    .select(
-      [
-        'id',
-        'sede_id',
-        'fornitore_id',
-        'file_url',
-        'document_date',
-        'extracted_pdf_dates',
-        'periodo',
-        'totale_outstanding',
-        'created_at',
-        'email_reference_id',
-        'email_subject',
-        'received_at',
-        'status',
-        'total_rows',
-        'missing_rows',
-        'linked_fattura_id',
-      ].join(', '),
-    )
-    .order('received_at', { ascending: false })
-    /* Per singolo fornitore servono più righe (estratto 2025 vs ricezioni 2026, cronologia lunga). */
-    .limit(listLimit)
+  const baseColumns = [
+    'id',
+    'sede_id',
+    'fornitore_id',
+    'file_url',
+    'document_date',
+    'extracted_pdf_dates',
+    'periodo',
+    'totale_outstanding',
+    'created_at',
+    'email_reference_id',
+    'email_subject',
+    'received_at',
+    'status',
+    'total_rows',
+    'missing_rows',
+  ]
 
-  if (sedeId)      q = q.eq('sede_id',      sedeId)
-  if (fornitoreId) q = q.eq('fornitore_id', fornitoreId)
+  async function runListQuery(columns: string[]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q = (supabase as any)
+      .from('statements')
+      .select(columns.join(', '))
+      .order('received_at', { ascending: false })
+      .limit(listLimit)
+    if (sedeId)      q = q.eq('sede_id',      sedeId)
+    if (fornitoreId) q = q.eq('fornitore_id', fornitoreId)
+    // Esclude statement con errori di parsing.
+    q = q.neq('status', 'error')
+    return q
+  }
 
-  // Esclude statement con errori di parsing (documenti non processabili come estratti conto,
-  // es. "Statement of Account" classificati erroneamente come statement).
-  q = q.neq('status', 'error')
-
-  const { data, error } = await q
+  // Tenta con `linked_fattura_id`; se la colonna non esiste (migration non
+  // ancora applicata), ricade automaticamente sulla query base.
+  let { data, error } = await runListQuery([...baseColumns, 'linked_fattura_id'])
+  if (error && error.code === '42703') {
+    console.warn('[GET /api/statements] linked_fattura_id mancante — eseguo migration 20260523000000_statements_linked_fattura.sql')
+    const fallback = await runListQuery(baseColumns)
+    data = fallback.data
+    error = fallback.error
+  }
   if (error) {
-    // Table does not exist yet (before migration) — only match this exact code
     if (error.code === '42P01') {
       return NextResponse.json({ statements: [], needsMigration: true })
     }
@@ -254,16 +259,6 @@ function subjectIsInvoiceNotBolla(subject: string | null | undefined): boolean {
  * rimuove lo statement dalla coda. Fire-and-forget: non blocca la risposta.
  */
 async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createServiceClient>) {
-  const { data: candidates } = await supabase
-    .from('statements')
-    .select('id, fornitore_id, sede_id, file_url, document_date, email_subject, linked_fattura_id')
-    .neq('status', 'processing')
-    .not('fornitore_id', 'is', null)
-    .not('file_url', 'is', null)
-    .limit(200)
-
-  if (!candidates?.length) return
-
   type StmtCandidate = {
     id: string
     fornitore_id: string
@@ -274,9 +269,36 @@ async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createSe
     linked_fattura_id: string | null
   }
 
+  // Prova con la colonna nuova; ricade su select base se la migration
+  // 20260523000000_statements_linked_fattura.sql non è stata ancora applicata.
+  let candidates: StmtCandidate[] | null = null
+  {
+    const { data, error } = await supabase
+      .from('statements')
+      .select('id, fornitore_id, sede_id, file_url, document_date, email_subject, linked_fattura_id')
+      .neq('status', 'processing')
+      .not('fornitore_id', 'is', null)
+      .not('file_url', 'is', null)
+      .limit(200)
+    if (error && error.code === '42703') {
+      const fallback = await supabase
+        .from('statements')
+        .select('id, fornitore_id, sede_id, file_url, document_date, email_subject')
+        .neq('status', 'processing')
+        .not('fornitore_id', 'is', null)
+        .not('file_url', 'is', null)
+        .limit(200)
+      candidates = (fallback.data ?? []).map((s) => ({ ...(s as Omit<StmtCandidate, 'linked_fattura_id'>), linked_fattura_id: null }))
+    } else {
+      candidates = (data as StmtCandidate[] | null) ?? null
+    }
+  }
+
+  if (!candidates?.length) return
+
   // Salta statement esplicitamente collegati a una fattura: il PDF contiene
   // sia estratto conto sia fattura, vanno tenuti entrambi.
-  const allCandidates = (candidates as StmtCandidate[]).filter(s => !s.linked_fattura_id)
+  const allCandidates = candidates.filter(s => !s.linked_fattura_id)
   const invoiceStmts = allCandidates.filter(s => subjectIsInvoiceNotBolla(s.email_subject))
 
   // Pulizia secondaria: statement il cui file_url ha già una fattura corrispondente
@@ -305,9 +327,41 @@ async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createSe
 
   const oggi = new Date().toISOString().split('T')[0]
 
+  // Pre-carica le fatture esistenti per (fornitore, data) così evitiamo di
+  // inserire 20 copie dello stesso PDF quando lo statement ha 20 ricezioni
+  // email diverse con file_url diverso (caso reale: stesso "Invoice X" inviato
+  // più volte). Il match è: stesso fornitore + stessa data documento + entrambi
+  // privi di numero_fattura e importo (la firma di un'auto-conversione).
+  const fornitoreIds = [...new Set(invoiceStmts.map(s => s.fornitore_id))]
+  const { data: existingByFornitore } = fornitoreIds.length
+    ? await supabase
+        .from('fatture')
+        .select('id, fornitore_id, data, numero_fattura, importo, file_url, sede_id')
+        .in('fornitore_id', fornitoreIds)
+    : { data: [] as Array<{ id: string; fornitore_id: string; data: string; numero_fattura: string | null; importo: number | null; file_url: string | null; sede_id: string | null }> }
+
+  type ExistingFatturaRow = { id: string; fornitore_id: string; data: string; numero_fattura: string | null; importo: number | null; file_url: string | null; sede_id: string | null }
+
+  /** Restituisce true se ESISTE già una fattura «vuota» (no numero, no importo)
+   *  per lo stesso fornitore + data documento + sede; significa che una
+   *  precedente esecuzione di autoConvert ha già creato la fattura «da statement». */
+  function existsEmptyShellFatturaForSameDoc(stmt: typeof invoiceStmts[number], dataDoc: string): boolean {
+    return (existingByFornitore as ExistingFatturaRow[] | null ?? []).some((f) => {
+      if (f.fornitore_id !== stmt.fornitore_id) return false
+      if (String(f.data) !== dataDoc) return false
+      if ((f.sede_id ?? null) !== (stmt.sede_id ?? null)) return false
+      const hasNumero = !!(f.numero_fattura && f.numero_fattura.trim())
+      const hasImporto = f.importo != null
+      return !hasNumero && !hasImporto
+    })
+  }
+
   for (const stmt of invoiceStmts) {
-    if (!alreadyFatturaUrls.has(stmt.file_url)) {
-      const dataDoc = stmt.document_date?.trim() || oggi
+    const dataDoc = stmt.document_date?.trim() || oggi
+    const sameFileExists = alreadyFatturaUrls.has(stmt.file_url)
+    const sameShellExists = !sameFileExists && existsEmptyShellFatturaForSameDoc(stmt, dataDoc)
+
+    if (!sameFileExists && !sameShellExists) {
       const { error: insErr } = await supabase.from('fatture').insert([{
         fornitore_id: stmt.fornitore_id,
         sede_id: stmt.sede_id,
@@ -317,6 +371,7 @@ async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createSe
         verificata_estratto_conto: false,
       }])
       if (insErr) continue
+      alreadyFatturaUrls.add(stmt.file_url) // riusa subito per i prossimi stmt nello stesso loop
     }
     // Rimuove le righe e lo statement (la fattura esiste già o è appena stata creata)
     await supabase.from('statement_rows').delete().eq('statement_id', stmt.id)

@@ -87,6 +87,7 @@ import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
 import FatturaRefreshDateButton from '@/components/FatturaRefreshDateButton'
+import FattureDuplicatesByFileCleanup from '@/components/FattureDuplicatesByFileCleanup'
 const FornitoreConfermeOrdineTab = dynamic(
   () => import('@/components/FornitoreConfermeOrdineTab'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
@@ -2439,6 +2440,7 @@ function FattureTab({
     [pathname, searchParams],
   )
 
+  const [reloadTick, setReloadTick] = useState(0)
   useEffect(() => {
     setLoading(true)
     const from = dateFrom
@@ -2455,7 +2457,13 @@ function FattureTab({
         if (!error) setFatture(data ?? [])
         setLoading(false)
       })
-  }, [fornitoreId, dateFrom, dateToExclusive, epoch])
+  }, [fornitoreId, dateFrom, dateToExclusive, epoch, reloadTick])
+
+  useEffect(() => {
+    const handler = () => setReloadTick(t => t + 1)
+    window.addEventListener('fattura-mutated', handler)
+    return () => window.removeEventListener('fattura-mutated', handler)
+  }, [])
 
   const onDuplicateRemoved = useCallback(
     (removedId: string) => {
@@ -2595,6 +2603,11 @@ function FattureTab({
 
   return (
     <>
+      {!readOnly && (
+        <div className="px-4">
+          <FattureDuplicatesByFileCleanup fornitoreId={fornitoreId} />
+        </div>
+      )}
       {/* Auto-sync fatture in attesa - mostrato solo se ci sono fatture da processare */}
       {!readOnly && fatture.some(f => !f.bolla_id) && (
         <div className="mb-4 px-4">

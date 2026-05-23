@@ -57,13 +57,33 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
 
-  const { data: stmt, error: stmtErr } = await service
-    .from('statements')
-    .select('id, fornitore_id, sede_id, file_url, document_date, email_subject, linked_fattura_id')
-    .eq('id', statementId)
-    .maybeSingle()
+  let stmt: {
+    id: string
+    fornitore_id: string | null
+    sede_id: string | null
+    file_url: string | null
+    document_date: string | null
+    email_subject: string | null
+    linked_fattura_id: string | null
+  } | null = null
+  {
+    const r1 = await service
+      .from('statements')
+      .select('id, fornitore_id, sede_id, file_url, document_date, email_subject, linked_fattura_id')
+      .eq('id', statementId)
+      .maybeSingle()
+    if (r1.error && r1.error.code === '42703') {
+      // Colonna linked_fattura_id non presente (migration mancante):
+      // blocca con errore esplicito invece di creare la fattura senza link.
+      return NextResponse.json({
+        error: 'Migration mancante: applica supabase/migrations/20260523000000_statements_linked_fattura.sql',
+      }, { status: 500 })
+    }
+    if (r1.error) return NextResponse.json({ error: r1.error.message }, { status: 500 })
+    stmt = r1.data as typeof stmt
+  }
 
-  if (stmtErr || !stmt) return NextResponse.json({ error: 'Statement non trovato' }, { status: 404 })
+  if (!stmt) return NextResponse.json({ error: 'Statement non trovato' }, { status: 404 })
   if (!stmt.file_url) return NextResponse.json({ error: 'Lo statement non ha un file allegato' }, { status: 400 })
   if (!stmt.fornitore_id) return NextResponse.json({ error: 'Lo statement non ha un fornitore associato' }, { status: 400 })
 
