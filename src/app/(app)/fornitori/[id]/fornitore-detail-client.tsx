@@ -87,7 +87,6 @@ import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
 import FatturaRefreshDateButton from '@/components/FatturaRefreshDateButton'
-import FattureDuplicatesByFileCleanup from '@/components/FattureDuplicatesByFileCleanup'
 const FornitoreConfermeOrdineTab = dynamic(
   () => import('@/components/FornitoreConfermeOrdineTab'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
@@ -2603,11 +2602,6 @@ function FattureTab({
 
   return (
     <>
-      {!readOnly && (
-        <div className="px-4">
-          <FattureDuplicatesByFileCleanup fornitoreId={fornitoreId} />
-        </div>
-      )}
       {/* Auto-sync fatture in attesa - mostrato solo se ci sono fatture da processare */}
       {!readOnly && fatture.some(f => !f.bolla_id) && (
         <div className="mb-4 px-4">

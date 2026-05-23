@@ -231,10 +231,10 @@ export async function GET(req: NextRequest) {
 
   const hasMissing = deduped.some((s) => ((s.missing_rows as number | null) ?? 0) > 0)
 
-  // Pulizia automatica: elimina statement errati e converte in fatture quelli con soggetto invoice.
-  // Fire-and-forget per non rallentare la risposta.
+  // Pulizia automatica: fire-and-forget, non blocca la risposta.
   cleanupBadStatements(service).catch(() => {})
   autoConvertInvoiceStatements(service).catch(() => {})
+  autoCleanupDuplicateFatture(service).catch(() => {})
 
   return NextResponse.json({ statements: deduped, hasMissing })
 }
@@ -428,5 +428,97 @@ async function cleanupBadStatements(supabase: ReturnType<typeof createServiceCli
           .eq('id', doc.id)
       }
     }
+  }
+}
+
+/**
+ * Elimina automaticamente le fatture duplicate certe (nessuna decisione umana necessaria):
+ *  1. Stesso file_url → stesso PDF caricato più volte.
+ *  2. Stesso (fornitore, data, numero_fattura) → stessa fattura registrata più volte.
+ * Per ogni gruppo mantiene la fattura "più forte" (con bolla, numero, importo; a parità
+ * la più vecchia per created_at). Non tocca i cluster ambigui (stesso giorno, importi diversi).
+ * Fire-and-forget: viene chiamata senza await.
+ */
+async function autoCleanupDuplicateFatture(supabase: ReturnType<typeof createServiceClient>) {
+  const { data: rows } = await supabase
+    .from('fatture')
+    .select('id, file_url, fornitore_id, sede_id, data, importo, numero_fattura, bolla_id, created_at')
+    .not('fornitore_id', 'is', null)
+    .order('created_at', { ascending: true })
+    .limit(5_000)
+
+  if (!rows?.length) return
+
+  type FRow = {
+    id: string
+    file_url: string | null
+    fornitore_id: string
+    sede_id: string | null
+    data: string | null
+    importo: number | null
+    numero_fattura: string | null
+    bolla_id: string | null
+    created_at: string
+  }
+
+  function score(f: FRow): number {
+    let s = 0
+    if (f.bolla_id) s += 1000
+    if (f.numero_fattura?.trim()) s += 100
+    if (f.importo != null) s += 10
+    return s
+  }
+
+  function pickKeepId(group: FRow[]): string {
+    return [...group].sort((a, b) => {
+      const d = score(b) - score(a)
+      return d !== 0 ? d : a.created_at.localeCompare(b.created_at)
+    })[0]!.id
+  }
+
+  const toDelete: string[] = []
+  const r = rows as FRow[]
+
+  // ── 1. Stesso file_url ────────────────────────────────────────────────
+  const byFile = new Map<string, FRow[]>()
+  for (const f of r) {
+    if (!f.file_url) continue
+    const arr = byFile.get(f.file_url) ?? []
+    arr.push(f)
+    byFile.set(f.file_url, arr)
+  }
+  const usedIds = new Set<string>()
+  for (const group of byFile.values()) {
+    if (group.length < 2) continue
+    const keep = pickKeepId(group)
+    group.forEach(f => { if (f.id !== keep) { toDelete.push(f.id); usedIds.add(f.id) } })
+    usedIds.add(keep)
+  }
+
+  // ── 2. Stesso (fornitore, data, numero_fattura) ───────────────────────
+  const byNumero = new Map<string, FRow[]>()
+  for (const f of r) {
+    if (usedIds.has(f.id)) continue
+    const numero = (f.numero_fattura ?? '').trim()
+    if (!numero || !f.data) continue
+    const k = `${f.fornitore_id}|${f.sede_id ?? ''}|${f.data}|${numero.toLowerCase()}`
+    const arr = byNumero.get(k) ?? []
+    arr.push(f)
+    byNumero.set(k, arr)
+  }
+  for (const group of byNumero.values()) {
+    if (group.length < 2) continue
+    const keep = pickKeepId(group)
+    group.forEach(f => { if (f.id !== keep) toDelete.push(f.id) })
+  }
+
+  if (!toDelete.length) return
+
+  // Sgancia statement_rows prima di eliminare
+  await supabase.from('statement_rows').update({ fattura_id: null, fattura_numero: null }).in('fattura_id', toDelete)
+
+  const CHUNK = 200
+  for (let i = 0; i < toDelete.length; i += CHUNK) {
+    await supabase.from('fatture').delete().in('id', toDelete.slice(i, i + CHUNK))
   }
 }
