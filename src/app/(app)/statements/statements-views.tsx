@@ -3592,8 +3592,6 @@ export function VerificationStatusTab({
   const router = useRouter()
   const [stmtHeaderRefreshPending, startStmtHeaderRefresh] = useTransition()
   const [stmtRecheckBusy, setStmtRecheckBusy] = useState(false)
-  const [cercaDdtBusy, setCercaDdtBusy] = useState(false)
-  const [cercaDdtResult, setCercaDdtResult] = useState<{ bolle: number } | null>(null)
   const [alsoFatturaOpen, setAlsoFatturaOpen] = useState(false)
   const [alsoFatturaBusy, setAlsoFatturaBusy] = useState(false)
   const [alsoFatturaImporto, setAlsoFatturaImporto] = useState('')
@@ -3712,10 +3710,8 @@ export function VerificationStatusTab({
       const bolleMancanti   = anomaleRows.filter(r => r.status === 'bolle_mancanti').length
       const erroreImporto   = anomaleRows.filter(r => r.status === 'errore_importo').length
 
-      // Bolle mancanti e rekki_prezzo_discordanza non si risolvono con email scan:
-      // i DDT sono documenti fisici, non allegati email. Segnalare direttamente come manuale.
-      const needsEmailScan = fatturaMancante > 0 && hasEmail
-      const onlyManualAnomalies = bolleMancanti > 0 && fatturaMancante === 0 && erroreImporto === 0
+      const needsEmailScan = (fatturaMancante > 0 || bolleMancanti > 0) && hasEmail
+      const needsDdtScan   = bolleMancanti > 0
 
       const pipelineAnalisi: FornitoreAIPipelineAnalisi = {
         fatturaMancante,
@@ -3734,28 +3730,44 @@ export function VerificationStatusTab({
         return
       }
 
-      // Se ci sono solo bolle mancanti (DDT), l'email scan non serve: vai diretto alla fase manuale
-      if (onlyManualAnomalies) {
-        setAiPipelinePhase('done')
-        setAiPipelineResult({
-          resolved: 0,
-          remaining: pipelineAnalisi.total,
-          emailImported: 0,
-          analisiTotale: pipelineAnalisi.total,
-          fastFixed: 0,
-        })
-        setAiPipelineStatusMsg(null)
-        return
+      // ── Fase 2a: cerca DDT nelle email (bolle mancanti) ─────────────────
+      let bolleImportate = 0
+      if (needsDdtScan && sedeId) {
+        setAiPipelinePhase('ricerca')
+        setAiPipelineStatusMsg(`Cercando DDT/bolle nelle email degli ultimi 120 giorni…`)
+        if (!abort.signal.aborted) {
+          try {
+            const fid = selectedStmt?.fornitore_id ?? fornitoreId
+            const ddtRes = await fetch('/api/scan-emails', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              signal: abort.signal,
+              body: JSON.stringify({
+                fornitore_id:             fid,
+                user_sede_id:             sedeId,
+                filter_sede_id:           sedeId,
+                mode:                     'historical',
+                email_sync_scope:         'lookback',
+                email_sync_lookback_days: 120,
+              }),
+            })
+            if (ddtRes.ok) {
+              const ddtData = await ddtRes.json() as { totalBozzeCreate?: number }
+              bolleImportate = ddtData.totalBozzeCreate ?? 0
+            }
+          } catch {
+            // ignora errori DDT scan, continua con la pipeline
+          }
+        }
       }
 
-      // ── Fase 2: ricerca email (solo se ci sono fatture mancanti) ──────────
-      if (needsEmailScan) {
+      // ── Fase 2b: ricerca email fatture mancanti ──────────────────────────
+      if (needsEmailScan && fatturaMancante > 0) {
         setAiPipelinePhase('ricerca')
         setAiPipelineStatusMsg(
           `Cercando ${fatturaMancante} fattur${fatturaMancante === 1 ? 'a' : 'e'} mancant${fatturaMancante === 1 ? 'e' : 'i'}${supplierEmail ? ` in ${supplierEmail}` : ''}…`
         )
-      } else {
-        // Nessuna email scan, vai diretto all'associazione
+      } else if (!needsDdtScan) {
         setAiPipelinePhase('associazione')
         setAiPipelineStatusMsg('Verifica incrociata righe…')
       }
@@ -3787,7 +3799,7 @@ export function VerificationStatusTab({
       setAiPipelineResult({
         resolved: data.assoc.resolved + data.assoc.fastFixed,
         remaining: data.remainingAnomalies,
-        emailImported: data.ricerca?.imported ?? 0,
+        emailImported: (data.ricerca?.imported ?? 0) + bolleImportate,
         analisiTotale: pipelineAnalisi.total,
         fastFixed: data.assoc.fastFixed,
       })
@@ -4067,41 +4079,6 @@ export function VerificationStatusTab({
     setStmts(prev => prev.map(s => s.id === stmt.id ? { ...s, missing_rows: correctedMissing } : s))
 
     setCheckLoading(false)
-  }
-
-  async function handleCercaDdt() {
-    const fid = selectedStmt?.fornitore_id ?? fornitoreId
-    if (!fid || !sedeId) return
-    setCercaDdtBusy(true)
-    setCercaDdtResult(null)
-    try {
-      const res = await fetch('/api/scan-emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fornitore_id:              fid,
-          user_sede_id:              sedeId,
-          filter_sede_id:            sedeId,
-          mode:                      'historical',
-          email_sync_scope:          'lookback',
-          email_sync_lookback_days:  120,
-        }),
-      })
-      const data = await res.json() as { totalBozzeCreate?: number; bolla?: number }
-      const bolleFound = data.totalBozzeCreate ?? 0
-      setCercaDdtResult({ bolle: bolleFound })
-      if (bolleFound > 0 && selectedStmt) {
-        // Ri-analizza per aggiornare i check status con le bolle trovate
-        setStmtRecheckBusy(true)
-        await fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
-          .then(() => loadStatementRows(selectedStmt))
-          .finally(() => setStmtRecheckBusy(false))
-      }
-    } catch {
-      // ignora errori di rete
-    } finally {
-      setCercaDdtBusy(false)
-    }
   }
 
   async function inviaSollecito(result: CheckResult) {
@@ -4502,34 +4479,6 @@ export function VerificationStatusTab({
                 </svg>
                 {t.statements.reanalyze}
               </button>
-              {/* Cerca DDT nella casella email */}
-              {(fornitoreId ?? selectedStmt?.fornitore_id) && sedeId && (
-                <button
-                  type="button"
-                  onClick={handleCercaDdt}
-                  disabled={cercaDdtBusy || stmtRecheckBusy}
-                  aria-busy={cercaDdtBusy}
-                  title="Cerca DDT/Bolle nelle email degli ultimi 120 giorni"
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-orange-500/40 hover:bg-orange-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:opacity-50"
-                >
-                  {cercaDdtBusy ? (
-                    <svg className="h-3.5 w-3.5 animate-spin opacity-70" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
-                    </svg>
-                  ) : (
-                    <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/>
-                    </svg>
-                  )}
-                  {cercaDdtBusy ? 'Cerco DDT…' : 'Cerca DDT'}
-                  {cercaDdtResult && !cercaDdtBusy && (
-                    <span className={`ml-1 font-bold ${cercaDdtResult.bolle > 0 ? 'text-emerald-400' : 'text-app-fg-muted'}`}>
-                      {cercaDdtResult.bolle > 0 ? `+${cercaDdtResult.bolle}` : '0'}
-                    </span>
-                  )}
-                </button>
-              )}
             </div>
           </div>
         )}
