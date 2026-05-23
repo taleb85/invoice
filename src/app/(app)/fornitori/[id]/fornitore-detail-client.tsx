@@ -1782,6 +1782,7 @@ function numeroRefFromDocMetadata(metadata: unknown): string | null {
 function BolleTab({
   fornitoreId,
   fornitoreNome,
+  fornitoreSedeId,
   dateFrom,
   dateToExclusive,
   pathname,
@@ -1792,6 +1793,7 @@ function BolleTab({
 }: {
   fornitoreId: string
   fornitoreNome: string
+  fornitoreSedeId?: string | null
   dateFrom: string
   dateToExclusive: string
   pathname: string
@@ -1886,7 +1888,7 @@ function BolleTab({
           sede_id?: string
           allow_tipo_migrate: boolean
         } = { bolla_id: bollaId, limit: 1, allow_tipo_migrate: true }
-        const resolvedSedeId = me?.sede_id?.trim() || bollaSedeId?.trim() || fornitore.sede_id?.trim() || undefined
+        const resolvedSedeId = me?.sede_id?.trim() || bollaSedeId?.trim() || fornitoreSedeId?.trim() || undefined
         if (resolvedSedeId) body.sede_id = resolvedSedeId
         const res = await fetch('/api/admin/fix-ocr-dates', {
           method: 'POST',
@@ -1938,7 +1940,7 @@ function BolleTab({
         setOcrBusyId(null)
       }
     },
-    [me?.sede_id, fornitore.sede_id, onLedgerMutated, t.bolle],
+    [me?.sede_id, fornitoreSedeId, onLedgerMutated, t.bolle],
   )
 
   const runConvertBollaToFattura = useCallback(
@@ -5440,6 +5442,7 @@ function FornitoreDetailClient({
           <BolleTab
             fornitoreId={fornitore.id}
             fornitoreNome={fornitore.nome ?? ''}
+            fornitoreSedeId={fornitore.sede_id ?? null}
             dateFrom={ledgerPeriod.from}
             dateToExclusive={ledgerDateToExclusive}
             pathname={pathname}
