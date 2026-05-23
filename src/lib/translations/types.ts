@@ -1652,6 +1652,33 @@ export type Translations = {
     rememberAssociationTitle: string
     rememberAssociationSave: string
     rekkiDocumentLink: string
+    alsoFatturaCreata: string
+    alsoFatturaCreataTitle: string
+    alsoFatturaBtn: string
+    alsoFatturaBtnTitle: string
+    alsoFatturaModalDesc: string
+    alsoFatturaNumeroLabel: string
+    alsoFatturaNumeroPlaceholder: string
+    alsoFatturaImportoLabel: string
+    alsoFatturaImportoPlaceholder: string
+    alsoFatturaDateLabel: string
+    alsoFatturaSupplierLabel: string
+    alsoFatturaCreating: string
+    alsoFatturaConfirm: string
+    alsoFatturaSuccessToast: string
+    alsoFatturaErrorToast: string
+    aiPipelineResolveBtn: string
+    aiPipelineCanAnalyze: string
+    aiPipelineAnomaliesDetected_one: string
+    aiPipelineAnomaliesDetected_other: string
+    aiPipelineResolved_one: string
+    aiPipelineResolved_other: string
+    aiPipelineNoneResolvable: string
+    aiPipelineEmailImported_one: string
+    aiPipelineEmailImported_other: string
+    aiPipelineRemaining_one: string
+    aiPipelineRemaining_other: string
+    aiPipelineReset: string
   }
   status: {
     inAttesa: string

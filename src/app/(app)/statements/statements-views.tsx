@@ -4433,24 +4433,24 @@ export function VerificationStatusTab({
                 selectedStmt.linked_fattura_id ? (
                   <span
                     className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200"
-                    title="Una fattura è già stata creata da questo PDF"
+                    title={t.statements.alsoFatturaCreataTitle}
                   >
                     <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
-                    Fattura creata
+                    {t.statements.alsoFatturaCreata}
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => setAlsoFatturaOpen(true)}
                     className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2.5 py-1.5 text-xs font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-                    title="Il PDF contiene anche una fattura: registra come fattura mantenendo l'estratto conto"
+                    title={t.statements.alsoFatturaBtnTitle}
                   >
                     <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Crea anche fattura
+                    {t.statements.alsoFatturaBtn}
                   </button>
                 )
               )}
@@ -4499,42 +4499,42 @@ export function VerificationStatusTab({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="border-b border-app-line-28 px-5 py-3.5">
-                <p className="text-sm font-semibold text-app-fg">Crea anche fattura</p>
+                <p className="text-sm font-semibold text-app-fg">{t.statements.alsoFatturaBtn}</p>
                 <p className="mt-0.5 text-[11px] text-app-fg-muted">
-                  Lo statement resta attivo per la riconciliazione. Una fattura separata verrà aggiunta con lo stesso file PDF.
+                  {t.statements.alsoFatturaModalDesc}
                 </p>
               </div>
               <div className="space-y-3 px-5 py-4">
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                    Numero fattura
+                    {t.statements.alsoFatturaNumeroLabel}
                   </label>
                   <input
                     type="text"
                     value={alsoFatturaNumero}
                     onChange={(e) => setAlsoFatturaNumero(e.target.value)}
-                    placeholder="Opzionale — lascia vuoto se non noto"
+                    placeholder={t.statements.alsoFatturaNumeroPlaceholder}
                     disabled={alsoFatturaBusy}
                     className="w-full rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                    Importo
+                    {t.statements.alsoFatturaImportoLabel}
                   </label>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={alsoFatturaImporto}
                     onChange={(e) => setAlsoFatturaImporto(e.target.value)}
-                    placeholder="Opzionale — può essere aggiornato in seguito"
+                    placeholder={t.statements.alsoFatturaImportoPlaceholder}
                     disabled={alsoFatturaBusy}
                     className="w-full rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
                   />
                 </div>
                 <div className="rounded-lg border border-app-line-15 bg-app-line-5 px-3 py-2 text-[11px] text-app-fg-muted">
-                  Data documento: <span className="font-semibold text-app-fg">{formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}</span><br />
-                  Fornitore: <span className="font-semibold text-app-fg">{selectedStmt.fornitore_nome}</span>
+                  {t.statements.alsoFatturaDateLabel} <span className="font-semibold text-app-fg">{formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}</span><br />
+                  {t.statements.alsoFatturaSupplierLabel} <span className="font-semibold text-app-fg">{selectedStmt.fornitore_nome}</span>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-2 border-t border-app-line-28 px-5 py-3">
@@ -4544,7 +4544,7 @@ export function VerificationStatusTab({
                   disabled={alsoFatturaBusy}
                   className="rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:bg-app-line-10 disabled:opacity-50"
                 >
-                  Annulla
+                  {t.statements.cancel}
                 </button>
                 <button
                   type="button"
@@ -4564,11 +4564,11 @@ export function VerificationStatusTab({
                       })
                       if (!res.ok) {
                         const j = await res.json().catch(() => ({ error: 'Errore' }))
-                        showToast(j.error ?? 'Errore creazione fattura', 'error')
+                        showToast(j.error ?? t.statements.alsoFatturaErrorToast, 'error')
                         return
                       }
                       const j = await res.json() as { fattura_id?: string }
-                      showToast('Fattura registrata. Statement attivo per la riconciliazione.', 'success')
+                      showToast(t.statements.alsoFatturaSuccessToast, 'success')
                       setAlsoFatturaOpen(false)
                       setAlsoFatturaImporto('')
                       setAlsoFatturaNumero('')
@@ -4577,7 +4577,7 @@ export function VerificationStatusTab({
                       }
                       window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: j.fattura_id } }))
                     } catch {
-                      showToast('Errore di connessione', 'error')
+                      showToast(t.appStrings.networkError, 'error')
                     } finally {
                       setAlsoFatturaBusy(false)
                     }
@@ -4587,10 +4587,10 @@ export function VerificationStatusTab({
                   {alsoFatturaBusy ? (
                     <>
                       <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-emerald-200 border-t-transparent" />
-                      Creazione…
+                      {t.statements.alsoFatturaCreating}
                     </>
                   ) : (
-                    'Crea fattura'
+                    t.statements.alsoFatturaConfirm
                   )}
                 </button>
               </div>
@@ -4613,15 +4613,15 @@ export function VerificationStatusTab({
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <p className={aiPipelineResult.resolved > 0 ? 'text-emerald-300 font-semibold' : 'text-amber-200/90'}>
                       {aiPipelineResult.resolved > 0
-                        ? `✓ ${aiPipelineResult.resolved} anomali${aiPipelineResult.resolved === 1 ? 'a' : 'e'} risolt${aiPipelineResult.resolved === 1 ? 'a' : 'e'} automaticamente`
-                        : 'Nessuna anomalia risolvibile automaticamente'}
+                        ? (aiPipelineResult.resolved === 1 ? t.statements.aiPipelineResolved_one : t.statements.aiPipelineResolved_other.replace('{n}', String(aiPipelineResult.resolved)))
+                        : t.statements.aiPipelineNoneResolvable}
                       {aiPipelineResult.emailImported > 0 && (
-                        <span className="text-emerald-400"> · +{aiPipelineResult.emailImported} document{aiPipelineResult.emailImported === 1 ? 'o' : 'i'} importat{aiPipelineResult.emailImported === 1 ? 'o' : 'i'} da email</span>
+                        <span className="text-emerald-400"> {(aiPipelineResult.emailImported === 1 ? t.statements.aiPipelineEmailImported_one : t.statements.aiPipelineEmailImported_other.replace('{n}', String(aiPipelineResult.emailImported)))}</span>
                       )}
                     </p>
                     {aiPipelineResult.remaining > 0 && (
                       <p className="text-amber-300/90">
-                        ⚠ {aiPipelineResult.remaining} anomali{aiPipelineResult.remaining === 1 ? 'a richiede' : 'e richiedono'} intervento manuale
+                        {aiPipelineResult.remaining === 1 ? t.statements.aiPipelineRemaining_one : t.statements.aiPipelineRemaining_other.replace('{n}', String(aiPipelineResult.remaining))}
                       </p>
                     )}
                   </div>
@@ -4630,7 +4630,7 @@ export function VerificationStatusTab({
                     onClick={() => { setAiPipelinePhase('idle'); setAiPipelineResult(null); setAiPipelineAnalisi(null) }}
                     className="shrink-0 text-[10px] text-app-fg-muted hover:text-app-fg transition-colors"
                   >
-                    Reimposta
+                    {t.statements.aiPipelineReset}
                   </button>
                 </div>
               ) : isRunning ? (
@@ -4724,8 +4724,8 @@ export function VerificationStatusTab({
                 /* ── Idle: invito all'azione ── */
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
-                    <span className="text-amber-300/90 font-semibold">{totalAnomalie} anomali{totalAnomalie === 1 ? 'a' : 'e'} rilevat{totalAnomalie === 1 ? 'a' : 'e'}</span>
-                    <span className="ml-1.5 text-app-fg-muted">— l&apos;AI può analizzare e risolvere automaticamente</span>
+                    <span className="text-amber-300/90 font-semibold">{totalAnomalie === 1 ? t.statements.aiPipelineAnomaliesDetected_one : t.statements.aiPipelineAnomaliesDetected_other.replace('{n}', String(totalAnomalie))}</span>
+                    <span className="ml-1.5 text-app-fg-muted">{t.statements.aiPipelineCanAnalyze}</span>
                   </div>
                   <button
                     type="button"
@@ -4736,7 +4736,7 @@ export function VerificationStatusTab({
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    Risolvi con AI
+                    {t.statements.aiPipelineResolveBtn}
                   </button>
                 </div>
               )}
