@@ -4037,20 +4037,26 @@ export function VerificationStatusTab({
       return
     }
     const rows = raw as RowFromDb[]
-    const mapped: CheckResult[] = rows.map(r => ({
-      id:               r.id,
-      numero:           r.numero_doc,
-      importoStatement: Number(r.importo),
-      status:           normalizeCheckStatus(r.check_status),
-      data_doc:         r.data_doc ?? null,
-      fattura:          r.fattura_id ? {
-        id: r.fattura_id, numero_fattura: r.fattura_numero, importo: Number(r.importo),
-        data: r.fattura_data ?? '', file_url: null, fornitore_id: r.fornitore_id ?? '',
-      } : null,
-      bolle:            r.bolle_json ?? [],
-      deltaImporto:     r.delta_importo,
-      fornitore:        r.fornitori ? { id: r.fornitori.id, nome: r.fornitori.nome, email: r.fornitori.email } : null,
-    }))
+    const mapped: CheckResult[] = rows.map(r => {
+      const bolle = r.bolle_json ?? []
+      const rawStatus = normalizeCheckStatus(r.check_status)
+      // Bolle sono obbligatorie: 'ok' senza bolle → 'bolle_mancanti'
+      const status: CheckStatus = rawStatus === 'ok' && bolle.length === 0 ? 'bolle_mancanti' : rawStatus
+      return {
+        id:               r.id,
+        numero:           r.numero_doc,
+        importoStatement: Number(r.importo),
+        status,
+        data_doc:         r.data_doc ?? null,
+        fattura:          r.fattura_id ? {
+          id: r.fattura_id, numero_fattura: r.fattura_numero, importo: Number(r.importo),
+          data: r.fattura_data ?? '', file_url: null, fornitore_id: r.fornitore_id ?? '',
+        } : null,
+        bolle,
+        deltaImporto:     r.delta_importo,
+        fornitore:        r.fornitori ? { id: r.fornitori.id, nome: r.fornitori.nome, email: r.fornitori.email } : null,
+      }
+    })
     setCheckResults(mapped)
     checkResultsRef.current = mapped
     setCheckLoading(false)
