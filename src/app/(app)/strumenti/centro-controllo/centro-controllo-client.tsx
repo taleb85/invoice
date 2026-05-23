@@ -1148,175 +1148,20 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             </span>
                           </div>
 
-                          {/* ── Pipeline AI: Analisi → Ricerca email → Associazione ── */}
-                          {(() => {
-                            const isRunning = pipelineActive
-                            const isDone = pipelinePhase === 'done'
-                            const phaseIndex = pipelinePhase === 'analisi' ? 0 : pipelinePhase === 'ricerca' ? 1 : pipelinePhase === 'associazione' ? 2 : isDone ? 3 : -1
-                            const phases = ['Analisi', 'Ricerca email', 'Associazione'] as const
-                            const phaseDot = (i: number) => {
-                              if (isDone || phaseIndex > i) return 'bg-emerald-400 text-black'
-                              if (phaseIndex === i) return 'bg-purple-400 text-black animate-pulse'
-                              return 'bg-app-line-15 text-app-fg-muted'
-                            }
-                            return (
-                              <div className={`rounded-lg border px-3 py-2.5 space-y-2 transition-colors ${isRunning ? 'border-purple-500/35 bg-purple-500/5' : isDone ? 'border-emerald-500/20 bg-emerald-500/[0.04]' : 'border-app-line-20 bg-white/[0.025]'}`}>
-                                {/* Header */}
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <p className="text-[11px] font-semibold text-app-fg">Pipeline AI — Risoluzione anomalie</p>
-                                      <span className="inline-flex items-center rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-purple-300">AI</span>
-                                    </div>
+                          {/* ── Automazione notturna attiva ── */}
+                          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04] px-3 py-2">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+                              <svg className="h-3 w-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </span>
+                            <p className="text-[11px] text-emerald-300/90">
+                              <span className="font-semibold">Analisi automatica attiva</span>
+                              <span className="text-app-fg-muted"> · sync email 03:00 · pipeline 04:00 ogni notte</span>
+                            </p>
+                          </div>
 
-                                    {/* Phase stepper */}
-                                    <div className="mt-1.5 flex items-center gap-1.5">
-                                      {phases.map((label, i) => (
-                                        <div key={i} className="flex items-center gap-1.5">
-                                          <div className={`flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold shrink-0 transition-colors ${phaseDot(i)}`}>
-                                            {isDone || phaseIndex > i ? '✓' : i + 1}
-                                          </div>
-                                          <span className={`text-[10px] ${phaseIndex === i ? 'text-purple-300 font-semibold' : isDone || phaseIndex > i ? 'text-emerald-300' : 'text-app-fg-muted'}`}>{label}</span>
-                                          {i < phases.length - 1 && <span className="text-app-fg-muted/40 text-[10px]">→</span>}
-                                        </div>
-                                      ))}
-                                      {isRunning && (
-                                        <span className="ml-auto font-mono text-[10px] tabular-nums text-purple-300/70">{pipelineElapsed}s</span>
-                                      )}
-                                    </div>
-
-                                    {/* Running: current fornitore label */}
-                                    {isRunning && pipelineCurrentFornitore && (
-                                      <p className="mt-1 text-[10px] text-purple-200/70 truncate">
-                                        <Loader2 className="w-2.5 h-2.5 animate-spin inline mr-1" />
-                                        {pipelineCurrentFornitore}…
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => void handlePipeline()}
-                                    disabled={isRunning || !sedeId}
-                                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
-                                  >
-                                    {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : isDone ? <RefreshCw className="w-3 h-3" /> : <ScanLine className="w-3 h-3" />}
-                                    {isRunning ? 'In corso…' : isDone ? 'Riesegui' : 'Avvia'}
-                                  </button>
-                                </div>
-
-                                {/* Per-supplier table */}
-                                {pipelineFornitori.length > 0 && (
-                                  <div className="rounded-md bg-black/20 overflow-hidden">
-                                    {/* Column headers */}
-                                    <div className="grid grid-cols-[1fr_60px_52px_64px] gap-x-2 px-2 py-1 border-b border-app-line-10 text-[9px] uppercase tracking-wide text-app-fg-muted/60">
-                                      <span>Fornitore</span>
-                                      <span className="text-center">Anomalie</span>
-                                      <span className="text-center">Email</span>
-                                      <span className="text-center">Risolte</span>
-                                    </div>
-                                    <div className="max-h-48 overflow-y-auto divide-y divide-app-line-10/50">
-                                      {pipelineFornitori.map((f) => {
-                                        const hasManual = (f.assoc?.remaining ?? 0) > 0
-                                        return (
-                                          <div key={f.fornitoreId} className="grid grid-cols-[1fr_60px_52px_64px] gap-x-2 items-center px-2 py-1">
-                                            <div className="min-w-0">
-                                              <a
-                                                href={f.fornitoreId ? `/fornitori/${f.fornitoreId}` : '#'}
-                                                className="truncate block text-[10px] text-app-fg hover:text-purple-300 transition-colors"
-                                              >
-                                                {f.fornitoreNome ?? '—'}
-                                              </a>
-                                            </div>
-                                            {/* Anomalie */}
-                                            <div className="text-center text-[10px]">
-                                              {f.analisi ? (
-                                                <span className="text-amber-300/80 tabular-nums">{f.analisi.total}</span>
-                                              ) : (
-                                                <span className="text-app-fg-muted/40">—</span>
-                                              )}
-                                            </div>
-                                            {/* Email */}
-                                            <div className="text-center text-[10px]">
-                                              {f.ricerca ? (
-                                                f.ricerca.ok ? (
-                                                  <span className="text-emerald-400/80 tabular-nums">
-                                                    {f.ricerca.imported > 0 ? `+${f.ricerca.imported}` : '—'}
-                                                  </span>
-                                                ) : (
-                                                  <span className="text-red-400/70" title={f.ricerca.error}>✗</span>
-                                                )
-                                              ) : (f.analisi && (f.analisi.fatturaMancante > 0) && f.analisi.hasEmail) ? (
-                                                pipelinePhase === 'ricerca' ? (
-                                                  <Loader2 className="w-2.5 h-2.5 animate-spin inline text-purple-300" />
-                                                ) : (
-                                                  <span className="text-app-fg-muted/40">—</span>
-                                                )
-                                              ) : (
-                                                <span className="text-app-fg-muted/30 text-[9px]">n/a</span>
-                                              )}
-                                            </div>
-                                            {/* Risolte / Restano */}
-                                            <div className="text-center text-[10px]">
-                                              {f.assoc ? (
-                                                <span className={hasManual ? 'text-amber-300/80' : 'text-emerald-400/80'}>
-                                                  {f.assoc.resolved > 0 ? `✓${f.assoc.resolved}` : ''}
-                                                  {hasManual ? ` ⚠${f.assoc.remaining}` : ''}
-                                                  {f.assoc.resolved === 0 && !hasManual ? '—' : ''}
-                                                </span>
-                                              ) : f.analisi ? (
-                                                pipelinePhase === 'associazione' ? (
-                                                  <Loader2 className="w-2.5 h-2.5 animate-spin inline text-purple-300" />
-                                                ) : (
-                                                  <span className="text-app-fg-muted/40">—</span>
-                                                )
-                                              ) : (
-                                                <span className="text-app-fg-muted/40">—</span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Summary after done */}
-                                {isDone && pipelineSummary && (
-                                  <div className="flex items-center justify-between gap-3 pt-0.5">
-                                    <p className={`text-[11px] leading-relaxed ${pipelineSummary.totalResolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
-                                      {pipelineSummary.totalResolved > 0
-                                        ? `✓ ${pipelineSummary.totalResolved} anomalie risolte.`
-                                        : 'Nessuna anomalia risolvibile automaticamente.'}
-                                      {pipelineSummary.remaining > 0 && (
-                                        <span className="text-amber-300"> {pipelineSummary.remaining} richiedono intervento manuale.</span>
-                                      )}
-                                    </p>
-                                    {pipelineSummary.remaining > 0 && (
-                                      <a
-                                        href="/statements/da-processare"
-                                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-amber-500/10 border border-amber-500/30 px-2 py-1 text-[10px] font-semibold text-amber-200 hover:bg-amber-500/20 transition-colors"
-                                      >
-                                        <ExternalLink className="w-2.5 h-2.5" />
-                                        Intervento manuale
-                                      </a>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Idle: description */}
-                                {pipelinePhase === 'idle' && (
-                                  <p className="text-[11px] leading-relaxed text-app-fg-muted">
-                                    Esegue in sequenza: <span className="text-app-fg/70">analisi</span> delle anomalie per fornitore →
-                                    <span className="text-app-fg/70"> ricerca</span> fatture mancanti in casella email →
-                                    <span className="text-app-fg/70"> associazione</span> automatica di quelle trovate. Le righe non risolvibili vengono segnalate per intervento manuale.
-                                  </p>
-                                )}
-                              </div>
-                            )
-                          })()}
-
-                          {/* Ricalcola triple-check — nascosto in un toggle «avanzato» */}
+                          {/* Opzioni avanzate: pipeline manuale + ricalcolo */}
                           <details className="group">
                             <summary className="cursor-pointer list-none text-[10px] text-app-fg-muted/60 hover:text-app-fg-muted transition-colors select-none flex items-center gap-1">
                               <svg className="w-2.5 h-2.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1324,27 +1169,70 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               </svg>
                               Opzioni avanzate
                             </summary>
-                            <div className="mt-2 rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5 space-y-2">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[11px] font-semibold text-app-fg">Ricalcola tutto il triple-check</p>
-                                  <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
-                                    Riesegue il confronto fattura ↔ bolla ↔ estratto conto su ogni riga. Usa dopo aver caricato manualmente nuove fatture o DDT.
-                                  </p>
+                            <div className="mt-2 space-y-2 rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5">
+                              {/* Pipeline manuale */}
+                              {(() => {
+                                const isRunning = pipelineActive
+                                const isDone = pipelinePhase === 'done'
+                                return (
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[11px] font-semibold text-app-fg">Pipeline AI — Esegui ora</p>
+                                      <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
+                                        Forza un ciclo completo: analisi anomalie → ricerca email → associazione automatica.
+                                      </p>
+                                      {isRunning && pipelineCurrentFornitore && (
+                                        <p className="mt-1 text-[10px] text-purple-200/70 truncate">
+                                          <Loader2 className="w-2.5 h-2.5 animate-spin inline mr-1" />
+                                          {pipelineCurrentFornitore}…
+                                        </p>
+                                      )}
+                                      {isDone && pipelineSummary && (
+                                        <p className={`mt-1 text-[11px] ${pipelineSummary.totalResolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
+                                          {pipelineSummary.totalResolved > 0
+                                            ? `✓ ${pipelineSummary.totalResolved} anomalie risolte`
+                                            : 'Nessuna anomalia risolvibile'}
+                                          {pipelineSummary.remaining > 0 && (
+                                            <span className="text-amber-300"> · {pipelineSummary.remaining} richiedono attenzione</span>
+                                          )}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => void handlePipeline()}
+                                      disabled={isRunning || !sedeId}
+                                      className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
+                                    >
+                                      {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : isDone ? <RefreshCw className="w-3 h-3" /> : <ScanLine className="w-3 h-3" />}
+                                      {isRunning ? 'In corso…' : isDone ? 'Riesegui' : 'Avvia'}
+                                    </button>
+                                  </div>
+                                )
+                              })()}
+
+                              <div className="border-t border-app-line-10 pt-2">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[11px] font-semibold text-app-fg">Ricalcola tutto il triple-check</p>
+                                    <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
+                                      Riesegue il confronto fattura ↔ bolla ↔ estratto conto su ogni riga. Usa dopo aver caricato manualmente nuove fatture o DDT.
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={handleReprocessChecks}
+                                    disabled={reprocessingChecks}
+                                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
+                                  >
+                                    {reprocessingChecks ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                    {reprocessingChecks ? 'In corso…' : 'Ricalcola'}
+                                  </button>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={handleReprocessChecks}
-                                  disabled={reprocessingChecks}
-                                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
-                                >
-                                  {reprocessingChecks ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                  {reprocessingChecks ? 'In corso…' : 'Ricalcola'}
-                                </button>
+                                {reprocessChecksResult && (
+                                  <p className="mt-1 text-[11px] leading-relaxed text-emerald-300">{reprocessChecksResult}</p>
+                                )}
                               </div>
-                              {reprocessChecksResult && (
-                                <p className="text-[11px] leading-relaxed text-emerald-300">{reprocessChecksResult}</p>
-                              )}
                             </div>
                           </details>
                         </>

@@ -3683,6 +3683,7 @@ export function VerificationStatusTab({
   // creare una dipendenza di ordine che romperebbe TypeScript.
   const checkResultsRef = useRef<CheckResult[] | null>(null)
   const pipelineAbortRef = useRef<AbortController | null>(null)
+  const autoRunDoneForStmtRef = useRef<string | null>(null)
 
   const cancelAiPipeline = useCallback(() => {
     pipelineAbortRef.current?.abort()
@@ -3879,6 +3880,18 @@ export function VerificationStatusTab({
       setCheckFilter('rekki_prezzo_discordanza')
     }
   }, [searchParams])
+
+  // Auto-run the pipeline as soon as check results load for a statement — no manual button needed.
+  useEffect(() => {
+    if (!vsEmbeddedSupplier || !selectedStmt || !sedeId || !fornitoreId) return
+    if (aiPipelinePhase !== 'idle') return
+    if (autoRunDoneForStmtRef.current === selectedStmt.id) return
+    if (!checkResults) return
+    const hasAnomalies = checkResults.some(r => r.status !== 'ok' && r.status !== 'pending')
+    if (!hasAnomalies) return
+    autoRunDoneForStmtRef.current = selectedStmt.id
+    void handleAiPipeline()
+  }, [vsEmbeddedSupplier, selectedStmt, sedeId, fornitoreId, aiPipelinePhase, checkResults, handleAiPipeline])
 
   const verificaProdottoRaw = searchParams.get('verifica_prodotto')?.trim() ?? ''
 
@@ -4647,127 +4660,59 @@ export function VerificationStatusTab({
           return (
             <div className={`border-b border-app-soft-border px-4 py-2.5 text-xs transition-colors ${isRunning ? 'bg-purple-950/25' : isDone ? 'bg-emerald-950/20' : 'bg-transparent'}`}>
               {isDone && aiPipelineResult ? (
-                /* ── Risultato finale ── */
-                <div className="flex items-start gap-2 flex-wrap">
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <p className={aiPipelineResult.resolved > 0 ? 'text-emerald-300 font-semibold' : 'text-amber-200/90'}>
-                      {aiPipelineResult.resolved > 0
-                        ? (aiPipelineResult.resolved === 1 ? t.statements.aiPipelineResolved_one : t.statements.aiPipelineResolved_other.replace('{n}', String(aiPipelineResult.resolved)))
-                        : t.statements.aiPipelineNoneResolvable}
-                      {aiPipelineResult.emailImported > 0 && (
-                        <span className="text-emerald-400"> {(aiPipelineResult.emailImported === 1 ? t.statements.aiPipelineEmailImported_one : t.statements.aiPipelineEmailImported_other.replace('{n}', String(aiPipelineResult.emailImported)))}</span>
-                      )}
-                    </p>
-                    {aiPipelineResult.remaining > 0 && (
-                      <p className="text-amber-300/90">
-                        {aiPipelineResult.remaining === 1 ? t.statements.aiPipelineRemaining_one : t.statements.aiPipelineRemaining_other.replace('{n}', String(aiPipelineResult.remaining))}
-                      </p>
+                /* ── Risultato finale: summary compatto su una riga ── */
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-[10px] font-semibold text-emerald-300">✓</span>
+                  <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px]">
+                    {aiPipelineResult.analisiTotale > 0 && (
+                      <span className="text-app-fg-muted">
+                        {aiPipelineResult.analisiTotale} {aiPipelineResult.analisiTotale === 1 ? t.statements.aiPipelineAnomaliesDetected_one.replace('{n}', '').trim() : t.statements.aiPipelineAnomaliesDetected_other.replace('{n}', String(aiPipelineResult.analisiTotale))}
+                      </span>
                     )}
+                    {aiPipelineResult.resolved > 0 && (
+                      <span className="text-emerald-300 font-semibold">
+                        · {aiPipelineResult.resolved === 1 ? t.statements.aiPipelineResolved_one : t.statements.aiPipelineResolved_other.replace('{n}', String(aiPipelineResult.resolved))}
+                        {aiPipelineResult.emailImported > 0 && (
+                          <span className="text-emerald-400 font-normal"> ({aiPipelineResult.emailImported === 1 ? t.statements.aiPipelineEmailImported_one : t.statements.aiPipelineEmailImported_other.replace('{n}', String(aiPipelineResult.emailImported))})</span>
+                        )}
+                      </span>
+                    )}
+                    {aiPipelineResult.remaining > 0 ? (
+                      <span className="text-amber-300 font-semibold">
+                        · {aiPipelineResult.remaining === 1 ? t.statements.aiPipelineRemaining_one : t.statements.aiPipelineRemaining_other.replace('{n}', String(aiPipelineResult.remaining))}
+                      </span>
+                    ) : aiPipelineResult.resolved === 0 ? (
+                      <span className="text-app-fg-muted">· {t.statements.aiPipelineNoneResolvable}</span>
+                    ) : null}
                   </div>
                   <button
                     type="button"
                     onClick={() => { setAiPipelinePhase('idle'); setAiPipelineResult(null); setAiPipelineAnalisi(null) }}
-                    className="shrink-0 text-[10px] text-app-fg-muted hover:text-app-fg transition-colors"
+                    className="shrink-0 text-[10px] text-app-fg-muted/60 hover:text-app-fg transition-colors"
                   >
                     {t.statements.aiPipelineReset}
                   </button>
                 </div>
               ) : isRunning ? (
-                /* ── In esecuzione: dettaglio per fase ── */
-                <div className="space-y-1.5">
-                  {/* Phase stepper */}
-                  <div className="flex items-center gap-2">
-                    {(['analisi', 'ricerca', 'associazione'] as const).map((ph, i) => {
-                      const phaseIdx = aiPipelinePhase === 'analisi' ? 0 : aiPipelinePhase === 'ricerca' ? 1 : 2
-                      const done = phaseIdx > i
-                      const active = phaseIdx === i
-                      return (
-                        <div key={ph} className="flex items-center gap-1">
-                          {i > 0 && <span className="text-app-fg-muted/30 text-[9px]">→</span>}
-                          <span className={`text-[10px] font-semibold ${active ? 'text-purple-200' : done ? 'text-emerald-300' : 'text-app-fg-muted/40'}`}>
-                            {done ? '✓ ' : active ? '' : ''}{ph === 'analisi' ? t.statements.aiPipelinePhaseAnalisi : ph === 'ricerca' ? t.statements.aiPipelinePhaseRicerca : t.statements.aiPipelinePhaseAssociazione}
-                          </span>
-                        </div>
-                      )
-                    })}
-                    <svg className="ml-1 w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                  </div>
-                  {/* Dettaglio anomalie trovate + cosa sta cercando */}
-                  {aiPipelineAnalisi && (
-                    <div className="rounded-md bg-black/20 px-2.5 py-1.5 space-y-1">
-                      {/* Tipo di anomalie */}
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                        {aiPipelineAnalisi.fatturaMancante > 0 && (
-                          <span className="text-[10px] text-orange-300">
-                            {aiPipelineAnalisi.fatturaMancante === 1
-                              ? t.statements.aiPipelineFatturaMancante_one
-                              : t.statements.aiPipelineFatturaMancante_other.replace('{n}', String(aiPipelineAnalisi.fatturaMancante))}
-                          </span>
-                        )}
-                        {aiPipelineAnalisi.bolleMancanti > 0 && (
-                          <span className="text-[10px] text-amber-300">
-                            {(aiPipelineAnalisi.bolleMancanti === 1
-                              ? t.statements.aiPipelineDeliveryNoteMissing_one
-                              : t.statements.aiPipelineDeliveryNoteMissing_other.replace('{n}', String(aiPipelineAnalisi.bolleMancanti))
-                            ).replace('{label}', deliveryNoteLabel)}
-                            <span className="ml-1 text-amber-300/60">{t.statements.aiPipelineSearchInProgress}</span>
-                          </span>
-                        )}
-                        {aiPipelineAnalisi.erroreImporto > 0 && (
-                          <span className="text-[10px] text-red-300">
-                            {aiPipelineAnalisi.erroreImporto === 1
-                              ? t.statements.aiPipelineErroreImporto_one
-                              : t.statements.aiPipelineErroreImporto_other.replace('{n}', String(aiPipelineAnalisi.erroreImporto))}
-                          </span>
-                        )}
-                      </div>
-                      {/* DDT scan: bolle mancanti */}
-                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.bolleMancanti > 0 && (
-                        <p className="text-[10px] text-amber-200/80">
-                          {t.statements.aiPipelineSearchingDeliveryNotes.replace('{label}', deliveryNoteLabel).replace('{days}', String(aiPipelineAnalisi.ddtLookbackDays))}{' '}
-                          {aiPipelineAnalisi.supplierEmail
-                            ? <>{t.statements.aiPipelineForEmail} <span className="font-mono font-semibold text-amber-200">{aiPipelineAnalisi.supplierEmail}</span></>
-                            : t.statements.aiPipelineForSupplier}
-                          …
-                        </p>
-                      )}
-                      {/* Email scan: fatture mancanti */}
-                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.fatturaMancante > 0 && aiPipelineAnalisi.hasEmail && (
-                        <p className="text-[10px] text-purple-200/80">
-                          {t.statements.aiPipelineScanningMailbox}{' '}
-                          {aiPipelineAnalisi.supplierEmail
-                            ? <span className="font-mono font-semibold text-purple-200">{aiPipelineAnalisi.supplierEmail}</span>
-                            : t.statements.aiPipelineForSupplier}
-                          …
-                        </p>
-                      )}
-                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.fatturaMancante > 0 && !aiPipelineAnalisi.hasEmail && (
-                        <p className="text-[10px] text-amber-300/70">
-                          {t.statements.aiPipelineNoEmailConfigured}
-                        </p>
-                      )}
-                      {aiPipelineStatusMsg && aiPipelinePhase === 'associazione' && (
-                        <p className="text-[10px] text-app-fg-muted">{aiPipelineStatusMsg}</p>
-                      )}
-                    </div>
-                  )}
-                  {!aiPipelineAnalisi && aiPipelineStatusMsg && (
-                    <p className="text-[10px] text-purple-200/70">{aiPipelineStatusMsg}</p>
-                  )}
-                  {/* Pulsante Annulla */}
+                /* ── In esecuzione: spinner compatto + stato corrente ── */
+                <div className="flex items-center gap-2">
+                  <svg className="w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  <span className="flex-1 min-w-0 text-[10px] text-purple-200/80 truncate">
+                    {aiPipelineStatusMsg ?? t.statements.aiPipelineStatusAnalysing}
+                  </span>
                   <button
                     type="button"
                     onClick={cancelAiPipeline}
-                    className="self-start text-[10px] text-app-fg-muted/60 hover:text-red-300 transition-colors underline"
+                    className="shrink-0 text-[10px] text-app-fg-muted/60 hover:text-red-300 transition-colors underline"
                   >
                     {t.statements.cancel}
                   </button>
                 </div>
               ) : (
-                /* ── Idle: invito all'azione ── */
+                /* ── Idle: pipeline auto-starts; this shows briefly or after a manual reset ── */
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <span className="text-amber-300/90 font-semibold">{totalAnomalie === 1 ? t.statements.aiPipelineAnomaliesDetected_one : t.statements.aiPipelineAnomaliesDetected_other.replace('{n}', String(totalAnomalie))}</span>
@@ -4775,13 +4720,13 @@ export function VerificationStatusTab({
                   </div>
                   <button
                     type="button"
-                    onClick={() => void handleAiPipeline()}
+                    onClick={() => {
+                      autoRunDoneForStmtRef.current = null
+                      void handleAiPipeline()
+                    }}
                     disabled={!sedeId || !fornitoreId}
-                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
+                    className="shrink-0 text-[10px] text-app-fg-muted/70 hover:text-purple-300 transition-colors underline disabled:opacity-40"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
                     {t.statements.aiPipelineResolveBtn}
                   </button>
                 </div>

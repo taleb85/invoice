@@ -5064,13 +5064,13 @@ function FornitoreDetailClient({
     ) {
       return p
     }
-    return 'dashboard'
+    return 'verifica'
   }, [tabParam])
 
   const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const mdUp = useMinMdViewport()
   const displayTab = useMemo((): Tab => {
-    if (supplierReadOnlyMobile && MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return 'dashboard'
+    if (supplierReadOnlyMobile && MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return 'listino'
     return tab
   }, [supplierReadOnlyMobile, tab])
 
@@ -5399,6 +5399,7 @@ function FornitoreDetailClient({
   /** Allineati ai KPI sopra la griglia (stesso filtro `data` sul periodo), non ai totali storici da caricamento pagina. */
   const bolleTabBadge = periodStatsLoading ? undefined : (periodStats?.bolleTotal ?? 0) > 0 ? periodStats!.bolleTotal : undefined
   const fattureTabBadge = periodStatsLoading ? undefined : (periodStats?.fattureTotal ?? 0) > 0 ? periodStats!.fattureTotal : undefined
+  const verificaTabBadge = periodStatsLoading ? undefined : (periodStats?.statementsWithIssues ?? 0) > 0 ? periodStats!.statementsWithIssues : undefined
 
   const expandLedgerToAllFatture = useCallback(() => {
     setLedgerPeriod(clampLedgerPeriodToToday('2000-01-01', todayYmd, todayYmd))
@@ -5406,21 +5407,19 @@ function FornitoreDetailClient({
   }, [todayYmd])
 
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
-    const all: { id: Tab; label: string; badge?: number }[] = [
-      { id: 'dashboard', label: t.fornitori.tabRiepilogo },
-      { id: 'bolle', label: t.nav.bolle, badge: bolleTabBadge },
-      { id: 'fatture', label: t.nav.fatture, badge: fattureTabBadge },
-      { id: 'listino', label: t.fornitori.tabListino },
+    // Primary nav: 3 tabs only. bolle/fatture/dashboard remain accessible via KPI cards.
+    const primary: { id: Tab; label: string; badge?: number }[] = [
+      { id: 'verifica',  label: t.statements.tabVerifica,  badge: verificaTabBadge },
       { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
+      { id: 'listino',   label: t.fornitori.tabListino },
     ]
     if (supplierReadOnlyMobile) {
-      return all.filter((tb) => tb.id === 'dashboard' || tb.id === 'listino' || tb.id === 'documenti')
+      return primary.filter((tb) => tb.id === 'listino' || tb.id === 'documenti')
     }
-    return all
+    return primary
   }, [
     t,
-    bolleTabBadge,
-    fattureTabBadge,
+    verificaTabBadge,
     pendingCount,
     supplierReadOnlyMobile,
   ])
@@ -5541,7 +5540,20 @@ function FornitoreDetailClient({
     </>
   )
 
-  const activeTabInfo = tabs.find((tb) => tb.id === displayTab) ?? tabs[0]!
+  const activeTabInfo = tabs.find((tb) => tb.id === displayTab) ?? (() => {
+    const fallbackLabel: Partial<Record<Tab, string>> = {
+      dashboard: t.fornitori.tabRiepilogo,
+      bolle:     t.nav.bolle,
+      fatture:   t.nav.fatture,
+      conferme:  t.fornitori.tabConfermeOrdine,
+      audit:     t.statements.tabVerifica,
+    }
+    return {
+      id: displayTab,
+      label: fallbackLabel[displayTab] ?? displayTab,
+      badge: displayTab === 'bolle' ? bolleTabBadge : displayTab === 'fatture' ? fattureTabBadge : undefined,
+    }
+  })()
 
   return (
     <>
