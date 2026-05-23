@@ -32,15 +32,19 @@ type FRow = {
 }
 
 type DupGroup = {
-  file_url: string
+  group_key: string
+  group_kind: 'same_file_url' | 'shell_fatture'
+  file_url: string | null
   fornitore_id: string | null
   fornitore_nome: string | null
+  data_doc: string | null
   count: number
   keep_id: string
   keep_reason: string
   delete_ids: string[]
   fatture: Array<{
     id: string
+    file_url: string | null
     data: string | null
     importo: number | null
     numero_fattura: string | null
@@ -97,11 +101,13 @@ async function buildGroups(
   sedeId: string,
   fornitoreFilter: string | null,
 ): Promise<DupGroup[]> {
+  // Includiamo anche righe con file_url null per intercettare "shell fatture"
+  // create da auto-convert con allegato perso. La dedup per file_url ignora
+  // i null comunque.
   let query = supabase
     .from('fatture')
     .select('id, file_url, fornitore_id, sede_id, data, importo, numero_fattura, bolla_id, created_at, approval_status')
     .eq('sede_id', sedeId)
-    .not('file_url', 'is', null)
     .order('created_at', { ascending: true })
     .limit(20_000)
 
@@ -110,7 +116,7 @@ async function buildGroups(
   const { data: rows, error } = await query.returns<FRow[]>()
   if (error || !rows) return []
 
-  // Raggruppa per file_url
+  // ── Gruppo 1: stesso file_url (chiari duplicati di registrazione automatica) ──
   const byFile = new Map<string, FRow[]>()
   for (const r of rows) {
     if (!r.file_url) continue
@@ -118,16 +124,43 @@ async function buildGroups(
     arr.push(r)
     byFile.set(r.file_url, arr)
   }
-
-  const dupGroups: { file_url: string; items: FRow[] }[] = []
+  const fileGroups: { key: string; items: FRow[] }[] = []
+  const usedInFileGroup = new Set<string>()
   for (const [file_url, items] of byFile.entries()) {
     if (items.length < 2) continue
-    dupGroups.push({ file_url, items })
+    fileGroups.push({ key: `file:${file_url}`, items })
+    items.forEach(i => usedInFileGroup.add(i.id))
   }
-  if (!dupGroups.length) return []
+
+  // ── Gruppo 2: "shell fatture" — stesso (fornitore, data) con numero E importo nulli ──
+  // È la firma esatta delle conversioni automatiche da autoConvertInvoiceStatements
+  // (insert con importo:null e nessun numero_fattura). Catturate anche quando il
+  // file_url cambia perché lo statement è stato ricevuto più volte (signed URL diverso).
+  const shellCandidates = rows.filter(r =>
+    !usedInFileGroup.has(r.id) &&
+    r.fornitore_id &&
+    r.data &&
+    !(r.numero_fattura && r.numero_fattura.trim()) &&
+    r.importo == null,
+  )
+  const byFornitoreData = new Map<string, FRow[]>()
+  for (const r of shellCandidates) {
+    const k = `${r.fornitore_id}|${r.data}`
+    const arr = byFornitoreData.get(k) ?? []
+    arr.push(r)
+    byFornitoreData.set(k, arr)
+  }
+  const shellGroups: { key: string; items: FRow[] }[] = []
+  for (const [k, items] of byFornitoreData.entries()) {
+    if (items.length < 2) continue
+    shellGroups.push({ key: `shell:${k}`, items })
+  }
+
+  if (!fileGroups.length && !shellGroups.length) return []
 
   // Risolvi nomi fornitori
-  const fIds = [...new Set(dupGroups.flatMap(g => g.items.map(i => i.fornitore_id).filter(Boolean) as string[]))]
+  const allItems = [...fileGroups, ...shellGroups].flatMap(g => g.items)
+  const fIds = [...new Set(allItems.map(i => i.fornitore_id).filter(Boolean) as string[])]
   const nameMap = new Map<string, string>()
   if (fIds.length) {
     const { data: fRows } = await supabase.from('fornitori').select('id, nome, display_name').in('id', fIds)
@@ -137,20 +170,24 @@ async function buildGroups(
     }
   }
 
-  return dupGroups.map(({ file_url, items }) => {
+  const fileGroupResults: DupGroup[] = fileGroups.map(({ key, items }) => {
     const { keep, reason } = pickKeep(items)
     const delete_ids = items.filter(x => x.id !== keep.id).map(x => x.id)
     const fornitore_id = items[0]!.fornitore_id
     return {
-      file_url,
+      group_key: key,
+      group_kind: 'same_file_url',
+      file_url: items[0]!.file_url,
       fornitore_id,
       fornitore_nome: fornitore_id ? (nameMap.get(fornitore_id) ?? null) : null,
+      data_doc: items[0]!.data,
       count: items.length,
       keep_id: keep.id,
       keep_reason: reason,
       delete_ids,
       fatture: items.map(f => ({
         id: f.id,
+        file_url: f.file_url,
         data: f.data,
         importo: f.importo,
         numero_fattura: f.numero_fattura,
@@ -161,6 +198,38 @@ async function buildGroups(
       })),
     }
   })
+
+  const shellGroupResults: DupGroup[] = shellGroups.map(({ key, items }) => {
+    const { keep, reason } = pickKeep(items)
+    const delete_ids = items.filter(x => x.id !== keep.id).map(x => x.id)
+    const fornitore_id = items[0]!.fornitore_id
+    const reasonFull = `${reason} · gruppo "shell fattura" (stesso fornitore + stessa data, senza numero né importo)`
+    return {
+      group_key: key,
+      group_kind: 'shell_fatture',
+      file_url: null,
+      fornitore_id,
+      fornitore_nome: fornitore_id ? (nameMap.get(fornitore_id) ?? null) : null,
+      data_doc: items[0]!.data,
+      count: items.length,
+      keep_id: keep.id,
+      keep_reason: reasonFull,
+      delete_ids,
+      fatture: items.map(f => ({
+        id: f.id,
+        file_url: f.file_url,
+        data: f.data,
+        importo: f.importo,
+        numero_fattura: f.numero_fattura,
+        bolla_id: f.bolla_id,
+        created_at: f.created_at,
+        approval_status: f.approval_status,
+        keep: f.id === keep.id,
+      })),
+    }
+  })
+
+  return [...fileGroupResults, ...shellGroupResults]
 }
 
 export async function GET(req: NextRequest) {
@@ -170,6 +239,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const urlSedeId = url.searchParams.get('sede_id')?.trim() || null
   const fornitoreFilter = url.searchParams.get('fornitore_id')?.trim() || null
+  const debug = url.searchParams.get('debug') === '1'
 
   const sedeId = await resolveSedeId({ role: profile.role, sede_id: profile.sede_id }, urlSedeId)
   if (sedeId === null) return NextResponse.json({ error: 'Sede non disponibile o non consentita' }, { status: 403 })
@@ -177,6 +247,31 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const groups = await buildGroups(supabase, sedeId, fornitoreFilter)
   const totalExtras = groups.reduce((acc, g) => acc + g.delete_ids.length, 0)
+
+  if (debug) {
+    let query = supabase
+      .from('fatture')
+      .select('id, data, numero_fattura, importo, file_url, fornitore_id, bolla_id, created_at')
+      .eq('sede_id', sedeId)
+      .order('data', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(100)
+    if (fornitoreFilter) query = query.eq('fornitore_id', fornitoreFilter)
+    const { data: rawRows } = await query
+    return NextResponse.json({
+      ok: true,
+      sede_id: sedeId,
+      fornitore_filter: fornitoreFilter,
+      groups,
+      group_count: groups.length,
+      extras_to_delete: totalExtras,
+      debug: {
+        total_rows: rawRows?.length ?? 0,
+        rows: rawRows ?? [],
+      },
+    })
+  }
+
   return NextResponse.json({ ok: true, sede_id: sedeId, groups, group_count: groups.length, extras_to_delete: totalExtras })
 }
 

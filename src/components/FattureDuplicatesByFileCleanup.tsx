@@ -6,15 +6,19 @@ import { useMe } from '@/lib/me-context'
 import { useToast } from '@/lib/toast-context'
 
 type DupGroup = {
-  file_url: string
+  group_key: string
+  group_kind: 'same_file_url' | 'shell_fatture'
+  file_url: string | null
   fornitore_id: string | null
   fornitore_nome: string | null
+  data_doc: string | null
   count: number
   keep_id: string
   keep_reason: string
   delete_ids: string[]
   fatture: Array<{
     id: string
+    file_url: string | null
     data: string | null
     importo: number | null
     numero_fattura: string | null
@@ -68,6 +72,8 @@ export default function FattureDuplicatesByFileCleanup({ fornitoreId, className 
   if (!groups || groups.length === 0) return null
 
   const extrasToDelete = groups.reduce((acc, g) => acc + g.delete_ids.length, 0)
+  const sameFileCount = groups.filter(g => g.group_kind === 'same_file_url').length
+  const shellCount = groups.filter(g => g.group_kind === 'shell_fatture').length
 
   const handleDelete = async () => {
     setBusy(true)
@@ -105,11 +111,17 @@ export default function FattureDuplicatesByFileCleanup({ fornitoreId, className 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-rose-200">
-            Rilevati {groups.length} {groups.length === 1 ? 'PDF con fatture duplicate' : 'PDF con fatture duplicate'}
+            Rilevati {groups.length} {groups.length === 1 ? 'gruppo' : 'gruppi'} di fatture duplicate
             {' '}({extrasToDelete} record in eccesso)
           </p>
           <p className="mt-0.5 text-[11px] text-rose-100/80">
-            Più fatture condividono lo stesso file PDF. Per ognuno verrà tenuta una sola fattura (con bolla collegata, numero o importo se presenti).
+            {sameFileCount > 0 && (
+              <>{sameFileCount} {sameFileCount === 1 ? 'gruppo' : 'gruppi'} con stesso file PDF. </>
+            )}
+            {shellCount > 0 && (
+              <>{shellCount} {shellCount === 1 ? 'gruppo' : 'gruppi'} di fatture senza numero né importo (stesso fornitore + data) — tipiche conversioni automatiche da estratti conto duplicati. </>
+            )}
+            Per ogni gruppo verrà tenuta una sola fattura (con bolla, numero o importo se presenti).
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -161,9 +173,14 @@ export default function FattureDuplicatesByFileCleanup({ fornitoreId, className 
       {showDetail && (
         <div className="mt-3 space-y-2 border-t border-rose-500/20 pt-3">
           {groups.map((g) => (
-            <div key={g.file_url} className="rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2 text-xs">
+            <div key={g.group_key} className="rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2 text-xs">
               <p className="font-semibold text-rose-100">
-                {g.fornitore_nome ?? 'Fornitore sconosciuto'} · {g.count} record · tenere: <span className="font-mono text-emerald-300">{g.keep_id.slice(0, 8)}…</span>
+                <span className={`mr-2 rounded-full px-1.5 py-0.5 text-[10px] uppercase ${g.group_kind === 'same_file_url' ? 'bg-rose-500/15 text-rose-100' : 'bg-amber-500/15 text-amber-100'}`}>
+                  {g.group_kind === 'same_file_url' ? 'stesso PDF' : 'shell fattura'}
+                </span>
+                {g.fornitore_nome ?? 'Fornitore sconosciuto'}
+                {g.data_doc ? <> · <span className="tabular-nums">{g.data_doc}</span></> : null}
+                {' · '}{g.count} record · tenere: <span className="font-mono text-emerald-300">{g.keep_id.slice(0, 8)}…</span>
               </p>
               <p className="mt-0.5 text-[11px] text-rose-100/70">Motivo: {g.keep_reason}</p>
               <ul className="mt-1.5 space-y-0.5 text-[11px] text-rose-100/80">

@@ -148,18 +148,26 @@ export async function GET(req: NextRequest) {
   // Tenta con `linked_fattura_id`; se la colonna non esiste (migration non
   // ancora applicata), ricade automaticamente sulla query base.
   let { data, error } = await runListQuery([...baseColumns, 'linked_fattura_id'])
-  if (error && error.code === '42703') {
-    console.warn('[GET /api/statements] linked_fattura_id mancante — eseguo migration 20260523000000_statements_linked_fattura.sql')
+  const isMissingLinkedColumn = (e: unknown): boolean => {
+    if (!e || typeof e !== 'object') return false
+    const obj = e as { code?: string; message?: string }
+    if (obj.code === '42703') return true
+    const msg = (obj.message ?? '').toLowerCase()
+    return msg.includes('linked_fattura_id') && (msg.includes('does not exist') || msg.includes('non esiste') || msg.includes('column'))
+  }
+  if (error && isMissingLinkedColumn(error)) {
+    console.warn('[GET /api/statements] linked_fattura_id mancante — fallback su select base (applica supabase/migrations/20260523000000_statements_linked_fattura.sql)')
     const fallback = await runListQuery(baseColumns)
     data = fallback.data
     error = fallback.error
   }
   if (error) {
-    if (error.code === '42P01') {
+    const errObj = error as { code?: string; message?: string }
+    if (errObj.code === '42P01') {
       return NextResponse.json({ statements: [], needsMigration: true })
     }
-    console.error('[GET /api/statements]', error.code, error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[GET /api/statements]', errObj.code, errObj.message)
+    return NextResponse.json({ error: errObj.message ?? 'Errore lettura statements' }, { status: 500 })
   }
 
   // Resolve supplier names in a separate query (avoids FK join issues)
