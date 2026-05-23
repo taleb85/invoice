@@ -3743,17 +3743,18 @@ export function VerificationStatusTab({
               headers: { 'Content-Type': 'application/json' },
               signal: abort.signal,
               body: JSON.stringify({
-                fornitore_id:             fid,
-                user_sede_id:             sedeId,
-                filter_sede_id:           sedeId,
-                mode:                     'historical',
-                email_sync_scope:         'lookback',
-                email_sync_lookback_days: 120,
+                fornitore_id:              fid,
+                user_sede_id:              sedeId,
+                filter_sede_id:            sedeId,
+                mode:                      'historical',
+                email_sync_scope:          'lookback',
+                email_sync_lookback_days:  120,
+                email_sync_document_kind:  'bolla',
               }),
             })
             if (ddtRes.ok) {
-              const ddtData = await ddtRes.json() as { totalBozzeCreate?: number }
-              bolleImportate = ddtData.totalBozzeCreate ?? 0
+              const ddtData = await ddtRes.json() as { bozzeCreate?: number }
+              bolleImportate = ddtData.bozzeCreate ?? 0
             }
           } catch {
             // ignora errori DDT scan, continua con la pipeline
@@ -4664,7 +4665,7 @@ export function VerificationStatusTab({
                         {aiPipelineAnalisi.bolleMancanti > 0 && (
                           <span className="text-[10px] text-amber-300">
                             <span className="font-bold">{aiPipelineAnalisi.bolleMancanti}</span> boll{aiPipelineAnalisi.bolleMancanti === 1 ? 'a' : 'e'} mancant{aiPipelineAnalisi.bolleMancanti === 1 ? 'e' : 'i'}
-                            <span className="ml-1 text-amber-300/60">(DDT — inserimento manuale)</span>
+                            <span className="ml-1 text-amber-300/60">(DDT — ricerca in corso)</span>
                           </span>
                         )}
                         {aiPipelineAnalisi.erroreImporto > 0 && (
@@ -4673,7 +4674,17 @@ export function VerificationStatusTab({
                           </span>
                         )}
                       </div>
-                      {/* Email scan: solo se ci sono FATTURE mancanti (non DDT) */}
+                      {/* DDT scan: bolle mancanti */}
+                      {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.bolleMancanti > 0 && (
+                        <p className="text-[10px] text-amber-200/80">
+                          Ricerca DDT/bolle negli ultimi 120 gg{' '}
+                          {aiPipelineAnalisi.supplierEmail
+                            ? <>per <span className="font-mono font-semibold text-amber-200">{aiPipelineAnalisi.supplierEmail}</span></>
+                            : 'del fornitore'}
+                          …
+                        </p>
+                      )}
+                      {/* Email scan: fatture mancanti */}
                       {aiPipelinePhase === 'ricerca' && aiPipelineAnalisi.fatturaMancante > 0 && aiPipelineAnalisi.hasEmail && (
                         <p className="text-[10px] text-purple-200/80">
                           Scansione casella{' '}
