@@ -2537,6 +2537,47 @@ function FattureTab({
     return () => window.removeEventListener('fattura-mutated', handler)
   }, [])
 
+  /** IDs already auto-OCR'd in this session — prevents re-running on re-render. */
+  const autoOcrDoneRef = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (readOnly || loading) return
+    const toProcess = fatture.filter(
+      (f) => f.file_url?.trim() && (!f.numero_fattura?.trim() || f.importo == null) && !autoOcrDoneRef.current.has(f.id),
+    )
+    if (!toProcess.length) return
+    for (const f of toProcess) autoOcrDoneRef.current.add(f.id)
+    void (async () => {
+      for (const f of toProcess) {
+        try {
+          const res = await fetch('/api/fatture/refresh-date-from-ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fattura_id: f.id }),
+            credentials: 'include',
+          })
+          if (!res.ok) continue
+          const j = await res.json().catch(() => ({})) as {
+            data?: string; data_changed?: boolean
+            importo?: number | null; importo_changed?: boolean
+            numero_fattura?: string | null; numero_fattura_changed?: boolean
+          }
+          setFatture((prev) => prev.map((r) => {
+            if (r.id !== f.id) return r
+            const next = { ...r }
+            if (j.data) next.data = j.data
+            if (j.importo_changed && j.importo != null) next.importo = j.importo
+            if (j.numero_fattura_changed && j.numero_fattura) next.numero_fattura = j.numero_fattura
+            return next
+          }))
+          if (j.data_changed || j.importo_changed || j.numero_fattura_changed) {
+            onLedgerMutated?.()
+          }
+        } catch { /* ignore */ }
+      }
+    })()
+  }, [fatture, loading, readOnly, onLedgerMutated])
+
   const onDuplicateRemoved = useCallback(
     (removedId: string) => {
       setFatture((prev) => prev.filter((x) => x.id !== removedId))
