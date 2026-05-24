@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       }, { status: 500 })
     }
     if (r1.error) return NextResponse.json({ error: r1.error.message }, { status: 500 })
-    stmt = r1.data as typeof stmt
+    stmt = r1.data as unknown as typeof stmt
   }
 
   if (!stmt) return NextResponse.json({ error: 'Statement non trovato' }, { status: 404 })
