@@ -467,12 +467,18 @@ export default function FornitoreConfermeOrdineTab({
                         <OpenDocumentInAppButton
                           confermaOrdineId={r.id}
                           fileUrl={r.file_url}
-                          className="block text-left hover:underline underline-offset-2 font-medium text-app-fg hover:text-app-cyan-300 transition-colors"
+                          className="block max-w-[22rem] text-left hover:underline underline-offset-2 font-medium text-app-fg hover:text-app-cyan-300 transition-colors"
                           title={r.titolo?.trim() || r.file_name || undefined}
                           stopTriggerPropagation
                         >
-                          <span>{r.titolo?.trim() || r.file_name || '—'}</span>
-                          {r.note?.trim() ? <p className={`mt-1 text-xs font-normal ${confermeSecondaryClass}`}>{r.note}</p> : null}
+                          <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
+                            {r.titolo?.trim() || r.file_name || '—'}
+                          </span>
+                          {r.note?.trim() ? (
+                            <span className={`mt-1 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.note}>
+                              {r.note}
+                            </span>
+                          ) : null}
                         </OpenDocumentInAppButton>
                       </td>
                       <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
