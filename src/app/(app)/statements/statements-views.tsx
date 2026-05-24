@@ -4658,7 +4658,7 @@ export function VerificationStatusTab({
                       }
                       window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: j.fattura_id } }))
                     } catch {
-                      showToast(t.appStrings.networkError, 'error')
+                      showToast(t.ui.networkError, 'error')
                     } finally {
                       setAlsoFatturaBusy(false)
                     }
