@@ -4625,7 +4625,7 @@ export function VerificationStatusTab({
                   disabled={alsoFatturaBusy}
                   className="rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:bg-app-line-10 disabled:opacity-50"
                 >
-                  {t.statements.cancel}
+                  {t.common.cancel}
                 </button>
                 <button
                   type="button"
@@ -4737,7 +4737,7 @@ export function VerificationStatusTab({
                     onClick={cancelAiPipeline}
                     className="shrink-0 text-[10px] text-app-fg-muted/60 hover:text-red-300 transition-colors underline"
                   >
-                    {t.statements.cancel}
+                    {t.common.cancel}
                   </button>
                 </div>
               ) : (
