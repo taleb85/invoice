@@ -15,50 +15,7 @@ import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
-/**
- * Splits a document title into a short reference (primary) and a type label (secondary).
- * e.g. "Enotria Order Confirmation: SO1965613" → { primary: "SO1965613", secondary: "Order Confirmation" }
- * Falls back to showing the raw title when no reference code can be extracted.
- */
-function splitTitleForDisplay(
-  titolo: string | null,
-  fileName: string | null,
-): { primary: string; secondary: string | null } {
-  const text = titolo?.trim() ?? ''
-  const docType = extractDocTypeFromTitle(text || null, null)
-
-  if (text && docType) {
-    // Extract the last alphanumeric reference code (e.g. SO1965613, INV-0042, 12345)
-    const refMatch = text.match(/\b([A-Z]{1,6}[-/]?\d{3,}|\d{4,})\b/gi)
-    const ref = refMatch ? refMatch[refMatch.length - 1] : null
-    if (ref) return { primary: ref, secondary: docType }
-  }
-
-  // No type in title — show title as-is; secondary comes from filename
-  const secondaryFromFile = extractDocTypeFromTitle(null, fileName)
-  return {
-    primary: text || fileName || '—',
-    secondary: secondaryFromFile,
-  }
-}
-
-/** Extracts a document-type label from a free-text title or filename.
- *  Matches common keywords in English, Italian, French, German and Spanish.
- *  Returns null when the type cannot be inferred. */
-function extractDocTypeFromTitle(titolo: string | null, fileName: string | null): string | null {
-  const text = (titolo ?? fileName ?? '').toLowerCase()
-  if (!text) return null
-
-  if (/invoice|fattura|facture|rechnung|factura/.test(text)) return 'Invoice'
-  if (/credit note|nota.credito|note.de.crédit|gutschrift|nota.de.crédito/.test(text)) return 'Credit Note'
-  if (/delivery.note|ddt|bolla|bon.de.livraison|lieferschein|albarán/.test(text)) return 'Delivery Note'
-  if (/order.confirm|conferma.ordin|confirmation.de.commande|auftragsbestätigung|confirmaci/.test(text)) return 'Order Confirmation'
-  if (/purchase.order|ordine.acquisto|bon.de.commande|bestellung|orden.de.compra/.test(text)) return 'Purchase Order'
-  if (/statement|estratto.conto|relevé.de.compte|kontoauszug|extracto/.test(text)) return 'Statement'
-  if (/receipt|ricevuta|reçu|quittung|recibo/.test(text)) return 'Receipt'
-  if (/proforma|pro.forma/.test(text)) return 'Pro-forma Invoice'
-  return null
-}
+import { extractDocTypeLabel, splitDocTitleForDisplay } from '@/lib/extract-doc-type'
 
 export type ConfermaOrdineRow = {
   id: string
@@ -433,7 +390,7 @@ export default function FornitoreConfermeOrdineTab({
                 >
                   <div className="min-w-0">
                     {(() => {
-                      const { primary, secondary } = splitTitleForDisplay(r.titolo, r.file_name)
+                      const { primary, secondary } = splitDocTitleForDisplay(r.titolo, r.file_name)
                       return (
                         <>
                           <p className="font-medium text-app-fg">{primary}</p>
@@ -458,7 +415,7 @@ export default function FornitoreConfermeOrdineTab({
                       confermaOrdineId={r.id}
                       fileUrl={r.file_url}
                       className={CONFERME_OPEN_PILL}
-                      categoria={extractDocTypeFromTitle(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
+                      categoria={extractDocTypeLabel(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
                     >
                       {pdfOpenTrigger}
                     </OpenDocumentInAppButton>
@@ -526,10 +483,10 @@ export default function FornitoreConfermeOrdineTab({
                           className="block max-w-[22rem] text-left hover:underline underline-offset-2 font-medium text-app-fg hover:text-app-cyan-300 transition-colors"
                           title={r.titolo?.trim() || r.file_name || undefined}
                           stopTriggerPropagation
-                          categoria={extractDocTypeFromTitle(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
+                          categoria={extractDocTypeLabel(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
                         >
                           {(() => {
-                            const { primary, secondary } = splitTitleForDisplay(r.titolo, r.file_name)
+                            const { primary, secondary } = splitDocTitleForDisplay(r.titolo, r.file_name)
                             return (
                               <>
                                 <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>

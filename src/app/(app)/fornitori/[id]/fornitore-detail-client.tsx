@@ -65,6 +65,7 @@ import {
 } from '@/lib/fiscal-year'
 import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
+import { extractDocTypeLabel } from '@/lib/extract-doc-type'
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
@@ -2344,7 +2345,7 @@ function BolleTab({
                   fileUrl={b.file_url}
                   stopTriggerPropagation
                   className="-mr-2 border-0 bg-transparent px-2 py-1.5 text-left text-xs text-app-cyan-500 touch-manipulation hover:text-app-fg-muted hover:underline"
-                  categoria={t.bolle.title}
+                  categoria={extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
                 >
                   {attachmentOpenFileLinkLabel(fileKind, t)}
                 </OpenDocumentInAppButton>
@@ -2383,7 +2384,7 @@ function BolleTab({
                 <td className="px-3 py-3 font-mono text-xs text-app-fg-muted">
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
                   <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
-                    {t.dashboard.emailSyncDocumentKindBolla}
+                    {extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
                   </span>
                   {!readOnly ? (
                     <DuplicateLedgerRowExtras
@@ -2420,7 +2421,7 @@ function BolleTab({
                         stopTriggerPropagation
                         className={FORNITORE_TABLE_CYAN_ACTION_PILL}
                         title={attachmentOpenFileLinkLabel(fileKind, t)}
-                        categoria={t.bolle.title}
+                        categoria={extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
                       >
                         <svg className={`h-3 w-3 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         {attachmentOpenFileLinkLabel(fileKind, t)}
