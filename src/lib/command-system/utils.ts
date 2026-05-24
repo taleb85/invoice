@@ -29,11 +29,28 @@ export function tipoDocumentoDaPendingKind(kind: PendingKind): string {
   return MAPPA_PENDING_KIND_TIPO_DOC[kind] || 'documento_generico'
 }
 
-export function formattaPriorita(priorita: number): { label: string; colore: string } {
-  if (priorita <= 1) return { label: 'Critica', colore: 'text-red-600 bg-red-50' }
-  if (priorita <= 2) return { label: 'Alta', colore: 'text-orange-600 bg-orange-50' }
-  if (priorita <= 3) return { label: 'Media', colore: 'text-yellow-600 bg-yellow-50' }
-  return { label: 'Bassa', colore: 'text-gray-600 bg-gray-50' }
+export type PrioritaLabels = {
+  priorityCritical: string
+  priorityHigh: string
+  priorityMedium: string
+  priorityLow: string
+}
+
+const DEFAULT_PRIORITA_LABELS: PrioritaLabels = {
+  priorityCritical: 'Critica',
+  priorityHigh: 'Alta',
+  priorityMedium: 'Media',
+  priorityLow: 'Bassa',
+}
+
+export function formattaPriorita(
+  priorita: number,
+  labels: PrioritaLabels = DEFAULT_PRIORITA_LABELS,
+): { label: string; colore: string } {
+  if (priorita <= 1) return { label: labels.priorityCritical, colore: 'text-red-600 bg-red-50' }
+  if (priorita <= 2) return { label: labels.priorityHigh, colore: 'text-orange-600 bg-orange-50' }
+  if (priorita <= 3) return { label: labels.priorityMedium, colore: 'text-yellow-600 bg-yellow-50' }
+  return { label: labels.priorityLow, colore: 'text-gray-600 bg-gray-50' }
 }
 
 export function labelPendingKind(kind: string): string {

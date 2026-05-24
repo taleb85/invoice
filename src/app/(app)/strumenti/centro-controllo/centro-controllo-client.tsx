@@ -884,14 +884,14 @@ export default function CentroControlloClient({ sedeId }: Props) {
     const d = new Date(iso).getTime()
     if (Number.isNaN(d)) return '—'
     const m = Math.max(0, Math.floor((Date.now() - d) / 60000))
-    if (m < 1) return 'Meno di 1 minuto fa'
-    if (m === 1) return '1 minuto fa'
-    if (m < 60) return `${m} minuti fa`
+    if (m < 1) return t.strumentiCentroControllo.timeLessThanMinute
+    if (m === 1) return t.strumentiCentroControllo.timeOneMinute
+    if (m < 60) return t.strumentiCentroControllo.timeMinutes.replace('{n}', String(m))
     const h = Math.floor(m / 60)
-    if (h === 1) return 'Circa 1 ora fa'
-    if (h < 48) return `Circa ${h} ore fa`
+    if (h === 1) return t.strumentiCentroControllo.timeAboutOneHour
+    if (h < 48) return t.strumentiCentroControllo.timeAboutHours.replace('{n}', String(h))
     const dd = Math.floor(h / 24)
-    return `Circa ${dd} giorni fa`
+    return t.strumentiCentroControllo.timeAboutDays.replace('{n}', String(dd))
   }
 
   return (
@@ -957,7 +957,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         <div className="flex min-w-0 flex-col gap-6">
           <SectionCard
             title={t.strumentiCentroControllo.sectionMonitoring}
-            badge={sysMonitor?.documentsAutoProcessedToday != null ? `${sysMonitor.documentsAutoProcessedToday} oggi` : null}
+            badge={sysMonitor?.documentsAutoProcessedToday != null ? `${sysMonitor.documentsAutoProcessedToday} ${t.strumentiCentroControllo.badgeToday}` : null}
             action={
               <button
                 type="button"
@@ -977,30 +977,30 @@ export default function CentroControlloClient({ sedeId }: Props) {
               <div className="divide-y divide-app-line-10">
                 <div className="px-4 py-2.5 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-app-fg-muted">Ultimo cleanup</span>
+                    <span className="text-app-fg-muted">{t.strumentiCentroControllo.monLastCleanup}</span>
                     <span className="font-medium text-app-fg text-right">{formatAgo(sysMonitor.lastCleanupAt)}</span>
                   </div>
                   {sysMonitor.lastCleanupAt && (
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-app-fg-muted">Data esatta</span>
+                      <span className="text-app-fg-muted">{t.strumentiCentroControllo.monExactDate}</span>
                       <span className="text-app-fg-muted/70">{new Date(sysMonitor.lastCleanupAt).toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <span className="text-app-fg-muted">Ultimo ciclo</span>
+                    <span className="text-app-fg-muted">{t.strumentiCentroControllo.monLastCycle}</span>
                     <span className="font-medium text-app-fg">
-                      {sysMonitor.lastCleanupProcessed != null ? `${sysMonitor.lastCleanupProcessed} processati` : '—'}
-                      {sysMonitor.lastCleanupScanned != null ? ` / ${sysMonitor.lastCleanupScanned} esaminati` : ''}
+                      {sysMonitor.lastCleanupProcessed != null ? `${sysMonitor.lastCleanupProcessed} ${t.strumentiCentroControllo.monProcessed}` : '—'}
+                      {sysMonitor.lastCleanupScanned != null ? ` / ${sysMonitor.lastCleanupScanned} ${t.strumentiCentroControllo.monScanned}` : ''}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-app-fg-muted">Auto-processati oggi</span>
+                    <span className="text-app-fg-muted">{t.strumentiCentroControllo.monAutoProcessedToday}</span>
                     <span className="font-medium text-emerald-400">{sysMonitor.documentsAutoProcessedToday}</span>
                   </div>
                 </div>
                 {sysMonitor.lastCycleErrors.length > 0 && (
                   <div className="px-4 py-2 text-[11px] text-rose-300/70 space-y-0.5 max-h-20 overflow-y-auto">
-                    <p className="font-medium text-rose-300 mb-1">Errori ultimo ciclo:</p>
+                    <p className="font-medium text-rose-300 mb-1">{t.strumentiCentroControllo.monLastCycleErrors}</p>
                     {sysMonitor.lastCycleErrors.map((e, i) => (
                       <p key={i} className="truncate">{e}</p>
                     ))}
@@ -1018,12 +1018,12 @@ export default function CentroControlloClient({ sedeId }: Props) {
                     ) : (
                       <Zap className="w-3 h-3" />
                     )}
-                    Forza cleanup ora
+                    {t.strumentiCentroControllo.monForceCleanup}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="px-4 py-4 text-xs text-app-fg-muted text-center">Nessun dato disponibile</div>
+              <div className="px-4 py-4 text-xs text-app-fg-muted text-center">{t.strumentiCentroControllo.monNoData}</div>
             )}
           </SectionCard>
 
@@ -1031,29 +1031,29 @@ export default function CentroControlloClient({ sedeId }: Props) {
           {loading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-app-fg-muted" />
-              <span className="ml-2 text-sm text-app-fg-muted">Caricamento coda...</span>
+              <span className="ml-2 text-sm text-app-fg-muted">{t.strumentiCentroControllo.queueLoading}</span>
             </div>
           )}
 
           {error && (
             <div className="p-4 bg-rose-950/30 border border-rose-800/40 rounded-lg text-rose-300 text-sm">
               {error}
-              <button onClick={() => caricaCoda()} className="ml-2 underline hover:no-underline">Riprova</button>
+              <button onClick={() => caricaCoda()} className="ml-2 underline hover:no-underline">{t.strumentiCentroControllo.queueRetry}</button>
             </div>
           )}
 
           {!loading && !error && codaTotal === 0 && (
-            <SectionCard title="Coda documenti">
+            <SectionCard title={t.strumentiCentroControllo.queueTitle}>
               <div className="text-center py-8 text-app-fg-muted">
                 <CheckCircle className="w-10 h-10 mx-auto mb-2 text-white/[0.12]" />
-                <p className="text-sm font-medium">Nessun documento in coda</p>
-                <p className="text-xs">Tutti i documenti sono stati processati</p>
+                <p className="text-sm font-medium">{t.strumentiCentroControllo.queueEmpty}</p>
+                <p className="text-xs">{t.strumentiCentroControllo.queueEmptyHint}</p>
               </div>
             </SectionCard>
           )}
 
           {!loading && !error && codaTotal > 0 && (
-            <SectionCard title="Coda documenti" badge={codaTotal}>
+            <SectionCard title={t.strumentiCentroControllo.queueTitle} badge={codaTotal}>
               <div className="max-h-[min(70vh,42rem)] overflow-y-auto overscroll-contain divide-y divide-app-line-10">
                 {items.map((item) => (
                   <RigaDocumento
@@ -1071,12 +1071,15 @@ export default function CentroControlloClient({ sedeId }: Props) {
               </div>
               <div className="flex flex-col gap-3 border-t border-app-line-10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-app-fg-muted">
-                  Mostrando {codaRangeFrom}–{codaRangeTo} di {codaTotal}
-                  {filtroOrigine !== 'tutti' ? ` (filtro attivo)` : ''}
+                  {t.strumentiCentroControllo.queueShowing
+                    .replace('{from}', String(codaRangeFrom))
+                    .replace('{to}', String(codaRangeTo))
+                    .replace('{total}', String(codaTotal))}
+                  {filtroOrigine !== 'tutti' ? ` ${t.strumentiCentroControllo.queueFilterActive}` : ''}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1.5 text-[11px] text-app-fg-muted">
-                    Per pagina
+                    {t.strumentiCentroControllo.queuePerPage}
                     <select
                       value={codaPageSize}
                       onChange={(e) => {
@@ -1095,7 +1098,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                     onClick={() => setCodaPage((p) => Math.max(1, p - 1))}
                     className="rounded-md border border-app-line-25 px-2.5 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:bg-white/5 disabled:opacity-40"
                   >
-                    Precedente
+                    {t.strumentiCentroControllo.queuePrev}
                   </button>
                   <span className="text-[11px] tabular-nums text-app-fg-muted">
                     {codaPage} / {codaPageCount}
@@ -1106,7 +1109,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                     onClick={() => setCodaPage((p) => Math.min(codaPageCount, p + 1))}
                     className="rounded-md border border-app-line-25 px-2.5 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:bg-white/5 disabled:opacity-40"
                   >
-                    Successiva
+                    {t.strumentiCentroControllo.queueNext}
                   </button>
                 </div>
               </div>
@@ -1609,7 +1612,13 @@ function RigaDocumento({
   onRifiutaSuggerimento: (item: CodaItem, commandId: CommandId) => void
   onApriAzioni?: (item: CodaItem) => void
 }) {
-  const priorita = formattaPriorita(item.priorita)
+  const t = useT()
+  const priorita = formattaPriorita(item.priorita, {
+    priorityCritical: t.strumentiCentroControllo.priorityCritical,
+    priorityHigh: t.strumentiCentroControllo.priorityHigh,
+    priorityMedium: t.strumentiCentroControllo.priorityMedium,
+    priorityLow: t.strumentiCentroControllo.priorityLow,
+  })
   const isRunning = eseguendoId?.startsWith(item.id)
   const [azioniDisponibili, setAzioniDisponibili] = useState<Command[]>([])
 

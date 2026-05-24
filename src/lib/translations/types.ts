@@ -1718,6 +1718,36 @@ export type Translations = {
     statStatement: string
     statSyncErrors: string
     sectionMonitoring: string
+    badgeToday: string
+    monLastCleanup: string
+    monExactDate: string
+    monLastCycle: string
+    monProcessed: string
+    monScanned: string
+    monAutoProcessedToday: string
+    monLastCycleErrors: string
+    monForceCleanup: string
+    monNoData: string
+    timeLessThanMinute: string
+    timeOneMinute: string
+    timeMinutes: string
+    timeAboutOneHour: string
+    timeAboutHours: string
+    timeAboutDays: string
+    queueTitle: string
+    queueLoading: string
+    queueRetry: string
+    queueEmpty: string
+    queueEmptyHint: string
+    queueShowing: string
+    queueFilterActive: string
+    queuePerPage: string
+    queuePrev: string
+    queueNext: string
+    priorityCritical: string
+    priorityHigh: string
+    priorityMedium: string
+    priorityLow: string
   }
   strumentiAnalisiPrezzi: {
     pageTitle: string
