@@ -15,6 +15,7 @@ type Props = {
   onDataUpdated: (newIsoDate: string) => void
   onImportoUpdated?: (newImporto: number) => void
   onNumeroFatturaUpdated?: (newNumero: string) => void
+  onTipoDocumentoUpdated?: (tipo: string) => void
   onLedgerMutated?: () => void
   className?: string
 }
@@ -26,6 +27,7 @@ export default function FatturaRefreshDateButton({
   onDataUpdated,
   onImportoUpdated,
   onNumeroFatturaUpdated,
+  onTipoDocumentoUpdated,
   onLedgerMutated,
   className = '',
 }: Props) {
@@ -61,6 +63,7 @@ export default function FatturaRefreshDateButton({
         importo_changed?: boolean
         numero_fattura?: string | null
         numero_fattura_changed?: boolean
+        tipo_documento?: string | null
       }
       if (!res.ok) {
         showToast(j.error ?? t.ui.networkError, 'error')
@@ -78,6 +81,11 @@ export default function FatturaRefreshDateButton({
       if (numeroChanged) {
         onNumeroFatturaUpdated?.(j.numero_fattura as string)
       }
+      if (j.tipo_documento) {
+        onTipoDocumentoUpdated?.(j.tipo_documento)
+      }
+      // Always notify so the tipo label refreshes even when only tipo_documento changed
+      window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: fatturaId } }))
       if (j.data || importoChanged || numeroChanged) {
         onLedgerMutated?.()
         if (dataChanged) {

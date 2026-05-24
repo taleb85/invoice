@@ -2839,6 +2839,7 @@ function FattureTab({
                         onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
                         onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
                         onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
+                        onTipoDocumentoUpdated={(tipo) => f.file_url && setTipoFatturaByFileUrl((prev) => ({ ...prev, [f.file_url!.trim()]: tipo }))}
                         onLedgerMutated={onLedgerMutated}
                         className="mt-1.5 w-fit"
                       />
@@ -2928,6 +2929,7 @@ function FattureTab({
                           onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
                           onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
                           onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
+                          onTipoDocumentoUpdated={(tipo) => f.file_url && setTipoFatturaByFileUrl((prev) => ({ ...prev, [f.file_url!.trim()]: tipo }))}
                           onLedgerMutated={onLedgerMutated}
                         />
                       </div>
