@@ -2537,6 +2537,8 @@ function FattureTab({
   const [fatture, setFatture] = useState<Fattura[]>([])
   const [loading, setLoading] = useState(true)
   const [tipoFatturaByFileUrl, setTipoFatturaByFileUrl] = useState<Record<string, string>>({})
+  /** Manual user overrides — highest priority, never overwritten by DB re-fetch. */
+  const manualTipoOverridesRef = useRef<Record<string, string>>({})
 
   const dupPayload = useMemo(() => {
     const analysis = analyzeFatturaDuplicatesForDeletion(
@@ -2655,33 +2657,40 @@ function FattureTab({
     { label: 'Statement', tipo: 'estratto_conto' },
   ] as const
 
-  const handleTipoOverride = useCallback(async (fileUrl: string, label: string | null) => {
+  const handleTipoOverride = useCallback((fileUrl: string, label: string | null) => {
     setTipoEditingFatturaId(null)
     if (!fileUrl) return
+    const key = fileUrl.trim()
     if (label) {
-      setTipoFatturaByFileUrl((prev) => ({ ...prev, [fileUrl.trim()]: label }))
+      manualTipoOverridesRef.current = { ...manualTipoOverridesRef.current, [key]: label }
     } else {
-      setTipoFatturaByFileUrl((prev) => { const n = { ...prev }; delete n[fileUrl.trim()]; return n })
+      const n = { ...manualTipoOverridesRef.current }
+      delete n[key]
+      manualTipoOverridesRef.current = n
     }
+    // Force re-render by toggling a counter
+    setTipoFatturaByFileUrl((prev) => ({ ...prev }))
     // Best-effort persist to documenti_da_processare
-    try {
-      const supabase = createClient()
-      const { data: docRow } = await supabase
-        .from('documenti_da_processare')
-        .select('id, metadata')
-        .eq('file_url', fileUrl.trim())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (docRow) {
-        const tipoRaw = DOC_TYPE_OPTIONS.find((o) => o.label === label)?.tipo ?? null
-        const existing = (docRow.metadata ?? {}) as Record<string, unknown>
-        await supabase
+    const tipoRaw = DOC_TYPE_OPTIONS.find((o) => o.label === label)?.tipo
+    void (async () => {
+      try {
+        const supabase = createClient()
+        const { data: docRow } = await supabase
           .from('documenti_da_processare')
-          .update({ metadata: { ...existing, tipo_documento: tipoRaw ?? 'fattura' } })
-          .eq('id', docRow.id)
-      }
-    } catch { /* ignore */ }
+          .select('id, metadata')
+          .eq('file_url', key)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (docRow) {
+          const existing = (docRow.metadata ?? {}) as Record<string, unknown>
+          await supabase
+            .from('documenti_da_processare')
+            .update({ metadata: { ...existing, tipo_documento: tipoRaw ?? 'fattura' } })
+            .eq('id', docRow.id)
+        }
+      } catch { /* ignore */ }
+    })()
   }, [DOC_TYPE_OPTIONS])
 
   const onDuplicateRemoved = useCallback(
@@ -2879,7 +2888,7 @@ function FattureTab({
                         onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
                         onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
                         onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
-                        onTipoDocumentoUpdated={(tipo) => f.file_url && setTipoFatturaByFileUrl((prev) => ({ ...prev, [f.file_url!.trim()]: tipo }))}
+                        onTipoDocumentoUpdated={(tipo) => { if (f.file_url) { manualTipoOverridesRef.current = { ...manualTipoOverridesRef.current, [f.file_url.trim()]: tipo }; setTipoFatturaByFileUrl((prev) => ({ ...prev })) } }}
                         onLedgerMutated={onLedgerMutated}
                         className="mt-1.5 w-fit"
                       />
@@ -2888,7 +2897,7 @@ function FattureTab({
                       <p className="mt-0.5 text-xs text-app-fg-muted">
                         #{f.numero_fattura}
                         <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
-                          {(f.file_url ? tipoFatturaByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
+                          {(f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
                         </span>
                       </p>
                     )}
@@ -2969,7 +2978,7 @@ function FattureTab({
                           onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
                           onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
                           onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
-                          onTipoDocumentoUpdated={(tipo) => f.file_url && setTipoFatturaByFileUrl((prev) => ({ ...prev, [f.file_url!.trim()]: tipo }))}
+                          onTipoDocumentoUpdated={(tipo) => { if (f.file_url) { manualTipoOverridesRef.current = { ...manualTipoOverridesRef.current, [f.file_url.trim()]: tipo }; setTipoFatturaByFileUrl((prev) => ({ ...prev })) } }}
                           onLedgerMutated={onLedgerMutated}
                         />
                       </div>
@@ -3013,7 +3022,7 @@ function FattureTab({
                                 onClick={!readOnly && f.file_url ? (e) => { e.stopPropagation(); setTipoEditingFatturaId((prev) => prev === f.id ? null : f.id) } : undefined}
                                 title={!readOnly ? 'Click to change document type' : undefined}
                               >
-                                {(f.file_url ? tipoFatturaByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
+                                {(f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
                               </button>
                             </span>
                           )}
