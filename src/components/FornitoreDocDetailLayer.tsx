@@ -50,40 +50,69 @@ type FatturaPayload = {
 function useSignedDocumentUrl(openKind: 'bolla' | 'fattura' | null, docId: string | null) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const blobUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!openKind || !docId?.trim()) {
       setSignedUrl(null)
       setLoading(false)
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current)
+        blobUrlRef.current = null
+      }
       return
     }
     let cancelled = false
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30_000)
     setLoading(true)
     setSignedUrl(null)
+
     const href =
       openKind === 'bolla'
         ? openDocumentUrl({ bollaId: docId, json: true })
         : openDocumentUrl({ fatturaId: docId, json: true })
-    fetch(href, { credentials: 'include' })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(String(r.status))
-        return r.json() as Promise<{ url?: string }>
-      })
-      .then((j) => {
+
+    void (async () => {
+      try {
+        // Step 1: resolve signed URL from our API
+        const res1 = await fetch(href, { credentials: 'include', signal: controller.signal })
+        if (!res1.ok) throw new Error(String(res1.status))
+        const json = await res1.json() as { url?: string }
+        const remoteUrl = json.url?.trim()
+        if (!remoteUrl) throw new Error('No document URL')
+
+        // Step 2: download as blob → same-origin blob: URL bypasses X-Frame-Options
+        const res2 = await fetch(remoteUrl, { signal: controller.signal })
+        if (!res2.ok) throw new Error(`Download failed (${res2.status})`)
+        const blob = await res2.blob()
         if (cancelled) return
-        const u = j.url?.trim()
-        setSignedUrl(u ?? null)
-      })
-      .catch(() => {
+
+        if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+        const blobUrl = URL.createObjectURL(blob)
+        blobUrlRef.current = blobUrl
+        setSignedUrl(blobUrl)
+      } catch {
         if (!cancelled) setSignedUrl(null)
-      })
-      .finally(() => {
+      } finally {
+        clearTimeout(timeoutId)
         if (!cancelled) setLoading(false)
-      })
+      }
+    })()
+
     return () => {
       cancelled = true
+      controller.abort()
+      clearTimeout(timeoutId)
     }
   }, [openKind, docId])
+
+  // Revoke blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current)
+    }
+  }, [])
 
   return { signedUrl, loading }
 }
@@ -196,7 +225,13 @@ function FornitoreInlineDocPreview({
       {zoomBar}
       {loading && (
         <div className={frameLoading}>
-          <p className="text-xs text-app-fg-muted">{t.common.loading}</p>
+          <div className="flex flex-col items-center gap-3">
+            <svg className="h-8 w-8 animate-spin text-app-cyan-500/70" fill="none" viewBox="0 0 24 24" aria-hidden>
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <p className="text-xs text-app-fg-muted">{t.common.loading}</p>
+          </div>
         </div>
       )}
       {!loading && signedUrl && kind === 'image' && (
