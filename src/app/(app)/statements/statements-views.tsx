@@ -3778,7 +3778,7 @@ export function VerificationStatusTab({
         )
         if (!abort.signal.aborted) {
           try {
-            const fid = selectedStmt?.fornitore_id ?? fornitoreId
+            const fid = fornitoreId
             const ddtRes = await fetch('/api/scan-emails', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
