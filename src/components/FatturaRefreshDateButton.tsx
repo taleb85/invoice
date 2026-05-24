@@ -7,6 +7,7 @@ import { formatDate as formatDateLib } from '@/lib/locale'
 import { useToast } from '@/lib/toast-context'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
+import { tipoDocumentoToLabel } from '@/lib/extract-doc-type'
 
 type Props = {
   fatturaId: string
@@ -69,6 +70,12 @@ export default function FatturaRefreshDateButton({
         showToast(j.error ?? t.ui.networkError, 'error')
         return
       }
+      // Apply tipo_documento update immediately regardless of other field changes
+      if (j.tipo_documento) {
+        const label = tipoDocumentoToLabel(j.tipo_documento)
+        if (label) onTipoDocumentoUpdated?.(label)
+        window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: fatturaId } }))
+      }
       const dataChanged = j.data_changed === true
       const importoChanged = j.importo_changed === true && j.importo != null
       const numeroChanged = j.numero_fattura_changed === true && j.numero_fattura != null
@@ -81,11 +88,6 @@ export default function FatturaRefreshDateButton({
       if (numeroChanged) {
         onNumeroFatturaUpdated?.(j.numero_fattura as string)
       }
-      if (j.tipo_documento) {
-        onTipoDocumentoUpdated?.(j.tipo_documento)
-      }
-      // Always notify so the tipo label refreshes even when only tipo_documento changed
-      window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: fatturaId } }))
       if (j.data || importoChanged || numeroChanged) {
         onLedgerMutated?.()
         if (dataChanged) {

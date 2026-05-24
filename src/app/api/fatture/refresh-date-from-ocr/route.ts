@@ -124,16 +124,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const normalizedTipo = normalizeTipoDocumento(tipoDocumentoFromOcr)
   const importNeedsFill = fattura.importo == null && importFromOcr != null
   const numeroChanged = numeroFatturaFromOcr != null && numeroFatturaFromOcr !== fattura.numero_fattura
-  /** Se né data né totale né numero dall'OCR, non abbiamo nulla da scrivere. */
+  /** Se né data né totale né numero dall'OCR, non abbiamo nulla da scrivere nei campi fattura.
+   *  Restituiamo comunque 200 con tipo_documento se l'OCR ha riclassificato il documento. */
   if (normalized == null && !importNeedsFill && !numeroChanged) {
     return NextResponse.json(
       {
-        error:
-          "Data del documento non riconosciuta dal file e impossibile derivare il totale. Prova a sostituire l\u2019allegato o inserire i dati a mano.",
+        ok: true,
+        data: fattura.data,
+        data_changed: false,
+        importo: fattura.importo,
+        importo_changed: false,
+        numero_fattura: fattura.numero_fattura ?? null,
+        numero_fattura_changed: false,
+        tipo_documento: normalizedTipo,
+        info: "Nessun campo data/importo/numero aggiornato. Il tipo documento potrebbe essere stato aggiornato.",
       },
-      { status: 422 },
     )
   }
 
@@ -147,8 +155,6 @@ export async function POST(req: NextRequest) {
   if (numeroChanged && numeroFatturaFromOcr != null) {
     updates.numero_fattura = numeroFatturaFromOcr
   }
-
-  const normalizedTipo = normalizeTipoDocumento(tipoDocumentoFromOcr)
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({
