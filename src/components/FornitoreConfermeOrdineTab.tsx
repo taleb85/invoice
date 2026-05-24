@@ -496,7 +496,7 @@ export default function FornitoreConfermeOrdineTab({
                           </span>
                           {r.titolo?.trim() && r.file_name && r.file_name !== r.titolo.trim() ? (
                             <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.file_name}>
-                              {r.file_name}
+                              {extractDocTypeFromTitle(null, r.file_name) ?? r.file_name}
                             </span>
                           ) : null}
                           {r.note?.trim() ? (
