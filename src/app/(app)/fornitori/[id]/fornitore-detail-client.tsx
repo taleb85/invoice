@@ -2537,7 +2537,6 @@ function FattureTab({
   const [fatture, setFatture] = useState<Fattura[]>([])
   const [loading, setLoading] = useState(true)
   const [tipoFatturaByFileUrl, setTipoFatturaByFileUrl] = useState<Record<string, string>>({})
-  const tipoFatturaFetchedRef = useRef<Set<string>>(new Set())
 
   const dupPayload = useMemo(() => {
     const analysis = analyzeFatturaDuplicatesForDeletion(
@@ -2583,16 +2582,14 @@ function FattureTab({
 
   useEffect(() => {
     const urls = [...new Set(fatture.filter((f) => f.file_url?.trim()).map((f) => f.file_url!.trim()))]
-    const newUrls = urls.filter((u) => !tipoFatturaFetchedRef.current.has(u))
-    if (!newUrls.length) return
-    for (const u of newUrls) tipoFatturaFetchedRef.current.add(u)
+    if (!urls.length) return
     let cancelled = false
     const supabase = createClient()
     void (async () => {
       const { data: docs } = await supabase
         .from('documenti_da_processare')
         .select('file_url, metadata')
-        .in('file_url', newUrls)
+        .in('file_url', urls)
       if (cancelled || !docs?.length) return
       const map: Record<string, string> = {}
       for (const row of docs) {
@@ -2601,7 +2598,7 @@ function FattureTab({
         const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
         if (label) map[fu] = label
       }
-      if (Object.keys(map).length) setTipoFatturaByFileUrl((prev) => ({ ...prev, ...map }))
+      setTipoFatturaByFileUrl(map)
     })()
     return () => { cancelled = true }
   }, [fatture])
