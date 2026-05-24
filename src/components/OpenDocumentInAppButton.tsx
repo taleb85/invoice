@@ -348,6 +348,14 @@ export function OpenDocumentInAppButton({
               {t.statements.btnClose}
             </button>
           </div>
+          {/* Document type badge — always visible when categoria is set and there are no action buttons */}
+          {categoria && !(anomalie && anomalie.length > 0 && viewerActions && viewerActions.length > 0) && (
+            <div className="absolute left-2 top-2 z-20">
+              <span className="inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                {categoria}
+              </span>
+            </div>
+          )}
           {anomalie && anomalie.length > 0 && viewerActions && viewerActions.length > 0 && (
             <div className="absolute left-2 right-2 top-2 z-20 flex flex-wrap items-center gap-1.5 sm:right-auto sm:left-16">
               {categoria && onCategoriaChange ? (

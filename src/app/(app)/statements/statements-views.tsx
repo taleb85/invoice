@@ -950,6 +950,7 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
                         fatturaId={bolla.fattura.id}
                         fileUrl={bolla.fattura.file_url}
                         className="inline border-0 bg-transparent p-0 font-inherit text-xs text-cyan-400 underline hover:text-cyan-300"
+                        categoria={t.fatture.invoice}
                       >
                         {t.fatture.apri}
                       </OpenDocumentInAppButton>
@@ -4500,6 +4501,7 @@ export function VerificationStatusTab({
                       statementId={selectedStmt.id}
                       fileUrl={selectedStmt.file_url}
                       className="ml-0.5 inline-flex shrink-0 items-center rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                      categoria={t.statements.tabVerifica}
                     >
                       {t.statements.openPdf}
                     </OpenDocumentInAppButton>
@@ -5066,6 +5068,7 @@ export function VerificationStatusTab({
                                 r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-cyan-500'
                               }`}
                               title={r.numero}
+                              categoria={t.fatture.invoice}
                             >
                               {r.numero}
                             </OpenDocumentInAppButton>

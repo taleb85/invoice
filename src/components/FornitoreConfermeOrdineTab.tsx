@@ -403,6 +403,7 @@ export default function FornitoreConfermeOrdineTab({
                       confermaOrdineId={r.id}
                       fileUrl={r.file_url}
                       className={CONFERME_OPEN_PILL}
+                      categoria={t.fornitori.tabConfermeOrdine}
                     >
                       {pdfOpenTrigger}
                     </OpenDocumentInAppButton>
@@ -470,6 +471,7 @@ export default function FornitoreConfermeOrdineTab({
                           className="block max-w-[22rem] text-left hover:underline underline-offset-2 font-medium text-app-fg hover:text-app-cyan-300 transition-colors"
                           title={r.titolo?.trim() || r.file_name || undefined}
                           stopTriggerPropagation
+                          categoria={t.fornitori.tabConfermeOrdine}
                         >
                           <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
                             {r.titolo?.trim() || r.file_name || '—'}
