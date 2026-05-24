@@ -494,8 +494,13 @@ export default function FornitoreConfermeOrdineTab({
                           <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
                             {r.titolo?.trim() || r.file_name || '—'}
                           </span>
+                          {r.titolo?.trim() && r.file_name && r.file_name !== r.titolo.trim() ? (
+                            <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.file_name}>
+                              {r.file_name}
+                            </span>
+                          ) : null}
                           {r.note?.trim() ? (
-                            <span className={`mt-1 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.note}>
+                            <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.note}>
                               {r.note}
                             </span>
                           ) : null}
