@@ -1,3 +1,20 @@
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+
+/**
+ * Converts an OCR `tipo_documento` value (raw or normalised) to a human-readable label.
+ * Returns null for types that are implicit from context (e.g. bolla_ddt in the Bolle tab).
+ */
+export function tipoDocumentoToLabel(rawTipo: unknown): string | null {
+  const t = normalizeTipoDocumento(rawTipo)
+  switch (t) {
+    case 'fattura': return 'Invoice'
+    case 'nota_credito': return 'Credit Note'
+    case 'ordine': return 'Order Confirmation'
+    case 'estratto_conto': return 'Statement'
+    default: return null
+  }
+}
+
 /**
  * Extracts a human-readable document-type label from a free-text string
  * (title, filename, reference number, storage URL path, etc.).

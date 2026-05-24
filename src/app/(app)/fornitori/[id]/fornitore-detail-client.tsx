@@ -65,8 +65,7 @@ import {
 } from '@/lib/fiscal-year'
 import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
-import { extractDocTypeLabel } from '@/lib/extract-doc-type'
-import { normalizeTipoDocumento, type NormalizedTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { extractDocTypeLabel, tipoDocumentoToLabel } from '@/lib/extract-doc-type'
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
@@ -138,15 +137,6 @@ const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'ver
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
 
-function normalizedTipoToLabel(tipo: NormalizedTipoDocumento): string | null {
-  switch (tipo) {
-    case 'fattura': return 'Invoice'
-    case 'nota_credito': return 'Credit Note'
-    case 'ordine': return 'Order Confirmation'
-    case 'estratto_conto': return 'Statement'
-    default: return null
-  }
-}
 
 function localYmd(d: Date): string {
   const y = d.getFullYear()
@@ -368,6 +358,7 @@ interface Fattura {
   numero_fattura: string | null
   importo: number | null
   fornitore_id: string
+  is_credit_note?: boolean | null
 }
 
 interface ListinoRow {
@@ -2039,8 +2030,7 @@ function BolleTab({
             }
             if (!tipoMap[fu]) {
               const rawTipo = (row.metadata as Record<string, unknown> | null)?.tipo_documento
-              const normalized = normalizeTipoDocumento(rawTipo)
-              const label = normalizedTipoToLabel(normalized)
+              const label = tipoDocumentoToLabel(rawTipo)
               if (label) tipoMap[fu] = label
             }
           }
@@ -2278,7 +2268,14 @@ function BolleTab({
                   </span>
                 ) : null}
               </div>
-              {numeroInElenco(b) && <p className="mt-0.5 text-xs text-app-fg-muted">#{numeroInElenco(b)}</p>}
+              {numeroInElenco(b) && (
+                <p className="mt-0.5 text-xs text-app-fg-muted">
+                  #{numeroInElenco(b)}
+                  <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
+                    {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                  </span>
+                </p>
+              )}
               {b.importo != null && (
                 <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
                   {formatCurrency(b.importo, currency, locale)}
@@ -2565,7 +2562,7 @@ function FattureTab({
     const supabase = createClient()
     supabase
       .from('fatture')
-      .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id')
+      .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id, is_credit_note')
       .eq('fornitore_id', fornitoreId)
       .gte('data', from)
       .lt('data', to)
@@ -2773,7 +2770,7 @@ function FattureTab({
               const supabase = createClient()
               supabase
                 .from('fatture')
-                .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id')
+                .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id, is_credit_note')
                 .eq('fornitore_id', fornitoreId)
                 .gte('data', dateFrom)
                 .lt('data', dateToExclusive)
@@ -2822,7 +2819,14 @@ function FattureTab({
                         className="mt-1.5 w-fit"
                       />
                     ) : null}
-                    {f.numero_fattura && <p className="mt-0.5 text-xs text-app-fg-muted">#{f.numero_fattura}</p>}
+                    {f.numero_fattura && (
+                      <p className="mt-0.5 text-xs text-app-fg-muted">
+                        #{f.numero_fattura}
+                        <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
+                          {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                        </span>
+                      </p>
+                    )}
                     {f.importo != null && (
                       <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
                         {formatCurrency(f.importo, currency, locale)}
@@ -2921,6 +2925,11 @@ function FattureTab({
                       ) : (
                         <>
                           <span className={`break-words${!readOnly ? ' cursor-text' : ''}`}>{f.numero_fattura ?? '—'}</span>
+                          {f.numero_fattura && (
+                            <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
+                              {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                            </span>
+                          )}
                           {!readOnly ? (
                             <DuplicateLedgerRowExtras
                               rowId={f.id}

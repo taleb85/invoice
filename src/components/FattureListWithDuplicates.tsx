@@ -307,6 +307,11 @@ export default function FattureListWithDuplicates({
               <p className="mb-2 text-xs text-app-fg-muted">
                 <span className="font-medium text-app-fg-muted">{t.fatture.colNumFattura}</span>{' '}
                 <span className="text-app-fg-muted">{f.numero_fattura?.trim() || '—'}</span>
+                {f.numero_fattura?.trim() && (
+                  <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
+                    {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                  </span>
+                )}
                 {memberSet.has(f.id) ? (
                   <button
                     type="button"
@@ -449,6 +454,11 @@ export default function FattureListWithDuplicates({
               <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[11rem]`}>
                 <span title={f.numero_fattura?.trim() || undefined}>
                   {f.numero_fattura?.trim() || '—'}
+                  {f.numero_fattura?.trim() && (
+                    <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
+                      {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                    </span>
+                  )}
                   {memberSet.has(f.id) ? (
                     <button
                       type="button"

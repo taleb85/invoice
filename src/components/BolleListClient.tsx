@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle, Eye } from 'lucide-react'
@@ -12,6 +12,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { StandardBadge } from '@/components/ui/StandardBadge'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
+import { tipoDocumentoToLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
 import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
@@ -71,12 +72,38 @@ export default function BolleListClient({
   const excessBollaIds = useMemo(() => new Set(excessBollaIdList), [excessBollaIdList])
 
   const [aiAnalysisForBolla, setAiAnalysisForBolla] = useState<BollaListRow | null>(null)
+  const [tipoDocByFileUrl, setTipoDocByFileUrl] = useState<Record<string, string>>({})
+  const fetchedUrlsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     const handler = () => router.refresh()
     window.addEventListener('bolla-mutated', handler)
     return () => window.removeEventListener('bolla-mutated', handler)
   }, [router])
+
+  useEffect(() => {
+    const urls = [...new Set(bolle.filter((b) => b.file_url?.trim()).map((b) => b.file_url!.trim()))]
+    const newUrls = urls.filter((u) => !fetchedUrlsRef.current.has(u))
+    if (!newUrls.length) return
+    for (const u of newUrls) fetchedUrlsRef.current.add(u)
+    let cancelled = false
+    void (async () => {
+      const { data: docs } = await supabase
+        .from('documenti_da_processare')
+        .select('file_url, metadata')
+        .in('file_url', newUrls)
+      if (cancelled || !docs?.length) return
+      const map: Record<string, string> = {}
+      for (const row of docs) {
+        const fu = row.file_url?.trim()
+        if (!fu) continue
+        const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
+        if (label) map[fu] = label
+      }
+      if (Object.keys(map).length) setTipoDocByFileUrl((prev) => ({ ...prev, ...map }))
+    })()
+    return () => { cancelled = true }
+  }, [bolle, supabase])
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, b: BollaListRow) => {
@@ -173,6 +200,11 @@ export default function BolleListClient({
                       <span className={`font-mono ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
                         {b.numero_bolla?.trim() || '—'}
                       </span>
+                      {b.numero_bolla?.trim() && (
+                        <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
+                          {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                        </span>
+                      )}
                       <DuplicateLedgerRowExtras
                         rowId={b.id}
                         payload={dupPayload}
@@ -263,6 +295,11 @@ export default function BolleListClient({
                   >
                     {b.numero_bolla?.trim() || '—'}
                   </ReturnToLink>
+                  {b.numero_bolla?.trim() && (
+                    <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
+                      {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                    </span>
+                  )}
                   <DuplicateLedgerRowExtras
                     rowId={b.id}
                     payload={dupPayload}
