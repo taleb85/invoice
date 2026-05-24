@@ -446,11 +446,6 @@ export default function FornitoreConfermeOrdineTab({
                       {t.fornitori.confermeOrdineColFile}
                     </th>
                     <th
-                      className={`px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest ${confermeTheme.label}`}
-                    >
-                      {t.bolle.colAttachmentKind}
-                    </th>
-                    <th
                       className={`px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums ${confermeTheme.label}`}
                     >
                       {t.statements.colAmount}
@@ -478,15 +473,6 @@ export default function FornitoreConfermeOrdineTab({
                         >
                           <span>{r.titolo?.trim() || r.file_name || '—'}</span>
                           {r.note?.trim() ? <p className={`mt-1 text-xs font-normal ${confermeSecondaryClass}`}>{r.note}</p> : null}
-                        </OpenDocumentInAppButton>
-                      </td>
-                      <td className="px-5 py-3">
-                        <OpenDocumentInAppButton
-                          confermaOrdineId={r.id}
-                          fileUrl={r.file_url}
-                          className={`${CONFERME_OPEN_PILL} inline-flex`}
-                        >
-                          {pdfOpenTrigger}
                         </OpenDocumentInAppButton>
                       </td>
                       <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
