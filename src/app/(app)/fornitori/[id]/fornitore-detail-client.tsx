@@ -2598,7 +2598,8 @@ function FattureTab({
         const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
         if (label) map[fu] = label
       }
-      setTipoFatturaByFileUrl(map)
+      // Merge so manual overrides set via onTipoDocumentoUpdated are not lost
+      setTipoFatturaByFileUrl((prev) => ({ ...prev, ...map }))
     })()
     return () => { cancelled = true }
   }, [fatture])
@@ -2643,6 +2644,45 @@ function FattureTab({
       }
     })()
   }, [fatture, loading, readOnly, onLedgerMutated])
+
+  const [tipoEditingFatturaId, setTipoEditingFatturaId] = useState<string | null>(null)
+
+  const DOC_TYPE_OPTIONS = [
+    { label: 'Invoice', tipo: null },
+    { label: 'Credit Note', tipo: 'nota_credito' },
+    { label: 'Order Confirmation', tipo: 'ordine' },
+    { label: 'Delivery Note', tipo: 'bolla_ddt' },
+    { label: 'Statement', tipo: 'estratto_conto' },
+  ] as const
+
+  const handleTipoOverride = useCallback(async (fileUrl: string, label: string | null) => {
+    setTipoEditingFatturaId(null)
+    if (!fileUrl) return
+    if (label) {
+      setTipoFatturaByFileUrl((prev) => ({ ...prev, [fileUrl.trim()]: label }))
+    } else {
+      setTipoFatturaByFileUrl((prev) => { const n = { ...prev }; delete n[fileUrl.trim()]; return n })
+    }
+    // Best-effort persist to documenti_da_processare
+    try {
+      const supabase = createClient()
+      const { data: docRow } = await supabase
+        .from('documenti_da_processare')
+        .select('id, metadata')
+        .eq('file_url', fileUrl.trim())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (docRow) {
+        const tipoRaw = DOC_TYPE_OPTIONS.find((o) => o.label === label)?.tipo ?? null
+        const existing = (docRow.metadata ?? {}) as Record<string, unknown>
+        await supabase
+          .from('documenti_da_processare')
+          .update({ metadata: { ...existing, tipo_documento: tipoRaw ?? 'fattura' } })
+          .eq('id', docRow.id)
+      }
+    } catch { /* ignore */ }
+  }, [DOC_TYPE_OPTIONS])
 
   const onDuplicateRemoved = useCallback(
     (removedId: string) => {
@@ -2952,8 +2992,29 @@ function FattureTab({
                         <>
                           <span className={`break-words${!readOnly ? ' cursor-text' : ''}`}>{f.numero_fattura ?? '—'}</span>
                           {f.numero_fattura && (
-                            <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
-                              {(f.file_url ? tipoFatturaByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
+                            <span className="relative mt-0.5 block">
+                              {tipoEditingFatturaId === f.id && f.file_url ? (
+                                <span className="absolute left-0 top-0 z-20 flex flex-col rounded-md border border-app-line-30 bg-[var(--app-workspace-bg,#0f1117)] shadow-lg" onClick={(e) => e.stopPropagation()}>
+                                  {DOC_TYPE_OPTIONS.map((opt) => (
+                                    <button
+                                      key={opt.label}
+                                      type="button"
+                                      className="whitespace-nowrap px-3 py-1.5 text-left font-sans text-[11px] text-app-fg-muted hover:bg-white/5 hover:text-app-fg"
+                                      onClick={() => void handleTipoOverride(f.file_url!, opt.label === 'Invoice' ? null : opt.label)}
+                                    >
+                                      {opt.label}
+                                    </button>
+                                  ))}
+                                </span>
+                              ) : null}
+                              <button
+                                type="button"
+                                className={`font-sans text-[10px] font-normal not-italic text-app-fg-muted/60 hover:text-app-fg-muted${!readOnly ? ' cursor-pointer underline decoration-dotted' : ''}`}
+                                onClick={!readOnly && f.file_url ? (e) => { e.stopPropagation(); setTipoEditingFatturaId((prev) => prev === f.id ? null : f.id) } : undefined}
+                                title={!readOnly ? 'Click to change document type' : undefined}
+                              >
+                                {(f.file_url ? tipoFatturaByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
+                              </button>
                             </span>
                           )}
                           {!readOnly ? (

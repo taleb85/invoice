@@ -70,11 +70,11 @@ export default function FatturaRefreshDateButton({
         showToast(j.error ?? t.ui.networkError, 'error')
         return
       }
-      // Apply tipo_documento update immediately regardless of other field changes
+      // Apply tipo_documento update immediately — do NOT dispatch fattura-mutated here
+      // as that would trigger a re-fetch that overwrites the direct state update.
       if (j.tipo_documento) {
         const label = tipoDocumentoToLabel(j.tipo_documento)
         if (label) onTipoDocumentoUpdated?.(label)
-        window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: fatturaId } }))
       }
       const dataChanged = j.data_changed === true
       const importoChanged = j.importo_changed === true && j.importo != null
