@@ -108,6 +108,13 @@ const translations: Translations = {
     pageSubtitle: 'Einheitliche Dokumentenwarteschlange — alles auf einem Bildschirm',
     apprendimentoTitle: 'KI-Lernen',
     apprendimentoSubtitle: 'Statistiken und Muster aus automatischen Vorschlägen',
+    statTotal: 'Gesamt',
+    statDocuments: 'Dokumente',
+    statInvoices: 'Rechnungen',
+    statOpenNotes: 'Offene Lieferscheine',
+    statStatement: 'Kontoauszug',
+    statSyncErrors: 'Sync-Fehler',
+    sectionMonitoring: 'Systemüberwachung',
   },
   strumentiAnalisiPrezzi: {
     pageTitle: 'Preisanalyse',

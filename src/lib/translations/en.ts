@@ -157,6 +157,13 @@ const translations: Translations = {
     pageSubtitle: 'Unified document queue — manage everything from one screen',
     apprendimentoTitle: 'AI learning',
     apprendimentoSubtitle: 'Stats and patterns learned from automatic suggestions',
+    statTotal: 'Total',
+    statDocuments: 'Documents',
+    statInvoices: 'Invoices',
+    statOpenNotes: 'Open notes',
+    statStatement: 'Statement',
+    statSyncErrors: 'Sync errors',
+    sectionMonitoring: 'System monitoring',
   },
   strumentiAnalisiPrezzi: {
     pageTitle: 'Price analysis',

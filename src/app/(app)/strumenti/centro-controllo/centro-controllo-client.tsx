@@ -31,6 +31,7 @@ import { suggerisciAzione, registraConfermaApprendimento, registraEsecuzioneDire
 import { formattaPriorita, labelPendingKind } from '@/lib/command-system/utils'
 import { useDocumentActions } from '@/lib/document-actions-context'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { useT } from '@/lib/use-t'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
 import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
@@ -84,6 +85,7 @@ const AUTO_RISOLVI_PHASES = [
 
 export default function CentroControlloClient({ sedeId }: Props) {
   const { showToast } = useToast()
+  const t = useT()
   const { effectiveSedeId } = useManualDeliverySede()
   const { openActions } = useDocumentActions()
 
@@ -897,7 +899,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
       {/* ── Stat cards ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
-          label="Totale"
+          label={t.strumentiCentroControllo.statTotal}
           valore={conteggi.tutti}
           icona={<AlertCircle className="w-5 h-5" />}
           colore="text-app-fg-muted"
@@ -905,7 +907,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           onClick={() => cambiaFiltroOrigine('tutti')}
         />
         <StatCard
-          label="Documenti"
+          label={t.strumentiCentroControllo.statDocuments}
           valore={conteggi.documenti_da_processare}
           icona={<FileText className="w-5 h-5" />}
           colore="text-sky-400"
@@ -913,7 +915,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           onClick={() => cambiaFiltroOrigine('documento_da_processare')}
         />
         <StatCard
-          label="Fatture"
+          label={t.strumentiCentroControllo.statInvoices}
           valore={conteggi.fattura}
           icona={<CheckCircle className="w-5 h-5" />}
           colore="text-emerald-400"
@@ -921,7 +923,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           onClick={() => cambiaFiltroOrigine('fattura')}
         />
         <StatCard
-          label="Bolle aperte"
+          label={t.strumentiCentroControllo.statOpenNotes}
           valore={conteggi.bolla_aperta}
           icona={<ExternalLink className="w-5 h-5" />}
           colore="text-amber-400"
@@ -929,7 +931,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           onClick={() => cambiaFiltroOrigine('bolla_aperta')}
         />
         <StatCard
-          label="Statement"
+          label={t.strumentiCentroControllo.statStatement}
           valore={conteggi.riga_statement}
           icona={<FileText className="w-5 h-5" />}
           colore="text-purple-400"
@@ -937,7 +939,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           onClick={() => cambiaFiltroOrigine('riga_statement')}
         />
         <StatCard
-          label="Errori sincro"
+          label={t.strumentiCentroControllo.statSyncErrors}
           valore={conteggi.errore_sincronizzazione}
           icona={<X className="w-5 h-5" />}
           colore="text-rose-400"
@@ -954,7 +956,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
            ════════════════════════════════════════════════════════════════════ */}
         <div className="flex min-w-0 flex-col gap-6">
           <SectionCard
-            title="Monitoraggio sistema"
+            title={t.strumentiCentroControllo.sectionMonitoring}
             badge={sysMonitor?.documentsAutoProcessedToday != null ? `${sysMonitor.documentsAutoProcessedToday} oggi` : null}
             action={
               <button

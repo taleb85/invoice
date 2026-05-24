@@ -1711,6 +1711,13 @@ export type Translations = {
     pageSubtitle: string
     apprendimentoTitle: string
     apprendimentoSubtitle: string
+    statTotal: string
+    statDocuments: string
+    statInvoices: string
+    statOpenNotes: string
+    statStatement: string
+    statSyncErrors: string
+    sectionMonitoring: string
   }
   strumentiAnalisiPrezzi: {
     pageTitle: string

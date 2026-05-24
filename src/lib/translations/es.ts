@@ -108,6 +108,13 @@ const translations: Translations = {
     pageSubtitle: 'Cola unificada de documentos — gestiona todo desde una pantalla',
     apprendimentoTitle: 'Aprendizaje IA',
     apprendimentoSubtitle: 'Estadísticas y patrones del sistema de sugerencias automáticas',
+    statTotal: 'Total',
+    statDocuments: 'Documentos',
+    statInvoices: 'Facturas',
+    statOpenNotes: 'Albaranes abiertos',
+    statStatement: 'Extracto',
+    statSyncErrors: 'Errores sync',
+    sectionMonitoring: 'Monitoreo del sistema',
   },
   strumentiAnalisiPrezzi: {
     pageTitle: 'Análisis de precios',

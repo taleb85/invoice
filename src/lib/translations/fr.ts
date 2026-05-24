@@ -108,6 +108,13 @@ const translations: Translations = {
     pageSubtitle: 'File d\'attente unifiée — tout gérer depuis un seul écran',
     apprendimentoTitle: 'Apprentissage IA',
     apprendimentoSubtitle: 'Statistiques et modèles appris des suggestions automatiques',
+    statTotal: 'Total',
+    statDocuments: 'Documents',
+    statInvoices: 'Factures',
+    statOpenNotes: 'BL ouverts',
+    statStatement: 'Relevé',
+    statSyncErrors: 'Erreurs sync',
+    sectionMonitoring: 'Surveillance système',
   },
   strumentiAnalisiPrezzi: {
     pageTitle: 'Analyse des prix',

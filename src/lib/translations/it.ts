@@ -160,6 +160,13 @@ const translations: Translations = {
     pageSubtitle: 'Coda unificata documenti — gestisci tutto da un\'unica schermata',
     apprendimentoTitle: 'Apprendimento AI',
     apprendimentoSubtitle: 'Statistiche e pattern appresi dal sistema di suggerimenti automatici',
+    statTotal: 'Totale',
+    statDocuments: 'Documenti',
+    statInvoices: 'Fatture',
+    statOpenNotes: 'Bolle aperte',
+    statStatement: 'Statement',
+    statSyncErrors: 'Errori sincro',
+    sectionMonitoring: 'Monitoraggio sistema',
   },
   strumentiAnalisiPrezzi: {
     pageTitle: 'Analisi Prezzi',
