@@ -5,6 +5,7 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { useT } from '@/lib/use-t'
 
 export type ReclassifyResultRow = {
   id: string
@@ -16,6 +17,7 @@ export default function ReclassifyPendingKindCard() {
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
   const sedeCtx = useManualDeliverySede()
+  const t = useT()
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<{ checked: number; updated: number; skipped: number; results: ReclassifyResultRow[] } | null>(null)
 
@@ -23,7 +25,7 @@ export default function ReclassifyPendingKindCard() {
   if (!canReclassify) return null
 
   const handleReclassify = async () => {
-    if (!confirm('Riclassificare i documenti in coda con la nuova euristica? Questa operazione non esegue OCR, solo analisi di oggetto/nome file/metadata.')) return
+    if (!confirm(t.strumentiCentroControllo.reclassifyConfirm)) return
     setBusy(true)
     setResult(null)
     try {
@@ -51,10 +53,9 @@ export default function ReclassifyPendingKindCard() {
     <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-app-fg">Riclassifica documenti</h3>
+          <h3 className="text-sm font-semibold text-app-fg">{t.strumentiCentroControllo.reclassifyTitle}</h3>
           <p className="mt-1 text-xs text-app-fg-muted">
-            Rivaluta la categoria (pending_kind) dei documenti in coda usando la nuova euristica
-            su oggetto email e nome file. Non esegue OCR — costo zero.
+            {t.strumentiCentroControllo.reclassifyDesc}
           </p>
         </div>
         <button
@@ -63,23 +64,25 @@ export default function ReclassifyPendingKindCard() {
           onClick={handleReclassify}
           className="shrink-0 touch-manipulation rounded-lg border border-cyan-500/35 bg-cyan-500/8 px-3 py-1.5 text-xs font-semibold text-cyan-200/95 transition-colors hover:bg-cyan-500/15 disabled:opacity-50"
         >
-          {busy ? 'Riclassifico…' : 'Riclassifica'}
+          {busy ? t.strumentiCentroControllo.reclassifyBusy : t.strumentiCentroControllo.reclassifyButton}
         </button>
       </div>
 
       {result && (
         <div className="mt-3 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-3 text-xs">
           <p className="font-medium text-app-fg">
-            Controllati: {result.checked} · Riclassificati:{' '}
-            <span className={result.updated > 0 ? 'text-amber-300 font-semibold' : 'text-emerald-300'}>
-              {result.updated}
-            </span>
-            {' · '}Invariati: {result.skipped}
+            {(() => {
+              const line = t.strumentiCentroControllo.reclassifyResultLine
+                .replace('{checked}', String(result.checked))
+                .replace('{updated}', String(result.updated))
+                .replace('{skipped}', String(result.skipped))
+              return line
+            })()}
           </p>
           {result.results.length > 0 && (
             <details className="mt-2">
               <summary className="cursor-pointer text-app-fg-muted hover:text-app-fg">
-                Dettaglio ({result.results.length} modifiche)
+                {t.strumentiCentroControllo.reclassifyDetailLabel.replace('{n}', String(result.results.length))}
               </summary>
               <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
                 {result.results.map((r) => (

@@ -763,7 +763,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         cumulativeRicevuti += r
         const label = typeof j.progressLabel === 'string' ? j.progressLabel : ''
         if (!j.done && label) {
-          setHistoricProgressLine(`Elaborazione: ${label}…`)
+          setHistoricProgressLine(t.strumentiCentroControllo.historicProgressLabel.replace('{label}', label))
         } else {
           setHistoricProgressLine(null)
         }
@@ -771,9 +771,14 @@ export default function CentroControlloClient({ sedeId }: Props) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
       }
       setHistoricProgressLine(null)
-      setHistoricSyncResult(`Completato!\n${cumulativeRicevuti} documenti importati dall'anno precedente`)
+      setHistoricSyncResult(
+        `${t.strumentiCentroControllo.historicCompletedTitle}\n${t.strumentiCentroControllo.historicCompletedDocs.replace(
+          '{n}',
+          String(cumulativeRicevuti),
+        )}`,
+      )
     } catch (e) {
-      setHistoricSyncError(e instanceof Error ? e.message : 'Errore di rete')
+      setHistoricSyncError(e instanceof Error ? e.message : t.strumentiCentroControllo.networkError)
     } finally {
       setHistoricSyncLoading(false)
     }
@@ -1124,7 +1129,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           {/* ── Statement ── */}
           {statementStats && (
             <SectionCard
-              title="Statement"
+              title={t.strumentiCentroControllo.statStatement}
               badge={statementStats.total}
               action={
                 <a
@@ -1132,7 +1137,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                   className="inline-flex items-center gap-1 rounded-lg bg-app-line-15 px-2.5 py-1 text-[11px] font-medium text-app-fg-muted transition-colors hover:bg-app-line-25"
                 >
                   <ExternalLink className="w-3 h-3" />
-                  Vedi tutti
+                  {t.strumentiCentroControllo.statementSeeAll}
                 </a>
               }
             >
@@ -1146,9 +1151,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                             <span>
                               <strong className="font-semibold text-app-fg">{statementStats.righe_anomale ?? statementStats.anomalie_totali}</strong>
-                              {' '}righe con anomalie
+                              {' '}{t.strumentiCentroControllo.statementRowsWithAnomalies}
                               {statementStats.con_anomalie > 0 ? (
-                                <span className="text-app-fg-muted"> · {statementStats.con_anomalie} estratti conto</span>
+                                <span className="text-app-fg-muted"> · {statementStats.con_anomalie} {t.strumentiCentroControllo.statementsWord}</span>
                               ) : null}
                             </span>
                           </div>
@@ -1161,8 +1166,8 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               </svg>
                             </span>
                             <p className="text-[11px] text-emerald-300/90">
-                              <span className="font-semibold">Analisi automatica attiva</span>
-                              <span className="text-app-fg-muted"> · sync email 03:00 · pipeline 04:00 ogni notte</span>
+                              <span className="font-semibold">{t.strumentiCentroControllo.statementAutoActive}</span>
+                              <span className="text-app-fg-muted"> · {t.strumentiCentroControllo.statementAutoActiveDesc}</span>
                             </p>
                           </div>
 
@@ -1172,7 +1177,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               <svg className="w-2.5 h-2.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
-                              Opzioni avanzate
+                              {t.strumentiCentroControllo.statementAdvancedOptions}
                             </summary>
                             <div className="mt-2 space-y-2 rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5">
                               {/* Pipeline manuale */}
@@ -1182,23 +1187,23 @@ export default function CentroControlloClient({ sedeId }: Props) {
                                 return (
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
-                                      <p className="text-[11px] font-semibold text-app-fg">Pipeline AI — Esegui ora</p>
+                                      <p className="text-[11px] font-semibold text-app-fg">{t.strumentiCentroControllo.statementPipelineTitle}</p>
                                       <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
-                                        Forza un ciclo completo: analisi anomalie → ricerca email → associazione automatica.
+                                        {t.strumentiCentroControllo.statementPipelineDesc}
                                       </p>
                                       {isRunning && pipelineCurrentFornitore && (
                                         <p className="mt-1 text-[10px] text-purple-200/70 truncate">
                                           <Loader2 className="w-2.5 h-2.5 animate-spin inline mr-1" />
-                                          {pipelineCurrentFornitore}…
+                                          {t.strumentiCentroControllo.statementPipelineCurrent.replace('{name}', pipelineCurrentFornitore)}
                                         </p>
                                       )}
                                       {isDone && pipelineSummary && (
                                         <p className={`mt-1 text-[11px] ${pipelineSummary.totalResolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
                                           {pipelineSummary.totalResolved > 0
-                                            ? `✓ ${pipelineSummary.totalResolved} anomalie risolte`
-                                            : 'Nessuna anomalia risolvibile'}
+                                            ? t.strumentiCentroControllo.statementPipelineResolved.replace('{n}', String(pipelineSummary.totalResolved))
+                                            : t.strumentiCentroControllo.statementPipelineNoResolvable}
                                           {pipelineSummary.remaining > 0 && (
-                                            <span className="text-amber-300"> · {pipelineSummary.remaining} richiedono attenzione</span>
+                                            <span className="text-amber-300"> · {t.strumentiCentroControllo.statementPipelineRemaining.replace('{n}', String(pipelineSummary.remaining))}</span>
                                           )}
                                         </p>
                                       )}
@@ -1210,7 +1215,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                                       className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
                                     >
                                       {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : isDone ? <RefreshCw className="w-3 h-3" /> : <ScanLine className="w-3 h-3" />}
-                                      {isRunning ? 'In corso…' : isDone ? 'Riesegui' : 'Avvia'}
+                                      {isRunning ? t.strumentiCentroControllo.statementPipelineInProgress : isDone ? t.strumentiCentroControllo.statementPipelineRerun : t.strumentiCentroControllo.statementPipelineStart}
                                     </button>
                                   </div>
                                 )
@@ -1219,9 +1224,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               <div className="border-t border-app-line-10 pt-2">
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0 flex-1">
-                                    <p className="text-[11px] font-semibold text-app-fg">Ricalcola tutto il triple-check</p>
+                                    <p className="text-[11px] font-semibold text-app-fg">{t.strumentiCentroControllo.statementRecalcTitle}</p>
                                     <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
-                                      Riesegue il confronto fattura ↔ bolla ↔ estratto conto su ogni riga. Usa dopo aver caricato manualmente nuove fatture o DDT.
+                                      {t.strumentiCentroControllo.statementRecalcDesc}
                                     </p>
                                   </div>
                                   <button
@@ -1231,7 +1236,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                                     className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
                                   >
                                     {reprocessingChecks ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                    {reprocessingChecks ? 'In corso…' : 'Ricalcola'}
+                                    {reprocessingChecks ? t.strumentiCentroControllo.statementRecalcInProgress : t.strumentiCentroControllo.statementRecalcRun}
                                   </button>
                                 </div>
                                 {reprocessChecksResult && (
@@ -1244,7 +1249,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                       ) : (
                         <div className="flex items-center gap-2 text-xs text-app-fg-muted">
                           <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                          Nessuno statement in sospeso · triple-check allineato
+                          {t.strumentiCentroControllo.statementNoneInQueue}
                         </div>
                       )}
                     </div>
@@ -1263,8 +1268,8 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             <Zap className="w-3.5 h-3.5" />
                           )}
                           {processingStatements
-                            ? `Elaborazione ${statementStats.pending_list.length} statement…`
-                            : 'Elabora statement in sospeso'}
+                            ? t.strumentiCentroControllo.statementProcessing.replace('{n}', String(statementStats.pending_list.length))
+                            : t.strumentiCentroControllo.statementProcessPending}
                           {!processingStatements && statementStats.pending_count > 0 && (
                             <span className="inline-flex items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold">
                               {statementStats.pending_count}
@@ -1277,13 +1282,13 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             onClick={() => setStmtPendingOpen(!stmtPendingOpen)}
                             className="text-[11px] font-medium text-app-fg-muted underline decoration-app-line-15 underline-offset-2 hover:text-app-fg transition-colors"
                           >
-                            {stmtPendingOpen ? 'Nascondi elenco' : `Vedi ${statementStats.pending_list.length} file`}
+                            {stmtPendingOpen ? t.strumentiCentroControllo.statementHideList : t.strumentiCentroControllo.statementSeeFiles.replace('{n}', String(statementStats.pending_list.length))}
                           </button>
                         )}
                       </div>
                       {processingStatements && (
                         <p className="text-xs text-purple-300/70 animate-pulse">
-                          Elaborazione in corso — verranno processati {statementStats.pending_list.length} file
+                          {t.strumentiCentroControllo.statementProcessingMsg.replace('{n}', String(statementStats.pending_list.length))}
                         </p>
                       )}
                       {stmtPendingOpen && !processingStatements && (
@@ -1306,10 +1311,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
                 {processStmtResult && (
                   <div className="px-4 py-2.5 text-xs space-y-1">
                     <div className="flex items-center gap-4">
-                      <span className="text-emerald-400 font-medium">Processati: {processStmtResult.processed}</span>
-                      <span className="text-slate-400">Saltati: {processStmtResult.skipped}</span>
+                      <span className="text-emerald-400 font-medium">{t.strumentiCentroControllo.statementProcessed.replace('{n}', String(processStmtResult.processed))}</span>
+                      <span className="text-slate-400">{t.strumentiCentroControllo.statementSkipped.replace('{n}', String(processStmtResult.skipped))}</span>
                       {processStmtResult.errors.length > 0 && (
-                        <span className="text-rose-400">Errori: {processStmtResult.errors.length}</span>
+                        <span className="text-rose-400">{t.strumentiCentroControllo.statementErrors.replace('{n}', String(processStmtResult.errors.length))}</span>
                       )}
                     </div>
                     {processStmtResult.errors.length > 0 && (
@@ -1326,7 +1331,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                 {statementStats.recenti.length > 0 && (
                   <>
                     <div className="px-4 py-1.5 text-[10px] font-semibold text-app-fg-muted uppercase tracking-wide bg-app-line-5">
-                      Ultimi elaborati
+                      {t.strumentiCentroControllo.statementRecentlyProcessed}
                     </div>
                     <div className="max-h-48 divide-y divide-app-line-10 overflow-y-auto">
                       {statementStats.recenti.slice(0, 8).map((s) => (
@@ -1339,11 +1344,13 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[9px] font-bold text-emerald-400">✓</span>
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-app-fg">{s.fornitore_nome ?? 'Senza fornitore'}</p>
+                            <p className="truncate text-app-fg">{s.fornitore_nome ?? t.strumentiCentroControllo.statementWithoutSupplier}</p>
                             <p className="truncate text-app-fg-muted">{s.email_subject ?? s.file_url?.split('/').pop() ?? '—'}</p>
                           </div>
                           <span className={`shrink-0 font-medium ${s.missing_rows > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            {s.missing_rows > 0 ? `${s.missing_rows}/${s.total_rows} anomalie` : `${s.total_rows} righe OK`}
+                            {s.missing_rows > 0
+                              ? t.strumentiCentroControllo.statementAnomaliesCount.replace('{missing}', String(s.missing_rows)).replace('{total}', String(s.total_rows))
+                              : t.strumentiCentroControllo.statementRowsOk.replace('{n}', String(s.total_rows))}
                           </span>
                         </div>
                       ))}
@@ -1360,10 +1367,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
                     >
                       <div className="flex items-center gap-3">
                         <span className={`text-xs font-semibold ${stmtAnomalieOpen ? 'text-rose-300' : 'text-app-fg-muted'}`}>
-                          Statement con anomalie
+                          {t.strumentiCentroControllo.statementWithAnomalies}
                         </span>
                         <span className="inline-flex items-center justify-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-300">{statementStats.con_anomalie}</span>
-                        <span className="text-xs text-app-fg-muted">({statementStats.anomalie_totali} anomalie)</span>
+                        <span className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.statementAnomaliesTotal.replace('{n}', String(statementStats.anomalie_totali))}</span>
                       </div>
                       <span className={`text-app-fg-muted transition-transform ${stmtAnomalieOpen ? 'rotate-180' : ''}`}>▾</span>
                     </button>
@@ -1373,10 +1380,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
                           <div key={s.id} className="flex items-center gap-3 border-b border-app-line-10 px-4 py-2.5 text-xs last:border-0">
                             <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400">!</span>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate font-medium text-app-fg">{s.fornitore_nome ?? 'Senza fornitore'}</p>
+                              <p className="truncate font-medium text-app-fg">{s.fornitore_nome ?? t.strumentiCentroControllo.statementWithoutSupplier}</p>
                               <p className="truncate text-app-fg-muted">{s.email_subject ?? s.file_url?.split('/').pop() ?? '—'}</p>
                             </div>
-                            <span className="inline-flex items-center rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">{s.missing_rows}/{s.total_rows} anomalie</span>
+                            <span className="inline-flex items-center rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">{t.strumentiCentroControllo.statementAnomaliesCount.replace('{missing}', String(s.missing_rows)).replace('{total}', String(s.total_rows))}</span>
                           </div>
                         ))}
                       </div>
@@ -1391,11 +1398,11 @@ export default function CentroControlloClient({ sedeId }: Props) {
           <details className="group">
             <summary className="flex cursor-pointer list-none select-none items-center gap-2 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-app-fg-muted transition-colors hover:bg-app-line-15 [&::-webkit-details-marker]:hidden">
               <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
-              Strumenti di Manutenzione Avanzata
+              {t.strumentiCentroControllo.advTools}
             </summary>
             <div className="mt-4 flex flex-col gap-4">
 
-              <SectionCard title="OCR & Qualità">
+              <SectionCard title={t.strumentiCentroControllo.advOcrQuality}>
                 <div className="divide-y divide-app-line-10">
                   <div className="px-4 py-3">
                     <ReclassifyPendingKindCard />
@@ -1409,15 +1416,15 @@ export default function CentroControlloClient({ sedeId }: Props) {
                 </div>
               </SectionCard>
 
-              <SectionCard title="Sync & Email">
+              <SectionCard title={t.strumentiCentroControllo.advSyncEmail}>
                 <div className="divide-y divide-app-line-10">
                   <div className="px-4 py-3">
-                    <p className="text-xs font-semibold text-app-fg">Sync storica (anno precedente)</p>
+                    <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advHistoricSyncTitle}</p>
                     <p className="mt-1 text-xs text-app-fg-muted">
-                      Scarica tutte le email degli ultimi 365 giorni per il confronto con l'anno fiscale.
+                      {t.strumentiCentroControllo.advHistoricSyncDesc}
                     </p>
                     <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-100/90">
-                      Operazione lenta — può richiedere diversi minuti. Esegui solo una volta.
+                      {t.strumentiCentroControllo.advHistoricSyncWarning}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <button
@@ -1431,7 +1438,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                         ) : (
                           <Calendar className="w-3 h-3" />
                         )}
-                        Avvia sync storica
+                        {t.strumentiCentroControllo.advHistoricSyncStart}
                       </button>
                       {historicSyncError && <span className="text-xs text-rose-300">{historicSyncError}</span>}
                     </div>
@@ -1445,12 +1452,12 @@ export default function CentroControlloClient({ sedeId }: Props) {
                 </div>
               </SectionCard>
 
-              <SectionCard title="Manutenzione">
+              <SectionCard title={t.strumentiCentroControllo.advMaintenance}>
                 <div className="divide-y divide-app-line-10">
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">Cerca duplicati fatture</p>
-                      <p className="text-xs text-app-fg-muted">Stesso fornitore, stessa data e stesso numero fattura.</p>
+                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advFindDupTitle}</p>
+                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advFindDupDesc}</p>
                     </div>
                     <button
                       type="button"
@@ -1458,46 +1465,46 @@ export default function CentroControlloClient({ sedeId }: Props) {
                       className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18"
                     >
                       <ScanLine className="w-3 h-3" />
-                      Scansiona
+                      {t.strumentiCentroControllo.advFindDupAction}
                     </button>
                   </div>
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">Audit abbinamenti fornitore</p>
-                      <p className="text-xs text-app-fg-muted">Allinea email mittente e fornitori assegnati.</p>
+                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advAuditMatchingTitle}</p>
+                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advAuditMatchingDesc}</p>
                     </div>
                     <a
                       href="/inbox-ai?tab=audit"
                       className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
                     >
                       <UserCheck className="w-3 h-3" />
-                      Apri audit
+                      {t.strumentiCentroControllo.advAuditMatchingAction}
                     </a>
                   </div>
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">Centro operazioni</p>
-                      <p className="text-xs text-app-fg-muted">Sync storica email, OCR batch, ripassaggio documenti e altri strumenti operativi.</p>
+                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advCentroOpTitle}</p>
+                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advCentroOpDesc}</p>
                     </div>
                     <a
                       href="/strumenti/centro-operazioni"
                       className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      Apri
+                      {t.strumentiCentroControllo.advOpenAction}
                     </a>
                   </div>
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">Apprendimento AI</p>
-                      <p className="text-xs text-app-fg-muted">Statistiche e pattern di apprendimento automatico.</p>
+                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advLearningTitle}</p>
+                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advLearningDesc}</p>
                     </div>
                     <a
                       href="/strumenti/centro-controllo/apprendimento"
                       className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
                     >
                       <Brain className="w-3 h-3" />
-                      Apri
+                      {t.strumentiCentroControllo.advOpenAction}
                     </a>
                   </div>
                 </div>

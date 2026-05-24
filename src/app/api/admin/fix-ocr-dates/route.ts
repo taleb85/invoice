@@ -196,7 +196,24 @@ export async function POST(req: NextRequest) {
   }
 
   const limit = Math.min(150, Math.max(1, Number(body?.limit) || 40))
-  const sedeFromBody = typeof body.sede_id === 'string' ? body.sede_id.trim() : ''
+  let sedeFromBody = typeof body.sede_id === 'string' ? body.sede_id.trim() : ''
+
+  const service = createServiceClient()
+
+  // Single-target shortcut: derive sede_id from the record itself when the caller
+  // hasn't passed one. This unblocks the per-row "Rianalizza con OCR" action from
+  // the document actions modal, where the UI may not always have sede_id at hand.
+  if (!sedeFromBody && (bollaIdForce || fatturaIdForce)) {
+    const table = bollaIdForce ? 'bolle' : 'fatture'
+    const recordId = bollaIdForce || fatturaIdForce
+    const { data: row } = await service
+      .from(table)
+      .select('sede_id')
+      .eq('id', recordId)
+      .maybeSingle()
+    const derived = (row as { sede_id?: string | null } | null)?.sede_id?.trim?.()
+    if (derived) sedeFromBody = derived
+  }
 
   if (isBranchSedeStaffRole(profile.role)) {
     if (!sedeFromBody) {
@@ -213,7 +230,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
   }
 
-  const service = createServiceClient()
   const todayIso = new Date().toISOString().slice(0, 10)
   const orFilter = `data.gt.${todayIso},data.lt.1990-01-01,data.gt.2035-12-31`
 

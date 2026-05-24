@@ -320,7 +320,12 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/admin/fix-ocr-dates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bolla_id: item.id, limit: 1, allow_tipo_migrate: true }),
+        body: JSON.stringify({
+          bolla_id: item.id,
+          limit: 1,
+          allow_tipo_migrate: true,
+          ...(item.sede_id ? { sede_id: item.sede_id } : {}),
+        }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))

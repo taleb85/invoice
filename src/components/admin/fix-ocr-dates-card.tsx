@@ -5,6 +5,8 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { useT } from '@/lib/use-t'
+import type { Translations } from '@/lib/translations'
 
 export type FixOcrDetailRow = {
   id: string
@@ -22,22 +24,23 @@ export type FixOcrDetailRow = {
   ocrTipo: string | null
 }
 
-function actionLabelIt(a: FixOcrDetailRow['action']): string {
+function actionLabel(a: FixOcrDetailRow['action'], t: Translations): string {
+  const c = t.strumentiCentroControllo
   switch (a) {
     case 'date_only':
-      return 'Data aggiornata'
+      return c.fixOcrActionDateOnly
     case 'migrated_to_fattura':
-      return 'Migrato → fattura'
+      return c.fixOcrActionMigratedFattura
     case 'migrated_to_bolla':
-      return 'Migrato → bolla'
+      return c.fixOcrActionMigratedBolla
     case 'unchanged':
-      return 'Invariato'
+      return c.fixOcrActionUnchanged
     case 'error':
-      return 'Errore'
+      return c.fixOcrActionError
     case 'bolla_enriched':
-      return 'Bolla: dati da OCR'
+      return c.fixOcrActionBollaEnriched
     case 'fattura_enriched':
-      return 'Fattura: dati da OCR'
+      return c.fixOcrActionFatturaEnriched
     default:
       return a
   }
@@ -50,6 +53,7 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
   const { effectiveSedeId } = useManualDeliverySede()
+  const t = useT()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -95,20 +99,24 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
         setErr(data.error ?? `HTTP ${res.status}`)
         return
       }
-      setResult(
-        `Corretti: ${data.corrected ?? 0} (su ${data.scanned ?? 0} scansioni; sospetti in sede: ${
-          data.totalSuspicious ?? 0
-        }${data.remaining ? `; in coda: ${data.remaining}` : ''}) — ` +
-          `date: ${data.dateOnlyFixes ?? 0}, → fattura: ${
-            data.tipoMigratedToFattura ?? 0
-          }, → bolla: ${data.tipoMigratedToBolla ?? 0}.` +
-          (data.errors?.length ? ` Errori: ${data.errors.length}.` : ''),
-      )
+      const remainingPart = data.remaining ? `; in queue: ${data.remaining}` : ''
+      const baseLine = t.strumentiCentroControllo.fixOcrResultLine
+        .replace('{corrected}', String(data.corrected ?? 0))
+        .replace('{scanned}', String(data.scanned ?? 0))
+        .replace('{suspicious}', String(data.totalSuspicious ?? 0))
+        .replace('{remainingPart}', remainingPart)
+        .replace('{dateOnly}', String(data.dateOnlyFixes ?? 0))
+        .replace('{toFattura}', String(data.tipoMigratedToFattura ?? 0))
+        .replace('{toBolla}', String(data.tipoMigratedToBolla ?? 0))
+      const errPart = data.errors?.length
+        ? t.strumentiCentroControllo.fixOcrResultErrors.replace('{n}', String(data.errors.length))
+        : ''
+      setResult(baseLine + errPart)
       setDetails(Array.isArray(data.details) ? data.details : [])
       setDetailsTruncated(Boolean(data.detailsTruncated))
       setReportErrors(Array.isArray(data.errors) ? data.errors : [])
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Errore di rete')
+      setErr(e instanceof Error ? e.message : t.strumentiCentroControllo.fixOcrNetworkError)
     } finally {
       setLoading(false)
     }
@@ -123,10 +131,10 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
           </svg>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">OCR & date</p>
-          <p className="mt-0.5 text-sm font-semibold text-app-fg">Correggi date (Gemini)</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.strumentiCentroControllo.fixOcrLabel}</p>
+          <p className="mt-0.5 text-sm font-semibold text-app-fg">{t.strumentiCentroControllo.fixOcrTitle}</p>
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-            Rilegge l’allegato con l’OCR attuale e corregge date sospette e tipo documento, solo per questa sede.
+            {t.strumentiCentroControllo.fixOcrDesc}
           </p>
           {err ? (
             <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{err}</p>
@@ -138,7 +146,7 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
           ) : null}
           {reportErrors.length > 0 ? (
             <div className="mt-3 max-h-40 overflow-y-auto rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5">
-              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-200/90">Errori o avvisi</p>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-200/90">{t.strumentiCentroControllo.fixOcrErrorsTitle}</p>
               <ul className="space-y-1.5 text-[11px] leading-snug text-amber-100/95">
                 {reportErrors.map((e, i) => (
                   <li key={`${e.table}-${e.id}-${i}`} className="break-words">
@@ -155,7 +163,7 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
           ) : null}
           {details.length > 0 ? (
             <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-app-line-25 bg-black/20 px-3 py-2.5">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">Dettaglio operazioni</p>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">{t.strumentiCentroControllo.fixOcrDetailsTitle}</p>
               <ul className="space-y-2 text-[11px] leading-snug text-app-fg">
                 {details.map((d, i) => (
                   <li key={`${d.table}-${d.id}-${i}`} className="border-b border-app-line-10 pb-2 last:border-0 last:pb-0">
@@ -164,15 +172,15 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
                     <span className="font-mono text-[10px] text-cyan-300/90" title={d.id}>
                       {d.id.length > 10 ? `${d.id.slice(0, 8)}…` : d.id}
                     </span>
-                    <span className="ml-1.5 text-app-fg-muted">{actionLabelIt(d.action)}</span>
+                    <span className="ml-1.5 text-app-fg-muted">{actionLabel(d.action, t)}</span>
                     {d.newData && d.newData !== d.previousData ? (
                       <span className="mt-0.5 block pl-0 text-app-fg-muted">
                         {d.previousData} → <span className="font-medium text-emerald-200/95">{d.newData}</span>
                       </span>
                     ) : d.action === 'unchanged' ? (
-                      <span className="mt-0.5 block text-app-fg-muted">Data: {d.previousData}</span>
+                      <span className="mt-0.5 block text-app-fg-muted">{t.strumentiCentroControllo.fixOcrDate.replace('{date}', d.previousData)}</span>
                     ) : d.action === 'error' ? (
-                      <span className="mt-0.5 block text-app-fg-muted">Data in DB: {d.previousData}</span>
+                      <span className="mt-0.5 block text-app-fg-muted">{t.strumentiCentroControllo.fixOcrDataInDb.replace('{date}', d.previousData)}</span>
                     ) : null}
                     {d.ocrTipo ? (
                       <span className="mt-0.5 block text-[10px] text-violet-300/90">OCR: {d.ocrTipo}</span>
@@ -181,7 +189,7 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
                 ))}
               </ul>
               {detailsTruncated ? (
-                <p className="mt-2 text-[10px] text-amber-200/80">Elenco troncato: riesegui l’operazione se restano documenti in coda.</p>
+                <p className="mt-2 text-[10px] text-amber-200/80">{t.strumentiCentroControllo.fixOcrTruncated}</p>
               ) : null}
             </div>
           ) : null}
@@ -191,7 +199,7 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
             disabled={loading}
             className="mt-3 inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18 disabled:opacity-50 sm:w-auto"
           >
-            {loading ? 'Elaborazione…' : 'Fix date OCR'}
+            {loading ? t.strumentiCentroControllo.fixOcrRunning : t.strumentiCentroControllo.fixOcrRun}
           </button>
         </div>
       </div>
