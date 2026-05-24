@@ -2382,6 +2382,9 @@ function BolleTab({
                 <td className="px-3 py-3 font-medium text-app-fg-muted">{formatDate(b.data)}</td>
                 <td className="px-3 py-3 font-mono text-xs text-app-fg-muted">
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
+                  <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
+                    {t.dashboard.emailSyncDocumentKindBolla}
+                  </span>
                   {!readOnly ? (
                     <DuplicateLedgerRowExtras
                       rowId={b.id}
