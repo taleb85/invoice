@@ -405,7 +405,14 @@ export default function FornitoreConfermeOrdineTab({
                   className="flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-app-line-5"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-app-fg">{r.titolo?.trim() || r.file_name || '—'}</p>
+                    <p className="flex min-w-0 flex-wrap items-center gap-1.5 font-medium text-app-fg">
+                      <span className="truncate">{r.titolo?.trim() || r.file_name || '—'}</span>
+                      {extractDocTypeFromTitle(r.titolo, r.file_name) && (
+                        <span className="shrink-0 rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-app-fg-muted">
+                          {extractDocTypeFromTitle(r.titolo, r.file_name)}
+                        </span>
+                      )}
+                    </p>
                     {r.data_ordine ? (
                       <p className={`mt-0.5 text-xs ${confermeSecondaryClass}`}>
                         {t.fornitori.confermeOrdineOptionalOrderDate}: {fmt(r.data_ordine)}
@@ -491,8 +498,15 @@ export default function FornitoreConfermeOrdineTab({
                           stopTriggerPropagation
                           categoria={extractDocTypeFromTitle(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
                         >
-                          <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
-                            {r.titolo?.trim() || r.file_name || '—'}
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
+                              {r.titolo?.trim() || r.file_name || '—'}
+                            </span>
+                            {extractDocTypeFromTitle(r.titolo, r.file_name) && (
+                              <span className="shrink-0 rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-app-fg-muted">
+                                {extractDocTypeFromTitle(r.titolo, r.file_name)}
+                              </span>
+                            )}
                           </span>
                           {r.note?.trim() ? (
                             <span className={`mt-1 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.note}>
