@@ -136,8 +136,20 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     return 'estratto_conto'
   }
 
-  // ── Ordine ────────────────────────────────────────────────────────────────
-  if (s === 'ordine' || s === 'order' || s === 'purchase_order' || s === 'po') return 'ordine'
+  // ── Ordine / Order Confirmation ───────────────────────────────────────────
+  if (
+    s === 'ordine' ||
+    s === 'order' ||
+    s === 'purchase_order' ||
+    s === 'po' ||
+    s === 'order_confirmation' ||
+    s === 'sales_order' ||
+    s === 'so' ||
+    s === 'conferma_ordine' ||
+    s === 'auftragsbestätigung' ||
+    s === 'confirmation_de_commande' ||
+    s === 'confirmación_de_pedido'
+  ) return 'ordine'
 
   // ── Listino / altro → null (non più tipi distinti nell'enum) ─────────────
   if (s === 'listino' || s === 'listino_prezzi' || s === 'price_list' || s === 'catalogue' || s === 'catalog') return null
@@ -181,7 +193,15 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   if (/preventivo|quotation|\bquote\b|pro[\s_-]?forma/.test(s)) {
     return null
   }
-  if (/order\s+confirmation|\bordine\b/.test(s)) {
+  if (
+    /order[\s_-]?confirmation/.test(s) ||
+    /\bordine\b/.test(s) ||
+    /conferma[\s_-]?ordine/.test(s) ||
+    /auftragsbestätigung/.test(s) ||
+    /confirmation[\s_-]?de[\s_-]?commande/.test(s) ||
+    /sales[\s_-]?order/.test(s) ||
+    /\bso\d{5,}/.test(s)
+  ) {
     return 'ordine'
   }
   return null

@@ -4,13 +4,20 @@ import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
  * Converts an OCR `tipo_documento` value (raw or normalised) to a human-readable label.
  * Returns null for types that are implicit from context (e.g. bolla_ddt in the Bolle tab).
  */
+/**
+ * Converts a normalised OCR `tipo_documento` to a display label.
+ * Returns null for the "expected" default types (`fattura`, `bolla_ddt`) so callers
+ * can fall through to context-specific fallbacks (e.g. "Invoice", "Delivery Note").
+ * Only returns a label when the type is meaningfully different from the default context.
+ */
 export function tipoDocumentoToLabel(rawTipo: unknown): string | null {
   const t = normalizeTipoDocumento(rawTipo)
   switch (t) {
-    case 'fattura': return 'Invoice'
     case 'nota_credito': return 'Credit Note'
     case 'ordine': return 'Order Confirmation'
     case 'estratto_conto': return 'Statement'
+    case 'comunicazione': return null
+    // 'fattura' and 'bolla_ddt' are default types — let the rendering fallback handle them
     default: return null
   }
 }

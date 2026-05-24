@@ -304,11 +304,13 @@ function buildSystemPrompt(
   const ignoreBlock =
     ignoredCount > 0 ? buildIgnoredCustomerNamesPromptBlock(extras!.ignoredCustomerNames!) : ''
 
-  return `${modeIntro}Supported document types (all treated equivalently):
-- Invoice (EN) = Fattura (IT) = Factura (ES) = Facture (FR) = Rechnung (DE)
-- Delivery note (EN) = Bolla/DDT (IT) = Albarán (ES) = Bon de livraison (FR) = Lieferschein (DE)
-- Credit note (EN) = Nota credito (IT) = Nota de crédito (ES) = Avoir (FR) = Gutschrift (DE) — classify as **nota_credito** (not fattura)
-- Delivery note (bolla/DDT/Lieferschein/Albarán) → **bolla_ddt**; account/bank statement → **estratto_conto**; CV/résumé or conversational email → **comunicazione**
+  return `${modeIntro}Supported document types:
+- Invoice (EN) = Fattura (IT) = Factura (ES) = Facture (FR) = Rechnung (DE) → **fattura** — a tax invoice issued by a seller with VAT breakdown and fiscal numbering.
+- Order Confirmation (EN) = Conferma d'ordine (IT) = Confirmación de pedido (ES) = Confirmation de commande (FR) = Auftragsbestätigung (DE) → **ordine** — acknowledges a purchase order; typically shows "Order Confirmation", "Sales Order", "SO", "PO Acknowledgement", "Conferma Ordine" as the primary title. NOT a tax invoice. Classify as **ordine**, never as fattura.
+- Delivery note (EN) = Bolla/DDT (IT) = Albarán (ES) = Bon de livraison (FR) = Lieferschein (DE) → **bolla_ddt**
+- Credit note (EN) = Nota credito (IT) = Nota de crédito (ES) = Avoir (FR) = Gutschrift (DE) → **nota_credito** (not fattura)
+- Account/bank statement → **estratto_conto**; CV/résumé or conversational email → **comunicazione**
+- If the primary visible title is "Order Confirmation", "Conferma d'Ordine", "Auftragsbestätigung", "Confirmation de commande", or similar, you MUST use **ordine** even if the document contains prices or totals.
 
 Return ONLY valid JSON — no markdown, no explanation:
 {
