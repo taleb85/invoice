@@ -1,6 +1,6 @@
 'use client'
 'use no memo'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -30,6 +30,7 @@ import {
 import { standardBadgeClassName } from '@/components/ui/StandardBadge'
 import { ActionButton } from '@/components/ui/ActionButton'
 import { ApprovalBadge } from '@/components/approval/approval-badge'
+import { tipoDocumentoToLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
 
 export type FattureDuplicateListRow = {
   id: string
@@ -114,6 +115,8 @@ export default function FattureListWithDuplicates({
     useState<FattureDuplicateListRow | null>(null)
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [tipoByFileUrl, setTipoByFileUrl] = useState<Record<string, string>>({})
+  const tipoFetchedRef = useRef<Set<string>>(new Set())
   const { show: showContextMenu } = useContextMenu()
 
   useEffect(() => {
@@ -125,6 +128,30 @@ export default function FattureListWithDuplicates({
       window.removeEventListener('fattura-mutated', handler)
     }
   }, [router])
+
+  useEffect(() => {
+    const urls = [...new Set(rows.filter((r) => r.file_url?.trim()).map((r) => r.file_url!.trim()))]
+    const newUrls = urls.filter((u) => !tipoFetchedRef.current.has(u))
+    if (!newUrls.length) return
+    for (const u of newUrls) tipoFetchedRef.current.add(u)
+    let cancelled = false
+    void (async () => {
+      const { data: docs } = await supabase
+        .from('documenti_da_processare')
+        .select('file_url, metadata')
+        .in('file_url', newUrls)
+      if (cancelled || !docs?.length) return
+      const map: Record<string, string> = {}
+      for (const row of docs) {
+        const fu = row.file_url?.trim()
+        if (!fu) continue
+        const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
+        if (label) map[fu] = label
+      }
+      if (Object.keys(map).length) setTipoByFileUrl((prev) => ({ ...prev, ...map }))
+    })()
+    return () => { cancelled = true }
+  }, [rows, supabase])
 
   const excessSet = useMemo(() => new Set(duplicatePayload.excessIds), [duplicatePayload.excessIds])
   const memberSet = useMemo(() => new Set(duplicatePayload.memberIds), [duplicatePayload.memberIds])
@@ -309,7 +336,7 @@ export default function FattureListWithDuplicates({
                 <span className="text-app-fg-muted">{f.numero_fattura?.trim() || '—'}</span>
                 {f.numero_fattura?.trim() && (
                   <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
-                    {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                    {(f.file_url ? tipoByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
                   </span>
                 )}
                 {memberSet.has(f.id) ? (
@@ -456,7 +483,7 @@ export default function FattureListWithDuplicates({
                   {f.numero_fattura?.trim() || '—'}
                   {f.numero_fattura?.trim() && (
                     <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
-                      {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                      {(f.file_url ? tipoByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
                     </span>
                   )}
                   {memberSet.has(f.id) ? (

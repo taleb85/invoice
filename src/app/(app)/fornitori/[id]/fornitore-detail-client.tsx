@@ -2536,6 +2536,8 @@ function FattureTab({
   const formatDate = useAppFormatDate()
   const [fatture, setFatture] = useState<Fattura[]>([])
   const [loading, setLoading] = useState(true)
+  const [tipoFatturaByFileUrl, setTipoFatturaByFileUrl] = useState<Record<string, string>>({})
+  const tipoFatturaFetchedRef = useRef<Set<string>>(new Set())
 
   const dupPayload = useMemo(() => {
     const analysis = analyzeFatturaDuplicatesForDeletion(
@@ -2578,6 +2580,31 @@ function FattureTab({
     window.addEventListener('fattura-mutated', handler)
     return () => window.removeEventListener('fattura-mutated', handler)
   }, [])
+
+  useEffect(() => {
+    const urls = [...new Set(fatture.filter((f) => f.file_url?.trim()).map((f) => f.file_url!.trim()))]
+    const newUrls = urls.filter((u) => !tipoFatturaFetchedRef.current.has(u))
+    if (!newUrls.length) return
+    for (const u of newUrls) tipoFatturaFetchedRef.current.add(u)
+    let cancelled = false
+    const supabase = createClient()
+    void (async () => {
+      const { data: docs } = await supabase
+        .from('documenti_da_processare')
+        .select('file_url, metadata')
+        .in('file_url', newUrls)
+      if (cancelled || !docs?.length) return
+      const map: Record<string, string> = {}
+      for (const row of docs) {
+        const fu = row.file_url?.trim()
+        if (!fu) continue
+        const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
+        if (label) map[fu] = label
+      }
+      if (Object.keys(map).length) setTipoFatturaByFileUrl((prev) => ({ ...prev, ...map }))
+    })()
+    return () => { cancelled = true }
+  }, [fatture])
 
   /** IDs already auto-OCR'd in this session — prevents re-running on re-render. */
   const autoOcrDoneRef = useRef<Set<string>>(new Set())
@@ -2823,7 +2850,7 @@ function FattureTab({
                       <p className="mt-0.5 text-xs text-app-fg-muted">
                         #{f.numero_fattura}
                         <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
-                          {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                          {(f.file_url ? tipoFatturaByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
                         </span>
                       </p>
                     )}
@@ -2927,7 +2954,7 @@ function FattureTab({
                           <span className={`break-words${!readOnly ? ' cursor-text' : ''}`}>{f.numero_fattura ?? '—'}</span>
                           {f.numero_fattura && (
                             <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
-                              {f.is_credit_note ? 'Credit Note' : 'Invoice'}
+                              {(f.file_url ? tipoFatturaByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
                             </span>
                           )}
                           {!readOnly ? (
