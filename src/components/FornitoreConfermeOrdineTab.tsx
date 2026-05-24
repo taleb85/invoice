@@ -15,6 +15,24 @@ import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
+/** Extracts a document-type label from a free-text title or filename.
+ *  Matches common keywords in English, Italian, French, German and Spanish.
+ *  Returns null when the type cannot be inferred. */
+function extractDocTypeFromTitle(titolo: string | null, fileName: string | null): string | null {
+  const text = (titolo ?? fileName ?? '').toLowerCase()
+  if (!text) return null
+
+  if (/invoice|fattura|facture|rechnung|factura/.test(text)) return 'Invoice'
+  if (/credit note|nota.credito|note.de.crédit|gutschrift|nota.de.crédito/.test(text)) return 'Credit Note'
+  if (/delivery.note|ddt|bolla|bon.de.livraison|lieferschein|albarán/.test(text)) return 'Delivery Note'
+  if (/order.confirm|conferma.ordin|confirmation.de.commande|auftragsbestätigung|confirmaci/.test(text)) return 'Order Confirmation'
+  if (/purchase.order|ordine.acquisto|bon.de.commande|bestellung|orden.de.compra/.test(text)) return 'Purchase Order'
+  if (/statement|estratto.conto|relevé.de.compte|kontoauszug|extracto/.test(text)) return 'Statement'
+  if (/receipt|ricevuta|reçu|quittung|recibo/.test(text)) return 'Receipt'
+  if (/proforma|pro.forma/.test(text)) return 'Pro-forma Invoice'
+  return null
+}
+
 export type ConfermaOrdineRow = {
   id: string
   file_url: string
@@ -403,7 +421,7 @@ export default function FornitoreConfermeOrdineTab({
                       confermaOrdineId={r.id}
                       fileUrl={r.file_url}
                       className={CONFERME_OPEN_PILL}
-                      categoria={t.fornitori.tabConfermeOrdine}
+                      categoria={extractDocTypeFromTitle(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
                     >
                       {pdfOpenTrigger}
                     </OpenDocumentInAppButton>
@@ -471,7 +489,7 @@ export default function FornitoreConfermeOrdineTab({
                           className="block max-w-[22rem] text-left hover:underline underline-offset-2 font-medium text-app-fg hover:text-app-cyan-300 transition-colors"
                           title={r.titolo?.trim() || r.file_name || undefined}
                           stopTriggerPropagation
-                          categoria={t.fornitori.tabConfermeOrdine}
+                          categoria={extractDocTypeFromTitle(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
                         >
                           <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
                             {r.titolo?.trim() || r.file_name || '—'}
