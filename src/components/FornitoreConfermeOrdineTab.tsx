@@ -14,7 +14,6 @@ import { openDocumentUrl } from '@/lib/open-document-url'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
-import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
 
 export type ConfermaOrdineRow = {
   id: string
@@ -38,22 +37,6 @@ const RED_ACTION_PILL =
 
 const inputClass =
   'w-full rounded-lg border border-app-line-25 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-a-40 focus:outline-none focus:ring-1 focus:ring-app-a-25 [color-scheme:dark]'
-
-function attachmentKindPillClass(kind: AttachmentKind): string {
-  const base = 'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums'
-  if (kind === 'pdf') return `${base} border-app-line-35 bg-app-line-10 text-app-fg-muted`
-  if (kind === 'image') return `${base} border-[rgba(34,211,238,0.15)] bg-violet-500/10 text-violet-200`
-  return `${base} border-app-line-25 app-workspace-inset-bg-soft text-app-fg-muted`
-}
-
-function attachmentKindText(
-  kind: AttachmentKind,
-  t: { bolle: { attachmentKindPdf: string; attachmentKindImage: string; attachmentKindOther: string } },
-): string {
-  if (kind === 'pdf') return t.bolle.attachmentKindPdf
-  if (kind === 'image') return t.bolle.attachmentKindImage
-  return t.bolle.attachmentKindOther
-}
 
 function pathFromDocumentiPublicUrl(url: string): string | null {
   try {
@@ -416,14 +399,6 @@ export default function FornitoreConfermeOrdineTab({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {(() => {
-                      const kind = attachmentKindFromFileUrl(r.file_url)
-                      return kind ? (
-                        <span className={attachmentKindPillClass(kind)}>
-                          {attachmentKindText(kind, t)}
-                        </span>
-                      ) : null
-                    })()}
                     <OpenDocumentInAppButton
                       confermaOrdineId={r.id}
                       fileUrl={r.file_url}
@@ -494,27 +469,25 @@ export default function FornitoreConfermeOrdineTab({
                         {r.data_ordine ? fmt(r.data_ordine) : '—'}
                       </td>
                       <td className="px-5 py-3">
-                        <p className="font-medium text-app-fg">{r.titolo?.trim() || r.file_name || '—'}</p>
-                        {r.note?.trim() ? <p className={`mt-1 text-xs ${confermeSecondaryClass}`}>{r.note}</p> : null}
+                        <OpenDocumentInAppButton
+                          confermaOrdineId={r.id}
+                          fileUrl={r.file_url}
+                          className="block text-left hover:underline underline-offset-2 font-medium text-app-fg hover:text-app-cyan-300 transition-colors"
+                          title={r.titolo?.trim() || r.file_name || undefined}
+                          stopTriggerPropagation
+                        >
+                          <span>{r.titolo?.trim() || r.file_name || '—'}</span>
+                          {r.note?.trim() ? <p className={`mt-1 text-xs font-normal ${confermeSecondaryClass}`}>{r.note}</p> : null}
+                        </OpenDocumentInAppButton>
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {(() => {
-                            const kind = attachmentKindFromFileUrl(r.file_url)
-                            return kind ? (
-                              <span className={attachmentKindPillClass(kind)}>
-                                {attachmentKindText(kind, t)}
-                              </span>
-                            ) : null
-                          })()}
-                          <OpenDocumentInAppButton
-                            confermaOrdineId={r.id}
-                            fileUrl={r.file_url}
-                            className={`${CONFERME_OPEN_PILL} inline-flex`}
-                          >
-                            {pdfOpenTrigger}
-                          </OpenDocumentInAppButton>
-                        </div>
+                        <OpenDocumentInAppButton
+                          confermaOrdineId={r.id}
+                          fileUrl={r.file_url}
+                          className={`${CONFERME_OPEN_PILL} inline-flex`}
+                        >
+                          {pdfOpenTrigger}
+                        </OpenDocumentInAppButton>
                       </td>
                       <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
                         —
