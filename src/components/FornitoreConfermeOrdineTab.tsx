@@ -15,6 +15,33 @@ import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
+/**
+ * Splits a document title into a short reference (primary) and a type label (secondary).
+ * e.g. "Enotria Order Confirmation: SO1965613" → { primary: "SO1965613", secondary: "Order Confirmation" }
+ * Falls back to showing the raw title when no reference code can be extracted.
+ */
+function splitTitleForDisplay(
+  titolo: string | null,
+  fileName: string | null,
+): { primary: string; secondary: string | null } {
+  const text = titolo?.trim() ?? ''
+  const docType = extractDocTypeFromTitle(text || null, null)
+
+  if (text && docType) {
+    // Extract the last alphanumeric reference code (e.g. SO1965613, INV-0042, 12345)
+    const refMatch = text.match(/\b([A-Z]{1,6}[-/]?\d{3,}|\d{4,})\b/gi)
+    const ref = refMatch ? refMatch[refMatch.length - 1] : null
+    if (ref) return { primary: ref, secondary: docType }
+  }
+
+  // No type in title — show title as-is; secondary comes from filename
+  const secondaryFromFile = extractDocTypeFromTitle(null, fileName)
+  return {
+    primary: text || fileName || '—',
+    secondary: secondaryFromFile,
+  }
+}
+
 /** Extracts a document-type label from a free-text title or filename.
  *  Matches common keywords in English, Italian, French, German and Spanish.
  *  Returns null when the type cannot be inferred. */
@@ -405,7 +432,17 @@ export default function FornitoreConfermeOrdineTab({
                   className="flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-app-line-5"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-app-fg">{r.titolo?.trim() || r.file_name || '—'}</p>
+                    {(() => {
+                      const { primary, secondary } = splitTitleForDisplay(r.titolo, r.file_name)
+                      return (
+                        <>
+                          <p className="font-medium text-app-fg">{primary}</p>
+                          {secondary && (
+                            <p className={`text-xs ${confermeSecondaryClass}`}>{secondary}</p>
+                          )}
+                        </>
+                      )
+                    })()}
                     {r.data_ordine ? (
                       <p className={`mt-0.5 text-xs ${confermeSecondaryClass}`}>
                         {t.fornitori.confermeOrdineOptionalOrderDate}: {fmt(r.data_ordine)}
@@ -491,19 +528,26 @@ export default function FornitoreConfermeOrdineTab({
                           stopTriggerPropagation
                           categoria={extractDocTypeFromTitle(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
                         >
-                          <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
-                            {r.titolo?.trim() || r.file_name || '—'}
-                          </span>
-                          {r.titolo?.trim() && r.file_name && r.file_name !== r.titolo.trim() ? (
-                            <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.file_name}>
-                              {extractDocTypeFromTitle(null, r.file_name) ?? r.file_name}
-                            </span>
-                          ) : null}
-                          {r.note?.trim() ? (
-                            <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.note}>
-                              {r.note}
-                            </span>
-                          ) : null}
+                          {(() => {
+                            const { primary, secondary } = splitTitleForDisplay(r.titolo, r.file_name)
+                            return (
+                              <>
+                                <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
+                                  {primary}
+                                </span>
+                                {secondary && (
+                                  <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`}>
+                                    {secondary}
+                                  </span>
+                                )}
+                                {r.note?.trim() ? (
+                                  <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`} title={r.note}>
+                                    {r.note}
+                                  </span>
+                                ) : null}
+                              </>
+                            )
+                          })()}
                         </OpenDocumentInAppButton>
                       </td>
                       <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
