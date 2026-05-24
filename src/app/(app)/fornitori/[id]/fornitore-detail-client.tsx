@@ -66,6 +66,7 @@ import {
 import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
 import { extractDocTypeLabel } from '@/lib/extract-doc-type'
+import { normalizeTipoDocumento, type NormalizedTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
@@ -136,6 +137,16 @@ const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'ver
 
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
+
+function normalizedTipoToLabel(tipo: NormalizedTipoDocumento): string | null {
+  switch (tipo) {
+    case 'fattura': return 'Invoice'
+    case 'nota_credito': return 'Credit Note'
+    case 'ordine': return 'Order Confirmation'
+    case 'estratto_conto': return 'Statement'
+    default: return null
+  }
+}
 
 function localYmd(d: Date): string {
   const y = d.getFullYear()
@@ -1810,6 +1821,7 @@ function BolleTab({
   const formatDate = useAppFormatDate()
   const [bolle, setBolle] = useState<Bolla[]>([])
   const [numeroDaCodaByFileUrl, setNumeroDaCodaByFileUrl] = useState<Record<string, string>>({})
+  const [tipoDocByFileUrl, setTipoDocByFileUrl] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [ocrEpoch, setOcrEpoch] = useState(0)
   const [ocrBusyId, setOcrBusyId] = useState<string | null>(null)
@@ -2005,33 +2017,38 @@ function BolleTab({
         .order('data', { ascending: false })
       if (cancelled) return
       const rows = (data ?? []) as Bolla[]
-      const urls = [
-        ...new Set(
-          rows
-            .filter((b) => !b.numero_bolla?.trim() && b.file_url?.trim())
-            .map((b) => b.file_url!.trim()),
-        ),
-      ]
-      const map: Record<string, string> = {}
-      if (urls.length > 0) {
+      const allUrls = [...new Set(rows.filter((b) => b.file_url?.trim()).map((b) => b.file_url!.trim()))]
+      const urlsWithoutNumero = allUrls.filter((u) => rows.some((b) => b.file_url?.trim() === u && !b.numero_bolla?.trim()))
+      const numeroMap: Record<string, string> = {}
+      const tipoMap: Record<string, string> = {}
+      if (allUrls.length > 0) {
         const { data: docs } = await supabase
           .from('documenti_da_processare')
           .select('file_url, metadata, created_at')
-          .in('file_url', urls)
+          .in('file_url', allUrls)
         if (!cancelled && docs?.length) {
           const sorted = [...docs].sort((a, b) =>
             String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')),
           )
           for (const row of sorted) {
             const fu = row.file_url?.trim()
-            if (!fu || map[fu]) continue
-            const n = numeroRefFromDocMetadata(row.metadata)
-            if (n) map[fu] = n
+            if (!fu) continue
+            if (!numeroMap[fu] && urlsWithoutNumero.includes(fu)) {
+              const n = numeroRefFromDocMetadata(row.metadata)
+              if (n) numeroMap[fu] = n
+            }
+            if (!tipoMap[fu]) {
+              const rawTipo = (row.metadata as Record<string, unknown> | null)?.tipo_documento
+              const normalized = normalizeTipoDocumento(rawTipo)
+              const label = normalizedTipoToLabel(normalized)
+              if (label) tipoMap[fu] = label
+            }
           }
         }
       }
       if (!cancelled) {
-        setNumeroDaCodaByFileUrl(map)
+        setNumeroDaCodaByFileUrl(numeroMap)
+        setTipoDocByFileUrl(tipoMap)
         setBolle(rows)
         setLoading(false)
       }
@@ -2345,7 +2362,7 @@ function BolleTab({
                   fileUrl={b.file_url}
                   stopTriggerPropagation
                   className="-mr-2 border-0 bg-transparent px-2 py-1.5 text-left text-xs text-app-cyan-500 touch-manipulation hover:text-app-fg-muted hover:underline"
-                  categoria={extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
+                  categoria={(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
                 >
                   {attachmentOpenFileLinkLabel(fileKind, t)}
                 </OpenDocumentInAppButton>
@@ -2384,7 +2401,7 @@ function BolleTab({
                 <td className="px-3 py-3 font-mono text-xs text-app-fg-muted">
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
                   <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
-                    {extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                    {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
                   </span>
                   {!readOnly ? (
                     <DuplicateLedgerRowExtras
@@ -2421,7 +2438,7 @@ function BolleTab({
                         stopTriggerPropagation
                         className={FORNITORE_TABLE_CYAN_ACTION_PILL}
                         title={attachmentOpenFileLinkLabel(fileKind, t)}
-                        categoria={extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
+                        categoria={(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
                       >
                         <svg className={`h-3 w-3 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         {attachmentOpenFileLinkLabel(fileKind, t)}
