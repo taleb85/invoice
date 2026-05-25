@@ -1063,6 +1063,9 @@ export type Translations = {
     listinoPriceStaleBadge: string
     listinoPriceStaleHint: string
     preferredLanguageEmail: string
+    /** Toggle "il fornitore emette DDT separati dalla fattura?" (default true). */
+    emetteBolleLabel: string
+    emetteBolleHint: string
     languageInheritSede: string
     recognizedEmailsTitle: string
     recognizedEmailsHint: string
@@ -1768,6 +1771,11 @@ export type Translations = {
     aiPipelineLogSaved_other: string
     aiPipelineLogDoneOne: string
     aiPipelineLogDoneOther: string
+    /** Caso `mailsFound === 0`: nessuna mail dal mittente nella finestra. */
+    aiPipelineLogDoneNoEmails: string
+    /** Caso `mailsFound > 0` ma 0 nuove bozze: tutte già archiviate. */
+    aiPipelineLogDoneAllArchived_one: string
+    aiPipelineLogDoneAllArchived_other: string
     aiPipelineLogNetworkError: string
     /** @deprecated use aiPipelineStaleSoft / aiPipelineStaleSevere */
     aiPipelineStaleWarning: string

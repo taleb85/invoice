@@ -174,7 +174,50 @@ async function insertDocumento(
   payload: Record<string, unknown>
 ) {
   const stato = normalizeDocumentoQueueStatoForDb(payload.stato)
-  const payloadNorm = { ...payload, stato }
+  const payloadNorm: Record<string, unknown> = { ...payload, stato }
+
+  /*
+   * Dedup difensivo: se questo stesso PDF (file_url) per lo stesso fornitore è
+   * già nella coda revisione, NON ne aggiungiamo un altro duplicato. Questo
+   * accadeva quando la pipeline-per-fornitore veniva lanciata più volte sullo
+   * stesso statement: ogni run trovava le stesse mail IMAP, le scaricava in
+   * Storage con un nuovo file_url, ma poi `email_auto_…` collisions (stesso
+   * messaggio sorgente) generavano la stessa coppia (fornitore, oggetto, data)
+   * in coda. Skippiamo i duplicati esatti per file_url o (fornitore + oggetto
+   * + data_documento) per ridurre il rumore. La coda ne aveva 40 entry per 6
+   * PDF unici prima di questo fix.
+   */
+  const fileUrl = typeof payload.file_url === 'string' ? payload.file_url : null
+  const fornitoreId = typeof payload.fornitore_id === 'string' ? payload.fornitore_id : null
+  const oggettoMail = typeof payload.oggetto_mail === 'string' ? payload.oggetto_mail : null
+  const dataDoc = typeof payload.data_documento === 'string' ? payload.data_documento : null
+
+  if (fileUrl) {
+    const { data: exact } = await supabase
+      .from('documenti_da_processare')
+      .select('id')
+      .eq('file_url', fileUrl)
+      .limit(1)
+      .maybeSingle()
+    if (exact?.id) {
+      return null
+    }
+  }
+  if (fornitoreId && oggettoMail && dataDoc) {
+    const { data: sameTriple } = await supabase
+      .from('documenti_da_processare')
+      .select('id')
+      .eq('fornitore_id', fornitoreId)
+      .eq('oggetto_mail', oggettoMail)
+      .eq('data_documento', dataDoc)
+      .in('stato', ['da_processare', 'da_associare', 'da_revisionare', 'bozza_creata'])
+      .limit(1)
+      .maybeSingle()
+    if (sameTriple?.id) {
+      return null
+    }
+  }
+
   const { error } = await supabase.from('documenti_da_processare').insert([payloadNorm])
 
   if (error) {
@@ -2749,7 +2792,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     typeof params.lookbackDaysOverride === 'number' &&
     Number.isFinite(params.lookbackDaysOverride) &&
     params.lookbackDaysOverride >= 1 &&
-    params.lookbackDaysOverride <= 365
+    params.lookbackDaysOverride <= 730
       ? Math.floor(params.lookbackDaysOverride)
       : undefined
 
@@ -3583,7 +3626,9 @@ export async function POST(req: Request) {
     fiscalYear = typeof body?.fiscal_year === 'number' ? body.fiscal_year : undefined
     if (typeof body?.email_sync_lookback_days === 'number' && Number.isFinite(body.email_sync_lookback_days)) {
       const n = Math.floor(body.email_sync_lookback_days)
-      if (n >= 1 && n <= 365) lookbackDaysOverride = n
+      // Cap a 730gg (~2 anni). Lo scan AI-pipeline per le fatture mancanti può
+      // dover risalire oltre l'anno per coprire estratti conto di vecchia data.
+      if (n >= 1 && n <= 730) lookbackDaysOverride = n
     }
     documentKind = parseEmailSyncDocumentKind(body?.email_sync_document_kind)
     const parsedMode = parseImapSyncMode(body?.mode)

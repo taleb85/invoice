@@ -3946,14 +3946,36 @@ export function VerificationStatusTab({
             }
           } else if (e.type === 'done') {
             bozzeCreate = typeof e.bozzeCreate === 'number' ? e.bozzeCreate : 0
-            appendPipelineLog(
-              `${logLabel}: ${tpl(
+            const mailsFoundFinal = typeof e.mailsFound === 'number'
+              ? e.mailsFound
+              : typeof e.mailsProcessed === 'number'
+                ? e.mailsProcessed
+                : 0
+            // Distinguiamo 3 outcome distinti:
+            //  - 0 mail trovate         → "no email matching"
+            //  - X mail, 0 nuove bozze  → "X email already archived (no new documents)"
+            //  - X mail, Y bozze        → "done — Y saved"
+            // Mantiene il comportamento storico per Y>0 e chiarisce il caso Y=0
+            // (era confondente "completed — 0 documents imported").
+            let msg: string
+            if (mailsFoundFinal === 0) {
+              msg = t.statements.aiPipelineLogDoneNoEmails ?? 'no email matching the supplier'
+            } else if (bozzeCreate === 0) {
+              msg = tpl(
+                mailsFoundFinal === 1
+                  ? t.statements.aiPipelineLogDoneAllArchived_one
+                  : t.statements.aiPipelineLogDoneAllArchived_other,
+                { n: mailsFoundFinal },
+                `${mailsFoundFinal} email already archived (no new documents)`,
+              )
+            } else {
+              msg = tpl(
                 bozzeCreate === 1 ? t.statements.aiPipelineLogDoneOne : t.statements.aiPipelineLogDoneOther,
                 { n: bozzeCreate },
                 `done (${bozzeCreate})`,
-              )}`,
-              'ok',
-            )
+              )
+            }
+            appendPipelineLog(`${logLabel}: ${msg}`, 'ok')
           } else if (e.type === 'error') {
             const msg = typeof e.error === 'string' ? e.error : 'errore sconosciuto'
             appendPipelineLog(`${logLabel}: ${msg}`, 'warn')
@@ -4009,13 +4031,15 @@ export function VerificationStatusTab({
       const needsDdtScan   = bolleMancanti > 0
       const needsInvoiceScan = needsEmailScan && fatturaMancante > 0
 
-      // ── Calcola finestra di ricerca mirata sui DDT ──
-      // Parte dalla data più vecchia tra le righe bolle_mancanti, meno 14gg di buffer.
+      // ── Calcola finestra di ricerca mirata ──
+      // Parte dalla data più vecchia tra TUTTE le righe non risolte
+      // (fattura_mancante + bolle_mancanti + errore_importo), meno 14gg di buffer.
       // Se non ci sono date di riga, usa la data ufficiale dello statement.
+      // Cap a 730gg (~2 anni) — server-side `email_sync_lookback_days` accetta
+      // fino a 730.
       let ddtLookbackDays = 90 // fallback conservativo
       {
-        const bolleRows = checkResultsRef.current?.filter(r => r.status === 'bolle_mancanti') ?? []
-        const rowDates = bolleRows
+        const rowDates = anomaleRows
           .map(r => r.data_doc)
           .filter((d): d is string => Boolean(d))
           .map(d => new Date(d))
@@ -4023,21 +4047,23 @@ export function VerificationStatusTab({
 
         if (rowDates.length > 0) {
           const earliest = new Date(Math.min(...rowDates.map(d => d.getTime())))
-          earliest.setDate(earliest.getDate() - 14) // 14gg buffer prima della riga più vecchia
+          earliest.setDate(earliest.getDate() - 14)
           const diff = Math.ceil((Date.now() - earliest.getTime()) / 86_400_000)
-          ddtLookbackDays = Math.min(365, Math.max(30, diff))
+          ddtLookbackDays = Math.min(730, Math.max(30, diff))
         } else if (selectedStmt) {
           const stmtDateStr = statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at
           const stmtDate = new Date(stmtDateStr)
           if (!isNaN(stmtDate.getTime())) {
-            // Inizio del mese dello statement meno 14gg
             const windowStart = new Date(stmtDate.getFullYear(), stmtDate.getMonth(), 1)
             windowStart.setDate(windowStart.getDate() - 14)
             const diff = Math.ceil((Date.now() - windowStart.getTime()) / 86_400_000)
-            ddtLookbackDays = Math.min(365, Math.max(30, diff))
+            ddtLookbackDays = Math.min(730, Math.max(30, diff))
           }
         }
       }
+      // Per le fatture estendiamo di altri 30gg: i fornitori a volte spediscono
+      // l'invoice molto dopo il DDT (es. fine mese / batch billing).
+      const invoiceLookbackDays = Math.min(730, ddtLookbackDays + 30)
 
       const pipelineAnalisi: FornitoreAIPipelineAnalisi = {
         fatturaMancante,
@@ -4137,12 +4163,12 @@ export function VerificationStatusTab({
         )
         if (!abort.signal.aborted) {
           try {
-            // Per le fatture usiamo una finestra più ampia (default 400gg, ~13 mesi)
-            // per coprire fatture vecchie che potrebbero non essere state importate.
+            // Finestra fatture: estesa rispetto ai DDT (vedi `invoiceLookbackDays`).
+            // Copre fornitori che fatturano in batch a fine mese.
             fattureImportate = await runStreamedEmailScan({
               fornitoreId,
               sedeId,
-              lookbackDays: 400,
+              lookbackDays: invoiceLookbackDays,
               documentKind: 'fattura',
               abortSignal: abort.signal,
               logLabel: t.statements.aiPipelineInvoiceLabel ?? 'Invoice',

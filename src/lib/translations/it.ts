@@ -1606,6 +1606,9 @@ const translations: Translations = {
     listinoPriceStaleHint: 'Ultimo aggiornamento da oltre 60 giorni.',
     preferredLanguageEmail: 'Lingua preferita (per email)',
     languageInheritSede: "— Eredita dall'azienda —",
+    emetteBolleLabel: 'Emette DDT separati dalle fatture',
+    emetteBolleHint:
+      'Disattiva per fornitori con fattura accompagnatoria (no DDT separato). Il triple-check non pretenderà più una bolla per ogni fattura.',
     recognizedEmailsTitle: 'Email riconosciute',
     recognizedEmailsHint:
       'Indirizzi aggiuntivi da cui questo fornitore può inviare documenti. La scansione email li abbina automaticamente.',
@@ -2450,6 +2453,9 @@ const translations: Translations = {
     aiPipelineLogSaved_other: '{n} documenti salvati',
     aiPipelineLogDoneOne: 'completato — 1 documento importato',
     aiPipelineLogDoneOther: 'completato — {n} documenti importati',
+    aiPipelineLogDoneNoEmails: 'nessuna email trovata dal fornitore nella finestra di ricerca',
+    aiPipelineLogDoneAllArchived_one: '1 email scaricata — già archiviata (nessun nuovo documento)',
+    aiPipelineLogDoneAllArchived_other: '{n} email scaricate — tutte già archiviate (nessun nuovo documento)',
     aiPipelineLogNetworkError: 'errore di rete',
     aiPipelineStaleWarning: 'Nessun aggiornamento da {sec}s — il server potrebbe essere lento o bloccato. Puoi annullare con Cancel.',
     aiPipelineStaleSoft: 'Sto ancora lavorando — nessun aggiornamento da {sec}s. Caselle email grandi o l\'AI possono richiedere un po\' di tempo.',

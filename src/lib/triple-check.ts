@@ -101,8 +101,8 @@ type FatturaMatchInput = {
 type FatturaRow = {
   id: string; numero_fattura: string | null; importo: number | null
   data: string; file_url: string | null; fornitore_id: string; bolla_id: string | null
-  fornitori: { id: string; nome: string; email: string | null } |
-             { id: string; nome: string; email: string | null }[] | null
+  fornitori: { id: string; nome: string; email: string | null; emette_bolle?: boolean | null } |
+             { id: string; nome: string; email: string | null; emette_bolle?: boolean | null }[] | null
 }
 
 export function amountsMatchForTripleCheck(a: number, b: number, tolerance = TRIPLE_CHECK_TOLERANCE): boolean {
@@ -172,6 +172,7 @@ function resolveCheckStatus(
   line: StatementLine,
   rawFattura: FatturaRow,
   bolle: TripleCheckBollaRow[],
+  emetteBolle: boolean,
 ): { status: CheckStatus; delta: number } {
   const dbImporto = rawFattura.importo ?? 0
   const delta = parseFloat((line.importo - dbImporto).toFixed(2))
@@ -180,6 +181,11 @@ function resolveCheckStatus(
   let status: CheckStatus
   if (!importiCombaciano) {
     status = 'errore_importo'
+  } else if (!emetteBolle) {
+    // Fornitore "no-DDT": fattura+importo OK è sufficiente per ok, anche
+    // senza bolla collegata. La presenza di una bolla (rara per questi
+    // fornitori) viene comunque mostrata se trovata.
+    status = 'ok'
   } else if (bolle.length === 0) {
     status = 'bolle_mancanti'
   } else {
@@ -207,7 +213,7 @@ export async function runTripleCheck(
 
   const baseFattureQ = supabase
     .from('fatture')
-    .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, fornitori(id, nome, email)')
+    .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, fornitori(id, nome, email, emette_bolle)')
   let fattureQ: typeof baseFattureQ = baseFattureQ
   if (sede_id)      fattureQ = fattureQ.eq('sede_id',      sede_id)
   if (fornitore_id) fattureQ = fattureQ.eq('fornitore_id', fornitore_id)
@@ -254,6 +260,9 @@ export async function runTripleCheck(
 
     const fornitoreRaw = Array.isArray(rawFattura.fornitori) ? rawFattura.fornitori[0] : rawFattura.fornitori
     const fornitore    = fornitoreRaw ? { id: fornitoreRaw.id, nome: fornitoreRaw.nome, email: fornitoreRaw.email } : null
+    // Default `true` per retro-compatibilità: se la colonna non c'è ancora
+    // (es. migration non applicata) ci comportiamo come prima.
+    const emetteBolleFlag = fornitoreRaw?.emette_bolle === false ? false : true
     const fattura      = {
       id: rawFattura.id, numero_fattura: rawFattura.numero_fattura,
       importo: rawFattura.importo, data: rawFattura.data,
@@ -261,7 +270,7 @@ export async function runTripleCheck(
     }
 
     const bolle = findMatchingBolleForFattura(rawFattura, bollePool, line.importo)
-    let { status, delta } = resolveCheckStatus(line, rawFattura, bolle)
+    let { status, delta } = resolveCheckStatus(line, rawFattura, bolle, emetteBolleFlag)
 
     if (line.rekki && fattura && bolle.length > 0) {
       const prezzoFattura = rawFattura.importo ?? 0

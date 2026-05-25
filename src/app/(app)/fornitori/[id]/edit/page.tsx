@@ -49,6 +49,7 @@ export default function EditFornitore() {
     rekki_link: '',
     rekki_supplier_id: '',
     language: '',
+    emette_bolle: true,
   })
 
   const [aliases, setAliases] = useState<AliasEmail[]>([])
@@ -80,6 +81,7 @@ export default function EditFornitore() {
           indirizzo?: string | null
           rekki_link?: string | null
           rekki_supplier_id?: string | null
+          emette_bolle?: boolean | null
         }
         setForm({
           nome: data.nome ?? '',
@@ -91,6 +93,7 @@ export default function EditFornitore() {
           rekki_link: row.rekki_link ?? '',
           rekki_supplier_id: row.rekki_supplier_id ?? '',
           language: data.language ?? '',
+          emette_bolle: row.emette_bolle === false ? false : true,
         })
       }
       setLoading(false)
@@ -137,19 +140,33 @@ export default function EditFornitore() {
     const rekkiSupplierId =
       (extractRekkiSupplierIdFromUrl(rawRekkiId) ?? rawRekkiId).trim() || null
 
-    const { error: err } = await supabase
+    const updatePayload: Record<string, unknown> = {
+      nome: form.nome,
+      display_name: form.display_name.trim().toLocaleUpperCase() || null,
+      email: form.email || null,
+      piva: form.piva || null,
+      indirizzo: form.indirizzo.trim() || null,
+      rekki_link: form.rekki_link.trim() || null,
+      rekki_supplier_id: rekkiSupplierId,
+      language: form.language || null,
+      emette_bolle: form.emette_bolle,
+    }
+
+    let { error: err } = await supabase
       .from('fornitori')
-      .update({
-        nome: form.nome,
-        display_name: form.display_name.trim().toLocaleUpperCase() || null,
-        email: form.email || null,
-        piva: form.piva || null,
-        indirizzo: form.indirizzo.trim() || null,
-        rekki_link: form.rekki_link.trim() || null,
-        rekki_supplier_id: rekkiSupplierId,
-        language: form.language || null,
-      })
+      .update(updatePayload)
       .eq('id', id)
+
+    // Retro-compatibilità: se la colonna `emette_bolle` non è stata ancora
+    // migrata in DB, riproviamo senza quel campo per non bloccare il save.
+    if (err && (err.code === '42703' || /emette_bolle/i.test(err.message ?? ''))) {
+      delete updatePayload.emette_bolle
+      const retry = await supabase
+        .from('fornitori')
+        .update(updatePayload)
+        .eq('id', id)
+      err = retry.error
+    }
 
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -283,6 +300,26 @@ export default function EditFornitore() {
               <option value="de">🇩🇪 Deutsch</option>
               <option value="es">🇪🇸 Español</option>
             </select>
+          </div>
+
+          <div className="rounded-lg border border-app-line-22 bg-white/[0.02] px-3 py-2.5">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={form.emette_bolle}
+                onChange={(e) => setForm({ ...form, emette_bolle: e.target.checked })}
+                className="mt-0.5 size-4 accent-app-cyan-500"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-app-fg">
+                  {t.fornitori.emetteBolleLabel ?? 'Emette DDT separati dalle fatture'}
+                </p>
+                <p className="mt-0.5 text-[11px] text-app-fg-muted">
+                  {t.fornitori.emetteBolleHint ??
+                    'Disattiva per fornitori con fattura accompagnatoria (no DDT separato). Il triple-check non pretenderà più una bolla per ogni fattura.'}
+                </p>
+              </div>
+            </label>
           </div>
 
           {error && (
