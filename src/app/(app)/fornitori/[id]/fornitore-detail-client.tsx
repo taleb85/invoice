@@ -2384,16 +2384,16 @@ function BolleTab({
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[680px] text-sm">
+        <table className="w-full min-w-[520px] text-sm">
           <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
             <tr className={appSectionTableHeadRowAccentClass('indigo')}>
-              <th className="w-[110px] px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.date}</th>
-              <th className="w-[120px] px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colNumero}</th>
-              <th className="w-[70px] px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colAttachmentKind}</th>
-              <th className="w-[100px] px-3 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.date}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colNumero}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colAttachmentKind}</th>
+              <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
                 {t.statements.colAmount}
               </th>
-              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
                 {t.common.actions}
               </th>
             </tr>
@@ -2407,8 +2407,8 @@ function BolleTab({
                 className={`cursor-pointer ${APP_SECTION_TABLE_TR}`}
                 onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
               >
-                <td className="px-3 py-3 font-medium text-app-fg-muted">{formatDate(b.data)}</td>
-                <td className="px-3 py-3 font-mono text-xs text-app-fg-muted">
+                <td className="px-5 py-3 font-medium text-app-fg-muted">{formatDate(b.data)}</td>
+                <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
                   <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
                     {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
@@ -2427,7 +2427,7 @@ function BolleTab({
                     />
                   ) : null}
                 </td>
-                <td className="px-3 py-3">
+                <td className="px-5 py-3">
                   {!fileKind ? (
                     <span className="text-app-fg-muted">—</span>
                   ) : (
@@ -2436,10 +2436,10 @@ function BolleTab({
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
+                <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
                   {b.importo != null ? formatCurrency(b.importo, currency, locale) : '—'}
                 </td>
-                <td className="px-3 py-3 text-right">
+                <td className="px-5 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                     {b.file_url && (
                       <OpenDocumentInAppButton
