@@ -1813,6 +1813,9 @@ function BolleTab({
   const [bolle, setBolle] = useState<Bolla[]>([])
   const [numeroDaCodaByFileUrl, setNumeroDaCodaByFileUrl] = useState<Record<string, string>>({})
   const [tipoDocByFileUrl, setTipoDocByFileUrl] = useState<Record<string, string>>({})
+  /** Manual user overrides for the document type label — highest priority, never overwritten by the DB re-fetch. */
+  const manualTipoOverridesRef = useRef<Record<string, string>>({})
+  const [tipoEditingBollaId, setTipoEditingBollaId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [ocrEpoch, setOcrEpoch] = useState(0)
   const [ocrBusyId, setOcrBusyId] = useState<string | null>(null)
@@ -1983,6 +1986,48 @@ function BolleTab({
     [onLedgerMutated, t.bolle],
   )
 
+  const DOC_TYPE_OPTIONS = useMemo(
+    () =>
+      [
+        { label: 'Delivery Note', tipo: 'bolla_ddt' },
+        { label: 'Invoice', tipo: 'fattura' },
+        { label: 'Credit Note', tipo: 'nota_credito' },
+        { label: 'Order Confirmation', tipo: 'ordine' },
+        { label: 'Statement', tipo: 'estratto_conto' },
+      ] as const,
+    [],
+  )
+
+  const handleTipoOverride = useCallback(
+    (fileUrl: string, tipoRaw: string, label: string) => {
+      setTipoEditingBollaId(null)
+      const key = fileUrl.trim()
+      if (!key) return
+      manualTipoOverridesRef.current = { ...manualTipoOverridesRef.current, [key]: label }
+      setTipoDocByFileUrl((prev) => ({ ...prev, [key]: label }))
+      void (async () => {
+        try {
+          const supabase = createClient()
+          const { data: docRow } = await supabase
+            .from('documenti_da_processare')
+            .select('id, metadata')
+            .eq('file_url', key)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (docRow) {
+            const existing = (docRow.metadata ?? {}) as Record<string, unknown>
+            await supabase
+              .from('documenti_da_processare')
+              .update({ metadata: { ...existing, tipo_documento: tipoRaw } })
+              .eq('id', docRow.id)
+          }
+        } catch { /* ignore */ }
+      })()
+    },
+    [],
+  )
+
   useEffect(() => {
     return () => {
       if (ocrStepTimerRef.current) {
@@ -1991,6 +2036,26 @@ function BolleTab({
       }
     }
   }, [])
+
+  // Close the document-type dropdown when the user clicks outside of it
+  // or presses Escape, mirroring the FattureTab behaviour.
+  useEffect(() => {
+    if (!tipoEditingBollaId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTipoEditingBollaId(null)
+    }
+    const onPointer = () => setTipoEditingBollaId(null)
+    window.addEventListener('keydown', onKey)
+    // Use a slight delay so the click that opened the dropdown does not immediately close it
+    const id = window.setTimeout(() => {
+      window.addEventListener('pointerdown', onPointer)
+    }, 0)
+    return () => {
+      window.clearTimeout(id)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointer)
+    }
+  }, [tipoEditingBollaId])
 
   useEffect(() => {
     let cancelled = false
@@ -2099,7 +2164,9 @@ function BolleTab({
       }
       if (!cancelled) {
         setNumeroDaCodaByFileUrl(numeroMap)
-        setTipoDocByFileUrl(tipoMap)
+        // Preserve any manual tipo overrides the user has set since the last fetch
+        // (handleTipoOverride writes them to manualTipoOverridesRef).
+        setTipoDocByFileUrl({ ...tipoMap, ...manualTipoOverridesRef.current })
         setBolle(rows)
         setLoading(false)
       }
@@ -2332,8 +2399,34 @@ function BolleTab({
               {numeroInElenco(b) && (
                 <p className="mt-0.5 text-xs text-app-fg-muted">
                   #{numeroInElenco(b)}
-                  <span className="ml-1.5 font-sans text-[10px] font-normal opacity-60">
-                    {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                  <span className="relative ml-1.5 inline-flex">
+                    <button
+                      type="button"
+                      onClick={!readOnly && b.file_url ? (e) => { e.stopPropagation(); setTipoEditingBollaId((prev) => prev === b.id ? null : b.id) } : undefined}
+                      title={!readOnly && b.file_url ? 'Click to change document type' : undefined}
+                      className={`font-sans text-[10px] font-normal opacity-60 hover:opacity-90${!readOnly && b.file_url ? ' cursor-pointer underline decoration-dotted' : ''}`}
+                    >
+                      {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                    </button>
+                    {tipoEditingBollaId === b.id && b.file_url ? (
+                      <span
+                        className="absolute left-0 top-full z-30 mt-1 flex flex-col rounded-md border border-app-line-30 bg-[var(--app-workspace-bg,#0f1117)] shadow-lg"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        {DOC_TYPE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            className="whitespace-nowrap px-3 py-1.5 text-left font-sans text-[11px] text-app-fg-muted hover:bg-white/5 hover:text-app-fg"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); handleTipoOverride(b.file_url!, opt.tipo, opt.label) }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </span>
+                    ) : null}
                   </span>
                 </p>
               )}
@@ -2458,8 +2551,34 @@ function BolleTab({
                 <td className="px-5 py-3 font-medium text-app-fg-muted">{formatDate(b.data)}</td>
                 <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
-                  <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
-                    {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                  <span className="relative mt-0.5 block">
+                    <button
+                      type="button"
+                      onClick={!readOnly && b.file_url ? (e) => { e.stopPropagation(); setTipoEditingBollaId((prev) => prev === b.id ? null : b.id) } : undefined}
+                      title={!readOnly && b.file_url ? 'Click to change document type' : undefined}
+                      className={`font-sans text-[10px] font-normal not-italic text-app-fg-muted/60 hover:text-app-fg-muted${!readOnly && b.file_url ? ' cursor-pointer underline decoration-dotted' : ''}`}
+                    >
+                      {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                    </button>
+                    {tipoEditingBollaId === b.id && b.file_url ? (
+                      <span
+                        className="absolute left-0 top-full z-30 mt-1 flex flex-col rounded-md border border-app-line-30 bg-[var(--app-workspace-bg,#0f1117)] shadow-lg"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        {DOC_TYPE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            className="whitespace-nowrap px-3 py-1.5 text-left font-sans text-[11px] text-app-fg-muted hover:bg-white/5 hover:text-app-fg"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); handleTipoOverride(b.file_url!, opt.tipo, opt.label) }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </span>
+                    ) : null}
                   </span>
                   {!readOnly ? (
                     <DuplicateLedgerRowExtras

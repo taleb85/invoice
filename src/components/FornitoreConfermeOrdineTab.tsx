@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
-import { formatDate as formatDateLib } from '@/lib/locale'
+import { formatDate as formatDateLib, formatCurrency } from '@/lib/locale'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
@@ -17,6 +17,17 @@ import { useToast } from '@/lib/toast-context'
 
 import { extractDocTypeLabel, splitDocTitleForDisplay } from '@/lib/extract-doc-type'
 
+/**
+ * Riga prodotto come salvata in `conferme_ordine.righe` (jsonb).
+ * Popolata dal parser Rekki — vedi `src/lib/rekki-parser.ts`.
+ */
+export type ConfermaOrdineRiga = {
+  prodotto?: string | null
+  quantita?: number | null
+  prezzo_unitario?: number | null
+  importo_linea?: number | null
+}
+
 export type ConfermaOrdineRow = {
   id: string
   file_url: string
@@ -25,6 +36,25 @@ export type ConfermaOrdineRow = {
   data_ordine: string | null
   note: string | null
   created_at: string
+  righe: ConfermaOrdineRiga[] | null
+}
+
+/**
+ * Somma `importo_linea` su tutte le righe della conferma.
+ * Restituisce `null` se non c'è alcun importo numerico valido (per render `—`).
+ */
+function sumRigheImporto(righe: ConfermaOrdineRiga[] | null | undefined): number | null {
+  if (!Array.isArray(righe) || righe.length === 0) return null
+  let total = 0
+  let found = false
+  for (const r of righe) {
+    const v = typeof r?.importo_linea === 'number' ? r.importo_linea : null
+    if (v !== null && Number.isFinite(v)) {
+      total += v
+      found = true
+    }
+  }
+  return found ? Math.round(total * 100) / 100 : null
 }
 
 /** Sul guscio `supplier-detail-tab-shell` (trasparente): niente `app-workspace-inset-bg`. */
@@ -62,7 +92,7 @@ export default function FornitoreConfermeOrdineTab({
   readOnly?: boolean
 }) {
   const t = useT()
-  const { locale, timezone } = useLocale()
+  const { locale, timezone, currency } = useLocale()
   const { showToast } = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
   const [rows, setRows] = useState<ConfermaOrdineRow[]>([])
@@ -108,7 +138,7 @@ export default function FornitoreConfermeOrdineTab({
     const supabase = createClient()
     const { data, error: qErr } = await supabase
       .from('conferme_ordine')
-      .select('id, file_url, file_name, titolo, data_ordine, note, created_at')
+      .select('id, file_url, file_name, titolo, data_ordine, note, created_at, righe')
       .eq('fornitore_id', fornitoreId)
       .order('created_at', { ascending: false })
 
@@ -405,6 +435,15 @@ export default function FornitoreConfermeOrdineTab({
                         {t.fornitori.confermeOrdineOptionalOrderDate}: {fmt(r.data_ordine)}
                       </p>
                     ) : null}
+                    {(() => {
+                      const tot = sumRigheImporto(r.righe)
+                      if (tot == null) return null
+                      return (
+                        <p className={`mt-0.5 font-mono text-xs tabular-nums ${confermeSecondaryClass}`}>
+                          {t.statements.colAmount}: {formatCurrency(tot, currency, locale)}
+                        </p>
+                      )
+                    })()}
                     {r.note?.trim() ? <p className={`mt-1 text-xs ${confermeSecondaryClass}`}>{r.note}</p> : null}
                     <p className={`mt-1 text-xs ${confermeSecondaryClass}`}>
                       {t.fornitori.confermeOrdineColRecorded}: {fmt(r.created_at)}
@@ -508,7 +547,10 @@ export default function FornitoreConfermeOrdineTab({
                         </OpenDocumentInAppButton>
                       </td>
                       <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
-                        —
+                        {(() => {
+                          const tot = sumRigheImporto(r.righe)
+                          return tot != null ? formatCurrency(tot, currency, locale) : '—'
+                        })()}
                       </td>
                       <td className="px-5 py-3 text-right">
                         {!readOnly ? (
