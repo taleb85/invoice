@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
@@ -11,7 +11,8 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import { BackButton } from '@/components/BackButton'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { CategoriaDropdown } from '@/components/CategoriaDropdown'
-import { formatDate, formatDateTime } from '@/lib/locale'
+import { formatDate } from '@/lib/locale'
+import type { Translations } from '@/lib/translations'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
@@ -119,26 +120,34 @@ type LearningResponse = {
   pattern_anomalie_azioni: PatternAnomaliaApprendimento[]
 }
 
-const GRAVITA_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  alta: { label: 'Alta', color: 'text-rose-200', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
-  media: { label: 'Media', color: 'text-amber-200', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
-  bassa: { label: 'Bassa', color: 'text-sky-200', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
+type GravitaConfig = { label: string; color: string; bg: string; border: string }
+
+function buildGravitaConfig(t: Translations): Record<string, GravitaConfig> {
+  const v = t.strumentiVerificaAssociazioni
+  return {
+    alta: { label: v.gravitaAlta, color: 'text-rose-200', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
+    media: { label: v.gravitaMedia, color: 'text-amber-200', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
+    bassa: { label: v.gravitaBassa, color: 'text-sky-200', bg: 'bg-sky-500/10', border: 'border-sky-500/30' },
+  }
 }
 
-const TIPO_ANOMALIA_LABEL: Record<string, string> = {
-  file_mancante: 'File mancante',
-  fornitore_mancante: 'Fornitore mancante',
-  data_mancante: 'Data mancante',
-  riferimento_assente: 'Riferimento assente',
-  riferimento_inesistente: 'Riferimento inesistente',
-  documento_duplicato: 'Documento duplicato',
-  sede_mancante: 'Sede mancante',
-  metadati_incompleti: 'Metadati incompleti',
-  associazione_vecchia: 'Associazione vecchia',
+function buildTipoAnomaliaLabel(t: Translations): Record<string, string> {
+  const v = t.strumentiVerificaAssociazioni
+  return {
+    file_mancante: v.tipoFileMancante,
+    fornitore_mancante: v.tipoFornitoreMancante,
+    data_mancante: v.tipoDataMancante,
+    riferimento_assente: v.tipoRiferimentoAssente,
+    riferimento_inesistente: v.tipoRiferimentoInesistente,
+    documento_duplicato: v.tipoDocumentoDuplicato,
+    sede_mancante: v.tipoSedeMancante,
+    metadati_incompleti: v.tipoMetadatiIncompleti,
+    associazione_vecchia: v.tipoAssociazioneVecchia,
+  }
 }
 
-function GravitaBadge({ gravita }: { gravita: string }) {
-  const cfg = GRAVITA_CONFIG[gravita] ?? GRAVITA_CONFIG.bassa
+function GravitaBadge({ gravita, gravitaConfig }: { gravita: string; gravitaConfig: Record<string, GravitaConfig> }) {
+  const cfg = gravitaConfig[gravita] ?? gravitaConfig.bassa
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.color} ${cfg.bg}`}>
       {cfg.label}
@@ -146,10 +155,10 @@ function GravitaBadge({ gravita }: { gravita: string }) {
   )
 }
 
-function TipoAnomaliaBadge({ tipo }: { tipo: string }) {
+function TipoAnomaliaBadge({ tipo, tipoLabel }: { tipo: string; tipoLabel: Record<string, string> }) {
   return (
     <span className="inline-block rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px] text-app-fg-muted">
-      {TIPO_ANOMALIA_LABEL[tipo] ?? tipo}
+      {tipoLabel[tipo] ?? tipo}
     </span>
   )
 }
@@ -178,14 +187,26 @@ function determinaCategoriaDocumento(doc: DocumentoAssociato): string {
   return 'Documento'
 }
 
-const AZIONE_CONFIG: Record<string, { label: string; color: string; border: string; bg: string }> = {
-  elimina_duplicato: { label: 'Elimina duplicato', color: 'text-purple-200', border: 'border-purple-500/30', bg: 'bg-purple-500/10' },
-  resetta: { label: 'Resetta', color: 'text-amber-200', border: 'border-amber-500/30', bg: 'bg-amber-500/10' },
-  scarta: { label: 'Scarta', color: 'text-rose-200', border: 'border-rose-500/30', bg: 'bg-rose-500/10' },
+type AzioneConfig = { label: string; color: string; border: string; bg: string }
+
+function buildAzioneConfig(t: Translations): Record<string, AzioneConfig> {
+  const v = t.strumentiVerificaAssociazioni
+  return {
+    elimina_duplicato: { label: v.actionEliminaDuplicato, color: 'text-purple-200', border: 'border-purple-500/30', bg: 'bg-purple-500/10' },
+    resetta: { label: v.actionResetta, color: 'text-amber-200', border: 'border-amber-500/30', bg: 'bg-amber-500/10' },
+    scarta: { label: v.actionScarta, color: 'text-rose-200', border: 'border-rose-500/30', bg: 'bg-rose-500/10' },
+  }
 }
 
-function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: LearningResponse | null, categoria?: string): AzioneConsigliata | null {
+function analizzaAzioneConsigliata(
+  anomalie: Anomalia[],
+  t: Translations,
+  azioneConfig: Record<string, AzioneConfig>,
+  learningData?: LearningResponse | null,
+  categoria?: string,
+): AzioneConsigliata | null {
   if (anomalie.length === 0) return null
+  const v = t.strumentiVerificaAssociazioni
 
   if (learningData?.pattern_anomalie_azioni && learningData.pattern_anomalie_azioni.length > 0) {
     const currentTipi = [...new Set(anomalie.map((a) => a.tipo))].sort()
@@ -202,12 +223,15 @@ function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: Learning
         pattern.azione_piu_frequente.percentuale >= 60
       ) {
         const action = pattern.azione_piu_frequente.action as 'resetta' | 'scarta' | 'elimina_duplicato'
-        const config = AZIONE_CONFIG[action] ?? AZIONE_CONFIG.resetta
+        const config = azioneConfig[action] ?? azioneConfig.resetta
 
         return {
           action,
           label: config.label,
-          descrizione: `${pattern.azione_piu_frequente.percentuale}% degli operatori ha scelto "${config.label}" per questa combinazione di anomalie (${pattern.totale_azioni} casi).`,
+          descrizione: v.descLearningPattern
+            .replace('{percent}', String(pattern.azione_piu_frequente.percentuale))
+            .replace('{label}', config.label)
+            .replace('{total}', String(pattern.totale_azioni)),
           color: config.color,
           border: config.border,
           bg: config.bg,
@@ -224,8 +248,8 @@ function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: Learning
   if (tipi.has('documento_duplicato')) {
     return {
       action: 'elimina_duplicato',
-      label: 'Elimina duplicato',
-      descrizione: 'Documento con stesso fornitore e numero fattura già presente nel sistema.',
+      label: v.actionEliminaDuplicato,
+      descrizione: v.descDuplicate,
       color: 'text-purple-200',
       border: 'border-purple-500/30',
       bg: 'bg-purple-500/10',
@@ -235,10 +259,8 @@ function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: Learning
   if (tipi.has('riferimento_inesistente') || tipi.has('riferimento_assente')) {
     return {
       action: 'resetta',
-      label: 'Resetta',
-      descrizione: tipi.has('riferimento_inesistente')
-        ? 'Il riferimento fattura/bolla non esiste. Meglio riassegnare per associarlo correttamente.'
-        : 'Documento associato ma senza riferimento a fattura o bolla. Meglio riassegnare.',
+      label: v.actionResetta,
+      descrizione: tipi.has('riferimento_inesistente') ? v.descRefInexistent : v.descRefMissing,
       color: 'text-amber-200',
       border: 'border-amber-500/30',
       bg: 'bg-amber-500/10',
@@ -248,8 +270,8 @@ function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: Learning
   if (tipi.has('file_mancante')) {
     return {
       action: 'scarta',
-      label: 'Scarta',
-      descrizione: 'Il file fisico non esiste. Il documento è probabilmente inutilizzabile.',
+      label: v.actionScarta,
+      descrizione: v.descFileMissing,
       color: 'text-rose-200',
       border: 'border-rose-500/30',
       bg: 'bg-rose-500/10',
@@ -259,8 +281,8 @@ function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: Learning
   if (tipi.has('fornitore_mancante') || tipi.has('sede_mancante')) {
     return {
       action: 'resetta',
-      label: 'Resetta',
-      descrizione: 'Mancano metadati essenziali. Meglio riassegnare per una corretta associazione.',
+      label: v.actionResetta,
+      descrizione: v.descMissingMetadata,
       color: 'text-amber-200',
       border: 'border-amber-500/30',
       bg: 'bg-amber-500/10',
@@ -270,8 +292,8 @@ function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: Learning
   if (tipi.has('associazione_vecchia')) {
     return {
       action: 'resetta',
-      label: 'Resetta',
-      descrizione: 'Associazione datata (oltre 180 giorni). Meglio riprocessare.',
+      label: v.actionResetta,
+      descrizione: v.descAssociazioneVecchia,
       color: 'text-amber-200',
       border: 'border-amber-500/30',
       bg: 'bg-amber-500/10',
@@ -280,16 +302,30 @@ function analizzaAzioneConsigliata(anomalie: Anomalia[], learningData?: Learning
 
   return {
     action: 'resetta',
-    label: 'Resetta',
-    descrizione: 'Anomalie generiche. Riassegna per una corretta elaborazione.',
+    label: v.actionResetta,
+    descrizione: v.descGenericAnomalies,
     color: 'text-amber-200',
     border: 'border-amber-500/30',
     bg: 'bg-amber-500/10',
   }
 }
 
-function AzioneConsigliataBadge({ anomalie, learningData, categoria, onClick }: { anomalie: Anomalia[]; learningData?: LearningResponse | null; categoria?: string; onClick: () => void }) {
-  const consiglio = analizzaAzioneConsigliata(anomalie, learningData, categoria)
+function AzioneConsigliataBadge({
+  anomalie,
+  learningData,
+  categoria,
+  onClick,
+  t,
+  azioneConfig,
+}: {
+  anomalie: Anomalia[]
+  learningData?: LearningResponse | null
+  categoria?: string
+  onClick: () => void
+  t: Translations
+  azioneConfig: Record<string, AzioneConfig>
+}) {
+  const consiglio = analizzaAzioneConsigliata(anomalie, t, azioneConfig, learningData, categoria)
   if (!consiglio) return null
 
   return (
@@ -304,7 +340,7 @@ function AzioneConsigliataBadge({ anomalie, learningData, categoria, onClick }: 
       </svg>
       <span>{consiglio.label}</span>
       <span className="ml-0.5 text-[9px] opacity-60">
-        {consiglio.daApprendimento ? `${consiglio.percentualeOperatori}% op.` : 'Consigliato'}
+        {consiglio.daApprendimento ? `${consiglio.percentualeOperatori}${t.strumentiVerificaAssociazioni.operatorsAbbrev}` : t.strumentiVerificaAssociazioni.consigliato}
       </span>
     </button>
   )
@@ -359,33 +395,12 @@ function CollapsibleSection({
   )
 }
 
-function FilterSelect({
-  value,
-  onChange,
-  options,
-  placeholder,
-}: {
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
-  placeholder: string
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-app-soft-border bg-black/30 px-3 py-2 text-xs text-app-fg outline-none transition-colors focus:border-cyan-500/50"
-    >
-      <option value="">{placeholder}</option>
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
-  )
-}
-
 export default function VerificaAssociazioniPage() {
   const { t, locale } = useLocale()
+  const v = t.strumentiVerificaAssociazioni
+  const GRAVITA_CONFIG = useMemo(() => buildGravitaConfig(t), [t])
+  const TIPO_ANOMALIA_LABEL = useMemo(() => buildTipoAnomaliaLabel(t), [t])
+  const AZIONE_CONFIG = useMemo(() => buildAzioneConfig(t), [t])
   const { me, loading: meLoading } = useMe()
   const { activeOperator } = useActiveOperator()
   const canView = canAccessCentroOperazioniPage(me, activeOperator)
@@ -474,11 +489,11 @@ export default function VerificaAssociazioniPage() {
       if (resReport.ok) setReport(reportData)
       if (resLearning.ok) setLearningData(learningRes)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore di rete')
+      setError(e instanceof Error ? e.message : t.common.networkError)
     } finally {
       setLoading(false)
     }
-  }, [buildUrl])
+  }, [buildUrl, t])
 
   useEffect(() => {
     if (canView) void loadData()
@@ -556,15 +571,15 @@ export default function VerificaAssociazioniPage() {
         setError(result.error ?? `HTTP ${res.status}`)
         return
       }
-      setActionFeedback(result.message ?? 'Operazione completata.')
+      setActionFeedback(result.message ?? v.feedbackOpComplete)
       await loadData()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore di rete')
+      setError(e instanceof Error ? e.message : t.common.networkError)
     } finally {
       setActionLoading(false)
       setConfirmAction(null)
     }
-  }, [loadData])
+  }, [loadData, t, v])
 
   const handleBatchAction = useCallback(async (action: string) => {
     if (!confirmAction || confirmAction.mode !== 'batch') return
@@ -583,16 +598,16 @@ export default function VerificaAssociazioniPage() {
         setError(result.error ?? `HTTP ${res.status}`)
         return
       }
-      setActionFeedback(result.message ?? 'Operazione batch completata.')
+      setActionFeedback(result.message ?? v.feedbackBatchOpComplete)
       setSelectedDocs(new Set())
       await loadData()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore di rete')
+      setError(e instanceof Error ? e.message : t.common.networkError)
     } finally {
       setActionLoading(false)
       setConfirmAction(null)
     }
-  }, [confirmAction, selectedDocs, loadData])
+  }, [confirmAction, selectedDocs, loadData, t, v])
 
   const handleCategoriaChange = useCallback((_nuovaCategoria: string) => {
     void loadData()
@@ -636,15 +651,15 @@ export default function VerificaAssociazioniPage() {
       if (data.success) {
         setActionFeedback(data.message)
       } else {
-        setActionFeedback(data.error || 'Errore auto-resolve')
+        setActionFeedback(data.error || v.feedbackAutoResolveError)
       }
       await loadData()
     } catch (e) {
-      setActionFeedback(`Errore: ${e instanceof Error ? e.message : 'Richiesta fallita'}`)
+      setActionFeedback(v.feedbackError.replace('{msg}', e instanceof Error ? e.message : t.strumentiCentroControllo.requestFailed))
     } finally {
       setAutoResolving(false)
     }
-  }, [loadData])
+  }, [loadData, t, v])
 
   const toggleSelectDoc = useCallback((docId: string) => {
     setSelectedDocs((prev) => {
@@ -700,13 +715,13 @@ export default function VerificaAssociazioniPage() {
             leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
           >
             <AppPageHeaderTitleWithDashboardShortcut>
-              <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>Verifica associazioni</h1>
-              <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>Accesso riservato ad admin e operatori.</p>
+              <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{v.pageTitle}</h1>
+              <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{v.accessDeniedTitle}</p>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
           <div className="mt-6 app-card overflow-hidden p-6">
             <p className="m-0 text-sm leading-relaxed text-app-fg-muted">
-              Non hai i permessi per visualizzare questa pagina.
+              {v.accessDenied}
             </p>
           </div>
         </div>
@@ -726,9 +741,9 @@ export default function VerificaAssociazioniPage() {
           leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         >
           <AppPageHeaderTitleWithDashboardShortcut>
-            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>Verifica associazioni</h1>
+            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{v.pageTitle}</h1>
             <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>
-              Catalogo e controllo qualità dei documenti associati ({data?.total ?? '...'} documenti).
+              {v.subtitle.replace('{total}', String(data?.total ?? '...'))}
             </p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
@@ -736,9 +751,9 @@ export default function VerificaAssociazioniPage() {
         {/* Tab Navigation */}
         <div className="mt-3 flex gap-1 rounded-lg border border-app-soft-border bg-black/20 p-1">
           {([
-            { key: 'dashboard', label: 'Dashboard' },
-            { key: 'elenco', label: 'Elenco documenti' },
-            { key: 'anomalie', label: 'Anomalie e validazione' },
+            { key: 'dashboard', label: v.tabDashboard },
+            { key: 'elenco', label: v.tabElenco },
+            { key: 'anomalie', label: v.tabAnomalie },
           ] as const).map((tab) => (
             <button
               key={tab.key}
@@ -767,7 +782,7 @@ export default function VerificaAssociazioniPage() {
               onClick={loadData}
               className="mt-4 inline-flex items-center justify-center rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18"
             >
-              Riprova
+              {v.retry}
             </button>
           </div>
         ) : showStats ? (
@@ -777,31 +792,31 @@ export default function VerificaAssociazioniPage() {
               <div className="mt-6 space-y-6">
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                  <StatCard label="Totale documenti" value={showStats.totale} color="text-white" />
+                  <StatCard label={v.statTotali} value={showStats.totale} color="text-white" />
                   <StatCard
-                    label="OK"
+                    label={v.statOk}
                     value={showStats.totale_ok}
                     color={showStats.totale_ok === showStats.totale ? 'text-emerald-300' : 'text-emerald-300'}
-                    note={`${showStats.totale > 0 ? ((showStats.totale_ok / showStats.totale) * 100).toFixed(1) : '0'}% del totale`}
+                    note={v.statOkNote.replace('{percent}', showStats.totale > 0 ? ((showStats.totale_ok / showStats.totale) * 100).toFixed(1) : '0')}
                   />
                   <StatCard
-                    label="Con anomalie"
+                    label={v.statConAnomalie}
                     value={showStats.totale_con_anomalie}
                     color={showStats.totale_con_anomalie > 0 ? 'text-rose-300' : 'text-emerald-300'}
-                    note={`${showStats.totale > 0 ? ((showStats.totale_con_anomalie / showStats.totale) * 100).toFixed(1) : '0'}% del totale`}
+                    note={v.statConAnomalieNote.replace('{percent}', showStats.totale > 0 ? ((showStats.totale_con_anomalie / showStats.totale) * 100).toFixed(1) : '0')}
                   />
                   <StatCard
-                    label="Anomalie totali"
+                    label={v.statAnomalieTotali}
                     value={showStats.anomalie.totali}
                     color={showStats.anomalie.totali > 0 ? 'text-amber-300' : 'text-emerald-300'}
                   />
                   <StatCard
-                    label="Anomalie alta gravità"
+                    label={v.statAnomalieAlta}
                     value={showStats.anomalie.per_gravita.alta ?? 0}
                     color={showStats.anomalie.per_gravita.alta ? 'text-rose-300' : 'text-emerald-300'}
                   />
                   <StatCard
-                    label="Duplicati"
+                    label={v.statDuplicati}
                     value={showStats.anomalie.per_tipo.documento_duplicato ?? 0}
                     color={showStats.anomalie.per_tipo.documento_duplicato ? 'text-rose-300' : 'text-emerald-300'}
                   />
@@ -812,10 +827,12 @@ export default function VerificaAssociazioniPage() {
                   <div className="flex items-center justify-between rounded-lg border border-rose-500/30 bg-rose-900/30 px-5 py-4">
                     <div>
                       <p className="text-sm font-bold text-rose-200">
-                        {showStats.totale_con_anomalie} documenti con anomalie
+                        {v.autoResolveDocsWithAnomalies.replace('{n}', String(showStats.totale_con_anomalie))}
                       </p>
                       <p className="mt-0.5 text-xs text-rose-300/80">
-                        {showStats.anomalie.totali} anomalie totali di cui {showStats.anomalie.per_gravita.alta ?? 0} ad alta gravità
+                        {v.autoResolveAnomalieTotali
+                          .replace('{anomalie}', String(showStats.anomalie.totali))
+                          .replace('{alta}', String(showStats.anomalie.per_gravita.alta ?? 0))}
                       </p>
                     </div>
                     <button
@@ -825,13 +842,13 @@ export default function VerificaAssociazioniPage() {
                       className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-purple-500 disabled:opacity-50"
                     >
                       {autoResolving ? (
-                        <>Analizzo...</>
+                        <>{v.autoResolveBtnAnalizzo}</>
                       ) : (
                         <>
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
-                          Auto-risolvi tutto
+                          {v.autoResolveBtn}
                         </>
                       )}
                     </button>
@@ -841,7 +858,7 @@ export default function VerificaAssociazioniPage() {
                 {/* Distribuzione per tipo anomalia */}
                 {report?.anomalie_riepilogo && report.anomalie_riepilogo.length > 0 && (
                   <CollapsibleSection
-                    title="Distribuzione anomalie per tipo"
+                    title={v.sectionDistribAnomalieTipo}
                     count={report.anomalie_riepilogo.length}
                     countColor="text-amber-300"
                     defaultOpen
@@ -854,7 +871,7 @@ export default function VerificaAssociazioniPage() {
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        Esporta report
+                        {v.sectionDistribAnomalieTipoExportBtn}
                       </button>
                     }
                   >
@@ -862,17 +879,17 @@ export default function VerificaAssociazioniPage() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
-                            <th className="pb-2 pr-3 font-semibold">Tipo anomalia</th>
-                            <th className="pb-2 pr-3 font-semibold">Gravità</th>
-                            <th className="pb-2 pr-3 font-semibold">Conteggio</th>
-                            <th className="pb-2 pr-3 font-semibold">Incidenza</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colTipoAnomalia}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colGravita}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colConteggio}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colIncidenza}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-app-line-10">
                           {report.anomalie_riepilogo.map((a) => (
                             <tr key={a.tipo} className="text-app-fg hover:bg-white/[0.02]">
-                              <td className="py-2 pr-3"><TipoAnomaliaBadge tipo={a.tipo} /></td>
-                              <td className="py-2 pr-3"><GravitaBadge gravita={a.gravita} /></td>
+                              <td className="py-2 pr-3"><TipoAnomaliaBadge tipo={a.tipo} tipoLabel={TIPO_ANOMALIA_LABEL} /></td>
+                              <td className="py-2 pr-3"><GravitaBadge gravita={a.gravita} gravitaConfig={GRAVITA_CONFIG} /></td>
                               <td className="py-2 pr-3 font-semibold tabular-nums">{a.conteggio}</td>
                               <td className="py-2 pr-3 text-app-fg-muted">
                                 {report.total > 0 ? ((a.conteggio / report.total) * 100).toFixed(1) : '0'}%
@@ -887,7 +904,7 @@ export default function VerificaAssociazioniPage() {
 
                 {/* Distribuzione per gravità */}
                 <CollapsibleSection
-                  title="Anomalie per gravità"
+                  title={v.sectionDistribAnomalieGravita}
                   count={showStats.anomalie.totali}
                   countColor="text-amber-300"
                   defaultOpen
@@ -903,7 +920,7 @@ export default function VerificaAssociazioniPage() {
                             {cfg.label}
                           </p>
                           <p className={`mt-2 text-2xl font-bold ${cfg.color}`}>{count}</p>
-                          <p className="mt-0.5 text-xs text-app-fg-muted">{pct}% del totale anomalie</p>
+                          <p className="mt-0.5 text-xs text-app-fg-muted">{v.gravitaTotalNote.replace('{percent}', pct)}</p>
                         </div>
                       )
                     })}
@@ -913,7 +930,7 @@ export default function VerificaAssociazioniPage() {
                 {/* Distribuzione per tipo documento */}
                 {showStats.distribuzione_tipo && Object.keys(showStats.distribuzione_tipo).length > 0 && (
                   <CollapsibleSection
-                    title="Distribuzione per tipo documento"
+                    title={v.sectionDistribTipoDoc}
                     count={Object.keys(showStats.distribuzione_tipo).length}
                     countColor="text-sky-300"
                   >
@@ -921,9 +938,9 @@ export default function VerificaAssociazioniPage() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
-                            <th className="pb-2 pr-3 font-semibold">Tipo</th>
-                            <th className="pb-2 pr-3 font-semibold">Conteggio</th>
-                            <th className="pb-2 pr-3 font-semibold">Incidenza</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colTipo}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colConteggio}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colIncidenza}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-app-line-10">
@@ -947,7 +964,7 @@ export default function VerificaAssociazioniPage() {
                 {/* Distribuzione per sede */}
                 {showStats.distribuzione_sedi && Object.keys(showStats.distribuzione_sedi).length > 0 && (
                   <CollapsibleSection
-                    title="Distribuzione per sede"
+                    title={v.sectionDistribSedi}
                     count={Object.keys(showStats.distribuzione_sedi).length}
                     countColor="text-indigo-300"
                   >
@@ -955,9 +972,9 @@ export default function VerificaAssociazioniPage() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
-                            <th className="pb-2 pr-3 font-semibold">Sede</th>
-                            <th className="pb-2 pr-3 font-semibold">Documenti</th>
-                            <th className="pb-2 pr-3 font-semibold">Incidenza</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colSede}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colDocumenti}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colIncidenza}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-app-line-10">
@@ -981,7 +998,7 @@ export default function VerificaAssociazioniPage() {
                 {/* Distribuzione per mese */}
                 {showStats.distribuzione_mese && Object.keys(showStats.distribuzione_mese).length > 0 && (
                   <CollapsibleSection
-                    title="Distribuzione temporale (per mese)"
+                    title={v.sectionDistribMese}
                     count={Object.keys(showStats.distribuzione_mese).length}
                     countColor="text-teal-300"
                   >
@@ -989,9 +1006,9 @@ export default function VerificaAssociazioniPage() {
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
-                            <th className="pb-2 pr-3 font-semibold">Mese</th>
-                            <th className="pb-2 pr-3 font-semibold">Documenti</th>
-                            <th className="pb-2 pr-3 font-semibold">Incidenza</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colMese}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colDocumenti}</th>
+                            <th className="pb-2 pr-3 font-semibold">{v.colIncidenza}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-app-line-10">
@@ -1015,7 +1032,7 @@ export default function VerificaAssociazioniPage() {
                 {/* Sezione Apprendimento AI */}
                 {learningData && learningData.statistiche_generali.totale_azioni > 0 && (
                   <CollapsibleSection
-                    title="Apprendimento dalle azioni"
+                    title={v.sectionApprendimentoAzioni}
                     count={learningData.statistiche_generali.totale_azioni}
                     countColor="text-emerald-300"
                     defaultOpen
@@ -1023,11 +1040,11 @@ export default function VerificaAssociazioniPage() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Azioni totali</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.learningTotaleAzioni}</p>
                           <p className="mt-1 text-2xl font-bold text-emerald-200">{learningData.statistiche_generali.totale_azioni}</p>
                         </div>
                         <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Accuratezza consigli</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.learningAccuratezza}</p>
                           <div className="mt-1 flex items-baseline gap-2">
                             <p className="text-2xl font-bold text-cyan-200">{learningData.statistiche_generali.accuratezza_consigli}%</p>
                             <span className="text-[10px] text-app-fg-muted">
@@ -1036,11 +1053,11 @@ export default function VerificaAssociazioniPage() {
                           </div>
                         </div>
                         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Resetta</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.learningResetta}</p>
                           <p className="mt-1 text-2xl font-bold text-amber-200">{learningData.statistiche_generali.per_azione.resetta ?? 0}</p>
                         </div>
                         <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Scarta</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.learningScarta}</p>
                           <p className="mt-1 text-2xl font-bold text-rose-200">{learningData.statistiche_generali.per_azione.scarta ?? 0}</p>
                         </div>
                       </div>
@@ -1048,18 +1065,18 @@ export default function VerificaAssociazioniPage() {
                       {learningData.pattern_anomalie_azioni.length > 0 && (
                         <div>
                           <p className="mb-3 text-xs font-bold uppercase tracking-widest text-app-fg-muted">
-                            Pattern anomalie → azioni più frequenti
+                            {v.learningPatternTitle}
                           </p>
                           <div>
                             <table className="w-full text-left text-xs">
                               <thead>
                                 <tr className="text-app-fg-muted">
-                                  <th className="pb-2 pr-3 font-semibold">Anomalie</th>
-                                  <th className="pb-2 pr-3 font-semibold">Categoria</th>
-                                  <th className="pb-2 pr-3 font-semibold">Gravità max</th>
-                                  <th className="pb-2 pr-3 font-semibold">Azioni</th>
-                                  <th className="pb-2 pr-3 font-semibold">Azione più frequente</th>
-                                  <th className="pb-2 pr-3 font-semibold">Distribuzione</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colAzioni}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colCategoria}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colGravitaMax}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colAzioni}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colAzionePiuFrequente}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colDistribuzione}</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-app-line-10">
@@ -1068,8 +1085,8 @@ export default function VerificaAssociazioniPage() {
                                     <td className="py-2 pr-3">
                                       <div className="flex flex-wrap gap-1">
                                         {pattern.anomalie_tipi.length > 0
-                                          ? pattern.anomalie_tipi.map((t) => <TipoAnomaliaBadge key={t} tipo={t} />)
-                                          : <span className="text-app-fg-muted">Nessuna anomalia</span>
+                                          ? pattern.anomalie_tipi.map((tipoCode) => <TipoAnomaliaBadge key={tipoCode} tipo={tipoCode} tipoLabel={TIPO_ANOMALIA_LABEL} />)
+                                          : <span className="text-app-fg-muted">{v.learningEmpty}</span>
                                         }
                                       </div>
                                     </td>
@@ -1079,7 +1096,7 @@ export default function VerificaAssociazioniPage() {
                                       </span>
                                     </td>
                                     <td className="py-2 pr-3">
-                                      <GravitaBadge gravita={pattern.gravita_max} />
+                                      <GravitaBadge gravita={pattern.gravita_max} gravitaConfig={GRAVITA_CONFIG} />
                                     </td>
                                     <td className="py-2 pr-3 font-semibold tabular-nums">{pattern.totale_azioni}</td>
                                     <td className="py-2 pr-3">
@@ -1091,8 +1108,11 @@ export default function VerificaAssociazioniPage() {
                                               ? 'text-purple-200 bg-purple-500/10'
                                               : 'text-amber-200 bg-amber-500/10'
                                         }`}>
-                                          {pattern.azione_piu_frequente.action === 'scarta' ? 'Scarta' :
-                                           pattern.azione_piu_frequente.action === 'elimina_duplicato' ? 'Elimina duplicato' : 'Resetta'}
+                                          {pattern.azione_piu_frequente.action === 'scarta'
+                                            ? v.actionScarta
+                                            : pattern.azione_piu_frequente.action === 'elimina_duplicato'
+                                              ? v.actionEliminaDuplicato
+                                              : v.actionResetta}
                                           {' '}({pattern.azione_piu_frequente.percentuale}%)
                                         </span>
                                       )}
@@ -1115,9 +1135,7 @@ export default function VerificaAssociazioniPage() {
                       )}
 
                       <p className="text-[10px] text-app-fg-muted italic">
-                        I consigli vengono adattati in base alle azioni reali degli operatori.
-                        I pattern mostrano le scelte più comuni per ogni combinazione di anomalie.
-                        Più azioni vengono registrate, più i consigli diventano accurati.
+                        {v.learningFooter}
                       </p>
                     </div>
                   </CollapsibleSection>
@@ -1132,17 +1150,17 @@ export default function VerificaAssociazioniPage() {
                 <div className="app-card p-4 overflow-visible">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Ricerca testo</label>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.filterSearchLabel}</label>
                       <input
                         type="text"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
-                        placeholder="Mittente, nome file, oggetto..."
+                        placeholder={v.filterSearchPlaceholder}
                         className="w-full rounded-lg border border-app-soft-border bg-black/30 px-3 py-2 text-xs text-app-fg outline-none transition-colors placeholder:text-app-fg-muted/50 focus:border-cyan-500/50"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Da data</label>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.filterFromDate}</label>
                       <input
                         type="date"
                         value={filtroFromDate}
@@ -1151,7 +1169,7 @@ export default function VerificaAssociazioniPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">A data</label>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.filterToDate}</label>
                       <input
                         type="date"
                         value={filtroToDate}
@@ -1160,7 +1178,7 @@ export default function VerificaAssociazioniPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Solo anomalie</label>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.filterAnomalieOnlyLabel}</label>
                       <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-app-soft-border bg-black/30 px-3 py-2 text-xs text-app-fg">
                         <input
                           type="checkbox"
@@ -1168,7 +1186,7 @@ export default function VerificaAssociazioniPage() {
                           onChange={(e) => { setFiltroAnomalieOnly(e.target.checked); setPage(1) }}
                           className="rounded border-app-soft-border bg-black/30 text-cyan-500 focus:ring-cyan-500/30"
                         />
-                        <span>Mostra solo documenti con anomalie</span>
+                        <span>{v.filterAnomalieOnlyText}</span>
                       </label>
                     </div>
                   </div>
@@ -1182,7 +1200,7 @@ export default function VerificaAssociazioniPage() {
                           disabled={batchCategoriaUpdating}
                           className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-[11px] font-bold text-app-fg-muted transition-colors hover:bg-white/[0.08] disabled:opacity-40"
                         >
-                          {batchCategoriaUpdating ? '…' : 'Categoria'}
+                          {batchCategoriaUpdating ? '…' : v.filterCategoryBtn}
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
@@ -1210,14 +1228,14 @@ export default function VerificaAssociazioniPage() {
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        Applica filtri
+                        {v.filterApplyBtn}
                       </button>
                       <button
                         type="button"
                         onClick={resetFilters}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-app-soft-border bg-white/[0.03] px-3 py-1.5 text-[11px] font-bold text-app-fg-muted transition-colors hover:bg-white/[0.06]"
                       >
-                        Azzera filtri
+                        {v.filterResetBtn}
                       </button>
                     </div>
                     <button
@@ -1228,7 +1246,7 @@ export default function VerificaAssociazioniPage() {
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Esporta JSON
+                      {v.filterExportBtn}
                     </button>
                   </div>
                 </div>
@@ -1238,14 +1256,14 @@ export default function VerificaAssociazioniPage() {
                   <div className="flex items-center justify-between gap-4 rounded-lg border border-cyan-500/30 bg-cyan-900/40 px-4 py-3 backdrop-blur-sm">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold text-cyan-100">
-                        {selectedDocs.size} documento{selectedDocs.size !== 1 ? 'i' : ''} selezionat{selectedDocs.size !== 1 ? 'i' : 'o'}
+                        {v.bulkSelected.replace('{n}', String(selectedDocs.size))}
                       </span>
                       <button
                         type="button"
                         onClick={clearSelection}
                         className="text-[11px] text-app-fg-muted underline decoration-app-fg-muted/30 underline-offset-2 hover:text-app-fg"
                       >
-                        Annulla selezione
+                        {v.bulkSelectedClear}
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1258,7 +1276,7 @@ export default function VerificaAssociazioniPage() {
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Scarta selezionati
+                        {v.bulkScartaBtn}
                       </button>
                       <button
                         type="button"
@@ -1269,7 +1287,7 @@ export default function VerificaAssociazioniPage() {
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Resetta selezionati
+                        {v.bulkResettaBtn}
                       </button>
                       <button
                         type="button"
@@ -1280,7 +1298,7 @@ export default function VerificaAssociazioniPage() {
                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M23 1l-6 6m0 0l6 6m-6-6H1" />
                         </svg>
-                        Elimina duplicati
+                        {v.bulkEliminaDuplicatiBtn}
                       </button>
                     </div>
                   </div>
@@ -1291,7 +1309,7 @@ export default function VerificaAssociazioniPage() {
                   <div>
                     {data && data.data.length === 0 ? (
                       <div className="p-8 text-center">
-                        <p className="text-sm text-app-fg-muted">Nessun documento trovato con i filtri selezionati.</p>
+                        <p className="text-sm text-app-fg-muted">{v.elencoEmptyHint}</p>
                       </div>
                     ) : (
                       <table className="w-full text-left text-xs">
@@ -1305,15 +1323,15 @@ export default function VerificaAssociazioniPage() {
                                 className="rounded border-app-soft-border bg-black/30 text-cyan-500 focus:ring-cyan-500/30"
                               />
                             </th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Fornitore</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">File</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Data doc.</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Tipo</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Riferimento</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Anomalie</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Giorni</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Creato il</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">Azioni</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColFornitore}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColFile}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColDataDoc}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColTipo}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColRiferimento}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColAnomalie}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColGiorni}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColCreatoIl}</th>
+                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColAzioni}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-app-line-10">
@@ -1352,10 +1370,10 @@ export default function VerificaAssociazioniPage() {
                                         categoria={determinaCategoriaDocumento(doc)}
                                         onCategoriaChange={handleCategoriaChange}
                                         viewerActions={[
-                                          { action: 'scarta', label: 'Scarta', onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'scarta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
-                                          { action: 'resetta', label: 'Resetta', onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'resetta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
+                                          { action: 'scarta', label: v.btnLabelScarta, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'scarta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
+                                          { action: 'resetta', label: v.btnLabelResetta, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'resetta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
                                           ...(doc.anomalie.some((a) => a.tipo === 'documento_duplicato')
-                                            ? [{ action: 'elimina_duplicato' as const, label: 'Elimina duplicato' as const, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'elimina_duplicato', docName: doc.file_name ?? doc.id.substring(0, 8) }) }]
+                                            ? [{ action: 'elimina_duplicato' as const, label: v.actionEliminaDuplicato, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'elimina_duplicato', docName: doc.file_name ?? doc.id.substring(0, 8) }) }]
                                             : []),
                                         ]}
                                         className="truncate text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
@@ -1383,12 +1401,12 @@ export default function VerificaAssociazioniPage() {
                                 </td>
                                 <td className="px-3 py-2.5 pr-3 max-w-[140px]">
                                   {doc.fattura ? (
-                                    <span className="text-emerald-200" title={`Fattura ${doc.fattura.numero_fattura}`}>
-                                      Fatt. {doc.fattura.numero_fattura}
+                                    <span className="text-emerald-200" title={v.fattRefShort.replace('{num}', doc.fattura.numero_fattura)}>
+                                      {v.fattRefShort.replace('{num}', doc.fattura.numero_fattura)}
                                     </span>
                                   ) : doc.bolla ? (
-                                    <span className="text-sky-200" title={`Bolla ${doc.bolla.numero_bolla}`}>
-                                      Bolla {doc.bolla.numero_bolla}
+                                    <span className="text-sky-200" title={v.bollaRefShort.replace('{num}', doc.bolla.numero_bolla)}>
+                                      {v.bollaRefShort.replace('{num}', doc.bolla.numero_bolla)}
                                     </span>
                                   ) : (
                                     <span className="text-app-fg-muted">—</span>
@@ -1413,7 +1431,7 @@ export default function VerificaAssociazioniPage() {
                                 </td>
                                 <td className="px-3 py-2.5 pr-3 tabular-nums">
                                   <span className={doc.giorni_da_associazione > 180 ? 'text-amber-200' : 'text-app-fg-muted'}>
-                                    {doc.giorni_da_associazione}g
+                                    {doc.giorni_da_associazione}{v.daysSuffix}
                                   </span>
                                 </td>
                                 <td className="px-3 py-2.5 pr-3 text-app-fg-muted">
@@ -1430,8 +1448,10 @@ export default function VerificaAssociazioniPage() {
                                       anomalie={doc.anomalie}
                                       learningData={learningData}
                                       categoria={determinaCategoriaDocumento(doc)}
+                                      t={t}
+                                      azioneConfig={AZIONE_CONFIG}
                                       onClick={() => {
-                                        const consiglio = analizzaAzioneConsigliata(doc.anomalie, learningData, determinaCategoriaDocumento(doc))
+                                        const consiglio = analizzaAzioneConsigliata(doc.anomalie, t, AZIONE_CONFIG, learningData, determinaCategoriaDocumento(doc))
                                         if (!consiglio) return
                                         setConfirmAction({ mode: 'single', docId: doc.id, action: consiglio.action, docName: doc.file_name ?? doc.id.substring(0, 8) })
                                       }}
@@ -1440,38 +1460,38 @@ export default function VerificaAssociazioniPage() {
                                       type="button"
                                       onClick={() => setConfirmAction({ mode: 'single', docId: doc.id, action: 'scarta', docName: doc.file_name ?? doc.id.substring(0, 8) })}
                                       disabled={actionLoading}
-                                      title="Scarta: Rimuove l'associazione e marca come scartato. Usa solo se il documento è irrecuperabile (es. file mancante, duplicato errato)."
+                                      title={v.btnTooltipScarta}
                                       className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/8 px-2 py-1 text-[10px] font-bold text-rose-200 transition-colors hover:bg-rose-500/15 disabled:opacity-40"
                                     >
                                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                       </svg>
-                                      Scarta
+                                      {v.btnLabelScarta}
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => setConfirmAction({ mode: 'single', docId: doc.id, action: 'resetta', docName: doc.file_name ?? doc.id.substring(0, 8) })}
                                       disabled={actionLoading}
-                                      title="Resetta: Riporta a 'da associare' per rielaborare. Usa se l'associazione è sbagliata o mancano dati, ma il documento è valido."
+                                      title={v.btnTooltipResetta}
                                       className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/8 px-2 py-1 text-[10px] font-bold text-amber-200 transition-colors hover:bg-amber-500/15 disabled:opacity-40"
                                     >
                                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                       </svg>
-                                      Resetta
+                                      {v.btnLabelResetta}
                                     </button>
                                     {doc.anomalie.some((a) => a.tipo === 'documento_duplicato') && (
                                       <button
                                         type="button"
                                         onClick={() => setConfirmAction({ mode: 'single', docId: doc.id, action: 'elimina_duplicato', docName: doc.file_name ?? doc.id.substring(0, 8) })}
                                         disabled={actionLoading}
-                                        title="Duplicato: Marca come scartato (duplicato). Usa solo se il documento è identico a un altro già presente."
+                                        title={v.btnTooltipDuplicato}
                                         className="inline-flex items-center gap-1 rounded-md border border-purple-500/30 bg-purple-500/8 px-2 py-1 text-[10px] font-bold text-purple-200 transition-colors hover:bg-purple-500/15 disabled:opacity-40"
                                       >
                                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M23 1l-6 6m0 0l6 6m-6-6H1" />
                                         </svg>
-                                        Duplicato
+                                        {v.btnLabelDuplicato}
                                       </button>
                                     )}
                                   </div>
@@ -1488,7 +1508,10 @@ export default function VerificaAssociazioniPage() {
                   {data && data.total > data.limit && (
                     <div className="flex items-center justify-between border-t border-app-line-10 px-4 py-3">
                       <p className="text-[11px] text-app-fg-muted">
-                        Mostrati {(data.page - 1) * data.limit + 1}-{Math.min(data.page * data.limit, data.total)} di {data.total}
+                        {v.paginationShown
+                          .replace('{from}', String((data.page - 1) * data.limit + 1))
+                          .replace('{to}', String(Math.min(data.page * data.limit, data.total)))
+                          .replace('{total}', String(data.total))}
                       </p>
                       <div className="flex items-center gap-2">
                         <button
@@ -1497,16 +1520,16 @@ export default function VerificaAssociazioniPage() {
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
                           className="inline-flex items-center gap-1 rounded-md border border-app-soft-border bg-white/[0.03] px-2.5 py-1 text-[11px] font-bold text-app-fg transition-colors hover:bg-white/[0.06] disabled:opacity-30"
                         >
-                          ← Prec.
+                          {v.paginationPrev}
                         </button>
-                        <span className="text-[11px] text-app-fg-muted">Pag. {data.page}</span>
+                        <span className="text-[11px] text-app-fg-muted">{v.paginationPage.replace('{n}', String(data.page))}</span>
                         <button
                           type="button"
                           disabled={data.page * data.limit >= data.total}
                           onClick={() => setPage((p) => p + 1)}
                           className="inline-flex items-center gap-1 rounded-md border border-app-soft-border bg-white/[0.03] px-2.5 py-1 text-[11px] font-bold text-app-fg transition-colors hover:bg-white/[0.06] disabled:opacity-30"
                         >
-                          Succ. →
+                          {v.paginationNext}
                         </button>
                       </div>
                     </div>
@@ -1516,7 +1539,7 @@ export default function VerificaAssociazioniPage() {
                   {data && data.total > 10 && (
                     <div className="flex items-center justify-end border-t border-app-line-10 px-4 py-2">
                       <label className="flex items-center gap-2 text-[11px] text-app-fg-muted">
-                        Righe per pagina:
+                        {v.rowsPerPage}
                         <select
                           value={pageSize}
                           onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
@@ -1542,17 +1565,17 @@ export default function VerificaAssociazioniPage() {
                 <div className="app-card p-4 overflow-visible">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Ricerca</label>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.anomalieFiltersSearchLabel}</label>
                       <input
                         type="text"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
-                        placeholder="Cerca per fornitore o file..."
+                        placeholder={v.anomalieFiltersSearchPlaceholder}
                         className="w-full rounded-lg border border-app-soft-border bg-black/30 px-3 py-2 text-xs text-app-fg outline-none transition-colors placeholder:text-app-fg-muted/50 focus:border-cyan-500/50"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Da data</label>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.filterFromDate}</label>
                       <input
                         type="date"
                         value={filtroFromDate}
@@ -1561,7 +1584,7 @@ export default function VerificaAssociazioniPage() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">A data</label>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{v.filterToDate}</label>
                       <input
                         type="date"
                         value={filtroToDate}
@@ -1575,7 +1598,7 @@ export default function VerificaAssociazioniPage() {
                         onClick={() => { setFiltroSearch(searchInput); loadData() }}
                         className="w-full rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-200 transition-colors hover:bg-cyan-500/18"
                       >
-                        Applica filtri
+                        {v.filterApplyBtn}
                       </button>
                     </div>
                   </div>
@@ -1589,7 +1612,7 @@ export default function VerificaAssociazioniPage() {
                           disabled={batchCategoriaUpdating}
                           className="inline-flex items-center gap-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-[11px] font-bold text-app-fg-muted transition-colors hover:bg-white/[0.08] disabled:opacity-40"
                         >
-                          {batchCategoriaUpdating ? '…' : 'Categoria'}
+                          {batchCategoriaUpdating ? '…' : v.filterCategoryBtn}
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
@@ -1618,14 +1641,14 @@ export default function VerificaAssociazioniPage() {
                   <div className="flex items-center justify-between gap-4 rounded-lg border border-cyan-500/30 bg-cyan-900/40 px-4 py-3 backdrop-blur-sm">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold text-cyan-100">
-                        {selectedDocs.size} documento{selectedDocs.size !== 1 ? 'i' : ''} selezionat{selectedDocs.size !== 1 ? 'i' : 'o'}
+                        {v.bulkSelected.replace('{n}', String(selectedDocs.size))}
                       </span>
                       <button
                         type="button"
                         onClick={clearSelection}
                         className="text-[11px] text-app-fg-muted underline decoration-app-fg-muted/30 underline-offset-2 hover:text-app-fg"
                       >
-                        Annulla selezione
+                        {v.bulkSelectedClear}
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1635,7 +1658,7 @@ export default function VerificaAssociazioniPage() {
                         disabled={actionLoading}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/35 bg-rose-500/10 px-3.5 py-2 text-[11px] font-bold text-rose-200 transition-colors hover:bg-rose-500/18 disabled:opacity-40"
                       >
-                        Scarta selezionati
+                        {v.bulkScartaBtn}
                       </button>
                       <button
                         type="button"
@@ -1643,7 +1666,7 @@ export default function VerificaAssociazioniPage() {
                         disabled={actionLoading}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-[11px] font-bold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-40"
                       >
-                        Resetta selezionati
+                        {v.bulkResettaBtn}
                       </button>
                       <button
                         type="button"
@@ -1651,7 +1674,7 @@ export default function VerificaAssociazioniPage() {
                         disabled={actionLoading}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/35 bg-purple-500/10 px-3.5 py-2 text-[11px] font-bold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-40"
                       >
-                        Elimina duplicati
+                        {v.bulkEliminaDuplicatiBtn}
                       </button>
                     </div>
                   </div>
@@ -1660,7 +1683,7 @@ export default function VerificaAssociazioniPage() {
                 {/* Lista anomalie */}
                 {data?.data.filter((d) => d.anomalie.length > 0).length === 0 ? (
                   <div className="app-card overflow-hidden p-8 text-center">
-                    <p className="text-sm text-emerald-200/90">Nessuna anomalia rilevata. Tutti i documenti associati sono OK.</p>
+                    <p className="text-sm text-emerald-200/90">{v.anomalieEmpty}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1681,10 +1704,10 @@ export default function VerificaAssociazioniPage() {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm font-semibold text-app-fg">
-                                  {doc.fornitore?.nome ?? 'Fornitore sconosciuto'}
+                                  {doc.fornitore?.nome ?? v.anomaliaFornitoreUnknown}
                                 </p>
                                 <p className="mt-0.5 truncate text-[11px] text-app-fg-muted">
-                                  {doc.file_name ?? 'Nessun file'} · {doc.mittente ?? 'mittente sconosciuto'}
+                                  {doc.file_name ?? v.anomaliaFileUnknown} · {doc.mittente ?? v.anomaliaSenderUnknown}
                                 </p>
                               </div>
                             </div>
@@ -1698,42 +1721,44 @@ export default function VerificaAssociazioniPage() {
                                 anomalie={doc.anomalie}
                                 learningData={learningData}
                                 categoria={determinaCategoriaDocumento(doc)}
+                                t={t}
+                                azioneConfig={AZIONE_CONFIG}
                                 onClick={() => {
-                                  const consiglio = analizzaAzioneConsigliata(doc.anomalie, learningData, determinaCategoriaDocumento(doc))
+                                  const consiglio = analizzaAzioneConsigliata(doc.anomalie, t, AZIONE_CONFIG, learningData, determinaCategoriaDocumento(doc))
                                   if (!consiglio) return
                                   void handleAction(doc.id, consiglio.action)
                                 }}
                               />
                               <span className="text-[11px] text-app-fg-muted">
-                                {doc.giorni_da_associazione}g
+                                {doc.giorni_da_associazione}{v.daysSuffix}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => setConfirmAction({ mode: 'single', docId: doc.id, action: 'scarta', docName: doc.file_name ?? doc.id.substring(0, 8) })}
                                 disabled={actionLoading}
-                                title="Scarta: Rimuove l'associazione e marca come scartato. Usa solo se il documento è irrecuperabile (es. file mancante, duplicato errato)."
+                                title={v.btnTooltipScarta}
                                 className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/8 px-2 py-1 text-[10px] font-bold text-rose-200 transition-colors hover:bg-rose-500/15 disabled:opacity-40"
                               >
-                                Scarta
+                                {v.btnLabelScarta}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setConfirmAction({ mode: 'single', docId: doc.id, action: 'resetta', docName: doc.file_name ?? doc.id.substring(0, 8) })}
                                 disabled={actionLoading}
-                                title="Resetta: Riporta a 'da associare' per rielaborare. Usa se l'associazione è sbagliata o mancano dati, ma il documento è valido."
+                                title={v.btnTooltipResetta}
                                 className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/8 px-2 py-1 text-[10px] font-bold text-amber-200 transition-colors hover:bg-amber-500/15 disabled:opacity-40"
                               >
-                                Resetta
+                                {v.btnLabelResetta}
                               </button>
                               {doc.anomalie.some((a) => a.tipo === 'documento_duplicato') && (
                                 <button
                                   type="button"
                                   onClick={() => setConfirmAction({ mode: 'single', docId: doc.id, action: 'elimina_duplicato', docName: doc.file_name ?? doc.id.substring(0, 8) })}
                                   disabled={actionLoading}
-                                  title="Duplicato: Marca come scartato (duplicato). Usa solo se il documento è identico a un altro già presente."
+                                  title={v.btnTooltipDuplicato}
                                   className="inline-flex items-center gap-1 rounded-md border border-purple-500/30 bg-purple-500/8 px-2 py-1 text-[10px] font-bold text-purple-200 transition-colors hover:bg-purple-500/15 disabled:opacity-40"
                                 >
-                                  Duplicato
+                                  {v.btnLabelDuplicato}
                                 </button>
                               )}
                               {doc.file_url ? (
@@ -1744,15 +1769,15 @@ export default function VerificaAssociazioniPage() {
                                   categoria={determinaCategoriaDocumento(doc)}
                                   onCategoriaChange={handleCategoriaChange}
                                   viewerActions={[
-                                    { action: 'scarta', label: 'Scarta', onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'scarta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
-                                    { action: 'resetta', label: 'Resetta', onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'resetta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
+                                    { action: 'scarta', label: v.btnLabelScarta, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'scarta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
+                                    { action: 'resetta', label: v.btnLabelResetta, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'resetta', docName: doc.file_name ?? doc.id.substring(0, 8) }) },
                                     ...(doc.anomalie.some((a) => a.tipo === 'documento_duplicato')
-                                      ? [{ action: 'elimina_duplicato' as const, label: 'Elimina duplicato' as const, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'elimina_duplicato', docName: doc.file_name ?? doc.id.substring(0, 8) }) }]
+                                      ? [{ action: 'elimina_duplicato' as const, label: v.actionEliminaDuplicato, onClick: () => setConfirmAction({ mode: 'single', docId: doc.id, action: 'elimina_duplicato', docName: doc.file_name ?? doc.id.substring(0, 8) }) }]
                                       : []),
                                   ]}
                                   className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15"
                                 >
-                                  Apri
+                                  {v.anomalieOpenBtn}
                                 </OpenDocumentInAppButton>
                               ) : null}
                             </div>
@@ -1763,14 +1788,14 @@ export default function VerificaAssociazioniPage() {
                               return (
                                 <div key={a.id} className={`flex items-start gap-3 rounded-lg border ${cfg.border} ${cfg.bg} p-3`}>
                                   <div className="mt-0.5 shrink-0">
-                                    <GravitaBadge gravita={a.gravita} />
+                                    <GravitaBadge gravita={a.gravita} gravitaConfig={GRAVITA_CONFIG} />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
-                                      <TipoAnomaliaBadge tipo={a.tipo} />
+                                      <TipoAnomaliaBadge tipo={a.tipo} tipoLabel={TIPO_ANOMALIA_LABEL} />
                                       {a.riferimento_id && (
                                         <span className="text-[10px] text-app-fg-muted">
-                                          Documento correlato: {a.riferimento_id.substring(0, 8)}...
+                                          {v.anomaliaCorrelatedDoc.replace('{id}', a.riferimento_id.substring(0, 8))}
                                         </span>
                                       )}
                                     </div>
@@ -1785,7 +1810,7 @@ export default function VerificaAssociazioniPage() {
                     {data && data.data.filter((d) => d.anomalie.length > 0).length > 100 && (
                       <div className="text-center">
                         <p className="text-xs text-app-fg-muted">
-                          Mostrate le prime 100 anomalie. Utilizza i filtri per restringere la ricerca.
+                          {v.anomalieMaxShown}
                         </p>
                       </div>
                     )}
@@ -1822,42 +1847,30 @@ export default function VerificaAssociazioniPage() {
               <h3 className="text-base font-bold text-app-fg">
                 {confirmAction.mode === 'batch' ? (
                   <>
-                    {confirmAction.action === 'scarta' && `Scartare ${confirmAction.count} documenti?`}
-                    {confirmAction.action === 'elimina_duplicato' && `Eliminare ${confirmAction.count} duplicati?`}
-                    {confirmAction.action === 'resetta' && `Riassegnare ${confirmAction.count} documenti?`}
+                    {confirmAction.action === 'scarta' && v.confirmTitleBatchScarta.replace('{n}', String(confirmAction.count))}
+                    {confirmAction.action === 'elimina_duplicato' && v.confirmTitleBatchElimina.replace('{n}', String(confirmAction.count))}
+                    {confirmAction.action === 'resetta' && v.confirmTitleBatchResetta.replace('{n}', String(confirmAction.count))}
                   </>
                 ) : (
                   <>
-                    {confirmAction.action === 'scarta' && 'Scartare il documento?'}
-                    {confirmAction.action === 'elimina_duplicato' && 'Eliminare il duplicato?'}
-                    {confirmAction.action === 'resetta' && 'Riassegnare a "da associare"?'}
+                    {confirmAction.action === 'scarta' && v.confirmTitleSingleScarta}
+                    {confirmAction.action === 'elimina_duplicato' && v.confirmTitleSingleElimina}
+                    {confirmAction.action === 'resetta' && v.confirmTitleSingleResetta}
                   </>
                 )}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-app-fg-muted">
                 {confirmAction.mode === 'batch' ? (
                   <>
-                    {confirmAction.action === 'scarta' && (
-                      <><strong>{confirmAction.count} documenti</strong> verranno marcati come <strong>scartati</strong> e le associazioni con fattura/bolla verranno rimosse. Questa operazione non è reversibile automaticamente.</>
-                    )}
-                    {confirmAction.action === 'elimina_duplicato' && (
-                      <><strong>{confirmAction.count} documenti</strong> verranno marcati come <strong>scartati (duplicati)</strong>. Questa operazione non è reversibile automaticamente.</>
-                    )}
-                    {confirmAction.action === 'resetta' && (
-                      <><strong>{confirmAction.count} documenti</strong> verranno riportati allo stato <strong>da associare</strong>, eliminando le associazioni correnti. Potranno essere riprocessati manualmente.</>
-                    )}
+                    {confirmAction.action === 'scarta' && v.confirmDescBatchScarta.replace('{n}', String(confirmAction.count))}
+                    {confirmAction.action === 'elimina_duplicato' && v.confirmDescBatchElimina.replace('{n}', String(confirmAction.count))}
+                    {confirmAction.action === 'resetta' && v.confirmDescBatchResetta.replace('{n}', String(confirmAction.count))}
                   </>
                 ) : (
                   <>
-                    {confirmAction.action === 'scarta' && (
-                      <>Il documento <strong>{confirmAction.docName}</strong> verrà marcato come <strong>scartato</strong> e l'associazione con fattura/bolla verrà rimossa. Questa azione non è reversibile automaticamente.</>
-                    )}
-                    {confirmAction.action === 'elimina_duplicato' && (
-                      <>Il documento <strong>{confirmAction.docName}</strong> verrà marcato come <strong>scartato (duplicato)</strong>. Questa azione non è reversibile automaticamente.</>
-                    )}
-                    {confirmAction.action === 'resetta' && (
-                      <>Il documento <strong>{confirmAction.docName}</strong> verrà riportato allo stato <strong>da associare</strong>, eliminando l'associazione corrente. Potrà essere riprocessato manualmente.</>
-                    )}
+                    {confirmAction.action === 'scarta' && v.confirmDescSingleScarta.replace('{name}', confirmAction.docName)}
+                    {confirmAction.action === 'elimina_duplicato' && v.confirmDescSingleElimina.replace('{name}', confirmAction.docName)}
+                    {confirmAction.action === 'resetta' && v.confirmDescSingleResetta.replace('{name}', confirmAction.docName)}
                   </>
                 )}
               </p>
@@ -1868,7 +1881,7 @@ export default function VerificaAssociazioniPage() {
                   disabled={actionLoading}
                   className="rounded-lg border border-app-soft-border bg-white/[0.03] px-4 py-2 text-xs font-bold text-app-fg transition-colors hover:bg-white/[0.06] disabled:opacity-50"
                 >
-                  Annulla
+                  {v.confirmCancelBtn}
                 </button>
                 <button
                   type="button"
@@ -1889,20 +1902,20 @@ export default function VerificaAssociazioniPage() {
                   }`}
                 >
                   {actionLoading ? (
-                    <>Attendi...</>
+                    <>{v.confirmAttendi}</>
                   ) : (
                     <>
                       {confirmAction.mode === 'batch' ? (
                         <>
-                          {confirmAction.action === 'scarta' && `Scarta ${confirmAction.count} documenti`}
-                          {confirmAction.action === 'elimina_duplicato' && `Elimina ${confirmAction.count} duplicati`}
-                          {confirmAction.action === 'resetta' && `Riassegna ${confirmAction.count} documenti`}
+                          {confirmAction.action === 'scarta' && v.confirmBtnBatchScarta.replace('{n}', String(confirmAction.count))}
+                          {confirmAction.action === 'elimina_duplicato' && v.confirmBtnBatchElimina.replace('{n}', String(confirmAction.count))}
+                          {confirmAction.action === 'resetta' && v.confirmBtnBatchResetta.replace('{n}', String(confirmAction.count))}
                         </>
                       ) : (
                         <>
-                          {confirmAction.action === 'scarta' && 'Scarta'}
-                          {confirmAction.action === 'elimina_duplicato' && 'Elimina duplicato'}
-                          {confirmAction.action === 'resetta' && 'Riassegna'}
+                          {confirmAction.action === 'scarta' && v.confirmBtnSingleScarta}
+                          {confirmAction.action === 'elimina_duplicato' && v.confirmBtnSingleElimina}
+                          {confirmAction.action === 'resetta' && v.confirmBtnSingleResetta}
                         </>
                       )}
                     </>
@@ -1917,30 +1930,30 @@ export default function VerificaAssociazioniPage() {
         {autoResolveConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="mx-4 w-full max-w-md rounded-xl border border-app-soft-border bg-app-surface p-6 shadow-2xl">
-              <h3 className="text-base font-bold text-app-fg">Auto-risolvere tutti i documenti?</h3>
+              <h3 className="text-base font-bold text-app-fg">{v.autoResolveTitle}</h3>
               <p className="mt-2 text-sm leading-relaxed text-app-fg-muted">
-                <strong>{showStats?.totale_con_anomalie ?? 0} documenti</strong> con anomalie verranno elaborati automaticamente:
+                {v.autoResolveBodyIntro.replace('{n}', String(showStats?.totale_con_anomalie ?? 0))}
               </p>
               <ul className="mt-3 space-y-1.5 text-sm text-app-fg-muted">
                 <li className="flex items-center gap-2">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  <strong>Categoria già imparata dall'AI</strong> → categoria corretta applicata automaticamente
+                  {v.autoResolveBodyAi}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-400" />
-                  <strong>File non trovato su storage</strong> → scartati (certi al 100%)
+                  {v.autoResolveBodyFileMissing}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-400" />
-                  <strong>File_url non presente</strong> → scartati
+                  {v.autoResolveBodyNoUrl}
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
-                  <strong>Altri (fornitore/riferimento mancante)</strong> → riportati a "da associare"
+                  {v.autoResolveBodyOther}
                 </li>
               </ul>
               <p className="mt-3 text-xs text-app-fg-muted italic">
-                L'operazione non è reversibile automaticamente.
+                {v.autoResolveBodyFooter}
               </p>
               <div className="mt-6 flex items-center justify-end gap-3">
                 <button
@@ -1949,7 +1962,7 @@ export default function VerificaAssociazioniPage() {
                   disabled={autoResolving}
                   className="rounded-lg border border-app-soft-border bg-white/[0.03] px-4 py-2 text-xs font-bold text-app-fg transition-colors hover:bg-white/[0.06] disabled:opacity-50"
                 >
-                  Annulla
+                  {v.autoResolveCancelBtn}
                 </button>
                 <button
                   type="button"
@@ -1957,7 +1970,7 @@ export default function VerificaAssociazioniPage() {
                   disabled={autoResolving}
                   className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-purple-500 disabled:opacity-50"
                 >
-                  {autoResolving ? 'Elaborazione in corso...' : `Auto-risolvi ${showStats?.totale_con_anomalie ?? 0} documenti`}
+                  {autoResolving ? v.autoResolveConfirmBtnLoading : v.autoResolveConfirmBtn.replace('{n}', String(showStats?.totale_con_anomalie ?? 0))}
                 </button>
               </div>
             </div>

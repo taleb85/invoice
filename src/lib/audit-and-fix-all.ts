@@ -23,9 +23,13 @@ import { logger } from '@/lib/logger'
 /** Confidenza minima della passata AI per applicare automaticamente un nuovo tipo. */
 export const AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE = 0.85
 
+/** Pattern testuali (subject/filename) che identificano una conferma d'ordine. */
+const ORDER_CONFIRMATION_PATTERN =
+  /\border\s+confirmation\b|\border\s+acknowledg|\border\s+confirmed\b|\bsales\s+order\s+confirm|\bpurchase\s+order\b.{0,40}\bconfirm|conferma\s+(d['’])?ordine|ordine\s+confermato/i
+
 // ── Tipi ──────────────────────────────────────────────────────────────────────
 
-export type AuditPhase = 'deterministic' | 'ai'
+export type AuditPhase = 'deterministic' | 'ai' | 'cleanup_misclassified'
 
 export type AuditDocChange = {
   doc_id: string
@@ -37,6 +41,21 @@ export type AuditDocChange = {
   bolla_id: string | null
   /** Etichetta diagnostica della modifica per il report. */
   reason: string
+}
+
+export type AuditCleanupAction = {
+  doc_id: string
+  fornitore_nome: string | null
+  oggetto_mail: string | null
+  file_name: string | null
+  pending_kind: string | null
+  /** Cosa stava per essere cancellato: bolla_id, fattura_id, fattura_id_orfana_collegata. */
+  deleted_bolla_id: string | null
+  deleted_fattura_id: string | null
+  /** Fatture orfane che puntavano alla bolla cancellata. */
+  deleted_orphan_fattura_ids: string[]
+  /** True solo se è stato applicato (non dry-run). */
+  applied: boolean
 }
 
 export type AuditBatchResult = {
@@ -51,6 +70,10 @@ export type AuditBatchResult = {
   changes: AuditDocChange[]
   /** Conteggio totale candidati ancora idonei alla fase corrente (al momento della query). */
   remaining_estimate: number
+  /** Solo per phase='cleanup_misclassified'. */
+  cleanup_actions?: AuditCleanupAction[]
+  /** True quando in modalità dry-run (cleanup non applicato). */
+  dry_run?: boolean
 }
 
 type DocRow = {
@@ -529,12 +552,268 @@ async function stampPass2(
   if (error) logger.error('[audit-and-fix:pass2] stamp err', docId, error.message)
 }
 
+// ── Pass 3: cleanup misclassified (cancella bolle/fatture create da Order Confirmation) ─
+
+type Pass3Opts = {
+  sedeId?: string | null
+  /** Quanti documenti per ciclo. Default 25 (cancellazioni sono pesanti). */
+  batchSize?: number
+  /** Se true: solo report, nessuna cancellazione. Default false. */
+  dryRun?: boolean
+  /** Riprocessa anche già marcati `audit_cleanup_at`. */
+  force?: boolean
+}
+
+/**
+ * Pulisce le bolle/fatture create per errore quando il documento sorgente è
+ * una conferma d'ordine ("Order Confirmation"). Si applica solo se:
+ *
+ *   - `metadata.pending_kind === 'ordine'` (segnale principale, già consolidato
+ *     da pass 1 / pass 2 / cron di reclassify)
+ *   - subject email o nome file contiene un pattern "order confirmation"
+ *     (segnale secondario di conferma, evita falsi positivi)
+ *   - esiste una `bolla_id` o `fattura_id` collegata
+ *
+ * Cosa cancella:
+ *   1. La riga `bolle` o `fatture` collegata
+ *   2. Eventuali fatture-orfane create dallo stesso Order Confirmation che
+ *      puntano alla stessa bolla (`fatture.bolla_id = bolla.id`)
+ *   3. La riga `documenti_da_processare` (opzionale: la mantiene se preferisci)
+ *
+ * Idempotente: marca `metadata.audit_cleanup_at` su righe non più cancellabili.
+ *
+ * Modalità `dryRun`: ritorna l'elenco delle azioni che farebbe senza eseguire
+ * nessuna cancellazione.
+ */
+export async function auditAndCleanupMisclassified(
+  service: SupabaseClient,
+  opts: Pass3Opts = {},
+): Promise<AuditBatchResult> {
+  const batchSize = Math.min(Math.max(opts.batchSize ?? 25, 1), 100)
+  const dryRun = opts.dryRun === true
+
+  const result: AuditBatchResult = {
+    phase: 'cleanup_misclassified',
+    checked: 0,
+    fornitore_fixed: 0,
+    tipo_fixed: 0,
+    flagged_for_review: 0,
+    unchanged: 0,
+    errors: 0,
+    has_more: false,
+    changes: [],
+    cleanup_actions: [],
+    remaining_estimate: 0,
+    dry_run: dryRun,
+  }
+
+  // Query: pending_kind=ordine + (bolla_id OR fattura_id) + pattern order confirmation
+  let q = service
+    .from('documenti_da_processare')
+    .select(`${DOC_SELECT}, fornitori(nome)`)
+    .filter('metadata->>pending_kind', 'eq', 'ordine')
+    .or('bolla_id.not.is.null,fattura_id.not.is.null')
+    .or('oggetto_mail.ilike.*order*confirmation*,file_name.ilike.*order*confirmation*')
+    .order('created_at', { ascending: false })
+
+  // Idempotenza: salta documenti già processati (anche se dry-run, ai re-run
+  // applicativi non li ripuliamo a vuoto).
+  if (!opts.force && !dryRun) {
+    q = q.is('metadata->>audit_cleanup_at', null) as typeof q
+  }
+  if (opts.sedeId) {
+    q = q.eq('sede_id', opts.sedeId) as typeof q
+  }
+
+  const { data, error } = await q
+    .limit(batchSize)
+    .returns<(DocRow & { fornitori?: { nome?: string } | null })[]>()
+
+  if (error) {
+    logger.error('[audit-and-fix:cleanup] fetch error:', error.message)
+    result.errors = 1
+    return result
+  }
+
+  const remaining = await countRemaining(service, opts.sedeId ?? null, 'cleanup', !!opts.force || dryRun)
+  result.remaining_estimate = remaining
+
+  const docs = data ?? []
+  if (!docs.length) return result
+
+  for (const doc of docs) {
+    result.checked++
+    try {
+      const action = await applyCleanup(service, doc, dryRun)
+      if (action) {
+        result.cleanup_actions!.push(action)
+      } else {
+        result.unchanged++
+      }
+    } catch (e) {
+      result.errors++
+      logger.error('[audit-and-fix:cleanup] doc', doc.id, e)
+    }
+  }
+
+  result.has_more = remaining > docs.length
+  return result
+}
+
+async function applyCleanup(
+  service: SupabaseClient,
+  doc: DocRow & { fornitori?: { nome?: string } | null },
+  dryRun: boolean,
+): Promise<AuditCleanupAction | null> {
+  const meta = sanitizeMetadata(doc.metadata)
+
+  // Doppio check: il pattern testuale deve confermare la classificazione.
+  const blob = `${doc.oggetto_mail ?? ''}\n${doc.file_name ?? ''}`
+  if (!ORDER_CONFIRMATION_PATTERN.test(blob)) {
+    // Segna come visto ma non cancellare: i filtri SQL hanno fatto match
+    // larghi (ilike *order*confirmation*) ma il regex più stretto non conferma.
+    if (!dryRun) {
+      await stampCleanup(service, doc.id, meta, { skipped_reason: 'pattern_not_confirmed' })
+    }
+    return null
+  }
+
+  // Sicurezza extra: `pending_kind` deve essere 'ordine'
+  if (meta.pending_kind !== 'ordine') {
+    if (!dryRun) {
+      await stampCleanup(service, doc.id, meta, { skipped_reason: 'pending_kind_changed' })
+    }
+    return null
+  }
+
+  // Sicurezza extra: NON toccare se ha lo stato è una bozza o se è linkato in
+  // fattura_bolle (caso composito che richiede review umana).
+  if (doc.bolla_id) {
+    const { data: links } = await service
+      .from('fattura_bolle')
+      .select('fattura_id')
+      .eq('bolla_id', doc.bolla_id)
+      .limit(1)
+    if (Array.isArray(links) && links.length > 0) {
+      if (!dryRun) {
+        await stampCleanup(service, doc.id, meta, { skipped_reason: 'bolla_in_fattura_bolle' })
+      }
+      return null
+    }
+  }
+
+  const action: AuditCleanupAction = {
+    doc_id: doc.id,
+    fornitore_nome: doc.fornitori?.nome ?? null,
+    oggetto_mail: doc.oggetto_mail,
+    file_name: doc.file_name,
+    pending_kind: 'ordine',
+    deleted_bolla_id: null,
+    deleted_fattura_id: null,
+    deleted_orphan_fattura_ids: [],
+    applied: false,
+  }
+
+  // ── Step 1: Trova fatture orfane che puntano alla bolla ───────────────────
+  let orphanFatturaIds: string[] = []
+  if (doc.bolla_id) {
+    const { data: orphans } = await service
+      .from('fatture')
+      .select('id')
+      .eq('bolla_id', doc.bolla_id)
+    if (Array.isArray(orphans)) {
+      orphanFatturaIds = orphans.map((o: { id: string }) => o.id)
+    }
+  }
+
+  // ── Step 2: Esegui cancellazioni (o solo report se dry-run) ───────────────
+  if (dryRun) {
+    action.deleted_bolla_id = doc.bolla_id
+    action.deleted_fattura_id = doc.fattura_id
+    action.deleted_orphan_fattura_ids = orphanFatturaIds
+    action.applied = false
+    return action
+  }
+
+  // 2a. Cancella fatture orfane che puntano alla bolla
+  if (orphanFatturaIds.length > 0) {
+    const { error: errOrphan } = await service
+      .from('fatture')
+      .delete()
+      .in('id', orphanFatturaIds)
+    if (errOrphan) throw new Error(`fatture orfane: ${errOrphan.message}`)
+    action.deleted_orphan_fattura_ids = orphanFatturaIds
+  }
+
+  // 2b. Cancella la bolla collegata
+  if (doc.bolla_id) {
+    const { error: errBolla } = await service.from('bolle').delete().eq('id', doc.bolla_id)
+    if (errBolla) throw new Error(`bolla: ${errBolla.message}`)
+    action.deleted_bolla_id = doc.bolla_id
+  }
+
+  // 2c. Cancella la fattura collegata (se diversa da quelle orfane già rimosse)
+  if (doc.fattura_id && !orphanFatturaIds.includes(doc.fattura_id)) {
+    const { error: errFat } = await service.from('fatture').delete().eq('id', doc.fattura_id)
+    if (errFat) throw new Error(`fattura: ${errFat.message}`)
+    action.deleted_fattura_id = doc.fattura_id
+  }
+
+  // 2d. Marca documenti_da_processare come scartato + audit_cleanup_at
+  // (NON cancelliamo la riga: l'utente ha chiesto di mantenere il file
+  // accessibile. Lo stato 'scartato' lo rimuove dalle viste attive.)
+  const newMeta: Record<string, unknown> = {
+    ...meta,
+    audit_cleanup_at: new Date().toISOString(),
+    audit_cleanup_action: 'order_confirmation_purged',
+    audit_cleanup_deleted: {
+      bolla_id: action.deleted_bolla_id,
+      fattura_id: action.deleted_fattura_id,
+      orphan_fattura_ids: action.deleted_orphan_fattura_ids,
+    },
+  }
+  const { error: errDoc } = await service
+    .from('documenti_da_processare')
+    .update({
+      stato: 'scartato',
+      bolla_id: null,
+      fattura_id: null,
+      metadata: newMeta,
+      note:
+        (doc.note ? doc.note + ' · ' : '') +
+        `Conferma ordine erroneamente importata, pulita il ${new Date().toISOString().slice(0, 10)}`,
+    })
+    .eq('id', doc.id)
+  if (errDoc) throw new Error(`documento: ${errDoc.message}`)
+
+  action.applied = true
+  return action
+}
+
+async function stampCleanup(
+  service: SupabaseClient,
+  docId: string,
+  baseMeta: Record<string, unknown>,
+  extra: Record<string, unknown>,
+): Promise<void> {
+  const meta = {
+    ...baseMeta,
+    audit_cleanup_at: new Date().toISOString(),
+    ...extra,
+  }
+  const { error } = await service
+    .from('documenti_da_processare')
+    .update({ metadata: meta })
+    .eq('id', docId)
+  if (error) logger.error('[audit-and-fix:cleanup] stamp err', docId, error.message)
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function countRemaining(
   service: SupabaseClient,
   sedeId: string | null,
-  pass: 'pass1' | 'pass2',
+  pass: 'pass1' | 'pass2' | 'cleanup',
   force: boolean,
 ): Promise<number> {
   let q = service
@@ -544,8 +823,19 @@ async function countRemaining(
   if (pass === 'pass2') {
     q = q.not('file_url', 'is', null).not('file_url', 'eq', '') as typeof q
   }
+  if (pass === 'cleanup') {
+    q = q
+      .filter('metadata->>pending_kind', 'eq', 'ordine')
+      .or('bolla_id.not.is.null,fattura_id.not.is.null')
+      .or('oggetto_mail.ilike.*order*confirmation*,file_name.ilike.*order*confirmation*') as typeof q
+  }
   if (!force) {
-    const key = pass === 'pass1' ? 'metadata->>audit_pass1_at' : 'metadata->>audit_pass2_at'
+    const key =
+      pass === 'pass1'
+        ? 'metadata->>audit_pass1_at'
+        : pass === 'pass2'
+          ? 'metadata->>audit_pass2_at'
+          : 'metadata->>audit_cleanup_at'
     q = q.is(key, null) as typeof q
   }
   if (sedeId) {

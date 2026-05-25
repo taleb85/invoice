@@ -328,7 +328,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore caricamento coda')
+      setError(e instanceof Error ? e.message : t.strumentiCentroControllo.queueLoadError)
     } finally {
       setLoading(false)
     }
@@ -397,7 +397,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         await new Promise((r) => setTimeout(r, 1500))
       }
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Errore di rete', 'error')
+      showToast(e instanceof Error ? e.message : t.common.networkError, 'error')
     } finally {
       if (aiScanTimerRef.current) { clearInterval(aiScanTimerRef.current); aiScanTimerRef.current = null }
       setAiScanActive(false)
@@ -547,7 +547,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
       await caricaStatement()
       await caricaCoda()
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Errore pipeline', 'error')
+      showToast(err instanceof Error ? err.message : t.strumentiCentroControllo.pipelineError, 'error')
       setPipelinePhase('idle')
     } finally {
       stop()
@@ -588,7 +588,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
       setProcessStmtResult({
         processed: 0,
         skipped: 0,
-        errors: [e instanceof Error ? e.message : 'Richiesta fallita'],
+        errors: [e instanceof Error ? e.message : t.strumentiCentroControllo.requestFailed],
         message: 'Errore di rete.',
       })
     } finally {
@@ -654,7 +654,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         await new Promise((r) => setTimeout(r, 500))
       }
     } catch (e) {
-      if (!silent) showToast(e instanceof Error ? e.message : 'Errore di rete', 'error')
+      if (!silent) showToast(e instanceof Error ? e.message : t.common.networkError, 'error')
     } finally {
       if (autoRisolviTimerRef.current) { clearInterval(autoRisolviTimerRef.current); autoRisolviTimerRef.current = null }
       setAutoResolving(false)
@@ -677,10 +677,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
         setReprocessChecksResult(data.message)
         await caricaStatement()
       } else {
-        setReprocessChecksResult(data.error || 'Errore')
+        setReprocessChecksResult(data.error || t.common.error)
       }
     } catch (e) {
-      setReprocessChecksResult(e instanceof Error ? e.message : 'Richiesta fallita')
+      setReprocessChecksResult(e instanceof Error ? e.message : t.strumentiCentroControllo.requestFailed)
     } finally {
       setReprocessingChecks(false)
     }
@@ -723,10 +723,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
         showToast(`Cleanup: ${j.processed ?? 0} processati, ${j.scanned ?? 0} esaminati`, 'success')
         await Promise.all([caricaMonitoraggio(), caricaCoda()])
       } else {
-        showToast(j.error || 'Errore cleanup', 'error')
+        showToast(j.error || t.strumentiCentroControllo.cleanupError, 'error')
       }
     } catch (e) {
-      showToast(`Errore: ${e instanceof Error ? e.message : 'Richiesta fallita'}`, 'error')
+      showToast(`${t.common.error}: ${e instanceof Error ? e.message : t.strumentiCentroControllo.requestFailed}`, 'error')
     } finally {
       setForceCleanupLoading(false)
     }
@@ -757,7 +757,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           return
         }
         if (typeof j.done !== 'boolean') {
-          setHistoricSyncError('Risposta sync storica non valida')
+          setHistoricSyncError(t.strumentiCentroControllo.invalidHistoricSyncResponse)
           return
         }
         const r = typeof j.ricevuti === 'number' && Number.isFinite(j.ricevuti) ? j.ricevuti : 0
@@ -850,13 +850,13 @@ export default function CentroControlloClient({ sedeId }: Props) {
       const result = await cmd.esegui({ item, sedeId })
       if (result.success) {
         await registraEsecuzioneDiretta(item, commandId)
-        showToast(result.message || 'Operazione completata', 'success')
+        showToast(result.message || t.appShellActions.operazioneCompletata, 'success')
         caricaCoda()
       } else {
-        showToast(result.error || 'Errore sconosciuto', 'error')
+        showToast(result.error || t.common.unknownError, 'error')
       }
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Errore sconosciuto', 'error')
+      showToast(e instanceof Error ? e.message : t.common.unknownError, 'error')
     } finally {
       setEseguendoId(null)
     }
@@ -1709,12 +1709,12 @@ function RigaDocumento({
                 className="group inline-flex items-center gap-1 text-xs font-medium text-sky-300 transition-colors hover:text-sky-200 truncate max-w-full"
               >
                 <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
-                <span className="truncate">{item.numero_documento || item.riferimenti || item.nome_file || 'Apri documento'}</span>
+                <span className="truncate">{item.numero_documento || item.riferimenti || item.nome_file || t.strumentiCentroControllo.openDocument}</span>
               </OpenDocumentInAppButton>
             </div>
           ) : (
             <p className="text-xs text-app-fg-muted/60 truncate mb-0.5">
-              {item.numero_documento || item.riferimenti || item.nome_file || 'Senza riferimento'}
+              {item.numero_documento || item.riferimenti || item.nome_file || t.strumentiCentroControllo.noReference}
             </p>
           )}
 
@@ -1775,7 +1775,7 @@ function RigaDocumento({
                 </span>
               )}
               {!deltaImporto && !fatturaCollegata && (!bolleCollegate || bolleCollegate.length === 0) && (
-                <span className="text-app-fg-muted/40">Nessun riferimento collegato</span>
+                <span className="text-app-fg-muted/40">{t.strumentiCentroControllo.noLinkedReference}</span>
               )}
             </div>
           )}
@@ -1795,14 +1795,14 @@ function RigaDocumento({
                   onClick={() => onConfermaSuggerimento(item, suggerimento.azione_id)}
                   disabled={!!isRunning}
                   className="p-1 rounded hover:bg-teal-800/60 text-teal-300 disabled:opacity-50"
-                  title="Conferma suggerimento"
+                  title={t.strumentiCentroControllo.confirmSuggestion}
                 >
                   <GlyphCheck className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => onRifiutaSuggerimento(item, suggerimento.azione_id)}
                   className="p-1 rounded hover:bg-rose-950/60 text-rose-400"
-                  title="Rifiuta suggerimento"
+                  title={t.strumentiCentroControllo.rejectSuggestion}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1837,29 +1837,30 @@ function RigaDocumento({
 }
 
 function TipoBadge({ origine, pendingKind }: { origine: string; pendingKind: string }) {
+  const t = useT()
   const baseClass = 'text-xs font-medium px-1.5 py-0.5 rounded'
 
   if (origine === 'documento_da_processare') {
     if (pendingKind === 'da_determinare') {
-      return <span className={`${baseClass} bg-fuchsia-950/60 text-fuchsia-300`}>Da classificare</span>
+      return <span className={`${baseClass} bg-fuchsia-950/60 text-fuchsia-300`}>{t.strumentiCentroControllo.badgeToBeClassified}</span>
     }
     return <span className={`${baseClass} bg-sky-950/60 text-sky-300`}>{labelPendingKind(pendingKind)}</span>
   }
 
   if (origine === 'riga_statement') {
-    return <span className={`${baseClass} bg-orange-950/60 text-orange-300`}>Estratto conto</span>
+    return <span className={`${baseClass} bg-orange-950/60 text-orange-300`}>{t.strumentiCentroControllo.badgeStatement}</span>
   }
 
   if (origine === 'fattura') {
-    return <span className={`${baseClass} bg-emerald-950/60 text-emerald-300`}>Fattura</span>
+    return <span className={`${baseClass} bg-emerald-950/60 text-emerald-300`}>{t.strumentiCentroControllo.badgeFattura}</span>
   }
 
   if (origine === 'errore_sincronizzazione') {
-    return <span className={`${baseClass} bg-rose-950/60 text-rose-300`}>Errore sincro</span>
+    return <span className={`${baseClass} bg-rose-950/60 text-rose-300`}>{t.strumentiCentroControllo.badgeSyncError}</span>
   }
 
   if (origine === 'bolla_aperta') {
-    return <span className={`${baseClass} bg-amber-950/60 text-amber-300`}>Bolla aperta</span>
+    return <span className={`${baseClass} bg-amber-950/60 text-amber-300`}>{t.strumentiCentroControllo.badgeOpenBolla}</span>
   }
 
   return <span className={`${baseClass} bg-app-line-15 text-app-fg-muted`}>{origine}</span>
@@ -1878,6 +1879,7 @@ function CommandPalette({
   onEsegui: (itemId: string, commandId: CommandId) => void
   onChiudi: () => void
 }) {
+  const t = useT()
   const comandi = tuttiComandi()
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -1930,7 +1932,7 @@ function CommandPalette({
             type="text"
             value={ricerca}
             onChange={(e) => onRicercaChange(e.target.value)}
-            placeholder="Cerca un comando..."
+            placeholder={t.strumentiCentroControllo.searchCommand}
             className="flex-1 text-sm bg-transparent outline-none placeholder:text-app-fg-muted text-app-fg"
           />
           <kbd className="text-[10px] text-app-fg-muted bg-app-line-15 px-1.5 py-0.5 rounded font-mono">ESC</kbd>
@@ -1938,7 +1940,7 @@ function CommandPalette({
 
         <div className="max-h-80 overflow-y-auto p-2">
           {risultati.length === 0 && (
-            <p className="text-sm text-app-fg-muted text-center py-4">Nessun comando trovato</p>
+            <p className="text-sm text-app-fg-muted text-center py-4">{t.strumentiCentroControllo.noCommandFound}</p>
           )}
           {risultati.map((cmd, i) => (
             <button

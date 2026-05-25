@@ -4,6 +4,7 @@ import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import {
   auditAndFixDeterministic,
   auditAndFixWithAi,
+  auditAndCleanupMisclassified,
   type AuditBatchResult,
   type AuditPhase,
 } from '@/lib/audit-and-fix-all'
@@ -14,14 +15,21 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 type Body = {
-  /** `deterministic`/`pass1` (veloce, gratis) oppure `ai`/`pass2` (Gemini Vision). Default: `deterministic`. */
-  phase?: 'deterministic' | 'ai' | 'pass1' | 'pass2'
+  /**
+   * - `deterministic` / `pass1` — pass1 veloce, gratis
+   * - `ai` / `pass2` — pass2 Gemini Vision
+   * - `cleanup_misclassified` / `cleanup` — pulizia bolle/fatture create da Order Confirmation
+   * Default: `deterministic`.
+   */
+  phase?: 'deterministic' | 'ai' | 'pass1' | 'pass2' | 'cleanup_misclassified' | 'cleanup'
   /** Limita a una sede specifica. Master admin può lasciare null. */
   sede_id?: string | null
-  /** Numero documenti per chiamata. Default: 50 (pass1) / 5 (pass2). */
+  /** Numero documenti per chiamata. Default: 50 (pass1) / 5 (pass2) / 25 (cleanup). */
   batch_size?: number
   /** Riprocessa anche documenti già marcati `audit_passN_at`. Default false. */
   force?: boolean
+  /** Solo per phase=cleanup_misclassified: ritorna l'elenco senza cancellare. Default false. */
+  dry_run?: boolean
 }
 
 type ApiResponse =
@@ -91,7 +99,11 @@ export async function POST(req: NextRequest) {
 
     const rawPhase = String(body.phase ?? 'deterministic').toLowerCase().trim()
     const phase: AuditPhase =
-      rawPhase === 'ai' || rawPhase === 'pass2' ? 'ai' : 'deterministic'
+      rawPhase === 'ai' || rawPhase === 'pass2'
+        ? 'ai'
+        : rawPhase === 'cleanup' || rawPhase === 'cleanup_misclassified'
+          ? 'cleanup_misclassified'
+          : 'deterministic'
 
     const requestedSede =
       typeof body.sede_id === 'string' ? body.sede_id.trim() : ''
@@ -121,18 +133,27 @@ export async function POST(req: NextRequest) {
     const service = createServiceClient()
 
     // ── 4. Esegui passata richiesta ──────────────────────────────────────────
-    const result =
-      phase === 'ai'
-        ? await auditAndFixWithAi(service, {
-            sedeId: sedeFilter,
-            batchSize,
-            force,
-          })
-        : await auditAndFixDeterministic(service, {
-            sedeId: sedeFilter,
-            batchSize,
-            force,
-          })
+    let result: AuditBatchResult
+    if (phase === 'ai') {
+      result = await auditAndFixWithAi(service, {
+        sedeId: sedeFilter,
+        batchSize,
+        force,
+      })
+    } else if (phase === 'cleanup_misclassified') {
+      result = await auditAndCleanupMisclassified(service, {
+        sedeId: sedeFilter,
+        batchSize,
+        force,
+        dryRun: body.dry_run === true,
+      })
+    } else {
+      result = await auditAndFixDeterministic(service, {
+        sedeId: sedeFilter,
+        batchSize,
+        force,
+      })
+    }
 
     // ── 5. Log attività (solo se cambiato qualcosa o sessione utente) ────────
     if (userId && (result.fornitore_fixed > 0 || result.tipo_fixed > 0)) {

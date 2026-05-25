@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X,
@@ -23,6 +23,8 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import type { CommandId } from '@/lib/command-system/types'
+import { useT } from '@/lib/use-t'
+import type { Translations } from '@/lib/translations'
 
 export type DocumentActionItem = {
   id: string
@@ -50,43 +52,39 @@ export type DocumentAction = {
   origini?: string[]
 }
 
-// ─── Azioni complete per ogni tipo di documento ──────────────────────────────
-
-const ALL_ACTIONS: DocumentAction[] = [
-  // ── Tipo documento ──
-  { id: 'documento.finalizza_come_fattura', label: 'Registra come fattura', descrizione: 'Crea una fattura definitiva', icona: <FileText className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-  { id: 'documento.finalizza_come_bolla', label: 'Registra come bolla/DDT', descrizione: 'Crea un documento di trasporto', icona: <Package className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-  { id: 'documento.finalizza_come_nota_credito', label: 'Registra come nota di credito', descrizione: 'Nota di credito', icona: <CreditCard className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-  { id: 'documento.finalizza_come_statement', label: 'Archivia come estratto conto', descrizione: 'Estratto conto da riconciliare', icona: <List className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-  { id: 'documento.finalizza_come_ordine', label: 'Registra come ordine', descrizione: 'Ordine d\'acquisto', icona: <ShoppingCart className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-  { id: 'documento.finalizza_come_comunicazione', label: 'Archivia come comunicazione', descrizione: 'Documento non fiscale', icona: <MessageSquare className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-  { id: 'documento.finalizza_come_listino', label: 'Registra come listino', descrizione: 'Listino prezzi', icona: <List className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-  // ── Fornitore ──
-  { id: 'documento.associa', label: 'Associa a fornitore', descrizione: 'Collega un fornitore esistente', icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore' },
-  // Limited to documenti_da_processare: the underlying API (`/api/documenti-da-processare`)
-  // only works on rows in that table. For already-registered bolle/fatture the dedicated
-  // actions `bolla.converti_in_fattura` / `documento.finalizza_come_nota_credito` (handled
-  // via `/api/fatture/update-type`) are used instead, plus the inline tipo dropdown on the
-  // supplier ledger rows for finer corrections.
-  { id: 'documento.aggiorna_categoria', label: 'Cambia categoria', descrizione: 'Modifica il tipo documento (AI impara dalla correzione)', icona: <Tag className="h-4 w-4" />, gruppo: 'fornitore', origini: ['documento_da_processare'] },
-  // ── Stato ──
-  { id: 'documento.scarta', label: 'Scarta documento', descrizione: 'Rimuove dalla coda come scartato', icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['documento_da_processare'] },
-  { id: 'documento.scarta_fattura', label: 'Scarta fattura', descrizione: 'Segna come scartata / non valida', icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['fattura'] },
-  { id: 'documento.rianalizza_ocr', label: 'Rianalizza con OCR', descrizione: 'Richiama Gemini per ri-estrarre i dati', icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['documento_da_processare'] },
-  { id: 'documento.ignora_mittente', label: 'Ignora mittente', descrizione: 'Aggiungi alla blacklist', icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['documento_da_processare'] },
-  { id: 'fattura.approva', label: 'Approva fattura', descrizione: 'Conferma e finalizza', icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato', origini: ['fattura'] },
-  { id: 'fattura.rifiuta', label: 'Rifiuta fattura', descrizione: 'Respingi con motivazione', icona: <AlertTriangle className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['fattura'] },
-  { id: 'fattura.resetta_approvazione', label: 'Resetta approvazione', descrizione: 'Torna in attesa', icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['fattura'] },
-  { id: 'statement.segna_come_ok', label: 'Segna come verificato', descrizione: 'Conferma riga estratto conto', icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato', origini: ['riga_statement'] },
-  { id: 'statement.assegna_fattura', label: 'Assegna fattura a riga', descrizione: 'Collega una fattura esistente', icona: <FileText className="h-4 w-4" />, gruppo: 'stato', origini: ['riga_statement'] },
-  // ── Documento ──
-  { id: 'documento.apri', label: 'Apri documento', descrizione: 'Visualizza il file originale', icona: <ExternalLink className="h-4 w-4" />, gruppo: 'documento' },
-  // ── Bolla ──
-  { id: 'bolla.rianalizza_ocr', label: 'Rianalizza con OCR', descrizione: 'Ri-estrai dati con Gemini e aggiorna il documento', icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['bolla'] },
-  { id: 'bolla.converti_in_fattura', label: 'Converti in fattura', descrizione: 'Trasforma questa bolla in una fattura registrata', icona: <Save className="h-4 w-4" />, gruppo: 'tipo', origini: ['bolla'] },
-  { id: 'bolla.cambia_fornitore', label: 'Cambia fornitore', descrizione: 'Riassegna a un fornitore diverso', icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore', origini: ['bolla'] },
-  { id: 'bolla.elimina', label: 'Elimina bolla', descrizione: 'Rimuove definitivamente il documento', icona: <Archive className="h-4 w-4" />, gruppo: 'pericolose', pericolosa: true, origini: ['bolla'] },
-]
+function buildAllActions(t: Translations): DocumentAction[] {
+  const d = t.documentActions
+  return [
+    // ── Tipo documento ──
+    { id: 'documento.finalizza_come_fattura', label: d.actRegisterFatturaLabel, descrizione: d.actRegisterFatturaDesc, icona: <FileText className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    { id: 'documento.finalizza_come_bolla', label: d.actRegisterBollaLabel, descrizione: d.actRegisterBollaDesc, icona: <Package className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    { id: 'documento.finalizza_come_nota_credito', label: d.actRegisterNotaLabel, descrizione: d.actRegisterNotaDesc, icona: <CreditCard className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    { id: 'documento.finalizza_come_statement', label: d.actArchiveStatementLabel, descrizione: d.actArchiveStatementDesc, icona: <List className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    { id: 'documento.finalizza_come_ordine', label: d.actRegisterOrdineLabel, descrizione: d.actRegisterOrdineDesc, icona: <ShoppingCart className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    { id: 'documento.finalizza_come_comunicazione', label: d.actArchiveCommunicationLabel, descrizione: d.actArchiveCommunicationDesc, icona: <MessageSquare className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    { id: 'documento.finalizza_come_listino', label: d.actRegisterListinoLabel, descrizione: d.actRegisterListinoDesc, icona: <List className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    // ── Fornitore ──
+    { id: 'documento.associa', label: d.actAssociateSupplierLabel, descrizione: d.actAssociateSupplierDesc, icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore' },
+    { id: 'documento.aggiorna_categoria', label: d.actChangeCategoryLabel, descrizione: d.actChangeCategoryDesc, icona: <Tag className="h-4 w-4" />, gruppo: 'fornitore', origini: ['documento_da_processare'] },
+    // ── Stato ──
+    { id: 'documento.scarta', label: d.actDiscardLabel, descrizione: d.actDiscardDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['documento_da_processare'] },
+    { id: 'documento.scarta_fattura', label: d.actDiscardInvoiceLabel, descrizione: d.actDiscardInvoiceDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['fattura'] },
+    { id: 'documento.rianalizza_ocr', label: d.actReanalyzeOcrLabel, descrizione: d.actReanalyzeOcrDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['documento_da_processare'] },
+    { id: 'documento.ignora_mittente', label: d.actIgnoreSenderLabel, descrizione: d.actIgnoreSenderDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['documento_da_processare'] },
+    { id: 'fattura.approva', label: d.actApproveInvoiceLabel, descrizione: d.actApproveInvoiceDesc, icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato', origini: ['fattura'] },
+    { id: 'fattura.rifiuta', label: d.actRejectInvoiceLabel, descrizione: d.actRejectInvoiceDesc, icona: <AlertTriangle className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['fattura'] },
+    { id: 'fattura.resetta_approvazione', label: d.actResetApprovalLabel, descrizione: d.actResetApprovalDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['fattura'] },
+    { id: 'statement.segna_come_ok', label: d.actMarkVerifiedLabel, descrizione: d.actMarkVerifiedDesc, icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato', origini: ['riga_statement'] },
+    { id: 'statement.assegna_fattura', label: d.actAssignInvoiceLabel, descrizione: d.actAssignInvoiceDesc, icona: <FileText className="h-4 w-4" />, gruppo: 'stato', origini: ['riga_statement'] },
+    // ── Documento ──
+    { id: 'documento.apri', label: d.actOpenDocumentLabel, descrizione: d.actOpenDocumentDesc, icona: <ExternalLink className="h-4 w-4" />, gruppo: 'documento' },
+    // ── Bolla ──
+    { id: 'bolla.rianalizza_ocr', label: d.actBollaReanalyzeOcrLabel, descrizione: d.actBollaReanalyzeOcrDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['bolla'] },
+    { id: 'bolla.converti_in_fattura', label: d.actBollaConvertLabel, descrizione: d.actBollaConvertDesc, icona: <Save className="h-4 w-4" />, gruppo: 'tipo', origini: ['bolla'] },
+    { id: 'bolla.cambia_fornitore', label: d.actBollaChangeSupplierLabel, descrizione: d.actBollaChangeSupplierDesc, icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore', origini: ['bolla'] },
+    { id: 'bolla.elimina', label: d.actBollaDeleteLabel, descrizione: d.actBollaDeleteDesc, icona: <Archive className="h-4 w-4" />, gruppo: 'pericolose', pericolosa: true, origini: ['bolla'] },
+  ]
+}
 
 type DocumentActionsModalProps = {
   open: boolean
@@ -103,12 +101,15 @@ export default function DocumentActionsModal({
   onExecute,
   eseguendoId,
 }: DocumentActionsModalProps) {
+  const t = useT()
+  const d = t.documentActions
+  const allActions = useMemo(() => buildAllActions(t), [t])
   const [confermaId, setConfermaId] = useState<string | null>(null)
   const [selettoreCategoria, setSelettoreCategoria] = useState(false)
 
   if (!open || !item) return null
 
-  const visible = ALL_ACTIONS.filter(
+  const visible = allActions.filter(
     (a) => !a.origini || a.origini.some((o) => o === item.origine),
   )
   const isLoading = (id: string) => eseguendoId === `${item.id}_${id}`
@@ -130,13 +131,13 @@ export default function DocumentActionsModal({
   }
 
   const CATEGORY_OPTIONS: { id: CommandId; label: string; icona: React.ReactNode }[] = [
-    { id: 'documento.finalizza_come_fattura', label: 'Fattura', icona: <FileText className="h-4 w-4" /> },
-    { id: 'documento.finalizza_come_bolla', label: 'Bolla / DDT', icona: <Package className="h-4 w-4" /> },
-    { id: 'documento.finalizza_come_nota_credito', label: 'Nota di credito', icona: <CreditCard className="h-4 w-4" /> },
-    { id: 'documento.finalizza_come_statement', label: 'Estratto conto', icona: <List className="h-4 w-4" /> },
-    { id: 'documento.finalizza_come_ordine', label: 'Ordine', icona: <ShoppingCart className="h-4 w-4" /> },
-    { id: 'documento.finalizza_come_comunicazione', label: 'Comunicazione', icona: <MessageSquare className="h-4 w-4" /> },
-    { id: 'documento.finalizza_come_listino', label: 'Listino', icona: <List className="h-4 w-4" /> },
+    { id: 'documento.finalizza_come_fattura', label: d.catFattura, icona: <FileText className="h-4 w-4" /> },
+    { id: 'documento.finalizza_come_bolla', label: d.catBolla, icona: <Package className="h-4 w-4" /> },
+    { id: 'documento.finalizza_come_nota_credito', label: d.catNotaCredito, icona: <CreditCard className="h-4 w-4" /> },
+    { id: 'documento.finalizza_come_statement', label: d.catStatement, icona: <List className="h-4 w-4" /> },
+    { id: 'documento.finalizza_come_ordine', label: d.catOrdine, icona: <ShoppingCart className="h-4 w-4" /> },
+    { id: 'documento.finalizza_come_comunicazione', label: d.catComunicazione, icona: <MessageSquare className="h-4 w-4" /> },
+    { id: 'documento.finalizza_come_listino', label: d.catListino, icona: <List className="h-4 w-4" /> },
   ]
 
   const handleCategorySelect = async (id: CommandId) => {
@@ -147,11 +148,11 @@ export default function DocumentActionsModal({
 
   const gruppi = ['tipo', 'fornitore', 'stato', 'documento', 'pericolose'] as const
   const etichette: Record<string, string> = {
-    tipo: 'Tipo documento',
-    fornitore: 'Fornitore e categoria',
-    stato: 'Stato e azioni',
-    documento: 'Documento',
-    pericolose: 'Azioni pericolose',
+    tipo: d.groupTipo,
+    fornitore: d.groupFornitore,
+    stato: d.groupStato,
+    documento: d.groupDocumento,
+    pericolose: d.groupPericolose,
   }
 
   return createPortal(
@@ -160,9 +161,9 @@ export default function DocumentActionsModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-app-line-28 px-5 py-3.5">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-app-fg">Azioni documento</p>
+            <p className="text-sm font-semibold text-app-fg">{d.title}</p>
             <p className="mt-0.5 truncate text-[11px] text-app-fg-muted">
-              {item.fornitore_nome ?? 'Senza fornitore'}
+              {item.fornitore_nome ?? d.noSupplier}
               {item.numero_documento && ` · ${item.numero_documento}`}
             </p>
           </div>
@@ -186,10 +187,10 @@ export default function DocumentActionsModal({
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
-              <p className="text-xs font-semibold text-app-fg">Seleziona il tipo corretto</p>
+              <p className="text-xs font-semibold text-app-fg">{d.selectCorrectType}</p>
             </div>
             <p className="mb-3 px-2 text-[11px] text-app-fg-muted">
-              La correzione verrà registrata per addestrare l'AI a non ripetere l'errore.
+              {d.correctionAiTraining}
             </p>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORY_OPTIONS.map((opt) => (
@@ -260,13 +261,13 @@ export default function DocumentActionsModal({
                             action.pericolosa ? 'text-rose-300' : 'text-app-fg'
                           }`}
                         >
-                          {inConferma(action.id) ? `Confermi? (${action.label})` : action.label}
+                          {inConferma(action.id) ? d.confirmInline.replace('{label}', action.label) : action.label}
                         </p>
                         {!inConferma(action.id) && (
                           <p className="mt-0.5 text-[11px] text-app-fg-muted">{action.descrizione}</p>
                         )}
                         {inConferma(action.id) && (
-                          <p className="mt-0.5 text-[11px] text-rose-400">Clicca di nuovo per confermare</p>
+                          <p className="mt-0.5 text-[11px] text-rose-400">{d.clickAgainToConfirm}</p>
                         )}
                       </div>
                     </button>
@@ -285,7 +286,7 @@ export default function DocumentActionsModal({
             onClick={onClose}
             className="w-full rounded-lg border border-app-line-28 px-4 py-2 text-xs font-semibold text-app-fg transition-colors hover:bg-app-line-10"
           >
-            Chiudi
+            {d.closeBtn}
           </button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
@@ -12,19 +12,23 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import { BackButton } from '@/components/BackButton'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { formatDate, formatDateTime } from '@/lib/locale'
+import type { Translations } from '@/lib/translations'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 
-const STATO_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
-  da_processare: { label: 'Da processare', color: 'text-amber-300', desc: 'In attesa di elaborazione iniziale' },
-  da_associare: { label: 'Da associare', color: 'text-orange-300', desc: 'Pronto per associazione a fornitore' },
-  bozza_creata: { label: 'Bozza creata', color: 'text-cyan-300', desc: 'Bozza documento creata, da finalizzare' },
-  associato: { label: 'Associato', color: 'text-emerald-300', desc: 'Completato correttamente' },
-  scartato: { label: 'Scartato', color: 'text-gray-400', desc: 'Documento scartato manualmente' },
-  da_revisionare: { label: 'Da revisionare', color: 'text-rose-300', desc: 'Richiede revisione manuale' },
+function buildStatoConfig(t: Translations): Record<string, { label: string; color: string; desc: string }> {
+  const v = t.strumentiVerificaDocumenti
+  return {
+    da_processare: { label: v.statoDaProcessare, color: 'text-amber-300', desc: v.statoDaProcessareDesc },
+    da_associare: { label: v.statoDaAssociare, color: 'text-orange-300', desc: v.statoDaAssociareDesc },
+    bozza_creata: { label: v.statoBozzaCreata, color: 'text-cyan-300', desc: v.statoBozzaCreataDesc },
+    associato: { label: v.statoAssociato, color: 'text-emerald-300', desc: v.statoAssociatoDesc },
+    scartato: { label: v.statoScartato, color: 'text-gray-400', desc: v.statoScartatoDesc },
+    da_revisionare: { label: v.statoDaRevisionare, color: 'text-rose-300', desc: v.statoDaRevisionareDesc },
+  }
 }
 
 type AuditData = {
@@ -125,8 +129,8 @@ function CollapsibleSection({
   )
 }
 
-function StatoBadge({ stato }: { stato: string }) {
-  const cfg = STATO_CONFIG[stato] ?? { label: stato, color: 'text-gray-400', desc: '' }
+function StatoBadge({ stato, statoConfig }: { stato: string; statoConfig: Record<string, { label: string; color: string; desc: string }> }) {
+  const cfg = statoConfig[stato] ?? { label: stato, color: 'text-gray-400', desc: '' }
   return (
     <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold ${cfg.color} bg-white/[0.06]`}>
       {cfg.label}
@@ -136,6 +140,8 @@ function StatoBadge({ stato }: { stato: string }) {
 
 export default function VerificaDocumentiPage() {
   const { t, locale } = useLocale()
+  const v = t.strumentiVerificaDocumenti
+  const STATO_CONFIG = useMemo(() => buildStatoConfig(t), [t])
   const { me, loading: meLoading } = useMe()
   const { activeOperator } = useActiveOperator()
   const canView = canAccessCentroOperazioniPage(me, activeOperator)
@@ -160,11 +166,11 @@ export default function VerificaDocumentiPage() {
       }
       setData(j)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore di rete')
+      setError(e instanceof Error ? e.message : t.common.networkError)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (canView) void load()
@@ -184,11 +190,11 @@ export default function VerificaDocumentiPage() {
       }
       await load()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Errore')
+      alert(e instanceof Error ? e.message : t.common.error)
     } finally {
       setActionLoading(prev => { const next = new Set(prev); next.delete(id); return next })
     }
-  }, [load])
+  }, [load, t])
 
   const handleRiprocessa = useCallback(async (id: string) => {
     setActionLoading(prev => new Set(prev).add(id))
@@ -204,11 +210,11 @@ export default function VerificaDocumentiPage() {
       }
       await load()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Errore')
+      alert(e instanceof Error ? e.message : t.common.error)
     } finally {
       setActionLoading(prev => { const next = new Set(prev); next.delete(id); return next })
     }
-  }, [load])
+  }, [load, t])
 
   const handleRiprocessaTutti = useCallback(async () => {
     if (!data?.documenti_bloccati.length) return
@@ -226,11 +232,11 @@ export default function VerificaDocumentiPage() {
       }
       await load()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Errore')
+      alert(e instanceof Error ? e.message : t.common.error)
     } finally {
       setBulkLoading(false)
     }
-  }, [load, data?.documenti_bloccati])
+  }, [load, data?.documenti_bloccati, t])
 
   const handleRetryLog = useCallback(async (id: string) => {
     setLogActionLoading(prev => new Set(prev).add(id))
@@ -242,11 +248,11 @@ export default function VerificaDocumentiPage() {
       }
       await load()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Errore')
+      alert(e instanceof Error ? e.message : t.common.error)
     } finally {
       setLogActionLoading(prev => { const next = new Set(prev); next.delete(id); return next })
     }
-  }, [load])
+  }, [load, t])
 
   const handleRiprocessaTuttiLog = useCallback(async () => {
     if (!data?.errori_sincronizzazione_recenti.length) return
@@ -258,14 +264,14 @@ export default function VerificaDocumentiPage() {
         )
       )
       const failed = results.filter(r => r.status === 'rejected').length
-      if (failed > 0) alert(`${failed} log non hanno potuto essere riprocessati.`)
+      if (failed > 0) alert(v.bulkRetryFailed.replace('{n}', String(failed)))
       await load()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Errore')
+      alert(e instanceof Error ? e.message : t.common.error)
     } finally {
       setBulkLogLoading(false)
     }
-  }, [load, data?.errori_sincronizzazione_recenti])
+  }, [load, data?.errori_sincronizzazione_recenti, t, v])
 
   if (meLoading) {
     return (
@@ -284,13 +290,13 @@ export default function VerificaDocumentiPage() {
             leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
           >
             <AppPageHeaderTitleWithDashboardShortcut>
-              <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>Verifica documenti</h1>
-              <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>Accesso riservato ad admin e operatori.</p>
+              <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{v.pageTitle}</h1>
+              <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{v.accessDeniedTitle}</p>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
           <div className="mt-6 app-card overflow-hidden p-6">
             <p className="m-0 text-sm leading-relaxed text-app-fg-muted">
-              Non hai i permessi per visualizzare questa pagina.
+              {v.accessDenied}
             </p>
           </div>
         </div>
@@ -309,9 +315,9 @@ export default function VerificaDocumentiPage() {
           leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         >
           <AppPageHeaderTitleWithDashboardShortcut>
-            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>Verifica documenti</h1>
+            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{v.pageTitle}</h1>
             <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>
-              Panoramica completa dello stato di elaborazione di tutti i documenti.
+              {v.subtitle}
             </p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
@@ -329,38 +335,40 @@ export default function VerificaDocumentiPage() {
                 onClick={load}
                 className="mt-4 inline-flex items-center justify-center rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18"
               >
-                Riprova
+                {v.retry}
               </button>
             </div>
           ) : data ? (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                <StatCard label="Totale documenti" value={r?.totale ?? 0} color="text-white" />
+                <StatCard label={v.statTotalDocs} value={r?.totale ?? 0} color="text-white" />
                 <StatCard
-                  label="Completati"
+                  label={v.statCompleted}
                   value={`${s?.tasso_completamento ?? 0}%`}
                   color={s && s.tasso_completamento >= 80 ? 'text-emerald-300' : 'text-amber-300'}
-                  note={`${r?.per_stato.find((x) => x.stato === 'associato')?.count ?? 0} associati + ${r?.per_stato.find((x) => x.stato === 'scartato')?.count ?? 0} scartati`}
+                  note={v.statCompletedNote
+                    .replace('{associated}', String(r?.per_stato.find((x) => x.stato === 'associato')?.count ?? 0))
+                    .replace('{discarded}', String(r?.per_stato.find((x) => x.stato === 'scartato')?.count ?? 0))}
                 />
                 <StatCard
-                  label="Bloccati"
+                  label={v.statBlocked}
                   value={s?.totale_bloccati ?? 0}
                   color={s && s.totale_bloccati > 0 ? 'text-rose-300' : 'text-emerald-300'}
-                  note="Stato non terminale da >7 giorni"
+                  note={v.statBlockedNote}
                 />
                 <StatCard
-                  label="Da revisionare"
+                  label={v.statToReview}
                   value={s?.totale_da_revisionare ?? 0}
                   color={s && s.totale_da_revisionare > 0 ? 'text-rose-300' : 'text-emerald-300'}
                 />
                 <StatCard
-                  label="Statement con problemi"
+                  label={v.statStatementIssues}
                   value={s?.totale_statement_issues ?? 0}
                   color={s && s.totale_statement_issues > 0 ? 'text-amber-300' : 'text-emerald-300'}
-                  note="missing_rows > 0"
+                  note={v.statStatementIssuesNote}
                 />
                 <StatCard
-                  label="Errori sincro (24h)"
+                  label={v.statSyncErrors}
                   value={s?.totale_errori_sincro ?? 0}
                   color={s && s.totale_errori_sincro > 0 ? 'text-rose-300' : 'text-emerald-300'}
                 />
@@ -369,7 +377,7 @@ export default function VerificaDocumentiPage() {
               <div className="app-card overflow-hidden">
                 <div className="border-b border-app-line-10 p-4">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                    Stato elaborazione
+                    {v.sectionStatusTitle}
                   </p>
                 </div>
                 <div className="divide-y divide-app-line-10">
@@ -378,7 +386,7 @@ export default function VerificaDocumentiPage() {
                     const pct = r.totale > 0 ? ((item.count / r.totale) * 100).toFixed(1) : '0.0'
                     return (
                       <div key={item.stato} className="flex items-center gap-4 px-4 py-3">
-                        <StatoBadge stato={item.stato} />
+                        <StatoBadge stato={item.stato} statoConfig={STATO_CONFIG} />
                         <div className="flex-1">
                           <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
                             <div
@@ -401,7 +409,7 @@ export default function VerificaDocumentiPage() {
               </div>
 
               <CollapsibleSection
-                title="Documenti bloccati (>7 giorni)"
+                title={v.sectionBlockedTitle}
                 count={s?.totale_bloccati ?? 0}
                 countColor={s && s.totale_bloccati > 0 ? 'text-rose-300' : 'text-emerald-300'}
                 action={data.documenti_bloccati.length > 0 ? (
@@ -418,30 +426,30 @@ export default function VerificaDocumentiPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     )}
-                    Riprocessa tutti
+                    {v.bulkRetry}
                   </button>
                 ) : undefined}
               >
                 {data.documenti_bloccati.length === 0 ? (
-                  <p className="text-sm text-emerald-200/90">Nessun documento bloccato.</p>
+                  <p className="text-sm text-emerald-200/90">{v.noBlockedHint}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">Stato</th>
-                          <th className="pb-2 pr-3 font-semibold">Mittente</th>
-                          <th className="pb-2 pr-3 font-semibold">File</th>
-                          <th className="pb-2 pr-3 font-semibold">Pending kind</th>
-                          <th className="pb-2 pr-3 font-semibold">Giorni</th>
-                          <th className="pb-2 pr-3 font-semibold">Creato il</th>
-                          <th className="pb-2 pr-3 font-semibold">Azioni</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colStato}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colMittente}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colPendingKind}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colDays}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colActions}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
                         {data.documenti_bloccati.map((doc) => (
                           <tr key={doc.id} className="text-app-fg hover:bg-white/[0.02]">
-                            <td className="py-2 pr-3"><StatoBadge stato={doc.stato} /></td>
+                            <td className="py-2 pr-3"><StatoBadge stato={doc.stato} statoConfig={STATO_CONFIG} /></td>
                             <td className="py-2 pr-3">{doc.mittente ?? '—'}</td>
                             <td className="py-2 pr-3 max-w-[200px] truncate" title={doc.file_name ?? ''}>
                               {doc.file_name ? (
@@ -464,7 +472,7 @@ export default function VerificaDocumentiPage() {
                                 {doc.pending_kind ?? '—'}
                               </span>
                             </td>
-                            <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}g</td>
+                            <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}{v.daysSuffix}</td>
                             <td className="py-2 pr-3 text-app-fg-muted">
                               {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
                             </td>
@@ -483,7 +491,7 @@ export default function VerificaDocumentiPage() {
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                     </svg>
                                   )}
-                                  Riprocessa
+                                  {v.actionRetry}
                                 </button>
                                 <button
                                   type="button"
@@ -491,7 +499,7 @@ export default function VerificaDocumentiPage() {
                                   onClick={() => handleScarta(doc.id)}
                                   className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/8 px-2 py-1 text-[10px] font-bold text-rose-200 transition-colors hover:bg-rose-500/15 disabled:opacity-40"
                                 >
-                                  Scarta
+                                  {v.actionDiscard}
                                 </button>
                               </div>
                             </td>
@@ -504,23 +512,23 @@ export default function VerificaDocumentiPage() {
               </CollapsibleSection>
 
               <CollapsibleSection
-                title="Documenti da revisionare"
+                title={v.sectionToReviewTitle}
                 count={s?.totale_da_revisionare ?? 0}
                 countColor={s && s.totale_da_revisionare > 0 ? 'text-rose-300' : 'text-emerald-300'}
               >
                 {data.documenti_da_revisionare.length === 0 ? (
-                  <p className="text-sm text-emerald-200/90">Nessun documento da revisionare.</p>
+                  <p className="text-sm text-emerald-200/90">{v.noToReviewHint}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">Mittente</th>
-                          <th className="pb-2 pr-3 font-semibold">File</th>
-                          <th className="pb-2 pr-3 font-semibold">Pending kind</th>
-                          <th className="pb-2 pr-3 font-semibold">Giorni in stato</th>
-                          <th className="pb-2 pr-3 font-semibold">Creato il</th>
-                          <th className="pb-2 pr-3 font-semibold">Azione</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colMittente}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colPendingKind}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colDaysInState}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colAction}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
@@ -548,7 +556,7 @@ export default function VerificaDocumentiPage() {
                                 {doc.pending_kind ?? '—'}
                               </span>
                             </td>
-                            <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}g</td>
+                            <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}{v.daysSuffix}</td>
                             <td className="py-2 pr-3 text-app-fg-muted">
                               {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
                             </td>
@@ -560,7 +568,7 @@ export default function VerificaDocumentiPage() {
                                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                 </svg>
-                                Revisiona
+                                {v.actionReview}
                               </Link>
                             </td>
                           </tr>
@@ -572,22 +580,22 @@ export default function VerificaDocumentiPage() {
               </CollapsibleSection>
 
               <CollapsibleSection
-                title="Statement con problemi"
+                title={v.sectionStatementsTitle}
                 count={s?.totale_statement_issues ?? 0}
                 countColor={s && s.totale_statement_issues > 0 ? 'text-amber-300' : 'text-emerald-300'}
               >
                 {data.statement_con_problemi.length === 0 ? (
-                  <p className="text-sm text-emerald-200/90">Nessuno statement con problemi.</p>
+                  <p className="text-sm text-emerald-200/90">{v.noStatementHint}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">Fornitore</th>
-                          <th className="pb-2 pr-3 font-semibold">File</th>
-                          <th className="pb-2 pr-3 font-semibold">Righe mancanti</th>
-                          <th className="pb-2 pr-3 font-semibold">Creato il</th>
-                          <th className="pb-2 pr-3 font-semibold">Azioni</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colSupplier}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colMissingRows}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colActions}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
@@ -623,7 +631,7 @@ export default function VerificaDocumentiPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                   </svg>
                                 )}
-                                Riprocessa
+                                {v.actionRetry}
                               </button>
                             </td>
                           </tr>
@@ -635,7 +643,7 @@ export default function VerificaDocumentiPage() {
               </CollapsibleSection>
 
               <CollapsibleSection
-                title="Errori sincronizzazione (24h)"
+                title={v.sectionSyncErrorsTitle}
                 count={s?.totale_errori_sincro ?? 0}
                 countColor={s && s.totale_errori_sincro > 0 ? 'text-rose-300' : 'text-emerald-300'}
                 action={data.errori_sincronizzazione_recenti.length > 0 ? (
@@ -652,22 +660,22 @@ export default function VerificaDocumentiPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     )}
-                    Riprocessa tutti
+                    {v.bulkRetry}
                   </button>
                 ) : undefined}
               >
                 {data.errori_sincronizzazione_recenti.length === 0 ? (
-                  <p className="text-sm text-emerald-200/90">Nessun errore di sincronizzazione nelle ultime 24 ore.</p>
+                  <p className="text-sm text-emerald-200/90">{v.noSyncErrorsHint}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">Stato</th>
-                          <th className="pb-2 pr-3 font-semibold">Sede</th>
-                          <th className="pb-2 pr-3 font-semibold">Messaggio</th>
-                          <th className="pb-2 pr-3 font-semibold">Data</th>
-                          <th className="pb-2 pr-3 font-semibold">Azioni</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colStato}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colSede}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colMessage}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colDate}</th>
+                          <th className="pb-2 pr-3 font-semibold">{v.colActions}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
@@ -699,7 +707,7 @@ export default function VerificaDocumentiPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                   </svg>
                                 )}
-                                Riprocessa
+                                {v.actionRetry}
                               </button>
                             </td>
                           </tr>
