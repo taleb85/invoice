@@ -36,6 +36,8 @@
     "audit:full:dry": "node scripts/audit-and-fix-all.mjs --dry-run",
     "audit:cleanup": "node scripts/audit-and-fix-all.mjs --phase=cleanup",
     "audit:cleanup:apply": "node scripts/audit-and-fix-all.mjs --phase=cleanup --cleanup-apply",
+    "audit:cleanup:co": "node scripts/audit-and-fix-all.mjs --phase=cleanup_conferme_ordine",
+    "audit:cleanup:co:apply": "node scripts/audit-and-fix-all.mjs --phase=cleanup_conferme_ordine --cleanup-apply",
     "fix:audit": "node scripts/fix-audit-anomalies.mjs",
     "fix:audit:dry": "node scripts/fix-audit-anomalies.mjs --dry-run"
   },

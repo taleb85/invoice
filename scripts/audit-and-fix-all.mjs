@@ -390,10 +390,19 @@ try {
     (flags.cleanup && !flags.phase)
   ) {
     const label = flags.cleanupApply
-      ? 'CLEANUP — Order Confirmation (REALE)'
-      : 'CLEANUP — Order Confirmation (DRY-RUN)'
+      ? 'CLEANUP — Bolle/Fatture incoerenti (REALE)'
+      : 'CLEANUP — Bolle/Fatture incoerenti (DRY-RUN)'
     const t = await loopPhase('cleanup_misclassified', label)
     summaries.push({ label: 'cleanup_misclassified', ...t })
+  } else if (
+    flags.phase === 'cleanup_conferme_ordine' ||
+    flags.phase === 'cleanup_co'
+  ) {
+    const label = flags.cleanupApply
+      ? 'CLEANUP — conferme_ordine orfane (REALE)'
+      : 'CLEANUP — conferme_ordine orfane (DRY-RUN)'
+    const t = await loopPhase('cleanup_conferme_ordine', label)
+    summaries.push({ label: 'cleanup_conferme_ordine', ...t })
   } else if (flags.phase === 'ai' || flags.phase === 'pass2') {
     const t = await loopPhase('ai', 'PASS 2 — AI Gemini Vision')
     summaries.push({ label: 'pass2_ai', ...t })

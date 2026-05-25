@@ -5,30 +5,44 @@ import {
   auditAndFixDeterministic,
   auditAndFixWithAi,
   auditAndCleanupMisclassified,
+  auditAndCleanupOrphanConfermeOrdine,
   type AuditBatchResult,
   type AuditPhase,
 } from '@/lib/audit-and-fix-all'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 
 export const dynamic = 'force-dynamic'
-/** Pass 2 (AI) può richiedere fino a 60s su batch di 5 documenti. Cleanup è veloce. */
+/** Pass 2 (AI) può richiedere fino a 60s su batch di 5 documenti. Cleanup è veloce.
+ *  Cleanup esteso ora supporta auto-promote/demote tra bolle e fatture e una
+ *  passata aggiuntiva `cleanup_conferme_ordine` per voci orfane in conferme_ordine.
+ *  Voting weighted con tie-aware pulisce solo casi con margine sufficiente. */
 export const maxDuration = 300
 
 type Body = {
   /**
    * - `deterministic` / `pass1` — pass1 veloce, gratis
    * - `ai` / `pass2` — pass2 Gemini Vision
-   * - `cleanup_misclassified` / `cleanup` — pulizia bolle/fatture create da Order Confirmation
+   * - `cleanup_misclassified` / `cleanup` — pulizia bolle/fatture orfane,
+   *   con auto-promote/demote tra bolle e fatture quando pending_kind è incoerente
+   * - `cleanup_conferme_ordine` — pulizia voci in `conferme_ordine` il cui
+   *   documento sorgente non è più classificato come ordine
    * Default: `deterministic`.
    */
-  phase?: 'deterministic' | 'ai' | 'pass1' | 'pass2' | 'cleanup_misclassified' | 'cleanup'
+  phase?:
+    | 'deterministic'
+    | 'ai'
+    | 'pass1'
+    | 'pass2'
+    | 'cleanup_misclassified'
+    | 'cleanup'
+    | 'cleanup_conferme_ordine'
   /** Limita a una sede specifica. Master admin può lasciare null. */
   sede_id?: string | null
   /** Numero documenti per chiamata. Default: 50 (pass1) / 5 (pass2) / 25 (cleanup). */
   batch_size?: number
   /** Riprocessa anche documenti già marcati `audit_passN_at`. Default false. */
   force?: boolean
-  /** Solo per phase=cleanup_misclassified: ritorna l'elenco senza cancellare. Default false. */
+  /** Per cleanup_*: ritorna l'elenco senza modificare. Default false. */
   dry_run?: boolean
 }
 
@@ -100,7 +114,10 @@ export async function POST(req: NextRequest) {
     const rawPhase = String(body.phase ?? 'deterministic').toLowerCase().trim()
     let phase: AuditPhase
     if (rawPhase === 'ai' || rawPhase === 'pass2') phase = 'ai'
-    else if (rawPhase === 'cleanup' || rawPhase === 'cleanup_misclassified') phase = 'cleanup_misclassified'
+    else if (rawPhase === 'cleanup' || rawPhase === 'cleanup_misclassified')
+      phase = 'cleanup_misclassified'
+    else if (rawPhase === 'cleanup_conferme_ordine' || rawPhase === 'cleanup_co')
+      phase = 'cleanup_conferme_ordine'
     else phase = 'deterministic'
 
     const requestedSede =
@@ -143,6 +160,12 @@ export async function POST(req: NextRequest) {
         sedeId: sedeFilter,
         batchSize,
         force,
+        dryRun: body.dry_run === true,
+      })
+    } else if (phase === 'cleanup_conferme_ordine') {
+      result = await auditAndCleanupOrphanConfermeOrdine(service, {
+        sedeId: sedeFilter,
+        batchSize,
         dryRun: body.dry_run === true,
       })
     } else {
