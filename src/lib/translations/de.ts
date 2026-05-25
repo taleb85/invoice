@@ -1396,7 +1396,7 @@ const translations: Translations = {
     aiPipelineLogMatching: 'Server-seitige Zuordnung lösbarer Zeilen läuft…',
     aiPipelineLogCompleted: 'Pipeline abgeschlossen: {resolved} gelöst, {remaining} noch offen',
     aiPipelineLogConnecting: 'Verbinde zum Postfach…',
-    aiPipelineLogSearching: 'Suche E-Mails…',
+    aiPipelineLogSearching: 'Suche E-Mails (gefiltert nach Lieferanten-Absender)…',
     aiPipelineLogSearchEmpty: 'keine E-Mails im Suchzeitraum gefunden',
     aiPipelineLogSearchFound_one: '1 E-Mail gefunden — Download startet',
     aiPipelineLogSearchFound_other: '{n} E-Mails gefunden — Download startet',

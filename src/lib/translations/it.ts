@@ -2439,7 +2439,7 @@ const translations: Translations = {
     aiPipelineLogMatching: 'Esecuzione associazione righe risolvibili sul server…',
     aiPipelineLogCompleted: 'Pipeline completata: {resolved} risolte, {remaining} ancora aperte',
     aiPipelineLogConnecting: 'connessione mailbox…',
-    aiPipelineLogSearching: 'ricerca email in corso…',
+    aiPipelineLogSearching: 'ricerca email in corso (filtrate per mittente del fornitore)…',
     aiPipelineLogSearchEmpty: 'nessuna email trovata nella finestra di ricerca',
     aiPipelineLogSearchFound_one: 'trovata 1 email — inizio scaricamento',
     aiPipelineLogSearchFound_other: 'trovate {n} email — inizio scaricamento',

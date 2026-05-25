@@ -83,6 +83,11 @@ export type FetchUnseenImapHooks = {
    */
   afterSearch?: (info: { totalUids: number }) => void | Promise<void>
   /**
+   * Chiamato PRIMA di ciascuna IMAP `search` quando si usa lo scope mittente.
+   * Permette alla UI di scrivere log "cerco da {term}…" — utile su provider lenti.
+   */
+  beforeEachSearchTerm?: (info: { term: string; index: number; total: number }) => void | Promise<void>
+  /**
    * Chiamato ogni `fetchProgressEvery` messaggi durante il loop FETCH (default 5).
    * Lo scan-emails route usa questo per emettere progressi NDJSON anche durante un FETCH
    * lungo, così la UI non sembra bloccata.
@@ -92,13 +97,34 @@ export type FetchUnseenImapHooks = {
   fetchProgressEvery?: number
 }
 
+/**
+ * Restringe la IMAP SEARCH lato server al mittente — usato quando la pipeline
+ * è mirata a un singolo fornitore. Si traduce in N `client.search({ from, since })`
+ * paralleli (uno per ogni email + uno per ogni dominio non-generico) le cui UID
+ * vengono unite. Senza questa opzione, la ricerca è solo per data e l'intero
+ * batch della finestra viene scaricato + filtrato in memoria — operazione molto
+ * più costosa quando interessa un solo fornitore.
+ */
+export type SenderSearchScope = {
+  /** Indirizzi email completi (es. "ordini@acmespa.it"). Match esatto via IMAP `FROM`. */
+  emails: string[]
+  /** Domini non generici (es. "acmespa.it"). Match come substring `FROM @dominio`. */
+  domains: string[]
+}
+
 export async function fetchUnseenEmails(
   hooks?: FetchUnseenImapHooks,
   fiscalRange?: { start: Date; endExclusive: Date } | null,
   /** Solo senza fiscalRange: limita la ricerca IMAP `SINCE` (lette e non lette). Ha priorità se entrambi valorizzati. */
   lookbackDays?: number | null,
   /** Alternativa ai giorni: finestra più stretta per sync cron (es. ultime 3 ore). */
-  lookbackHours?: number | null
+  lookbackHours?: number | null,
+  /**
+   * Scope mittente per restringere la search lato server. Se valorizzato e contiene
+   * almeno una entry, eseguiamo `search({from, since})` per ciascun termine e
+   * uniamo le UID risultanti, riducendo drasticamente il volume scaricato.
+   */
+  senderScope?: SenderSearchScope | null
 ): Promise<ScannedEmail[]> {
   if (!process.env.IMAP_HOST || !process.env.IMAP_USER) {
     throw new Error('Variabili IMAP_HOST e IMAP_USER non configurate.')
@@ -118,15 +144,72 @@ export async function fetchUnseenEmails(
           : !fiscalRange && lookbackDays && lookbackDays > 0
             ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
             : undefined
-      const searchResult = await client.search(
-        fiscalRange
-          ? { since: fiscalRange.start, before: fiscalRange.endExclusive }
-          : sinceLookback
-            ? { since: sinceLookback }
-            : { all: true },
-        { uid: true }
-      )
-      const uids = Array.isArray(searchResult) ? searchResult : []
+
+      /**
+       * Costruisce i vincoli di data condivisi da ogni search.
+       * Combinati con `from`, restringono ulteriormente il set restituito.
+       */
+      const dateCriteria: { since?: Date; before?: Date } = fiscalRange
+        ? { since: fiscalRange.start, before: fiscalRange.endExclusive }
+        : sinceLookback
+          ? { since: sinceLookback }
+          : {}
+
+      /**
+       * Quando lo `senderScope` è valorizzato facciamo N IMAP `search` (una per
+       * indirizzo + una per dominio) con `from` come substring di RFC822 From.
+       * Le UID risultanti vengono unite (dedup). Questo elimina la necessità di
+       * scaricare TUTTA la finestra temporale solo per filtrare il mittente.
+       *
+       * Falliscono individualmente è tollerato: una search rotta sull'IMAP del
+       * provider non deve uccidere l'intera fetch — logghiamo e proseguiamo.
+       */
+      const senderTerms = senderScope
+        ? [
+            ...senderScope.emails.map(e => e.trim()).filter(Boolean),
+            ...senderScope.domains
+              .map(d => d.trim().replace(/^@?/, '@'))
+              .filter(Boolean),
+          ]
+        : []
+      const useSenderSearch = senderTerms.length > 0
+
+      let uids: number[] = []
+      if (useSenderSearch) {
+        const seen = new Set<number>()
+        for (let i = 0; i < senderTerms.length; i++) {
+          const term = senderTerms[i]
+          await hooks?.beforeEachSearchTerm?.({ term, index: i, total: senderTerms.length })
+          try {
+            const partial = await client.search(
+              { ...dateCriteria, from: term },
+              { uid: true }
+            )
+            if (Array.isArray(partial)) {
+              for (const u of partial) {
+                if (typeof u === 'number' && !seen.has(u)) {
+                  seen.add(u)
+                  uids.push(u)
+                }
+              }
+            }
+          } catch {
+            // Una search by-sender fallita: continuiamo con le altre.
+            // Non c'è fallback by-date: l'utente preferisce non scaricare tutto.
+          }
+        }
+      } else {
+        const searchResult = await client.search(
+          fiscalRange
+            ? { since: fiscalRange.start, before: fiscalRange.endExclusive }
+            : sinceLookback
+              ? { since: sinceLookback }
+              : { all: true },
+          { uid: true }
+        )
+        uids = Array.isArray(searchResult) ? searchResult.filter((u): u is number => typeof u === 'number') : []
+      }
+
       await hooks?.afterSearch?.({ totalUids: uids.length })
       if (uids.length === 0) return results
 

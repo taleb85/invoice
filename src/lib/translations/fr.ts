@@ -1397,7 +1397,7 @@ const translations: Translations = {
     aiPipelineLogMatching: 'Exécution de l’association côté serveur pour les lignes résolvables…',
     aiPipelineLogCompleted: 'Pipeline terminée : {resolved} résolues, {remaining} encore ouvertes',
     aiPipelineLogConnecting: 'connexion à la boîte aux lettres…',
-    aiPipelineLogSearching: 'recherche des e-mails…',
+    aiPipelineLogSearching: 'recherche des e-mails (filtrés par expéditeur du fournisseur)…',
     aiPipelineLogSearchEmpty: 'aucun e-mail trouvé dans la fenêtre de recherche',
     aiPipelineLogSearchFound_one: '1 e-mail trouvé — début du téléchargement',
     aiPipelineLogSearchFound_other: '{n} e-mails trouvés — début du téléchargement',

@@ -1451,7 +1451,7 @@ const translations: Translations = {
     aiPipelineLogMatching: 'Running server-side matching for resolvable rows…',
     aiPipelineLogCompleted: 'Pipeline complete: {resolved} resolved, {remaining} still open',
     aiPipelineLogConnecting: 'connecting to mailbox…',
-    aiPipelineLogSearching: 'searching emails…',
+    aiPipelineLogSearching: 'searching emails (filtered by supplier sender)…',
     aiPipelineLogSearchEmpty: 'no emails found in the search window',
     aiPipelineLogSearchFound_one: 'found 1 email — starting download',
     aiPipelineLogSearchFound_other: 'found {n} emails — starting download',

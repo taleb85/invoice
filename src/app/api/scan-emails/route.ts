@@ -299,11 +299,27 @@ type FetchImapHooks = {
   afterMailboxOpen?: () => void | Promise<void>
   /** Dopo `client.search()` con conteggio UIDs (stream UI: "trovate N email"). */
   afterSearch?: (info: { totalUids: number }) => void | Promise<void>
+  /**
+   * Chiamato PRIMA di ciascuna SEARCH quando `senderScope` è valorizzato (N search by FROM).
+   * Permette alla UI di mostrare "cerco da {term}…" se l'utente apre i dettagli del log.
+   */
+  beforeEachSearchTerm?: (info: { term: string; index: number; total: number }) => void | Promise<void>
   /** Heartbeat durante il loop FETCH per evitare l'illusione di blocco. */
   onFetchProgress?: (info: { fetched: number; total: number }) => void | Promise<void>
   /** Frequenza chiamata (ogni N messaggi). Default 5. */
   fetchProgressEvery?: number
 }
+
+/**
+ * Vedi `SenderSearchScope` in `mail-scanner.ts` — stessa semantica anche qui.
+ * Quando valorizzato, la search IMAP usa `FROM` come substring invece di scaricare
+ * l'intera finestra temporale: cruciale per la pipeline mirata a un singolo fornitore
+ * (riduce drasticamente banda + chiamate AI/OCR a valle).
+ */
+type SenderSearchScopeOpt = {
+  emails: string[]
+  domains: string[]
+} | null
 
 function scanEmailMessageDate(
   internalDate: Date | string | undefined,
@@ -327,6 +343,13 @@ type FetchImapEmailOpts = {
   fiscalRange?: { start: Date; endExclusive: Date } | null
   /** Sync storica a chunk mensile: ricerca IMAP `since`/`before` (priorità su lookback fiscal). */
   narrowDateRange?: { start: Date; endExclusive: Date } | null
+  /**
+   * Quando valorizzato, restringe la SEARCH lato server alle email del fornitore
+   * indicato (N `client.search` paralleli con `from` come substring del campo
+   * From). Senza, la search prende tutto il batch della finestra temporale.
+   * Vedi `SenderSearchScopeOpt` per i campi.
+   */
+  senderScope?: SenderSearchScopeOpt
 }
 
 /** Scansiona una casella IMAP e restituisce le email nella finestra scelta (lette e non lette, allegati e/o corpo testuale). */
@@ -338,22 +361,21 @@ async function fetchFromImap(
   opts: FetchImapEmailOpts,
   hooks?: FetchImapHooks
 ): Promise<ScannedEmail[]> {
-  const { lookbackDays, lookbackHours, fiscalRange, narrowDateRange } = opts
+  const { lookbackDays, lookbackHours, fiscalRange, narrowDateRange, senderScope } = opts
   mailDebugLog(
-    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackHours != null && lookbackHours > 0 ? `${lookbackHours}h` : lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'} narrow=${narrowDateRange ? 'sì' : 'no'}`
+    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackHours != null && lookbackHours > 0 ? `${lookbackHours}h` : lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'} narrow=${narrowDateRange ? 'sì' : 'no'} senderScope=${senderScope ? `${senderScope.emails.length}emails+${senderScope.domains.length}dom` : 'no'}`
   )
 
-  let searchCriteria: { since?: Date; before?: Date; all?: boolean }
+  /**
+   * Vincoli di data condivisi: si applicano a TUTTE le search (sia by-date
+   * fallback, sia by-sender quando lo scope è attivo) per assicurarci di non
+   * scaricare email fuori finestra anche quando il provider IMAP è permissivo.
+   */
+  let dateCriteria: { since?: Date; before?: Date }
   if (narrowDateRange) {
-    searchCriteria = {
-      since: narrowDateRange.start,
-      before: narrowDateRange.endExclusive,
-    }
+    dateCriteria = { since: narrowDateRange.start, before: narrowDateRange.endExclusive }
   } else if (fiscalRange) {
-    searchCriteria = {
-      since: fiscalRange.start,
-      before: fiscalRange.endExclusive,
-    }
+    dateCriteria = { since: fiscalRange.start, before: fiscalRange.endExclusive }
   } else {
     const sinceDate =
       lookbackHours != null && lookbackHours > 0
@@ -361,8 +383,20 @@ async function fetchFromImap(
         : lookbackDays && lookbackDays > 0
           ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
           : undefined
-    searchCriteria = sinceDate ? { since: sinceDate } : { all: true }
+    dateCriteria = sinceDate ? { since: sinceDate } : {}
   }
+
+  /**
+   * Termini di ricerca per il `senderScope`: una entry per ogni email esatta + una
+   * per ogni dominio (substring `@dominio`). Se vuoto, fallback alla search by-date.
+   */
+  const senderTerms = senderScope
+    ? [
+        ...senderScope.emails.map(e => e.trim()).filter(Boolean),
+        ...senderScope.domains.map(d => d.trim().replace(/^@?/, '@')).filter(Boolean),
+      ]
+    : []
+  const useSenderSearch = senderTerms.length > 0
 
   return withImapSession(
     {
@@ -385,20 +419,56 @@ async function fetchFromImap(
       // (prima il search era implicito dentro `client.fetch(searchCriteria,...)`
       // e l'utente non aveva feedback per minuti.)
       let uids: number[] = []
-      try {
-        const searchRes = await client.search(searchCriteria, { uid: true })
-        uids = Array.isArray(searchRes) ? searchRes : []
-      } catch (searchErr) {
-        mailDebugLog(`[IMAP] SEARCH fallita su ${host}, fallback a fetch diretto:`, searchErr)
-        // fallback: lasciamo che `fetch(searchCriteria, ...)` faccia search+fetch insieme.
+      let searchOk = true
+      if (useSenderSearch) {
+        const seen = new Set<number>()
+        for (let i = 0; i < senderTerms.length; i++) {
+          const term = senderTerms[i]
+          try {
+            await hooks?.beforeEachSearchTerm?.({ term, index: i, total: senderTerms.length })
+          } catch { /* hook best-effort */ }
+          try {
+            const partial = await client.search({ ...dateCriteria, from: term }, { uid: true })
+            if (Array.isArray(partial)) {
+              for (const u of partial) {
+                if (typeof u === 'number' && !seen.has(u)) {
+                  seen.add(u)
+                  uids.push(u)
+                }
+              }
+            }
+          } catch (e) {
+            // Una search per uno specifico FROM è fallita: logghiamo e continuiamo.
+            // L'utente preferisce non fare fallback to-date (eviterebbe il risparmio).
+            mailDebugLog(`[IMAP] SEARCH FROM "${term}" fallita su ${host}: continuo con gli altri termini`, e)
+          }
+        }
+      } else {
+        try {
+          const searchCriteria: { since?: Date; before?: Date; all?: boolean } =
+            dateCriteria.since || dateCriteria.before ? dateCriteria : { all: true }
+          const searchRes = await client.search(searchCriteria, { uid: true })
+          uids = Array.isArray(searchRes) ? searchRes.filter((u): u is number => typeof u === 'number') : []
+        } catch (searchErr) {
+          mailDebugLog(`[IMAP] SEARCH by-date fallita su ${host}, fallback a fetch diretto:`, searchErr)
+          searchOk = false
+        }
       }
       await hooks?.afterSearch?.({ totalUids: uids.length })
 
-      if (uids.length === 0 && !Array.isArray(uids)) {
-        return emails // SEARCH fallita E nessun fallback: meglio uscire pulito
+      if (uids.length === 0 && !searchOk) {
+        // SEARCH by-date fallita e nessun UID: per il fallback usiamo il fetch
+        // diretto col date criteria (vecchio comportamento). Per la modalità
+        // by-sender invece NON facciamo fallback (rispetta scelta utente).
+      }
+      if (uids.length === 0 && useSenderSearch) {
+        // Zero email del fornitore in finestra: usciamo subito, niente fetch.
+        return emails
       }
 
-      const fetchSource = uids.length > 0 ? uids : searchCriteria
+      const fallbackCriteria: { since?: Date; before?: Date; all?: boolean } =
+        dateCriteria.since || dateCriteria.before ? dateCriteria : { all: true }
+      const fetchSource = uids.length > 0 ? uids : fallbackCriteria
       const fetchProgressEvery = Math.max(1, hooks?.fetchProgressEvery ?? 5)
       const fetchTotal = uids.length
 
@@ -2836,6 +2906,16 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           sedeImapLookbackDays: sede.imap_lookback_days,
         })
         const hn = params.historicalNarrowChunk
+        // Quando la scansione è mirata a un fornitore, passiamo lo `senderScope`
+        // a `fetchFromImap` così la SEARCH IMAP chiede SOLO le UID dei messaggi
+        // del fornitore (FROM = email/dominio), invece di scaricare l'intero
+        // batch della finestra temporale e filtrare in memoria.
+        const senderScopeForFetch = supplierScope
+          ? {
+              emails: Array.from(supplierScope.allowedEmails),
+              domains: Array.from(supplierScope.allowedDomains),
+            }
+          : null
         const emails = await fetchFromImap(
           sede.imap_host,
           sede.imap_port ?? 993,
@@ -2850,11 +2930,13 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
                   start: hn.rangeStartInclusive,
                   endExclusive: hn.rangeEndExclusive,
                 },
+                senderScope: senderScopeForFetch,
               }
             : {
                 lookbackDays: sedeFiscalRange ? null : sedeLb.lookbackDays,
                 lookbackHours: sedeFiscalRange ? null : sedeLb.lookbackHours,
                 fiscalRange: sedeFiscalRange,
+                senderScope: senderScopeForFetch,
               },
           {
             ...imapStreamRetryHooks,
@@ -2883,6 +2965,18 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
                 type: 'progress',
                 phase: 'search',
                 percent: 28,
+                connectionWarning: null,
+                ...snap(),
+              })
+            },
+            beforeEachSearchTerm: async ({ index, total }) => {
+              // Quando facciamo N search by-sender, emettiamo un progress per
+              // ognuna (l'utente vede la barra avanzare e la UI sa che il pipeline
+              // è vivo anche tra search e fetch).
+              await s({
+                type: 'progress',
+                phase: 'search',
+                percent: 28 + Math.min(3, Math.round((index / Math.max(1, total)) * 3)),
                 connectionWarning: null,
                 ...snap(),
               })
