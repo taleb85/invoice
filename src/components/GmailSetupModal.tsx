@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { GlyphLightBulb } from '@/components/ui/glyph-icons'
+import { useT } from '@/lib/use-t'
 
 interface GmailSetupModalProps {
   isOpen: boolean
@@ -11,6 +12,8 @@ interface GmailSetupModalProps {
 }
 
 export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSetupModalProps) {
+  const t = useT()
+  const g = t.gmailSetup
   const [step, setStep] = useState<'check' | 'input' | 'connect' | 'success'>('check')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +42,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
       })
       
       if (!res.ok) {
-        throw new Error('Errore durante il controllo dello stato')
+        throw new Error(g.errorCheckingStatus)
       }
       
       const data = await res.json()
@@ -56,7 +59,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
         setStep('success')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore di connessione')
+      setError(err instanceof Error ? err.message : g.errorConnection)
       setStep('input')
     } finally {
       setLoading(false)
@@ -65,7 +68,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
 
   const handleSaveCredentials = async () => {
     if (!clientId.trim() || !clientSecret.trim()) {
-      setError('Entrambi i campi sono obbligatori')
+      setError(g.bothFieldsRequired)
       return
     }
     
@@ -86,13 +89,13 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
       
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Errore nel salvataggio')
+        throw new Error(data.error || g.errorSaving)
       }
       
       // Credentials saved, now need to connect
       setStep('connect')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore durante il salvataggio')
+      setError(err instanceof Error ? err.message : g.errorSavingGeneric)
     } finally {
       setLoading(false)
     }
@@ -109,7 +112,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
       
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || 'Errore nella configurazione')
+        throw new Error(data.error || g.errorConfigGeneric)
       }
       
       const data = await res.json()
@@ -119,7 +122,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
         window.location.href = data.authUrl
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore di connessione')
+      setError(err instanceof Error ? err.message : g.errorConnection)
       setLoading(false)
     }
   }
@@ -146,9 +149,9 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-app-fg">Configurazione Gmail API</h2>
+                <h2 className="text-lg font-bold text-app-fg">{g.title}</h2>
                 <p className="mt-0.5 text-sm text-app-fg-muted">
-                  Setup rapido per attivare lo scanner automatico Rekki
+                  {g.subtitle}
                 </p>
               </div>
             </div>
@@ -171,7 +174,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
             <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center gap-3">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-app-line-25 border-t-cyan-500" />
-                <p className="text-sm text-app-fg-muted">Controllo configurazione...</p>
+                <p className="text-sm text-app-fg-muted">{g.checkingConfig}</p>
               </div>
             </div>
           )}
@@ -189,44 +192,44 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                       d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
                     />
                   </svg>
-                  Passaggi Rapidi
+                  {g.quickStepsTitle}
                 </h3>
                 <ol className="mt-3 ml-4 list-decimal space-y-2 text-xs leading-relaxed text-blue-200/80">
                   <li>
-                    Vai su{' '}
+                    {g.quickStepsStep1Prefix}
                     <a
                       href="https://console.cloud.google.com/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-semibold text-cyan-300 hover:text-cyan-200"
                     >
-                      Google Cloud Console
+                      {g.quickStepsStep1Link}
                     </a>
                   </li>
-                  <li>{'Crea un nuovo progetto (es. "Invoice Rekki App")'}</li>
-                  <li>Abilita <span className="font-semibold text-blue-100">Gmail API</span></li>
-                  <li>{'Configura OAuth consent screen (tipo "Esterno")'}</li>
+                  <li>{g.quickStepsStep2}</li>
+                  <li>{g.quickStepsStep3Prefix}<span className="font-semibold text-blue-100">{g.quickStepsStep3GmailApi}</span></li>
+                  <li>{g.quickStepsStep4}</li>
                   <li>
-                    Aggiungi 3 scopes:
+                    {g.quickStepsStep5Prefix}
                     <ul className="mt-1 ml-4 list-disc space-y-0.5 text-blue-200/70">
                       <li><code className="rounded bg-blue-500/20 px-1 py-0.5 font-mono text-[10px]">gmail.readonly</code></li>
                       <li><code className="rounded bg-blue-500/20 px-1 py-0.5 font-mono text-[10px]">gmail.modify</code></li>
                       <li><code className="rounded bg-blue-500/20 px-1 py-0.5 font-mono text-[10px]">gmail.labels</code></li>
                     </ul>
                   </li>
-                  <li>{'Aggiungi la tua email come "test user"'}</li>
+                  <li>{g.quickStepsStep6}</li>
                   <li>
-                    Crea <span className="font-semibold text-blue-100">OAuth 2.0 Client ID</span>{' '}
-                    {`(tipo "Applicazione web")`}
+                    {g.quickStepsStep7Prefix}<span className="font-semibold text-blue-100">OAuth 2.0 Client ID</span>{' '}
+                    {g.quickStepsStep7TypeWeb}
                   </li>
                   <li>
-                    Aggiungi URI di reindirizzamento:
+                    {g.quickStepsStep8Prefix}
                     <ul className="mt-1 ml-4 list-disc space-y-0.5 text-blue-200/70">
                       <li><code className="rounded bg-blue-500/20 px-1 py-0.5 font-mono text-[10px]">{window.location.origin}/api/auth/google/callback</code></li>
                     </ul>
                   </li>
                   <li>
-                    <span className="font-bold text-blue-100">Copia Client ID e Client Secret</span> e incollali qui sotto
+                    <span className="font-bold text-blue-100">{g.quickStepsStep9Bold}</span>{g.quickStepsStep9Suffix}
                   </li>
                 </ol>
                 <div className="mt-3 flex gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-2 text-xs text-cyan-200">
@@ -239,7 +242,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                     />
                   </svg>
                   <span>
-                    Per istruzioni dettagliate, consulta{' '}
+                    {g.docsHint}{' '}
                   <a
                     href="/INSTRUCTIONS_GOOGLE_API.md"
                     target="_blank"
@@ -255,7 +258,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
               <div className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-app-fg">
-                    Client ID
+                    {g.clientIdLabel}
                   </label>
                   <input
                     type="text"
@@ -268,7 +271,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
 
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-app-fg">
-                    Client Secret
+                    {g.clientSecretLabel}
                   </label>
                   <input
                     type="password"
@@ -299,14 +302,14 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                   {loading ? (
                     <>
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Salvataggio...
+                      {g.saving}
                     </>
                   ) : (
                     <>
                       <svg className={`h-4 w-4 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      Salva e Continua
+                      {g.saveAndContinue}
                     </>
                   )}
                 </button>
@@ -323,9 +326,9 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="mt-4 text-lg font-bold text-emerald-200">Credenziali salvate!</h3>
+                <h3 className="mt-4 text-lg font-bold text-emerald-200">{g.credentialsSavedTitle}</h3>
                 <p className="mt-2 text-sm text-emerald-200/80">
-                  Ora collega il tuo account Gmail per attivare lo scanner automatico
+                  {g.credentialsSavedSubtitle}
                 </p>
               </div>
 
@@ -339,22 +342,20 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                       d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                     />
                   </svg>
-                  Prossimi passaggi
+                  {g.nextStepsTitle}
                 </h4>
                 <ol className="mt-3 ml-4 list-decimal space-y-2 text-xs leading-relaxed text-blue-200/80">
-                  <li>Verrai reindirizzato alla pagina di autorizzazione Google</li>
+                  <li>{g.nextStep1}</li>
+                  <li>{g.nextStep2}</li>
                   <li>
-                    Seleziona l&apos;account Gmail dell&apos;Osteria Basilico
-                  </li>
-                  <li>
-                    Se appare &quot;App non verificata&quot;, clicca{' '}
-                    <span className="font-semibold text-blue-100">&quot;Avanzate&quot;</span> →{' '}
+                    {g.nextStep3Prefix}
+                    <span className="font-semibold text-blue-100">{g.nextStep3Advanced}</span> →{' '}
                     <span className="font-semibold text-blue-100">
-                      &quot;Vai a Invoice Rekki Scanner (non sicuro)&quot;
+                      {g.nextStep3GoTo}
                     </span>
                   </li>
-                  <li>Autorizza tutte le 3 permissioni richieste</li>
-                  <li>Verrai riportato qui e la scansione inizierà automaticamente</li>
+                  <li>{g.nextStep4}</li>
+                  <li>{g.nextStep5}</li>
                 </ol>
               </div>
 
@@ -378,14 +379,14 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 {loading ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Reindirizzamento...
+                    {g.redirecting}
                   </>
                 ) : (
                   <>
                     <svg className={`h-5 w-5 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Connetti Gmail Ora
+                    {g.connectGmailNow}
                   </>
                 )}
               </button>

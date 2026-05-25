@@ -61,15 +61,15 @@ export default function AnalisiPrezziPage() {
     setLoading(true)
     try {
       const res = await fetch('/api/listino/price-intelligence')
-      if (!res.ok) throw new Error(`Errore ${res.status}`)
+      if (!res.ok) throw new Error(t.common.httpError.replace('{code}', String(res.status)))
       const json = await res.json()
       setData(json)
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Errore caricamento', 'error')
+      showToast(e instanceof Error ? e.message : t.strumentiAnalisiPrezzi.loadError, 'error')
     } finally {
       setLoading(false)
     }
-  }, [showToast])
+  }, [showToast, t])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -77,7 +77,7 @@ export default function AnalisiPrezziPage() {
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
         accent="cyan"
-        leadingAccessory={<BackButton href="/strumenti" label="Strumenti" iconOnly className="mb-0 shrink-0" />}
+        leadingAccessory={<BackButton href="/strumenti" label={t.strumentiAnalisiPrezzi.backToTools} iconOnly className="mb-0 shrink-0" />}
         icon={
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -102,19 +102,19 @@ export default function AnalisiPrezziPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="text-2xl font-bold text-white">{data.totali}</div>
-              <div className="text-[11px] text-white/40">Fornitori analizzati</div>
+              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiSuppliersAnalyzed}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="text-2xl font-bold text-emerald-400">{data.ok}</div>
-              <div className="text-[11px] text-white/40">Salute OK (≥70%)</div>
+              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiHealthOk}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="text-2xl font-bold text-amber-400">{data.attenzione}</div>
-              <div className="text-[11px] text-white/40">Attenzione (50-69%)</div>
+              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiAttention}</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div className="text-2xl font-bold text-red-400">{data.critici}</div>
-              <div className="text-[11px] text-white/40">Critici (&lt;50%)</div>
+              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiCritical}</div>
             </div>
           </div>
 
@@ -122,13 +122,13 @@ export default function AnalisiPrezziPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">Stato</th>
-                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">Fornitore</th>
-                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">Prodotti</th>
-                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">Trend</th>
-                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">Volatilità</th>
-                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">Anomalie</th>
-                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">Score</th>
+                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">{t.strumentiAnalisiPrezzi.tableColStato}</th>
+                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">{t.strumentiAnalisiPrezzi.tableColFornitore}</th>
+                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">{t.strumentiAnalisiPrezzi.tableColProdotti}</th>
+                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">{t.strumentiAnalisiPrezzi.tableColTrend}</th>
+                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">{t.strumentiAnalisiPrezzi.tableColVolatilita}</th>
+                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">{t.strumentiAnalisiPrezzi.tableColAnomalie}</th>
+                  <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-white/40">{t.strumentiAnalisiPrezzi.tableColScore}</th>
                 </tr>
               </thead>
               <tbody>
@@ -176,18 +176,18 @@ export default function AnalisiPrezziPage() {
 
           {data.totali === 0 && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center">
-              <p className="text-sm text-white/40">Nessun fornitore con dati prezzi sufficienti per l&apos;analisi.</p>
+              <p className="text-sm text-white/40">{t.strumentiAnalisiPrezzi.emptyInsufficientData}</p>
               <p className="mt-1 text-xs text-white/30">
-                Sono necessari almeno 2 rilevazioni prezzo per prodotto per generare trend e raccomandazioni.
+                {t.strumentiAnalisiPrezzi.emptyInsufficientDataHint}
               </p>
             </div>
           )}
         </>
       ) : (
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center">
-          <p className="text-sm text-white/40">Nessun dato disponibile.</p>
+          <p className="text-sm text-white/40">{t.strumentiAnalisiPrezzi.emptyNoData}</p>
           <p className="mt-1 text-xs text-white/30">
-            Importa listini o sincronizza prezzi dalle fatture per attivare l&apos;analisi intelligente.
+            {t.strumentiAnalisiPrezzi.emptyNoDataHint}
           </p>
         </div>
       )}

@@ -1955,8 +1955,76 @@ export type Translations = {
     errorSave: string
     errorNetwork: string
   }
+  gmailSetup: {
+    title: string
+    subtitle: string
+    checkingConfig: string
+    quickStepsTitle: string
+    quickStepsStep1Prefix: string
+    quickStepsStep1Link: string
+    quickStepsStep2: string
+    quickStepsStep3Prefix: string
+    quickStepsStep3GmailApi: string
+    quickStepsStep4: string
+    quickStepsStep5Prefix: string
+    quickStepsStep6: string
+    quickStepsStep7Prefix: string
+    quickStepsStep7TypeWeb: string
+    quickStepsStep8Prefix: string
+    quickStepsStep9Bold: string
+    quickStepsStep9Suffix: string
+    docsHint: string
+    clientIdLabel: string
+    clientSecretLabel: string
+    bothFieldsRequired: string
+    saveAndContinue: string
+    saving: string
+    credentialsSavedTitle: string
+    credentialsSavedSubtitle: string
+    nextStepsTitle: string
+    nextStep1: string
+    nextStep2: string
+    nextStep3Prefix: string
+    nextStep3Advanced: string
+    nextStep3GoTo: string
+    nextStep4: string
+    nextStep5: string
+    redirecting: string
+    connectGmailNow: string
+    successTitle: string
+    successSubtitle: string
+    activeFeatures: string
+    feature1: string
+    feature2: string
+    feature3: string
+    feature4: string
+    startHistoricScan: string
+    footerSecurityNote: string
+    errorCheckingStatus: string
+    errorConnection: string
+    errorSaving: string
+    errorSavingGeneric: string
+    errorConfigGeneric: string
+  }
   strumentiAnalisiPrezzi: {
     pageTitle: string
+    backToTools: string
+    kpiSuppliersAnalyzed: string
+    kpiHealthOk: string
+    kpiAttention: string
+    kpiCritical: string
+    tableColStato: string
+    tableColFornitore: string
+    tableColProdotti: string
+    tableColTrend: string
+    tableColVolatilita: string
+    tableColAnomalie: string
+    tableColScore: string
+    emptyInsufficientData: string
+    emptyInsufficientDataHint: string
+    emptyNoData: string
+    emptyNoDataHint: string
+    loadError: string
   }
   strumentiCentroOperazioni: {
     pageTitle: string
@@ -1999,6 +2067,7 @@ export type Translations = {
     historicSyncResult: string
     historicSyncProgress: string
     historicSyncCompleted: string
+    historicSyncInvalidResponse: string
     reprocessDaAssociareTitle: string
     reprocessDaAssociareDesc: string
     reprocessDaAssociareCta: string

@@ -63,7 +63,12 @@ const ALL_ACTIONS: DocumentAction[] = [
   { id: 'documento.finalizza_come_listino', label: 'Registra come listino', descrizione: 'Listino prezzi', icona: <List className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
   // ── Fornitore ──
   { id: 'documento.associa', label: 'Associa a fornitore', descrizione: 'Collega un fornitore esistente', icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore' },
-  { id: 'documento.aggiorna_categoria', label: 'Cambia categoria', descrizione: 'Modifica il tipo documento (AI impara dalla correzione)', icona: <Tag className="h-4 w-4" />, gruppo: 'fornitore' },
+  // Limited to documenti_da_processare: the underlying API (`/api/documenti-da-processare`)
+  // only works on rows in that table. For already-registered bolle/fatture the dedicated
+  // actions `bolla.converti_in_fattura` / `documento.finalizza_come_nota_credito` (handled
+  // via `/api/fatture/update-type`) are used instead, plus the inline tipo dropdown on the
+  // supplier ledger rows for finer corrections.
+  { id: 'documento.aggiorna_categoria', label: 'Cambia categoria', descrizione: 'Modifica il tipo documento (AI impara dalla correzione)', icona: <Tag className="h-4 w-4" />, gruppo: 'fornitore', origini: ['documento_da_processare'] },
   // ── Stato ──
   { id: 'documento.scarta', label: 'Scarta documento', descrizione: 'Rimuove dalla coda come scartato', icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['documento_da_processare'] },
   { id: 'documento.scarta_fattura', label: 'Scarta fattura', descrizione: 'Segna come scartata / non valida', icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['fattura'] },

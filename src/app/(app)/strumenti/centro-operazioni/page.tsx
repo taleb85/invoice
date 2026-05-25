@@ -201,9 +201,9 @@ export default function CentroOperazioniPage() {
         scopeSedeId: j.scopeSedeId ?? null,
       })
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : 'Errore di rete')
+      setLoadError(e instanceof Error ? e.message : t.common.networkError)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (canView) void load()
@@ -225,11 +225,11 @@ export default function CentroOperazioniPage() {
       }
       await load()
     } catch (e) {
-      setForceError(e instanceof Error ? e.message : 'Errore di rete')
+      setForceError(e instanceof Error ? e.message : t.common.networkError)
     } finally {
       setForceLoading(false)
     }
-  }, [load])
+  }, [load, t])
 
   const onHistoricEmailSync = useCallback(async () => {
     setHistoricSyncLoading(true)
@@ -262,7 +262,7 @@ export default function CentroOperazioniPage() {
           return
         }
         if (typeof j.done !== 'boolean') {
-          setHistoricSyncError('Risposta sync storica non valida')
+          setHistoricSyncError(s.historicSyncInvalidResponse)
           return
         }
         const r = typeof j.ricevuti === 'number' && Number.isFinite(j.ricevuti) ? j.ricevuti : 0
@@ -281,11 +281,11 @@ export default function CentroOperazioniPage() {
         `${s.historicSyncCompleted}\n${s.historicSyncResult.replace('{n}', String(cumulativeRicevuti))}`,
       )
     } catch (e) {
-      setHistoricSyncError(e instanceof Error ? e.message : 'Errore di rete')
+      setHistoricSyncError(e instanceof Error ? e.message : t.common.networkError)
     } finally {
       setHistoricSyncLoading(false)
     }
-  }, [effectiveSedeId, s.historicSyncCompleted, s.historicSyncProgress, s.historicSyncResult])
+  }, [effectiveSedeId, s.historicSyncCompleted, s.historicSyncInvalidResponse, s.historicSyncProgress, s.historicSyncResult, t])
 
   if (meLoading) {
     return (
