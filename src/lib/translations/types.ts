@@ -1972,6 +1972,31 @@ export type Translations = {
     errorSave: string
     errorNetwork: string
   }
+  quickScan: {
+    cameraError: string
+    galleryButton: string
+    closeButton: string
+    frameDocument: string
+    processingTitle: string
+    processingSubtitle: string
+    typeFattura: string
+    typeBolla: string
+    typeUnknown: string
+    autoRecognized: string
+    extractedData: string
+    chooseTypeHint: string
+    fieldFornitore: string
+    fieldImporto: string
+    fieldData: string
+    fieldNumero: string
+    fornitoreUnrecognized: string
+    retry: string
+    saveCta: string
+    savingState: string
+    ocrFailed: string
+    ocrError: string
+    fallbackUpload: string
+  }
   duplicateManager: {
     entityFatture: string
     entityBolle: string
@@ -2001,6 +2026,10 @@ export type Translations = {
     noDuplicatesFound: string
     /** "{n}" total groups, "{f}" fatture, "{b}" bolle, "{s}" fornitori. */
     summary: string
+    summaryGroupSingular: string
+    summaryGroupPlural: string
+    /** "{n}", "{f}", "{b}", "{s}", "{group}" placeholders for the resolved groupSingular/Plural label. */
+    summaryWithLabel: string
     rescan: string
     scanning: string
     closeBtn: string

@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useToast } from '@/lib/toast-context'
+import { useT } from '@/lib/use-t'
+import type { Translations } from '@/lib/translations'
 import type { AllDuplicatesReport, DuplicateGroup } from '@/lib/duplicate-detector'
 import { pickDiscardDuplicateItemIds, pickKeepDuplicateItemId } from '@/lib/duplicate-auto-select'
 import DocumentPreviewModal from './document-preview-modal'
@@ -20,8 +22,12 @@ type FetchState =
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function entityLabel(e: Entity): string {
-  return e === 'fatture' ? 'Fatture' : e === 'bolle' ? 'Bolle' : 'Fornitori'
+function entityLabel(e: Entity, t: Translations): string {
+  return e === 'fatture'
+    ? t.duplicateManager.entityFatture
+    : e === 'bolle'
+      ? t.duplicateManager.entityBolle
+      : t.duplicateManager.entityFornitori
 }
 
 function entityAccent(e: Entity): string {
@@ -40,12 +46,14 @@ function GroupSection({
   selected,
   onToggle,
   onPreview,
+  t,
 }: {
   group: DuplicateGroup
   entity: Entity
   selected: Set<string>
   onToggle: (id: string) => void
   onPreview: (id: string) => void
+  t: Translations
 }) {
   const [expanded, setExpanded] = useState(true)
 
@@ -64,17 +72,17 @@ function GroupSection({
       >
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold text-app-fg">{group.reason}</p>
-          <p className="mt-0.5 text-[11px] text-app-fg-muted">{group.items.length} elementi</p>
+          <p className="mt-0.5 text-[11px] text-app-fg-muted">{t.duplicateManager.itemsCount.replace('{n}', String(group.items.length))}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {someSelectedInGroup && !allSelectedInGroup && (
             <span className="rounded-md bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
-              {group.items.filter((i) => selected.has(i.id)).length} da eliminare
+              {group.items.filter((i) => selected.has(i.id)).length} {t.duplicateManager.toDelete}
             </span>
           )}
           {allSelectedInGroup && (
             <span className="rounded-md bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
-              tutti selezionati
+              {t.duplicateManager.allSelected}
             </span>
           )}
           <svg
@@ -109,7 +117,7 @@ function GroupSection({
                     </span>
                     {suggestedKeepId === item.id ? (
                       <span className="ml-2 inline-flex align-middle rounded border border-emerald-500/35 bg-emerald-500/10 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-emerald-200/95">
-                        Consigliato da tenere
+                        {t.duplicateManager.suggestedToKeep}
                       </span>
                     ) : null}
                   </span>
@@ -118,13 +126,13 @@ function GroupSection({
                   type="button"
                   onClick={() => onPreview(item.id)}
                   className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-sky-400/25 bg-sky-400/[0.08] px-2.5 py-[3px] text-[11px] font-semibold text-sky-400 transition-colors hover:bg-sky-400/[0.14]"
-                  aria-label={`Visualizza documento ${item.id.slice(0, 8)}`}
+                  aria-label={t.duplicateManager.viewDocumentAria.replace('{n}', item.id.slice(0, 8))}
                 >
                   <svg className={`h-3 w-3 shrink-0 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  Visualizza
+                  {t.duplicateManager.viewButton}
                 </button>
               </li>
             )
@@ -146,6 +154,7 @@ function EntityPanel({
   onSelectMostRecent,
   onDeselectAll,
   onPreview,
+  t,
 }: {
   entity: Entity
   groups: DuplicateGroup[]
@@ -155,6 +164,7 @@ function EntityPanel({
   onSelectMostRecent: (entity: Entity) => void
   onDeselectAll: (entity: Entity) => void
   onPreview: (id: string, entity: Entity) => void
+  t: Translations
 }) {
   const [open, setOpen] = useState(true)
   const accentCls = entityAccent(entity)
@@ -171,13 +181,15 @@ function EntityPanel({
         className="flex w-full touch-manipulation items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/4"
         aria-expanded={open}
       >
-        <span className={`text-sm font-bold ${accentCls}`}>{entityLabel(entity)}</span>
+        <span className={`text-sm font-bold ${accentCls}`}>{entityLabel(entity, t)}</span>
         <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-app-fg-muted">
-          {groups.length} gruppi · {totalItems} elementi
+          {t.duplicateManager.groupsAndItems
+            .replace('{n}', String(groups.length))
+            .replace('{m}', String(totalItems))}
         </span>
         {selectedCount > 0 && (
           <span className="ml-auto rounded-md bg-red-500/20 px-2 py-0.5 text-[11px] font-bold text-red-300">
-            {selectedCount} da eliminare
+            {selectedCount} {t.duplicateManager.toDelete}
           </span>
         )}
         <svg
@@ -202,18 +214,18 @@ function EntityPanel({
               <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              Suggerimento automatico
+              {t.duplicateManager.smartSuggest}
             </button>
             <button
               type="button"
               onClick={() => onSelectMostRecent(entity)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-30 app-workspace-inset-bg-soft px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-line-45 hover:text-app-fg"
-              title="Mantiene la riga con data documento più recente; ignora bolla, allegati e aggiornamenti."
+              title={t.duplicateManager.keepMostRecentTitle}
             >
               <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Solo data documento più recente
+              {t.duplicateManager.keepMostRecent}
             </button>
             {selectedCount > 0 && (
               <button
@@ -221,7 +233,7 @@ function EntityPanel({
                 onClick={() => onDeselectAll(entity)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-30 app-workspace-inset-bg-soft px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-line-45 hover:text-app-fg"
               >
-                Deseleziona tutti
+                {t.duplicateManager.deselectAll}
               </button>
             )}
           </div>
@@ -234,6 +246,7 @@ function EntityPanel({
                 selected={selected}
                 onToggle={onToggle}
                 onPreview={(id) => onPreview(id, entity)}
+                t={t}
               />
             ))}
           </div>
@@ -250,11 +263,13 @@ function ConfirmModal({
   onConfirm,
   onCancel,
   deleting,
+  t,
 }: {
   count: number
   onConfirm: () => void
   onCancel: () => void
   deleting: boolean
+  t: Translations
 }) {
   const titleId = useId()
 
@@ -279,10 +294,14 @@ function ConfirmModal({
           </svg>
         </div>
         <h2 id={titleId} className="mb-2 text-base font-bold text-app-fg">
-          Conferma eliminazione
+          {t.duplicateManager.confirmTitle}
         </h2>
         <p className="mb-6 text-sm leading-relaxed text-app-fg-muted">
-          Stai per eliminare <span className="font-semibold text-red-300">{count} {count === 1 ? 'elemento duplicato' : 'elementi duplicati'}</span>. Questa azione è irreversibile.
+          {(count === 1
+            ? t.duplicateManager.confirmMessageOne
+            : t.duplicateManager.confirmMessageMany
+          ).replace('{n}', String(count))}{' '}
+          {t.duplicateManager.deleteIrreversible}
         </p>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
@@ -291,7 +310,7 @@ function ConfirmModal({
             disabled={deleting}
             className="inline-flex w-full items-center justify-center rounded-xl border border-app-line-30 app-workspace-inset-bg-soft px-4 py-2.5 text-sm font-semibold text-app-fg-muted transition-colors hover:border-app-line-45 hover:text-app-fg disabled:opacity-50 sm:w-auto"
           >
-            Annulla
+            {t.duplicateManager.cancelBtn}
           </button>
           <button
             type="button"
@@ -305,7 +324,7 @@ function ConfirmModal({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
             )}
-            Elimina definitivamente
+            {t.duplicateManager.deletePermanently}
           </button>
         </div>
       </div>
@@ -324,6 +343,7 @@ type Props = {
 }
 
 export default function DuplicateManager({ open, onOpenChange, onDeleted }: Props) {
+  const t = useT()
   const { showToast } = useToast()
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -368,13 +388,13 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
       const res = await fetch('/api/duplicates/detect', { cache: 'no-store' })
       const json = (await res.json()) as { ok?: boolean; report?: AllDuplicatesReport; error?: string }
       if (!res.ok || !json.ok || !json.report) {
-        throw new Error(json.error ?? 'Errore durante la scansione')
+        throw new Error(json.error ?? t.duplicateManager.scanError)
       }
       setFetchState({ status: 'done', report: json.report })
     } catch (err) {
-      setFetchState({ status: 'error', message: err instanceof Error ? err.message : 'Errore sconosciuto' })
+      setFetchState({ status: 'error', message: err instanceof Error ? err.message : t.common.unknownError })
     }
-  }, [])
+  }, [t])
 
   // Auto-scan when opened for the first time
   useEffect(() => {
@@ -407,9 +427,9 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
         }
         return next
       })
-      showToast(`Suggerimento applicato per ${entityLabel(entity)}: rivedi le selezioni prima di eliminare.`, 'success')
+      showToast(t.duplicateManager.smartSuggestApplied.replace('{name}', entityLabel(entity, t)), 'success')
     },
-    [fetchState, showToast],
+    [fetchState, showToast, t],
   )
 
   const handleSelectMostRecent = useCallback(
@@ -463,21 +483,21 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
       for (const group of report[entity].groups) {
         const remaining = group.items.filter((i) => !selected.has(i.id))
         if (remaining.length === 0) {
-          invalid.push(`${entityLabel(entity)}: "${group.reason}"`)
+          invalid.push(`${entityLabel(entity, t)}: "${group.reason}"`)
         }
       }
     }
     return invalid
-  }, [fetchState, selected])
+  }, [fetchState, selected, t])
 
   const handleDeleteClick = useCallback(() => {
     const invalid = getInvalidGroups()
     if (invalid.length > 0) {
-      showToast(`Devi mantenere almeno 1 elemento per gruppo: ${invalid.slice(0, 2).join(', ')}`, 'error')
+      showToast(t.duplicateManager.keepAtLeastOne.replace('{groups}', invalid.slice(0, 2).join(', ')), 'error')
       return
     }
     setShowConfirm(true)
-  }, [getInvalidGroups, showToast])
+  }, [getInvalidGroups, showToast, t])
 
   const handleConfirmDelete = useCallback(async () => {
     if (fetchState.status !== 'done') return
@@ -504,13 +524,18 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
         })
         const json = (await res.json()) as { ok?: boolean; deleted?: number; error?: string }
         if (!res.ok || !json.ok) {
-          showToast(`Errore eliminazione ${entity}: ${json.error ?? 'Errore'}`, 'error')
+          showToast(
+            t.duplicateManager.deleteEntityError
+              .replace('{entity}', entityLabel(entity, t))
+              .replace('{error}', json.error ?? t.common.error),
+            'error',
+          )
           hasError = true
         } else {
           totalDeleted += json.deleted ?? 0
         }
       } catch {
-        showToast(`Errore di rete durante eliminazione ${entity}`, 'error')
+        showToast(t.duplicateManager.deleteEntityNetworkError.replace('{entity}', entityLabel(entity, t)), 'error')
         hasError = true
       }
     }
@@ -519,12 +544,18 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
     setShowConfirm(false)
 
     if (!hasError) {
-      showToast(`${totalDeleted} ${totalDeleted === 1 ? 'elemento eliminato' : 'elementi eliminati'} con successo`, 'success')
+      showToast(
+        (totalDeleted === 1
+          ? t.duplicateManager.deleteSuccessOne
+          : t.duplicateManager.deleteSuccessMany
+        ).replace('{n}', String(totalDeleted)),
+        'success',
+      )
       setSelected(new Set())
       onDeleted?.()
       await runScan()
     }
-  }, [fetchState, selected, showToast, onDeleted, runScan])
+  }, [fetchState, selected, showToast, onDeleted, runScan, t])
 
   if (!mounted || !open) return null
 
@@ -541,6 +572,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
           onConfirm={() => void handleConfirmDelete()}
           onCancel={() => setShowConfirm(false)}
           deleting={deleting}
+          t={t}
         />
       )}
       <DocumentPreviewModal
@@ -569,13 +601,23 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5 sm:px-5">
             <div className="min-w-0">
               <h2 id={titleId} className="text-base font-bold text-app-fg sm:text-lg">
-                Gestione Duplicati
+                {t.duplicateManager.title}
               </h2>
               {report && (
                 <p className="mt-0.5 text-xs text-app-fg-muted">
                   {totalGroups === 0
-                    ? 'Nessun duplicato trovato'
-                    : `${totalGroups} ${totalGroups === 1 ? 'gruppo trovato' : 'gruppi trovati'} — ${report.fatture.total} fatture, ${report.bolle.total} bolle, ${report.fornitori.total} fornitori`}
+                    ? t.duplicateManager.noDuplicatesFound
+                    : t.duplicateManager.summaryWithLabel
+                        .replace('{n}', String(totalGroups))
+                        .replace(
+                          '{group}',
+                          totalGroups === 1
+                            ? t.duplicateManager.summaryGroupSingular
+                            : t.duplicateManager.summaryGroupPlural,
+                        )
+                        .replace('{f}', String(report.fatture.total))
+                        .replace('{b}', String(report.bolle.total))
+                        .replace('{s}', String(report.fornitori.total))}
                 </p>
               )}
             </div>
@@ -589,14 +631,14 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                 <svg className={`h-3 w-3 ${icon.duplicateAlert} ${fetchState.status === 'loading' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                {fetchState.status === 'loading' ? 'Scansione…' : 'Riscan'}
+                {fetchState.status === 'loading' ? t.duplicateManager.scanning : t.duplicateManager.rescan}
               </button>
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
                 className="rounded-lg border border-app-line-30 app-workspace-inset-bg-soft px-2.5 py-1 text-[11px] font-semibold text-app-fg-muted transition-colors hover:border-app-line-45 hover:text-app-fg"
               >
-                Chiudi
+                {t.duplicateManager.closeBtn}
               </button>
             </div>
           </div>
@@ -610,14 +652,14 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
                 <p className="text-sm text-app-fg-muted">
-                  Controllo duplicati in corso (metadati e allegati su Storage)… può richiedere alcuni secondi.
+                  {t.duplicateManager.scanInProgress}
                 </p>
               </div>
             )}
 
             {fetchState.status === 'error' && (
               <div className="rounded-xl border border-red-500/25 bg-red-950/30 px-4 py-4 text-sm text-red-300">
-                <p className="font-semibold">Errore durante la scansione</p>
+                <p className="font-semibold">{t.duplicateManager.scanError}</p>
                 <p className="mt-1 text-red-300/80">{fetchState.message}</p>
               </div>
             )}
@@ -629,8 +671,8 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-sm font-semibold text-app-fg">Nessun duplicato trovato</p>
-                <p className="text-xs text-app-fg-muted">Tutti i dati sembrano univoci.</p>
+                <p className="text-sm font-semibold text-app-fg">{t.duplicateManager.noDuplicatesFound}</p>
+                <p className="text-xs text-app-fg-muted">{t.duplicateManager.allDataUnique}</p>
               </div>
             )}
 
@@ -647,6 +689,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                     onSelectMostRecent={handleSelectMostRecent}
                     onDeselectAll={handleDeselectAll}
                     onPreview={handlePreview}
+                    t={t}
                   />
                 ))}
               </div>
@@ -658,8 +701,11 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
             <div className="app-duplicate-manager-footer relative z-[2] flex shrink-0 items-center justify-between gap-3 border-t border-red-500/25 bg-[rgb(10_17_34/0.97)] px-4 py-3 backdrop-blur-md shadow-[0_-12px_40px_-4px_rgb(0,0,0,0.55)] sm:px-5 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
               <p className="text-xs text-app-fg-muted">
                 {selected.size === 0
-                  ? 'Seleziona gli elementi da eliminare'
-                  : `${selected.size} ${selected.size === 1 ? 'elemento selezionato' : 'elementi selezionati'}`}
+                  ? t.duplicateManager.selectItemsToDelete
+                  : (selected.size === 1
+                      ? t.duplicateManager.itemSelectedOne
+                      : t.duplicateManager.itemSelectedMany
+                    ).replace('{n}', String(selected.size))}
               </p>
               <button
                 type="button"
@@ -670,7 +716,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                 <svg className={`h-4 w-4 shrink-0 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                Elimina selezionati ({selected.size})
+                {t.duplicateManager.deleteSelectedCta.replace('{n}', String(selected.size))}
               </button>
             </div>
           )}
