@@ -215,6 +215,7 @@ function SollecitiSettingsLinkCard() {
 
 function NotificationSettings() {
   const { supported, subscribed, loading, subscribe, unsubscribe } = usePushNotifications()
+  const { t } = useLocale()
 
   if (!supported) return null
 
@@ -229,17 +230,17 @@ function NotificationSettings() {
             </svg>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Notifiche</p>
-            <p className="mt-0.5 text-sm font-semibold text-app-fg">Notifiche push</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.appNotifications.sectionLabel}</p>
+            <p className="mt-0.5 text-sm font-semibold text-app-fg">{t.appNotifications.cardTitle}</p>
             <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-              Ricevi avvisi per nuovi documenti e anomalie prezzi
+              {t.appNotifications.cardDesc}
             </p>
           </div>
         </div>
         <button
           onClick={subscribed ? unsubscribe : subscribe}
           disabled={loading}
-          aria-label={subscribed ? 'Disattiva notifiche push' : 'Attiva notifiche push'}
+          aria-label={subscribed ? t.appNotifications.ariaDisable : t.appNotifications.ariaEnable}
           className={`relative ml-1 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${subscribed ? 'bg-[#22d3ee]' : 'bg-app-line-30'}`}
         >
           <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${subscribed ? 'translate-x-5' : 'translate-x-0.5'}`} />

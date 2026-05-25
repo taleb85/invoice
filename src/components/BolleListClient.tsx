@@ -12,7 +12,7 @@ import DeleteButton from '@/components/DeleteButton'
 import { StandardBadge } from '@/components/ui/StandardBadge'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
-import { tipoDocumentoToLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
+import { tipoDocumentoToLabelStrict, extractDocTypeLabel } from '@/lib/extract-doc-type'
 import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
@@ -97,7 +97,10 @@ export default function BolleListClient({
       for (const row of docs) {
         const fu = row.file_url?.trim()
         if (!fu) continue
-        const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
+        // Strict variant: always surface the OCR-detected type (including
+        // 'fattura' / 'bolla_ddt') so the user can spot rows landed in the
+        // wrong tab (e.g. an Invoice mistakenly saved under Bolle).
+        const label = tipoDocumentoToLabelStrict((row.metadata as Record<string, unknown> | null)?.tipo_documento)
         if (label) map[fu] = label
       }
       if (Object.keys(map).length) setTipoDocByFileUrl((prev) => ({ ...prev, ...map }))

@@ -116,12 +116,12 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
             <div className="mt-1 flex flex-wrap items-center gap-3">
               <span className="text-sm text-app-fg-muted">
                 {sede.operators_count}{' '}
-                {sede.operators_count === 1 ? 'operatore' : 'operatori'}
+                {sede.operators_count === 1 ? tDashboard.sediBranches.operatorSingular : tDashboard.sediBranches.operatorPlural}
               </span>
               <span className="text-app-fg-muted">·</span>
               <span className="text-sm text-app-fg-muted">
                 {sede.fornitori_count}{' '}
-                {sede.fornitori_count === 1 ? 'fornitore' : 'fornitori'}
+                {sede.fornitori_count === 1 ? tDashboard.sediBranches.supplierSingular : tDashboard.sediBranches.supplierPlural}
               </span>
               <span className="text-app-fg-muted">·</span>
               {imapConfigured ? (
@@ -129,11 +129,11 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
                   <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Email configurata ({sede.imap_user})
+                  {tDashboard.sediBranches.emailConfigured.replace('{email}', sede.imap_user ?? '')}
                 </span>
               ) : (
                 <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
-                  Email non configurata
+                  {tDashboard.sediBranches.emailNotConfigured}
                 </span>
               )}
             </div>

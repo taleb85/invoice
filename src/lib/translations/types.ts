@@ -1359,6 +1359,7 @@ export type Translations = {
     backup: string
     consumiAi: string
     strumenti: string
+    learning: string
   }
   sedi: {
     title: string
@@ -1845,6 +1846,103 @@ export type Translations = {
     historicCompletedTitle: string
     historicCompletedDocs: string
     networkError: string
+  }
+  apprendimento: {
+    statPatterns: string
+    statConfirmations: string
+    statAvgConfidence: string
+    statAutoExecutable: string
+    sectionTopActions: string
+    emptyTopActions: string
+    sectionRecentActivity: string
+    emptyRecentActivity: string
+    activityExecuted: string
+    activityConfirmed: string
+    activityRejected: string
+    sectionLearningStatus: string
+    progressConfirmsOverSuggestions: string
+    progressPatternsAutoExec: string
+    progressPatternsConfirmed3: string
+    errorLoadStats: string
+    retry: string
+    actionDocumentoScarta: string
+    actionDocumentoAssocia: string
+    actionDocumentoFattura: string
+    actionDocumentoBolla: string
+    actionDocumentoNotaCredito: string
+    actionDocumentoStatement: string
+    actionDocumentoOrdine: string
+    actionDocumentoComunicazione: string
+    actionDocumentoRianalizzaOcr: string
+    actionDocumentoIgnoraMittente: string
+    actionDocumentoApri: string
+    actionDocumentoAggiornaCategoria: string
+    actionFatturaApprova: string
+    actionFatturaRifiuta: string
+    actionFatturaResetta: string
+    actionStatementOk: string
+    actionStatementAssegna: string
+    actionStatementRicalcola: string
+  }
+  centroOpDashboard: {
+    cardAutoMonitoringTitle: string
+    cardAutoMonitoringDesc: string
+    lastCleanupQueue: string
+    lastCycleLog: string
+    processedWord: string
+    scannedWord: string
+    autoUnlockedToday: string
+    sedeScopeLabel: string
+    sedeScopeAllAdmin: string
+    loading: string
+    cardLastCleanupErrorsTitle: string
+    cardLastCleanupErrorsEmpty: string
+    forceCleanupRunning: string
+    forceCleanup: string
+    footerNoteUseCC: string
+    footerNoteUseEmailSync: string
+    footerAnalisiCompleta: string
+    timeLessThanMinute: string
+    timeOneMinute: string
+    timeMinutes: string
+    timeAboutOneHour: string
+    timeAboutHours: string
+    timeAboutDays: string
+  }
+  sediBranches: {
+    operatorSingular: string
+    operatorPlural: string
+    supplierSingular: string
+    supplierPlural: string
+    emailConfigured: string
+    emailNotConfigured: string
+  }
+  appNotifications: {
+    sectionLabel: string
+    cardTitle: string
+    cardDesc: string
+    ariaDisable: string
+    ariaEnable: string
+  }
+  ocrIgnoreNames: {
+    sectionLabel: string
+    cardTitle: string
+    cardDesc: string
+    emptyHint: string
+    removeBtn: string
+    addPlaceholder: string
+    addBtn: string
+    saving: string
+    save: string
+    saved: string
+    ariaClose: string
+    ariaOpen: string
+    drawerEmpty: string
+    drawerOneItem: string
+    drawerNItems: string
+    drawerClickToOpen: string
+    errorSave: string
+    errorNetwork: string
   }
   strumentiAnalisiPrezzi: {
     pageTitle: string

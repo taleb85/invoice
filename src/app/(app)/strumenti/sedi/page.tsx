@@ -137,8 +137,8 @@ function SedeCard({
           <p className="truncate text-sm font-semibold text-app-fg group-hover:text-cyan-300">{sede.nome}</p>
           <p className="text-xs text-app-fg-muted">
             {sede.operatori_count}{' '}
-            {sede.operatori_count === 1 ? 'operatore' : 'operatori'} · {sede.fornitori_count}{' '}
-            {sede.fornitori_count === 1 ? 'fornitore' : 'fornitori'}
+            {sede.operatori_count === 1 ? t.sediBranches.operatorSingular : t.sediBranches.operatorPlural} · {sede.fornitori_count}{' '}
+            {sede.fornitori_count === 1 ? t.sediBranches.supplierSingular : t.sediBranches.supplierPlural}
           </p>
         </div>
         <svg

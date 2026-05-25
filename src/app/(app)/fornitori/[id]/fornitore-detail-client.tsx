@@ -65,7 +65,7 @@ import {
 } from '@/lib/fiscal-year'
 import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
-import { extractDocTypeLabel, tipoDocumentoToLabel } from '@/lib/extract-doc-type'
+import { extractDocTypeLabel, tipoDocumentoToLabel, tipoDocumentoToLabelStrict } from '@/lib/extract-doc-type'
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
@@ -2030,7 +2030,10 @@ function BolleTab({
             }
             if (!tipoMap[fu]) {
               const rawTipo = (row.metadata as Record<string, unknown> | null)?.tipo_documento
-              const label = tipoDocumentoToLabel(rawTipo)
+              // Strict variant: always surface the OCR-detected type (including
+              // 'fattura' / 'bolla_ddt') so the user can spot rows landed in
+              // the wrong tab (e.g. an Invoice mistakenly saved under Bolle).
+              const label = tipoDocumentoToLabelStrict(rawTipo)
               if (label) tipoMap[fu] = label
             }
           }

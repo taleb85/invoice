@@ -23,6 +23,32 @@ export function tipoDocumentoToLabel(rawTipo: unknown): string | null {
 }
 
 /**
+ * Strict variant of {@link tipoDocumentoToLabel}: returns a human-readable label for
+ * every recognised OCR `tipo_documento`, including the default categories
+ * (`fattura`, `bolla_ddt`). Returns null only when the OCR has no usable
+ * classification at all.
+ *
+ * Use this where the goal is to make the user understand *which* document type
+ * the OCR actually detected (e.g. on the Bolle list, to flag an invoice
+ * mistakenly saved under delivery notes). Use {@link tipoDocumentoToLabel}
+ * when you want to skip labelling rows whose type matches the surrounding
+ * context (e.g. labelling a `fattura` as "Invoice" inside the Fatture tab is
+ * redundant).
+ */
+export function tipoDocumentoToLabelStrict(rawTipo: unknown): string | null {
+  const t = normalizeTipoDocumento(rawTipo)
+  switch (t) {
+    case 'fattura': return 'Invoice'
+    case 'nota_credito': return 'Credit Note'
+    case 'bolla_ddt': return 'Delivery Note'
+    case 'ordine': return 'Order Confirmation'
+    case 'estratto_conto': return 'Statement'
+    case 'comunicazione': return null
+    default: return null
+  }
+}
+
+/**
  * Extracts a human-readable document-type label from a free-text string
  * (title, filename, reference number, storage URL path, etc.).
  * Matches common keywords in English, Italian, French, German and Spanish.

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
+import type { Translations } from '@/lib/translations'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { canAccessCentroOperazioniPage } from '@/lib/effective-operator-ui'
@@ -35,19 +36,20 @@ type DashboardPayload = {
   scopeSedeId: string | null
 }
 
-function formatAgo(iso: string | null): string {
+function formatAgo(iso: string | null, t: Translations): string {
   if (!iso) return '—'
-  const t = new Date(iso).getTime()
-  if (Number.isNaN(t)) return '—'
-  const m = Math.max(0, Math.floor((Date.now() - t) / 60000))
-  if (m < 1) return 'meno di 1 minuto fa'
-  if (m === 1) return '1 minuto fa'
-  if (m < 60) return `${m} minuti fa`
+  const ts = new Date(iso).getTime()
+  if (Number.isNaN(ts)) return '—'
+  const m = Math.max(0, Math.floor((Date.now() - ts) / 60000))
+  const cd = t.centroOpDashboard
+  if (m < 1) return cd.timeLessThanMinute
+  if (m === 1) return cd.timeOneMinute
+  if (m < 60) return cd.timeMinutes.replace('{n}', String(m))
   const h = Math.floor(m / 60)
-  if (h === 1) return 'circa 1 ora fa'
-  if (h < 48) return `circa ${h} ore fa`
+  if (h === 1) return cd.timeAboutOneHour
+  if (h < 48) return cd.timeAboutHours.replace('{n}', String(h))
   const d = Math.floor(h / 24)
-  return `circa ${d} giorni fa`
+  return cd.timeAboutDays.replace('{n}', String(d))
 }
 
 function CentroOperazioniDashboard(props: {
@@ -57,47 +59,49 @@ function CentroOperazioniDashboard(props: {
   loadError: string | null
   forceError: string | null
   centroControlloLabel: string
+  t: Translations
 }) {
-  const { data, loadError, forceLoading, onForce, forceError, centroControlloLabel } = props
+  const { data, loadError, forceLoading, onForce, forceError, centroControlloLabel, t } = props
+  const cd = t.centroOpDashboard
   return (
     <div className="space-y-4">
       <div className="app-card overflow-hidden p-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Monitoraggio automatico</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{cd.cardAutoMonitoringTitle}</p>
         <p className="mt-1 text-sm text-app-fg-muted">
-          Le operazioni su documenti e coda email sono eseguite in background; qui vedi solo lo stato.
+          {cd.cardAutoMonitoringDesc}
         </p>
         {loadError ? (
           <p className="mt-3 text-sm text-rose-300">{loadError}</p>
         ) : data ? (
           <ul className="mt-4 space-y-2 text-sm text-app-fg">
             <li>
-              <span className="text-app-fg-muted">Ultimo cleanup coda revisione: </span>
-              <span className="font-semibold">{formatAgo(data.lastCleanupAt)}</span>
+              <span className="text-app-fg-muted">{cd.lastCleanupQueue}</span>
+              <span className="font-semibold">{formatAgo(data.lastCleanupAt, t)}</span>
               {data.lastCleanupAt ? (
                 <span className="text-app-fg-muted"> ({new Date(data.lastCleanupAt).toLocaleString()})</span>
               ) : null}
             </li>
             <li>
-              <span className="text-app-fg-muted">Ultimo ciclo (record log): </span>
-              processati{' '}
-              <span className="font-semibold">{data.lastCleanupProcessed ?? '—'}</span>, esaminati{' '}
+              <span className="text-app-fg-muted">{cd.lastCycleLog}</span>
+              {cd.processedWord}{' '}
+              <span className="font-semibold">{data.lastCleanupProcessed ?? '—'}</span>, {cd.scannedWord}{' '}
               <span className="font-semibold">{data.lastCleanupScanned ?? '—'}</span>
             </li>
             <li>
-              <span className="text-app-fg-muted">Documenti sbloccati automaticamente oggi (cleanup): </span>
+              <span className="text-app-fg-muted">{cd.autoUnlockedToday}</span>
               <span className="font-semibold">{data.documentsAutoProcessedToday}</span>
             </li>
             <li className="text-app-fg-muted text-xs">
-              Ambito sede: {data.scopeSedeId ? <span className="text-app-fg font-mono">{data.scopeSedeId}</span> : 'tutte (admin master)'}
+              {cd.sedeScopeLabel}{data.scopeSedeId ? <span className="text-app-fg font-mono">{data.scopeSedeId}</span> : cd.sedeScopeAllAdmin}
             </li>
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-app-fg-muted">Caricamento…</p>
+          <p className="mt-3 text-sm text-app-fg-muted">{cd.loading}</p>
         )}
       </div>
 
       <div className="app-card overflow-hidden p-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Errori ultimo cleanup</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{cd.cardLastCleanupErrorsTitle}</p>
         {data?.lastCycleErrors?.length ? (
           <ul className="mt-3 max-h-40 list-disc space-y-1 overflow-auto pl-5 text-xs text-rose-200/95">
             {data.lastCycleErrors.map((e, i) => (
@@ -105,7 +109,7 @@ function CentroOperazioniDashboard(props: {
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-sm text-emerald-200/90">Nessun errore registrato nell’ultimo ciclo registrato.</p>
+          <p className="mt-2 text-sm text-emerald-200/90">{cd.cardLastCleanupErrorsEmpty}</p>
         )}
       </div>
 
@@ -119,23 +123,21 @@ function CentroOperazioniDashboard(props: {
           {forceLoading ? (
             <>
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-100 border-t-transparent" />
-              Esecuzione…
+              {cd.forceCleanupRunning}
             </>
           ) : (
-            'Forza riesecuzione cleanup ora'
+            cd.forceCleanup
           )}
         </button>
         {forceError ? <span className="text-xs text-rose-300">{forceError}</span> : null}
       </div>
 
       <p className="rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-app-fg-muted">
-        Per la coda unificata documenti e lo stato in tempo reale usa{' '}
+        {cd.footerNoteUseCC}{' '}
         <Link href="/strumenti/centro-controllo" className="font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200">
           {centroControlloLabel}
         </Link>
-        . Per la posta in arrivo e la coda «Documenti da elaborare» usa la sincronizzazione email dalle sedi o dalla scheda
-        fornitore. Per un controllo completo su un fornitore usa <strong className="text-app-fg">Analisi completa</strong>{' '}
-        nella scheda fornitore.
+        . {cd.footerNoteUseEmailSync} <strong className="text-app-fg">{cd.footerAnalisiCompleta}</strong>.
       </p>
     </div>
   )
@@ -461,6 +463,7 @@ export default function CentroOperazioniPage() {
               forceError={forceError}
               onForce={onForce}
               centroControlloLabel={t.strumentiCentroControllo.pageTitle}
+              t={t}
             />
           </div>
         </section>

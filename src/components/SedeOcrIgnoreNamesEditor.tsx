@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useState } from 'react'
+import { useT } from '@/lib/use-t'
 
 type Props = {
   sedeId: string
@@ -12,6 +13,7 @@ type Props = {
 }
 
 export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit, embedded = false }: Props) {
+  const t = useT()
   const drawerIds = useId()
   const drawerToggleId = `sede-ocr-ignore-toggle-${drawerIds}`
   const drawerRegionId = `sede-ocr-ignore-region-${drawerIds}`
@@ -53,13 +55,13 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
       })
       const d = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        setError(typeof d.error === 'string' ? d.error : 'Errore salvataggio')
+        setError(typeof d.error === 'string' ? d.error : t.ocrIgnoreNames.errorSave)
         return
       }
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch {
-      setError('Errore di rete')
+      setError(t.ocrIgnoreNames.errorNetwork)
     } finally {
       setSaving(false)
     }
@@ -80,10 +82,10 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
 
   const headerTexts = (
     <>
-      <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">OCR</p>
-      <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg">Nomi azienda da ignorare nell&apos;OCR</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.ocrIgnoreNames.sectionLabel}</p>
+      <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg">{t.ocrIgnoreNames.cardTitle}</p>
       <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-        Destinatari/clienti della sede: non usarli come fornitore su fatture e DDT. Elenco salvato nella sede.
+        {t.ocrIgnoreNames.cardDesc}
       </p>
     </>
   )
@@ -100,7 +102,7 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
       <ul className="flex flex-col gap-2 sm:gap-2">
         {names.length === 0 ? (
           <li className="rounded-lg border border-dashed border-app-line-35 bg-black/10 px-3 py-3 text-sm text-app-fg-muted">
-            Nessun nome — aggiungi almeno il nome del locale o della società.
+            {t.ocrIgnoreNames.emptyHint}
           </li>
         ) : (
           names.map((n, i) => (
@@ -114,7 +116,7 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
                 onClick={() => removeAt(i)}
                 className="shrink-0 rounded-md px-2.5 py-1 text-xs font-medium text-rose-300 hover:bg-rose-500/15"
               >
-                Rimuovi
+                {t.ocrIgnoreNames.removeBtn}
               </button>
             </li>
           ))
@@ -132,7 +134,7 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
               add()
             }
           }}
-          placeholder="Aggiungi nome (es. nuovo locale)"
+          placeholder={t.ocrIgnoreNames.addPlaceholder}
           className="min-w-0 flex-1 rounded-lg border border-app-line-25 bg-[#0b1222] px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-30"
         />
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -141,7 +143,7 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
             onClick={add}
             className="rounded-lg border border-app-line-25 bg-app-line-08 px-4 py-2 text-sm font-medium text-app-fg hover:bg-app-line-15"
           >
-            Aggiungi
+            {t.ocrIgnoreNames.addBtn}
           </button>
           <button
             type="button"
@@ -149,13 +151,13 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
             disabled={saving}
             className="rounded-lg bg-app-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-app-cyan-500 disabled:opacity-50"
           >
-            {saving ? 'Salvataggio…' : 'Salva'}
+            {saving ? t.ocrIgnoreNames.saving : t.ocrIgnoreNames.save}
           </button>
         </div>
       </div>
 
       {error ? <p className="text-sm text-rose-400">{error}</p> : null}
-      {saved ? <p className="text-sm text-emerald-400">Salvato.</p> : null}
+      {saved ? <p className="text-sm text-emerald-400">{t.ocrIgnoreNames.saved}</p> : null}
     </>
   )
 
@@ -169,7 +171,7 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
   }
 
   const headerToggleLabel =
-    drawerOpen ? 'Chiudi gestione elenco nomi OCR' : 'Apri gestione elenco nomi OCR'
+    drawerOpen ? t.ocrIgnoreNames.ariaClose : t.ocrIgnoreNames.ariaOpen
 
   return (
     <div className="min-h-0 min-w-0 overflow-hidden app-card">
@@ -188,9 +190,11 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
             {headerTexts}
             <p className="mt-1.5 text-xs text-app-fg-muted">
               {names.length === 0
-                ? 'Nessuna voce in elenco.'
-                : `${names.length} ${names.length === 1 ? 'voce nell’elenco.' : 'voci nell’elenco.'}`}
-              {!drawerOpen ? <> Clicca per aprire e modificare.</> : null}
+                ? t.ocrIgnoreNames.drawerEmpty
+                : names.length === 1
+                  ? t.ocrIgnoreNames.drawerOneItem
+                  : t.ocrIgnoreNames.drawerNItems.replace('{n}', String(names.length))}
+              {!drawerOpen ? <>{t.ocrIgnoreNames.drawerClickToOpen}</> : null}
             </p>
           </div>
           <svg
