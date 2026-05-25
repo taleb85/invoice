@@ -1701,6 +1701,12 @@ export type Translations = {
     alsoFatturaOcrReading: string
     alsoFatturaOcrPrefilled: string
     alsoFatturaOcrFailed: string
+    alsoFatturaOcrSourceOcr: string
+    alsoFatturaOcrSourceOcrTitle: string
+    alsoFatturaOcrSourceAccountNo: string
+    alsoFatturaOcrSourceAccountNoTitle: string
+    alsoFatturaOcrSourceRowsSum: string
+    alsoFatturaOcrSourceRowsSumTitle: string
     aiPipelineResolveBtn: string
     aiPipelineCanAnalyze: string
     aiPipelineAnomaliesDetected_one: string

@@ -3602,11 +3602,22 @@ export function VerificationStatusTab({
     phase: 'idle' | 'reading' | 'ok' | 'fail'
     /** Quale dei due campi è stato pre-compilato dall'OCR (per badge di verifica) */
     filled: { numero: boolean; importo: boolean }
+    /** Origine del valore pre-compilato per ciascun campo: aiuta l'utente a capire l'affidabilità */
+    sources: {
+      numero: 'ocr' | 'statement_header' | null
+      importo: 'ocr' | 'statement_rows_sum' | null
+    }
     /** Statement id processato: evita refetch sugli stessi dati quando la modale viene riaperta */
     sourceStmtId: string | null
     /** Messaggio errore opzionale (solo per log; UI mostra hint generico) */
     error: string | null
-  }>({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
+  }>({
+    phase: 'idle',
+    filled: { numero: false, importo: false },
+    sources: { numero: null, importo: null },
+    sourceStmtId: null,
+    error: null,
+  })
 
   // ── Pipeline AI per fornitore (state only; handler declared after selectedStmt) ──
   type FornitoreAIPipelinePhase = 'idle' | 'analisi' | 'ricerca' | 'associazione' | 'done'
@@ -4115,6 +4126,7 @@ export function VerificationStatusTab({
     setAlsoFatturaOcr({
       phase: 'reading',
       filled: { numero: false, importo: false },
+      sources: { numero: null, importo: null },
       sourceStmtId: stmtId,
       error: null,
     })
@@ -4133,6 +4145,7 @@ export function VerificationStatusTab({
           setAlsoFatturaOcr({
             phase: 'fail',
             filled: { numero: false, importo: false },
+            sources: { numero: null, importo: null },
             sourceStmtId: stmtId,
             error: j.error ?? null,
           })
@@ -4142,6 +4155,10 @@ export function VerificationStatusTab({
           ok: true
           hasAny: boolean
           read: { numero_fattura: string | null; importo: number | null; data: string | null }
+          sources?: {
+            numero?: 'ocr' | 'statement_header' | null
+            importo?: 'ocr' | 'statement_rows_sum' | null
+          }
         }
         if (cancelled) return
         const filled = { numero: false, importo: false }
@@ -4162,6 +4179,10 @@ export function VerificationStatusTab({
         setAlsoFatturaOcr({
           phase: j.hasAny && (filled.numero || filled.importo) ? 'ok' : 'fail',
           filled,
+          sources: {
+            numero: filled.numero ? (j.sources?.numero ?? 'ocr') : null,
+            importo: filled.importo ? (j.sources?.importo ?? 'ocr') : null,
+          },
           sourceStmtId: stmtId,
           error: null,
         })
@@ -4170,6 +4191,7 @@ export function VerificationStatusTab({
         setAlsoFatturaOcr({
           phase: 'fail',
           filled: { numero: false, importo: false },
+          sources: { numero: null, importo: null },
           sourceStmtId: stmtId,
           error: e instanceof Error ? e.message : null,
         })
@@ -4666,7 +4688,7 @@ export function VerificationStatusTab({
             onClick={() => {
               if (alsoFatturaBusy) return
               setAlsoFatturaOpen(false)
-              setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
+              setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sources: { numero: null, importo: null }, sourceStmtId: null, error: null })
             }}
           >
             <div
@@ -4700,9 +4722,21 @@ export function VerificationStatusTab({
               </div>
               <div className="space-y-3 px-5 py-4">
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                    {t.statements.alsoFatturaNumeroLabel}
-                  </label>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                      {t.statements.alsoFatturaNumeroLabel}
+                    </label>
+                    {alsoFatturaOcr.filled.numero && alsoFatturaOcr.sources.numero && (
+                      <span
+                        className="text-[10px] font-medium text-emerald-300/85"
+                        title={alsoFatturaOcr.sources.numero === 'statement_header' ? t.statements.alsoFatturaOcrSourceAccountNoTitle : t.statements.alsoFatturaOcrSourceOcrTitle}
+                      >
+                        {alsoFatturaOcr.sources.numero === 'statement_header'
+                          ? t.statements.alsoFatturaOcrSourceAccountNo
+                          : t.statements.alsoFatturaOcrSourceOcr}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={alsoFatturaNumero}
@@ -4718,9 +4752,21 @@ export function VerificationStatusTab({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                    {t.statements.alsoFatturaImportoLabel}
-                  </label>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                      {t.statements.alsoFatturaImportoLabel}
+                    </label>
+                    {alsoFatturaOcr.filled.importo && alsoFatturaOcr.sources.importo && (
+                      <span
+                        className="text-[10px] font-medium text-emerald-300/85"
+                        title={alsoFatturaOcr.sources.importo === 'statement_rows_sum' ? t.statements.alsoFatturaOcrSourceRowsSumTitle : t.statements.alsoFatturaOcrSourceOcrTitle}
+                      >
+                        {alsoFatturaOcr.sources.importo === 'statement_rows_sum'
+                          ? t.statements.alsoFatturaOcrSourceRowsSum
+                          : t.statements.alsoFatturaOcrSourceOcr}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -4747,7 +4793,7 @@ export function VerificationStatusTab({
                   onClick={() => {
                     if (alsoFatturaBusy) return
                     setAlsoFatturaOpen(false)
-                    setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
+                    setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sources: { numero: null, importo: null }, sourceStmtId: null, error: null })
                   }}
                   disabled={alsoFatturaBusy}
                   className="rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:bg-app-line-10 disabled:opacity-50"
@@ -4780,7 +4826,7 @@ export function VerificationStatusTab({
                       setAlsoFatturaOpen(false)
                       setAlsoFatturaImporto('')
                       setAlsoFatturaNumero('')
-                      setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
+                      setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sources: { numero: null, importo: null }, sourceStmtId: null, error: null })
                       if (j.fattura_id) {
                         setStmts(prev => prev.map(s => s.id === selectedStmt.id ? { ...s, linked_fattura_id: j.fattura_id! } : s))
                       }
