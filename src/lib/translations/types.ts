@@ -564,6 +564,17 @@ export type Translations = {
     viewerZoomOut: string
     viewerZoomReset: string
     viewerZoomHint: string
+    networkError: string
+    unknownError: string
+    /** "{code}" placeholder for the HTTP status. */
+    httpError: string
+    retry: string
+    close: string
+    back: string
+    confirm: string
+    operationCompleted: string
+    /** "{name}" placeholder for the entity name (e.g. "supplier"). */
+    deleteFailedFor: string
   }
   dashboard: {
     title: string
