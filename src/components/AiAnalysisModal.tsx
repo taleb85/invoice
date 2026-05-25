@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
 import { useToast } from '@/lib/toast-context'
+import type { Translations } from '@/lib/translations'
 
 type AiSuggestion = {
   type: 'info' | 'anomaly' | 'convert-to-fattura' | 'not-invoice' | 'assign-supplier' | 'add-potential-supplier'
@@ -43,12 +44,14 @@ const severityConfig: Record<
   'add-potential-supplier': { border: 'border-emerald-500/30', icon: '➕', btnVariant: 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20' },
 }
 
-const LOADING_STEPS = [
-  { step: 'fetching', message: 'Caricamento dati documento…' },
-  { step: 'downloading', message: 'Download allegato…' },
-  { step: 'analyzing', message: 'Analisi con AI Gemini…' },
-  { step: 'parsing', message: 'Interpretazione risultati…' },
-]
+function buildLoadingSteps(t: Translations): Array<{ step: string; message: string }> {
+  return [
+    { step: 'fetching', message: t.aiAnalysisModal.loadingFetching },
+    { step: 'downloading', message: t.aiAnalysisModal.loadingDownloading },
+    { step: 'analyzing', message: t.aiAnalysisModal.loadingAnalyzing },
+    { step: 'parsing', message: t.aiAnalysisModal.loadingParsing },
+  ]
+}
 
 export function AiAnalysisModal({
   open,
@@ -59,8 +62,9 @@ export function AiAnalysisModal({
 }: Props) {
   const router = useRouter()
   const titleId = useId()
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const { showToast } = useToast()
+  const LOADING_STEPS = useMemo(() => buildLoadingSteps(t), [t])
   const [mounted, setMounted] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [result, setResult] = useState<AiAnalysisResult | null>(null)
@@ -92,7 +96,7 @@ export function AiAnalysisModal({
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? `Errore ${res.status}`)
+        throw new Error(body.error ?? t.common.httpError.replace('{code}', String(res.status)))
       }
 
       const reader = res.body!.getReader()
@@ -123,16 +127,16 @@ export function AiAnalysisModal({
             setStatus('done')
             setActiveStepIndex(LOADING_STEPS.length)
           } else if (event.type === 'error') {
-            throw new Error(event.error ?? event.message ?? 'Errore sconosciuto')
+            throw new Error(event.error ?? event.message ?? t.common.unknownError)
           }
         }
       }
     } catch (err) {
       if (ac.signal.aborted) return
-      setErrorMsg(err instanceof Error ? err.message : 'Errore sconosciuto')
+      setErrorMsg(err instanceof Error ? err.message : t.common.unknownError)
       setStatus('error')
     }
-  }, [entityType, entityId, locale])
+  }, [entityType, entityId, locale, LOADING_STEPS, t])
 
   useEffect(() => {
     setMounted(true)
@@ -144,7 +148,7 @@ export function AiAnalysisModal({
       setActiveStepIndex((prev) => Math.min(prev + 1, LOADING_STEPS.length - 1))
     }, 8000)
     return () => clearInterval(interval)
-  }, [status])
+  }, [status, LOADING_STEPS])
 
   useEffect(() => {
     if (!open) {
@@ -183,7 +187,7 @@ export function AiAnalysisModal({
           })
           const data = await res.json()
           if (!res.ok) {
-            showToast(data.error ?? 'Errore durante la correzione', 'error')
+            showToast(data.error ?? t.aiAnalysisModal.correctionError, 'error')
           } else if (data.applied && data.applied.length > 0) {
             showToast(data.message, 'success')
             doAnalyze()
@@ -191,7 +195,7 @@ export function AiAnalysisModal({
             showToast(data.message, 'info')
           }
         } catch {
-          showToast('Errore di rete', 'error')
+          showToast(t.common.networkError, 'error')
         } finally {
           setApplyingAnomaly(false)
         }
@@ -226,20 +230,20 @@ export function AiAnalysisModal({
           })
           const data = await res.json()
           if (!res.ok) {
-            showToast(data.error ?? 'Errore', 'error')
+            showToast(data.error ?? t.aiAnalysisModal.genericError, 'error')
           } else {
-            showToast(data.message ?? 'Fornitore potenziale registrato', 'success')
+            showToast(data.message ?? t.aiAnalysisModal.potentialSupplierRegistered, 'success')
             close()
             router.refresh()
           }
         } catch {
-          showToast('Errore di rete', 'error')
+          showToast(t.common.networkError, 'error')
         } finally {
           setAddingPotentialSupplier(false)
         }
       }
     },
-    [entityType, entityId, fornitoreId, close, router, doAnalyze, showToast],
+    [entityType, entityId, fornitoreId, close, router, doAnalyze, showToast, t],
   )
 
   if (!open || !mounted) return null
@@ -259,14 +263,14 @@ export function AiAnalysisModal({
       >
         <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
           <h2 id={titleId} className="text-sm font-semibold text-white">
-            Analisi AI
+            {t.aiAnalysisModal.title}
           </h2>
           <button
             type="button"
             onClick={close}
             className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/[0.1]"
           >
-            Chiudi
+            {t.aiAnalysisModal.closeBtn}
           </button>
         </div>
 
@@ -304,7 +308,7 @@ export function AiAnalysisModal({
                 onClick={doAnalyze}
                 className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white/80 transition-colors hover:bg-white/[0.1]"
               >
-                Riprova
+                {t.aiAnalysisModal.retryBtn}
               </button>
             </div>
           )}
@@ -313,7 +317,7 @@ export function AiAnalysisModal({
             <div className="flex flex-col gap-4">
               <div>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-                  Analisi
+                  {t.aiAnalysisModal.analysisHeading}
                 </h3>
                 <p className="text-sm leading-relaxed text-white/80">{result.analysis}</p>
               </div>
@@ -321,7 +325,7 @@ export function AiAnalysisModal({
               {result.suggestions.length > 0 && (
                 <div>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-                    Azioni suggerite
+                    {t.aiAnalysisModal.suggestedActionsHeading}
                   </h3>
                   <div className="flex flex-col gap-2">
                     {result.suggestions.map((s, i) => {
@@ -351,9 +355,9 @@ export function AiAnalysisModal({
                                   : cfg.btnVariant
                               }`}
                             >
-                              {s.type === 'anomaly' && applyingAnomaly ? 'Correzione…'
-                                : s.type === 'add-potential-supplier' && addingPotentialSupplier ? 'Registrazione…'
-                                : 'Applica'}
+                              {s.type === 'anomaly' && applyingAnomaly ? t.aiAnalysisModal.correcting
+                                : s.type === 'add-potential-supplier' && addingPotentialSupplier ? t.aiAnalysisModal.registering
+                                : t.aiAnalysisModal.apply}
                             </button>
                           )}
                         </div>
@@ -364,7 +368,7 @@ export function AiAnalysisModal({
               )}
 
               {result.suggestions.length === 0 && (
-                <p className="text-sm text-white/40">Nessun suggerimento specifico per questo documento.</p>
+                <p className="text-sm text-white/40">{t.aiAnalysisModal.noSuggestions}</p>
               )}
             </div>
           )}

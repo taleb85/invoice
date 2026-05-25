@@ -168,7 +168,7 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <span className="text-app-fg-subtle text-xs">Chiudi</span>
+              <span className="text-app-fg-subtle text-xs">{q.closeButton}</span>
             </button>
           </div>
         </>
@@ -177,8 +177,8 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
       {phase === 'processing' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <div className="w-16 h-16 rounded-full border-4 border-[#38bdf8] border-t-transparent animate-spin" />
-          <p className="text-app-fg-muted">Analisi documento in corso...</p>
-          <p className="text-app-fg-subtle text-xs">L&apos;estrazione AI sta analizzando il documento</p>
+          <p className="text-app-fg-muted">{q.processingTitle}</p>
+          <p className="text-app-fg-subtle text-xs">{q.processingSubtitle}</p>
         </div>
       )}
 
@@ -196,16 +196,16 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
                 }`}
               >
                 {result.tipo === 'fattura'
-                  ? 'Fattura'
+                  ? q.typeFattura
                   : result.tipo === 'bolla'
-                    ? 'Bolla / DDT'
-                    : 'Documento'}
+                    ? q.typeBolla
+                    : q.typeUnknown}
               </div>
-              <span className="text-app-fg-subtle text-xs">riconosciuto automaticamente</span>
+              <span className="text-app-fg-subtle text-xs">{q.autoRecognized}</span>
             </div>
-            <h2 className="text-white text-xl font-medium mt-2">Dati estratti</h2>
+            <h2 className="text-white text-xl font-medium mt-2">{q.extractedData}</h2>
             <p className="mt-3 text-app-fg-subtle text-xs leading-snug">
-              Se l’automatismo ha sbagliato (es. fattura classificata come bolla), scegli il tipo corretto prima di salvare.
+              {q.chooseTypeHint}
             </p>
             <div className="mt-3 flex gap-2">
               <button
@@ -217,7 +217,7 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
                     : 'border-white/15 bg-white/5 text-app-fg-muted hover:border-white/25'
                 }`}
               >
-                Bolla / DDT
+                {q.typeBolla}
               </button>
               <button
                 type="button"
@@ -228,20 +228,20 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
                     : 'border-white/15 bg-white/5 text-app-fg-muted hover:border-white/25'
                 }`}
               >
-                Fattura
+                {q.typeFattura}
               </button>
             </div>
           </div>
 
           <div className="flex-1 px-6 space-y-3">
             {[
-              { label: 'Fornitore', value: result.fornitore ?? 'Non riconosciuto' },
+              { label: q.fieldFornitore, value: result.fornitore ?? q.fornitoreUnrecognized },
               {
-                label: 'Importo',
+                label: q.fieldImporto,
                 value: result.importo != null ? `£${result.importo.toFixed(2)}` : '—',
               },
-              { label: 'Data', value: result.data ?? '—' },
-              { label: 'Numero', value: result.numero ?? '—' },
+              { label: q.fieldData, value: result.data ?? '—' },
+              { label: q.fieldNumero, value: result.numero ?? '—' },
             ].map(({ label, value }) => (
               <div
                 key={label}
@@ -258,14 +258,14 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
               onClick={() => startCamera()}
               className="flex-1 py-3 rounded-xl border border-white/20 text-app-fg-muted text-sm"
             >
-              Riprova
+              {q.retry}
             </button>
             <button
               onClick={handleConfirm}
               disabled={saving}
               className="flex-1 py-3 rounded-xl bg-[#38bdf8] text-slate-950 font-semibold text-sm disabled:opacity-50"
             >
-              {saving ? 'Salvataggio...' : 'Conferma e salva'}
+              {saving ? q.savingState : q.saveCta}
             </button>
           </div>
         </div>
@@ -280,19 +280,19 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
               onClick={() => startCamera()}
               className="px-6 py-3 rounded-xl bg-[#38bdf8] text-slate-950 font-semibold"
             >
-              Riprova
+              {q.retry}
             </button>
             <button
               onClick={onClose}
               className="px-6 py-3 rounded-xl border border-white/20 text-app-fg-muted"
             >
-              Chiudi
+              {q.closeButton}
             </button>
           </div>
           {/* File upload fallback when camera fails */}
           <label className="mt-2 cursor-pointer">
             <span className="text-[#38bdf8] text-sm underline underline-offset-2">
-              Oppure carica un file
+              {q.fallbackUpload}
             </span>
             <input
               type="file"

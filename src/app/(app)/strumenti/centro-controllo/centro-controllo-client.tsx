@@ -35,6 +35,7 @@ import { useT } from '@/lib/use-t'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
 import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
+import AuditAndFixAllCard from '@/components/admin/audit-and-fix-all-card'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import AssociaFornitoreDialog from './_dialogs/associa-fornitore-dialog'
 import AggiornaCategoriaDialog from './_dialogs/aggiorna-categoria-dialog'
@@ -1404,6 +1405,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
 
               <SectionCard title={t.strumentiCentroControllo.advOcrQuality}>
                 <div className="divide-y divide-app-line-10">
+                  <div className="px-4 py-3">
+                    <AuditAndFixAllCard />
+                  </div>
                   <div className="px-4 py-3">
                     <ReclassifyPendingKindCard />
                   </div>

@@ -23,6 +23,8 @@ import {
 
 import { clearAiUsageLogAction } from '@/app/(app)/consumi-ai/actions'
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
+import { useLocale } from '@/lib/locale-context'
+import type { Translations } from '@/lib/translations'
 
 /** ── Date helpers (calendar locale browser, anno fiscale UK = 6 aprile) ── */
 
@@ -38,14 +40,16 @@ function startOfLocalDay(d: Date): Date {
 }
 
 /** Evita `Unexpected end of JSON input` su body vuoto / HTML di errore. */
-function parseApiBody(res: Response, raw: string): unknown | null {
-  const t = raw.trim()
-  if (!t) return null
+function parseApiBody(res: Response, raw: string, t: Translations): unknown | null {
+  const txt = raw.trim()
+  if (!txt) return null
   try {
-    return JSON.parse(t) as unknown
+    return JSON.parse(txt) as unknown
   } catch {
-    if (t.startsWith('<')) throw new Error(`Errore server (${res.status})`)
-    throw new Error(t.slice(0, 160))
+    if (txt.startsWith('<')) {
+      throw new Error(t.geminiUsageDashboard.serverError.replace('{code}', String(res.status)))
+    }
+    throw new Error(txt.slice(0, 160))
   }
 }
 
@@ -166,13 +170,13 @@ interface UsageData {
   }
 }
 
-function fmtPeriodSummary(period: UsageData['period']): string {
+function fmtPeriodSummary(period: UsageData['period'], locale: string): string {
   if (!period?.start || !period?.end) return ''
   try {
     if (period.range_mode === 'instant') {
       const a = new Date(period.start)
       const b = new Date(period.end)
-      return `${a.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'medium' })} → ${b.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'medium' })}`
+      return `${a.toLocaleString(locale, { dateStyle: 'short', timeStyle: 'medium' })} → ${b.toLocaleString(locale, { dateStyle: 'short', timeStyle: 'medium' })}`
     }
     if (period.label_from_date && period.label_to_date) {
       return `${period.label_from_date} → ${period.label_to_date}`
@@ -185,8 +189,8 @@ function fmtPeriodSummary(period: UsageData['period']): string {
   }
 }
 
-function fmt(n: number, decimals = 0): string {
-  return n.toLocaleString('it-IT', { maximumFractionDigits: decimals })
+function fmt(n: number, locale: string, decimals = 0): string {
+  return n.toLocaleString(locale, { maximumFractionDigits: decimals })
 }
 
 function fmtCost(n: number): string {
@@ -195,9 +199,9 @@ function fmtCost(n: number): string {
   return `$${n.toFixed(4)}`
 }
 
-function fmtDate(iso: string): string {
+function fmtDate(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
@@ -258,11 +262,11 @@ type ChartPoint = {
   success_rate: number | null
 }
 
-function shortAxisLabel(ymd: string): string {
+function shortAxisLabel(ymd: string, locale: string): string {
   try {
     const [y, m, d] = ymd.split('-').map(Number)
     const dt = new Date(y, m - 1, d)
-    return dt.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
+    return dt.toLocaleDateString(locale, { day: '2-digit', month: 'short' })
   } catch {
     return ymd.slice(5)
   }
@@ -286,6 +290,7 @@ function normalizeDaily(d: DailyUsage): DailyUsage {
  */
 function buildAiUsageChartSeries(
   daily: DailyUsage[],
+  locale: string,
   period?: UsageData['period'],
 ): ChartPoint[] {
   const normalized = daily.map(normalizeDaily)
@@ -310,7 +315,7 @@ function buildAiUsageChartSeries(
       count === 0 ? null : typeof row?.success_rate === 'number' ? row.success_rate : 100
     return {
       date,
-      label: shortAxisLabel(date),
+      label: shortAxisLabel(date, locale),
       count,
       success_rate,
     }
@@ -320,16 +325,17 @@ function buildAiUsageChartSeries(
 const CHART_BAR = '#22d3ee'
 const CHART_LINE = '#34d399'
 
-function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
+function AiUsageStudioChart({ data, t, locale }: { data: ChartPoint[]; t: Translations; locale: string }) {
   if (data.length === 0) return null
+  const g = t.geminiUsageDashboard
 
   return (
     <div className="min-w-0 max-w-full rounded-xl border border-app-line-28 bg-app-line-5 p-4 pt-3">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-        Richieste API e tasso di successo
+        {g.chartTitle}
       </p>
       <p className="mb-3 text-[11px] text-app-fg-muted opacity-80">
-        Barre: numero di chiamate registrate · Linea: % con risposta modello (token output &gt; 0)
+        {g.chartSubtitle}
       </p>
       {/*
         `min-w-0` + altezza fissa: evita che `ResponsiveContainer` misuri -1 in flex / tab nascosti.
@@ -354,7 +360,7 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
               allowDecimals={false}
               width={40}
               label={{
-                value: 'Richieste',
+                value: g.yAxisRequests,
                 angle: -90,
                 position: 'insideLeft',
                 fill: 'rgba(34,211,238,0.65)',
@@ -371,7 +377,7 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
               width={36}
               unit="%"
               label={{
-                value: 'Successo',
+                value: g.yAxisSuccess,
                 angle: 90,
                 position: 'insideRight',
                 fill: 'rgba(52,211,153,0.65)',
@@ -390,10 +396,10 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
                 return p?.date ?? ''
               }}
               formatter={(value: unknown, name: unknown) => {
-                if (name === 'Richieste') return [fmt(Number(value)), 'Richieste']
-                if (name === '% successo') {
-                  if (value == null || value === '') return ['—', '% successo']
-                  return [`${Number(value).toFixed(1)}%`, '% successo']
+                if (name === g.legendRequests) return [fmt(Number(value), locale), g.legendRequests]
+                if (name === g.legendSuccessRate) {
+                  if (value == null || value === '') return ['—', g.legendSuccessRate]
+                  return [`${Number(value).toFixed(1)}%`, g.legendSuccessRate]
                 }
                 return [String(value), String(name)]
               }}
@@ -402,7 +408,7 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
             <Bar
               yAxisId="left"
               dataKey="count"
-              name="Richieste"
+              name={g.legendRequests}
               fill={CHART_BAR}
               radius={[4, 4, 0, 0]}
               maxBarSize={56}
@@ -411,7 +417,7 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
               yAxisId="right"
               type="monotone"
               dataKey="success_rate"
-              name="% successo"
+              name={g.legendSuccessRate}
               stroke={CHART_LINE}
               strokeWidth={2}
               dot={{ r: 3, fill: CHART_LINE }}
@@ -439,6 +445,9 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
   function GeminiUsageDashboard(props, ref) {
     void props.countryCode
 
+    const { t, locale } = useLocale()
+    const g = t.geminiUsageDashboard
+
     const [preset, setPreset] = useState<PeriodPreset>('month')
     const dr = defaultCustomRange()
     const [customFrom, setCustomFrom] = useState(dr.from)
@@ -463,18 +472,18 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
           qs.set('before', now.toISOString())
         } else if (preset === 'custom') {
           const f = customFrom.trim().slice(0, 10)
-          const t = customTo.trim().slice(0, 10)
+          const tt = customTo.trim().slice(0, 10)
           if (
             !/^\d{4}-\d{2}-\d{2}$/.test(f) ||
-            !/^\d{4}-\d{2}-\d{2}$/.test(t) ||
-            f > t
+            !/^\d{4}-\d{2}-\d{2}$/.test(tt) ||
+            f > tt
           ) {
-            setError('Intervallo non valido: controlla le date Da / A.')
+            setError(g.invalidRange)
             setLoading(false)
             return
           }
           qs.set('from', f)
-          qs.set('to', t)
+          qs.set('to', tt)
         } else {
           const range = presetDateRangeUk(preset)
           qs.set('from', range.from)
@@ -486,7 +495,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
           cache: 'no-store',
         })
         const raw = await res.text()
-        const parsed = parseApiBody(res, raw)
+        const parsed = parseApiBody(res, raw, t)
         if (!res.ok) {
           const msg =
             parsed &&
@@ -495,26 +504,24 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
             'error' in parsed &&
             typeof (parsed as { error?: string }).error === 'string'
               ? (parsed as { error: string }).error
-              : `Errore caricamento (${res.status})`
+              : g.loadError.replace('{code}', String(res.status))
           throw new Error(msg)
         }
         if (parsed === null || typeof parsed !== 'object') {
-          throw new Error('Risposta vuota o non valida dal server')
+          throw new Error(g.emptyResponse)
         }
         setData(parsed as UsageData)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Errore sconosciuto')
+        setError(e instanceof Error ? e.message : t.common.unknownError)
       } finally {
         setLoading(false)
       }
-    }, [preset, customFrom, customTo])
+    }, [preset, customFrom, customTo, t, g])
 
     useImperativeHandle(ref, () => ({ refresh: load }), [load])
 
     const clearAllHistory = useCallback(async () => {
-      const ok = window.confirm(
-        'Eliminare tutto lo storico consumi AI (tabella ai_usage_log)? Non si può annullare.',
-      )
+      const ok = window.confirm(g.confirmClear)
       if (!ok) return
       setClearing(true)
       setError(null)
@@ -525,11 +532,11 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
         }
         await load()
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Errore sconosciuto')
+        setError(e instanceof Error ? e.message : t.common.unknownError)
       } finally {
         setClearing(false)
       }
-    }, [load])
+    }, [load, g, t])
 
     useEffect(() => {
       load()
@@ -537,8 +544,8 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
 
     const chartSeries = useMemo(() => {
       if (!data?.daily) return []
-      return buildAiUsageChartSeries(data.daily, data.period)
-    }, [data])
+      return buildAiUsageChartSeries(data.daily, locale, data.period)
+    }, [data, locale])
 
     return (
     <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}>
@@ -580,17 +587,17 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
               <div className="flex min-w-0 flex-row flex-wrap items-center justify-between gap-x-3 gap-y-2">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-                    Periodo
+                    {g.period}
                   </span>
                   {(
                     [
-                      ['today', 'Oggi'],
-                      ['week', 'Settimana'],
-                      ['month', 'Mese'],
-                      ['last90', 'Ultimi 3 mesi'],
-                      ['fy_curr_uk', 'Anno fiscale UK (corrente)'],
-                      ['fy_prev_uk', 'Anno fiscale UK (precedente)'],
-                      ['custom', 'Personalizzato'],
+                      ['today', g.periodToday],
+                      ['week', g.periodWeek],
+                      ['month', g.periodMonth],
+                      ['last90', g.periodLast90],
+                      ['fy_curr_uk', g.periodFyCurrUk],
+                      ['fy_prev_uk', g.periodFyPrevUk],
+                      ['custom', g.periodCustom],
                     ] as const satisfies ReadonlyArray<readonly [PeriodPreset, string]>
                   ).map(([key, label]) => (
                     <button
@@ -613,14 +620,14 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                   disabled={clearing}
                   className="shrink-0 rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-1.5 text-[11px] font-medium text-red-300 transition-opacity hover:bg-red-500/15 disabled:opacity-40"
                 >
-                  {clearing ? 'Azzeramento…' : 'Azzera storico'}
+                  {clearing ? g.clearing : g.clearHistory}
                 </button>
               </div>
 
               {preset === 'custom' && (
                 <div className="flex flex-wrap items-end gap-3 rounded-lg px-1 py-2">
                   <label className="flex flex-col gap-1 text-[11px] text-app-fg-muted">
-                    Da (inclusivo)
+                    {g.fromInclusive}
                     <input
                       type="date"
                       value={customFrom}
@@ -629,7 +636,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     />
                   </label>
                   <label className="flex flex-col gap-1 text-[11px] text-app-fg-muted">
-                    A (inclusivo)
+                    {g.toInclusive}
                     <input
                       type="date"
                       value={customTo}
@@ -642,7 +649,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
 
               {data.period && (
                 <p className="text-right font-mono text-[11px] text-app-fg-muted">
-                  {fmtPeriodSummary(data.period)}
+                  {fmtPeriodSummary(data.period, locale)}
                 </p>
               )}
             </div>
@@ -650,40 +657,42 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
             {/* Stats grid */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatCard
-                label="Scansioni totali"
-                value={fmt(data.totalCalls)}
-                sub="documenti OCR"
+                label={g.statTotalScans}
+                value={fmt(data.totalCalls, locale)}
+                sub={g.statTotalScansSub}
               />
               <StatCard
-                label="Token totali"
-                value={fmt(data.totalTokens)}
-                sub={`${fmt(data.totalInputTokens)} in + ${fmt(data.totalOutputTokens)} out`}
+                label={g.statTotalTokens}
+                value={fmt(data.totalTokens, locale)}
+                sub={`${fmt(data.totalInputTokens, locale)} in + ${fmt(data.totalOutputTokens, locale)} out`}
                 accent="#a78bfa"
               />
               <StatCard
-                label="Costo totale"
+                label={g.statTotalCost}
                 value={fmtCost(data.totalCostGbp ?? 0)}
                 sub={`~£${fmtCost(data.totalCostGbp ?? 0)} GBP`}
                 accent="#34d399"
               />
               <StatCard
-                label="Costo per scan"
+                label={g.statCostPerScan}
                 value={fmtCost(data.avgCostPerScan)}
-                sub="media per scansione"
+                sub={g.statCostPerScanSub}
                 accent="#f59e0b"
               />
             </div>
 
             {/* Richieste + % success (stile Google AI Studio: barre cyan, linea verde) */}
-            {chartSeries.length > 0 ? <AiUsageStudioChart data={chartSeries} /> : null}
+            {chartSeries.length > 0 ? <AiUsageStudioChart data={chartSeries} t={t} locale={locale} /> : null}
 
             {/* Pricing info */}
             {data.pricing && (
               <div className="rounded-lg border border-app-line-28 bg-app-line-5 px-4 py-2.5 text-[11px] text-app-fg-muted">
-                Prezzi {data.model}: ${data.pricing.inputPerMillion}/M token input &middot; $
-                {data.pricing.outputPerMillion}/M token output
-                {data.currency && ` · Mostrato in ${data.currency}`}
-                {data.gbpRate && ` (USD→${data.currency}: ${data.gbpRate})`}
+                {g.pricingPrefix
+                  .replace('{model}', data.model)
+                  .replace('{input}', String(data.pricing.inputPerMillion))
+                  .replace('{output}', String(data.pricing.outputPerMillion))}
+                {data.currency && g.pricingShownIn.replace('{currency}', data.currency)}
+                {data.gbpRate && data.currency && g.pricingRate.replace('{currency}', data.currency).replace('{rate}', String(data.gbpRate))}
               </div>
             )}
 
@@ -691,10 +700,10 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
             {data.totalCalls === 0 && chartSeries.length === 0 && (
               <div className="rounded-xl border border-app-line-28 bg-app-line-5 px-5 py-8 text-center">
                 <p className="text-[13px] text-app-fg-muted">
-                  Nessuna scansione registrata ancora.
+                  {g.emptyState}
                 </p>
                 <p className="mt-1 text-[11px] text-app-fg-muted opacity-60">
-                  I consumi Gemini vengono registrati dopo ogni OCR (scanner, sync email, estratti, ecc.).
+                  {g.emptyStateHint}
                 </p>
               </div>
             )}
@@ -703,11 +712,11 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
             {data.perSede && data.perSede.length > 0 && (
               <section
                 className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
-                aria-label="Costi per sede"
+                aria-label={g.perSedeTitle}
               >
                 <div className="border-b border-app-line-22 px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-                    Costi per sede
+                    {g.perSedeTitle}
                   </p>
                 </div>
                 <div className="overflow-x-auto">
@@ -715,16 +724,16 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     <thead>
                       <tr className="border-b border-app-line-22">
                         <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
-                          Sede
+                          {g.colSede}
                         </th>
                         <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
-                          Scansioni
+                          {g.colScans}
                         </th>
                         <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
-                          Token totali
+                          {g.colTotalTokens}
                         </th>
                         <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
-                          Costo (USD)
+                          {g.colCostUsd}
                         </th>
                       </tr>
                     </thead>
@@ -736,10 +745,10 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                         >
                           <td className="px-4 py-2 text-app-fg">{sede.nome}</td>
                           <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
-                            {fmt(sede.calls)}
+                            {fmt(sede.calls, locale)}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
-                            {fmt(sede.totalTokens)}
+                            {fmt(sede.totalTokens, locale)}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-emerald-400">
                             £{fmtCost(sede.costUsd * (data.gbpRate ?? 1))}
@@ -755,7 +764,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
             {data.recent.length > 0 && (
               <section
                 className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
-                aria-label="Ultime scansioni"
+                aria-label={g.recentTitle}
               >
                 <button
                   type="button"
@@ -764,7 +773,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                   className="flex w-full touch-manipulation items-center justify-between gap-2 border-b border-app-line-22 px-4 py-3 text-left transition-colors hover:bg-app-line-10"
                 >
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-                    Ultime scansioni ({data.recent.length})
+                    {g.recentTitle} ({data.recent.length})
                   </span>
                   <svg
                     className={`h-4 w-4 shrink-0 text-app-fg-muted transition-transform ${
@@ -784,19 +793,19 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     <thead>
                       <tr className="border-b border-app-line-22">
                         <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
-                          Data
+                          {g.colDate}
                         </th>
                         <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
-                          Tipo
+                          {g.colType}
                         </th>
                         <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
-                          Input
+                          {g.colInput}
                         </th>
                         <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
-                          Output
+                          {g.colOutput}
                         </th>
                         <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
-                          Costo
+                          {g.colCost}
                         </th>
                       </tr>
                     </thead>
@@ -806,15 +815,15 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                           key={i}
                           className="border-b border-app-line-15 transition-colors last:border-b-0 hover:bg-white/5"
                         >
-                          <td className="px-4 py-2 text-app-fg-muted">{fmtDate(row.created_at)}</td>
+                          <td className="px-4 py-2 text-app-fg-muted">{fmtDate(row.created_at, locale)}</td>
                           <td className="px-4 py-2 text-app-fg">
                             {row.intent || row.operation}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
-                            {fmt(row.inputTokens)}
+                            {fmt(row.inputTokens, locale)}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
-                            {fmt(row.outputTokens)}
+                            {fmt(row.outputTokens, locale)}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-emerald-400">
                             {fmtCost(row.estimatedCostUsd)}

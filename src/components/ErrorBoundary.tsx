@@ -1,7 +1,17 @@
 'use client'
 
-import { Component, useCallback, useState, type ErrorInfo, type ReactNode } from 'react'
+import { Component, useCallback, useMemo, useState, type ErrorInfo, type ReactNode } from 'react'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import { useT } from '@/lib/use-t'
+
+interface I18nLabels {
+  titlePrefix: string
+  moduleUnavailable: string
+  bodyMessage: string
+  devDetails: string
+  retry: string
+  home: string
+}
 
 interface Props {
   children: ReactNode
@@ -64,8 +74,21 @@ interface State {
  * </ErrorBoundary>
  * ```
  */
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+export function ErrorBoundary(props: Props) {
+  const t = useT()
+  const labels = useMemo<I18nLabels>(() => ({
+    titlePrefix: t.errorBoundary.titlePrefix,
+    moduleUnavailable: t.errorBoundary.moduleUnavailable,
+    bodyMessage: t.errorBoundary.bodyMessage,
+    devDetails: t.errorBoundary.devDetails,
+    retry: t.errorBoundary.retry,
+    home: t.errorBoundary.home,
+  }), [t])
+  return <ErrorBoundaryInner {...props} labels={labels} />
+}
+
+class ErrorBoundaryInner extends Component<Props & { labels: I18nLabels }, State> {
+  constructor(props: Props & { labels: I18nLabels }) {
     super(props)
     this.state = { hasError: false, error: null }
   }
@@ -91,14 +114,15 @@ export class ErrorBoundary extends Component<Props, State> {
       fallbackTitle,
       compact = false,
       fullPage = false,
+      labels,
     } = this.props
     const { error } = this.state
     const isDev = process.env.NODE_ENV === 'development'
 
     // Resolve heading: sectionName wins; fallbackTitle is the legacy alias
     const title = sectionName
-      ? `Errore in ${sectionName}`
-      : (fallbackTitle ?? 'Modulo non disponibile')
+      ? labels.titlePrefix.replace('{section}', sectionName)
+      : (fallbackTitle ?? labels.moduleUnavailable)
 
     /* ── Compact: one-line banner for widget / sidebar slots ── */
     if (compact) {
@@ -113,7 +137,7 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={this.handleReset}
             className="shrink-0 rounded-md border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-2 py-1 text-[10px] font-semibold text-red-200 transition-colors hover:bg-red-950/60"
           >
-            Riprova
+            {labels.retry}
           </button>
         </div>
       )
@@ -123,7 +147,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (fullPage) {
       return (
         <div className="flex min-h-dvh flex-1 items-center justify-center p-4">
-          <ErrorCard title={title} error={error} isDev={isDev} onReset={this.handleReset} />
+          <ErrorCard title={title} error={error} isDev={isDev} onReset={this.handleReset} labels={labels} />
         </div>
       )
     }
@@ -131,7 +155,7 @@ export class ErrorBoundary extends Component<Props, State> {
     /* ── Default: medium card for page sections / panels ── */
     return (
       <div className="flex min-h-[180px] flex-1 items-center justify-center p-4">
-        <ErrorCard title={title} error={error} isDev={isDev} onReset={this.handleReset} />
+        <ErrorCard title={title} error={error} isDev={isDev} onReset={this.handleReset} labels={labels} />
       </div>
     )
   }
@@ -143,11 +167,13 @@ function ErrorCard({
   error,
   isDev,
   onReset,
+  labels,
 }: {
   title: string
   error: Error | null
   isDev: boolean
   onReset: () => void
+  labels: I18nLabels
 }) {
   return (
     <div className="w-full max-w-md space-y-5 text-center">
@@ -164,13 +190,13 @@ function ErrorCard({
         <div className="space-y-4 px-8 py-7 text-center">
           <h2 className="text-base font-semibold text-app-fg">{title}</h2>
           <p className="text-sm leading-relaxed text-app-fg-muted">
-            Si è verificato un problema imprevisto. I tuoi dati sono al sicuro.
+            {labels.bodyMessage}
           </p>
 
           {isDev && error && (
             <details className="text-left">
               <summary className="cursor-pointer text-xs text-app-fg-muted hover:text-app-fg">
-                Dettagli tecnici (solo in sviluppo)
+                {labels.devDetails}
               </summary>
               <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-3 py-2 font-mono text-[11px] text-red-300">
                 {error.message}
@@ -189,7 +215,7 @@ function ErrorCard({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Riprova
+              {labels.retry}
             </button>
             <button
               type="button"
@@ -200,7 +226,7 @@ function ErrorCard({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              Home
+              {labels.home}
             </button>
           </div>
         </div>

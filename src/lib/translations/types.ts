@@ -1378,6 +1378,8 @@ export type Translations = {
     ariaAdmin: string
     ariaFornitore: string
     ariaCallSupplier: string
+    mainNavAria: string
+    menuToggleAria: string
     notifications: string
     noNotifications: string
     errorAlert: string
@@ -1971,6 +1973,138 @@ export type Translations = {
     drawerClickToOpen: string
     errorSave: string
     errorNetwork: string
+  }
+  backupManager: {
+    statusSchedulingAria: string
+    statusSchedulingTitle: string
+    cronAutomationTitle: string
+    cronAutomationDescription: string
+    saving: string
+    lastBackup: string
+    none: string
+    fileCount: string
+    nextBackup: string
+    pausedAutomation: string
+    everyMonday2am: string
+    totalAvailable: string
+    storedInSupabase: string
+    runManualTitle: string
+    runManualDescription: string
+    runningState: string
+    runNowCta: string
+    backupFailed: string
+    tablesExportedSuccess: string
+    tablesExportedWithErrors: string
+    cannotSaveSetting: string
+    availableBackupsAria: string
+    availableBackupsTitle: string
+    loading: string
+    noBackupsHint: string
+    fileLabel: string
+    fileLabelPlural: string
+    download: string
+    historyAria: string
+    historyTitle: string
+    backup: string
+    tablesSuffix: string
+    success: string
+    errorsCount: string
+    tableFatture: string
+    tableBolle: string
+    tableFornitori: string
+    tableSedi: string
+    tablePriceAnomalies: string
+  }
+  geminiUsageDashboard: {
+    chartTitle: string
+    chartSubtitle: string
+    yAxisRequests: string
+    yAxisSuccess: string
+    legendRequests: string
+    legendSuccessRate: string
+    period: string
+    periodToday: string
+    periodWeek: string
+    periodMonth: string
+    periodLast90: string
+    periodFyCurrUk: string
+    periodFyPrevUk: string
+    periodCustom: string
+    clearing: string
+    clearHistory: string
+    confirmClear: string
+    fromInclusive: string
+    toInclusive: string
+    statTotalScans: string
+    statTotalScansSub: string
+    statTotalTokens: string
+    statTotalCost: string
+    statCostPerScan: string
+    statCostPerScanSub: string
+    pricingPrefix: string
+    pricingShownIn: string
+    pricingRate: string
+    emptyState: string
+    emptyStateHint: string
+    perSedeTitle: string
+    colSede: string
+    colScans: string
+    colTotalTokens: string
+    colCostUsd: string
+    recentTitle: string
+    colDate: string
+    colType: string
+    colInput: string
+    colOutput: string
+    colCost: string
+    invalidRange: string
+    loadError: string
+    serverError: string
+    emptyResponse: string
+  }
+  errorBoundary: {
+    titlePrefix: string
+    moduleUnavailable: string
+    bodyMessage: string
+    devDetails: string
+    retry: string
+    home: string
+    sectionAppName: string
+    sectionNavigation: string
+    sectionSyncBar: string
+    sectionThisPage: string
+  }
+  appShellActions: {
+    centroControlloAssociaFornitore: string
+    centroControlloRifiutaFattura: string
+    centroControlloAssegnaFattura: string
+    fatturaScartata: string
+    rejectReason: string
+    aprilPannelloBolla: string
+    tipoDocumentoAggiornato: string
+    bollaConvertita: string
+    bollaEliminata: string
+    operazioneCompletata: string
+    ocrCompletato: string
+    azioneNonDisponibile: string
+  }
+  aiAnalysisModal: {
+    title: string
+    closeBtn: string
+    loadingFetching: string
+    loadingDownloading: string
+    loadingAnalyzing: string
+    loadingParsing: string
+    retryBtn: string
+    analysisHeading: string
+    suggestedActionsHeading: string
+    correcting: string
+    registering: string
+    apply: string
+    noSuggestions: string
+    correctionError: string
+    potentialSupplierRegistered: string
+    genericError: string
   }
   quickScan: {
     cameraError: string

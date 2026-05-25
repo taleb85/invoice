@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useId } from 'react'
 import type { BackupDate } from '@/app/api/backup/list/route'
-import type { Locale } from '@/lib/translations'
+import type { Locale, Translations } from '@/lib/translations'
 import { useLocale } from '@/lib/locale-context'
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 
@@ -49,19 +49,21 @@ function nextMonday2am(locale: Locale): string {
   }) + ' UTC'
 }
 
-function tableLabel(name: string): string {
+function tableLabel(name: string, t: Translations): string {
+  const bm = t.backupManager
   const map: Record<string, string> = {
-    'fatture.csv': 'Fatture',
-    'bolle.csv': 'Bolle / DDT',
-    'fornitori.csv': 'Fornitori',
-    'sedi.csv': 'Sedi',
-    'price_anomalies.csv': 'Anomalie Prezzi',
+    'fatture.csv': bm.tableFatture,
+    'bolle.csv': bm.tableBolle,
+    'fornitori.csv': bm.tableFornitori,
+    'sedi.csv': bm.tableSedi,
+    'price_anomalies.csv': bm.tablePriceAnomalies,
   }
   return map[name] ?? name.replace('.csv', '')
 }
 
 export function BackupManager() {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
+  const bm = t.backupManager
   const cronAutomationHeadingId = useId()
 
   const [backups, setBackups] = useState<BackupDate[]>([])
@@ -121,17 +123,18 @@ export function BackupManager() {
       })
       if (res.ok) {
         const json = await res.json() as { totalTables: number; errors?: string[] }
+        const errCount = json.errors?.length ?? 0
         const msg =
-          (json.errors?.length ?? 0) > 0
-            ? `${json.totalTables} tabelle esportate con ${json.errors!.length} errori`
-            : `${json.totalTables} tabelle esportate con successo`
-        setRunResult({ ok: (json.errors?.length ?? 0) === 0, message: msg })
+          errCount > 0
+            ? bm.tablesExportedWithErrors.replace('{n}', String(json.totalTables)).replace('{errors}', String(errCount))
+            : bm.tablesExportedSuccess.replace('{n}', String(json.totalTables))
+        setRunResult({ ok: errCount === 0, message: msg })
         await fetchBackups()
       } else {
-        setRunResult({ ok: false, message: 'Backup fallito — controlla CRON_SECRET' })
+        setRunResult({ ok: false, message: bm.backupFailed })
       }
     } catch {
-      setRunResult({ ok: false, message: 'Errore di rete' })
+      setRunResult({ ok: false, message: t.common.networkError })
     } finally {
       setRunning(false)
     }
@@ -167,7 +170,7 @@ export function BackupManager() {
       const j = (await res.json()) as { enabled?: boolean }
       if (typeof j.enabled === 'boolean') setCronAutomationEnabled(j.enabled)
     } catch {
-      setCronAutomationError('Impossibile salvare l\'impostazione.')
+      setCronAutomationError(bm.cannotSaveSetting)
     } finally {
       setCronAutomationSaving(false)
     }
@@ -180,19 +183,19 @@ export function BackupManager() {
     <div className="space-y-6">
       <section
         className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
-        aria-label="Stato e pianificazione backup"
+        aria-label={bm.statusSchedulingAria}
       >
         <div className="border-b border-app-line-22 px-4 py-3">
-          <h2 className="text-sm font-semibold text-app-fg">Stato e pianificazione</h2>
+          <h2 className="text-sm font-semibold text-app-fg">{bm.statusSchedulingTitle}</h2>
         </div>
 
         <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-start justify-between gap-4 rounded-lg border border-app-line-28 bg-app-line-5 px-4 py-3.5">
             <div className="min-w-0 flex-1">
               <p id={cronAutomationHeadingId} className="text-sm font-semibold text-app-fg">
-                {'Backup automatico programmato (lunedì 02:00 UTC)'}
+                {bm.cronAutomationTitle}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{'Se disattivo, il cron non genera export automatici finché non riattivi. I backup manuali restano sempre disponibili.'}</p>
+              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{bm.cronAutomationDescription}</p>
               {cronAutomationError ? (
                 <p className="mt-2 text-xs font-medium text-red-400">{cronAutomationError}</p>
               ) : null}
@@ -219,44 +222,44 @@ export function BackupManager() {
             </button>
           </div>
           {cronAutomationSaving ? (
-            <p className="text-xs text-app-fg-muted">{'Salvataggio…'}</p>
+            <p className="text-xs text-app-fg-muted">{bm.saving}</p>
           ) : null}
 
           {/* Status bar */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
-              <p className="text-xs text-app-fg-muted">Ultimo backup</p>
+              <p className="text-xs text-app-fg-muted">{bm.lastBackup}</p>
               <p className="mt-1 text-base font-semibold text-app-fg">
-                {lastBackup ? lastBackup.date : 'Nessuno'}
+                {lastBackup ? lastBackup.date : bm.none}
               </p>
               {lastBackup && (
                 <p className="text-xs text-app-fg-muted">
-                  {lastBackup.files.length} file
+                  {lastBackup.files.length} {bm.fileCount}
                 </p>
               )}
             </div>
 
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
-              <p className="text-xs text-app-fg-muted">Prossimo backup</p>
+              <p className="text-xs text-app-fg-muted">{bm.nextBackup}</p>
               <p className="mt-1 text-sm font-semibold text-app-fg">
-                {cronAutomationEnabled ? nextMonday2am(locale) : 'In pausa — automazione disattivata'}
+                {cronAutomationEnabled ? nextMonday2am(locale) : bm.pausedAutomation}
               </p>
-              <p className="text-xs text-app-fg-muted">{'Ogni lunedì alle 02:00 UTC'}</p>
+              <p className="text-xs text-app-fg-muted">{bm.everyMonday2am}</p>
             </div>
 
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
-              <p className="text-xs text-app-fg-muted">Totale backup disponibili</p>
+              <p className="text-xs text-app-fg-muted">{bm.totalAvailable}</p>
               <p className="mt-1 text-base font-semibold text-app-fg">{backups.length}</p>
-              <p className="text-xs text-app-fg-muted">Archiviati in Supabase Storage</p>
+              <p className="text-xs text-app-fg-muted">{bm.storedInSupabase}</p>
             </div>
           </div>
 
           {/* Manual trigger */}
           <div className="flex flex-col gap-3 rounded-lg border border-app-line-28 bg-app-line-5 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-app-fg">Esegui backup manuale</p>
+              <p className="text-sm font-semibold text-app-fg">{bm.runManualTitle}</p>
               <p className="text-xs text-app-fg-muted">
-                Esporta subito tutte le tabelle critiche in CSV
+                {bm.runManualDescription}
               </p>
             </div>
             <button
@@ -273,7 +276,7 @@ export function BackupManager() {
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                 </svg>
               )}
-              {running ? 'Esecuzione…' : 'Esegui backup ora'}
+              {running ? bm.runningState : bm.runNowCta}
             </button>
           </div>
 
@@ -294,23 +297,23 @@ export function BackupManager() {
       {/* Backup list — stesso guscio strip/summary (`AppPageHeaderStrip`) */}
       <section
         className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
-        aria-label="Backup disponibili"
+        aria-label={bm.availableBackupsAria}
       >
         <div className="border-b border-app-line-22 px-4 py-3">
-          <h2 className="text-sm font-semibold text-app-fg">Backup disponibili</h2>
+          <h2 className="text-sm font-semibold text-app-fg">{bm.availableBackupsTitle}</h2>
         </div>
 
         <div className="space-y-3 px-4 py-3">
           {loading && (
             <div className="flex items-center gap-2 py-6 text-app-fg-muted text-sm">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-app-cyan-500 border-t-transparent" />
-              Caricamento…
+              {bm.loading}
             </div>
           )}
 
           {!loading && backups.length === 0 && (
             <p className="py-8 text-center text-sm text-app-fg-muted">
-              Nessun backup disponibile. Esegui il primo backup manualmente.
+              {bm.noBackupsHint}
             </p>
           )}
 
@@ -329,7 +332,7 @@ export function BackupManager() {
                   <div>
                     <p className="text-sm font-semibold text-app-fg">{b.date}</p>
                     <p className="text-xs text-app-fg-muted">
-                      {b.files.length} {b.files.length === 1 ? 'file' : 'file'} ·{' '}
+                      {b.files.length} {b.files.length === 1 ? bm.fileLabel : bm.fileLabelPlural} ·{' '}
                       {formatBytes(b.files.reduce((s, f) => s + f.size, 0))}
                     </p>
                   </div>
@@ -354,7 +357,7 @@ export function BackupManager() {
                             d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <div className="min-w-0">
-                          <p className="text-sm text-app-fg truncate">{tableLabel(f.name)}</p>
+                          <p className="text-sm text-app-fg truncate">{tableLabel(f.name, t)}</p>
                           <p className="text-xs text-app-fg-muted">{formatBytes(f.size)}</p>
                         </div>
                       </div>
@@ -371,7 +374,7 @@ export function BackupManager() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
                         )}
-                        Scarica
+                        {bm.download}
                       </button>
                     </div>
                   ))}
@@ -386,29 +389,29 @@ export function BackupManager() {
       {history.length > 0 && (
         <section
           className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
-          aria-label="Storico esecuzioni backup"
+          aria-label={bm.historyAria}
         >
           <div className="border-b border-app-line-22 px-4 py-3">
-            <h2 className="text-sm font-semibold text-app-fg">Storico esecuzioni</h2>
+            <h2 className="text-sm font-semibold text-app-fg">{bm.historyTitle}</h2>
           </div>
           <div className="divide-y divide-app-line-15 overflow-hidden">
             {history.map((h) => (
               <div key={h.id} className="flex items-start justify-between gap-4 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-app-fg">
-                    {h.entityLabel ?? 'Backup'}
+                    {h.entityLabel ?? bm.backup}
                   </p>
                   <p className="text-xs text-app-fg-muted">
-                    {h.metadata?.tablesExported ?? 0} tabelle · {' '}
+                    {h.metadata?.tablesExported ?? 0} {bm.tablesSuffix} · {' '}
                     {(h.metadata?.errors?.length ?? 0) === 0 ? (
-                      <span className="text-emerald-400">Successo</span>
+                      <span className="text-emerald-400">{bm.success}</span>
                     ) : (
-                      <span className="text-red-400">{h.metadata!.errors!.length} errori</span>
+                      <span className="text-red-400">{bm.errorsCount.replace('{n}', String(h.metadata!.errors!.length))}</span>
                     )}
                   </p>
                 </div>
                 <p className="shrink-0 text-xs text-app-fg-muted">
-                  {new Date(h.createdAt).toLocaleString('it-IT', {
+                  {new Date(h.createdAt).toLocaleString(LOCALE_TAG[locale], {
                     day: '2-digit',
                     month: 'short',
                     hour: '2-digit',

@@ -201,7 +201,7 @@ export default function AppShell({
           <AdminActingRoleCookieSync />
           <ToastProvider>
             <AppShellDocumentActions>
-              <ErrorBoundary fullPage sectionName="applicazione">
+              <AppShellRootBoundary>
                 <div className="relative flex w-full min-h-dvh flex-col bg-transparent md:h-full md:min-h-0">
                   <OfflineBanner />
                   <EmailSyncProgressProvider>
@@ -215,7 +215,7 @@ export default function AppShell({
                   <OperatorSwitchModal />
                   <UpdatePrompt />
                 </div>
-              </ErrorBoundary>
+              </AppShellRootBoundary>
             </AppShellDocumentActions>
           </ToastProvider>
         </ActiveOperatorProvider>
@@ -225,16 +225,29 @@ export default function AppShell({
   )
 }
 
+/** Wrapper functional che traduce il sectionName "applicazione" usando useT. */
+function AppShellRootBoundary({ children }: { children: React.ReactNode }) {
+  const { t } = useLocale()
+  return (
+    <ErrorBoundary fullPage sectionName={t.errorBoundary.sectionAppName}>
+      {children}
+    </ErrorBoundary>
+  )
+}
+
 /** Componente interno che ha accesso a useToast e DocumentActionsProvider. */
 function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
   const { showToast } = useToast()
+  const { t } = useLocale()
   const handleDocumentAction = useCallback(async (item: DocumentActionItem, actionId: string) => {
+    const a = t.appShellActions
+    const httpErr = (status: number) => t.common.httpError.replace('{code}', String(status))
     // Azioni che richiedono un dialogo (disponibili solo nel Centro Controllo)
     const dialogOnly: Record<string, string> = {
-      'documento.associa': 'Usa il Centro Controllo per associare un fornitore',
-      'fattura.rifiuta': 'Usa il Centro Controllo per rifiutare la fattura',
-      'statement.assegna_fattura': 'Usa il Centro Controllo per assegnare una fattura',
-      'statement.associa_fornitore': 'Usa il Centro Controllo per associare un fornitore',
+      'documento.associa': a.centroControlloAssociaFornitore,
+      'fattura.rifiuta': a.centroControlloRifiutaFattura,
+      'statement.assegna_fattura': a.centroControlloAssegnaFattura,
+      'statement.associa_fornitore': a.centroControlloAssociaFornitore,
     }
     const dialogMsg = dialogOnly[actionId]
     if (dialogMsg) {
@@ -274,14 +287,14 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/fatture/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fattura_id: item.id, action: 'reject', reason: 'Scartata dall\'utente' }),
+        body: JSON.stringify({ fattura_id: item.id, action: 'reject', reason: a.rejectReason }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast(data.error || `Errore ${res.status}`, 'error')
+        showToast(data.error || httpErr(res.status), 'error')
         return
       }
-      showToast('Fattura scartata', 'success')
+      showToast(a.fatturaScartata, 'success')
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('document-type-changed', { detail: { id: item.id } }))
       }
@@ -299,10 +312,10 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       const res = await fetch(reclass.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reclass.body) })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast(data.error || `Errore ${res.status}`, 'error')
+        showToast(data.error || httpErr(res.status), 'error')
         return
       }
-      showToast('Tipo documento aggiornato — AI aggiornata', 'success')
+      showToast(a.tipoDocumentoAggiornato, 'success')
       // Notifica la pagina che i dati duplicati sono cambiati
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('document-type-changed', { detail: { id: item.id } }))
@@ -311,7 +324,7 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
     }
     // Bolla: cambia fornitore richiede picker UI nel pannello bolla
     if (actionId === 'bolla.cambia_fornitore') {
-      showToast('Apri il pannello della bolla per cambiare il fornitore assegnato', 'info')
+      showToast(a.aprilPannelloBolla, 'info')
       return
     }
 
@@ -329,10 +342,10 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast((data as { error?: string }).error || `Errore ${res.status}`, 'error')
+        showToast((data as { error?: string }).error || httpErr(res.status), 'error')
         return
       }
-      showToast('OCR completato', 'success')
+      showToast(a.ocrCompletato, 'success')
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
       return
     }
@@ -344,10 +357,10 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast((data as { error?: string }).error || `Errore ${res.status}`, 'error')
+        showToast((data as { error?: string }).error || httpErr(res.status), 'error')
         return
       }
-      showToast('Bolla convertita in fattura', 'success')
+      showToast(a.bollaConvertita, 'success')
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
       return
     }
@@ -358,23 +371,23 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
         showToast(delErr.message, 'error')
         return
       }
-      showToast('Bolla eliminata', 'success')
+      showToast(a.bollaEliminata, 'success')
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
       return
     }
 
     const api = apiCalls[actionId]
     if (!api) {
-      showToast(`Azione "${actionId}" non disponibile`, 'info')
+      showToast(a.azioneNonDisponibile.replace('{action}', actionId), 'info')
       return
     }
     const res = await fetch(api.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(api.body) })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      showToast(data.error || `Errore ${res.status}`, 'error')
+      showToast(data.error || httpErr(res.status), 'error')
       return
     }
-    showToast('Operazione completata', 'success')
+    showToast(a.operazioneCompletata, 'success')
     // Notify lists to refresh after modal actions
     if (typeof window !== 'undefined') {
       if (actionId.startsWith('documento.') && item.origine === 'documento_da_processare') {
@@ -383,7 +396,7 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
         window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: item.id } }))
       }
     }
-  }, [showToast])
+  }, [showToast, t])
 
   return (
     <DocumentActionsProvider onExecute={handleDocumentAction}>
@@ -578,6 +591,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const { activeOperator } = useActiveOperator()
   const { visible: homeScannerDockCtaVisible } = useManualDeliverySede()
   const headerToastBanner = useDesktopHeaderToastBanner()
+  const { t } = useLocale()
   /** Sfondo barra quando non è attiva la fascia toast (solo riga toolbar). */
   const desktopToolbarOnlySurface =
     'md:bg-transparent md:shadow-none [color:var(--app-fg-body)]'
@@ -650,12 +664,12 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               <aside
                 className="app-sidebar-aside app-shell-rail-clear relative z-10 flex h-full w-56 shrink-0 flex-col overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
-                aria-label="Navigazione principale"
+                aria-label={t.nav.mainNavAria ?? 'Navigation'}
               >
                 <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
                   <SidebarRailBrand />
                 </div>
-                <ErrorBoundary sectionName="navigazione">
+                <ErrorBoundary sectionName={t.errorBoundary.sectionNavigation}>
                   <Sidebar onClose={() => setTabletSidebarOpen(false)} />
                 </ErrorBoundary>
               </aside>
@@ -664,7 +678,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
 
           <aside
             suppressHydrationWarning
-            aria-label="Navigazione principale"
+            aria-label={t.nav.mainNavAria ?? 'Navigation'}
             className={[
               // `isolate`: stacking per il decorative progress sotto ai link (`z` del wrapper sopra il layer assoluto).
               'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-hidden lg:relative lg:isolate lg:z-auto',
@@ -680,7 +694,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
                 <SidebarRailBrand />
               </div>
-              <ErrorBoundary sectionName="navigazione">
+              <ErrorBoundary sectionName={t.errorBoundary.sectionNavigation}>
                 <Sidebar />
               </ErrorBoundary>
             </div>
@@ -703,7 +717,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                   type="button"
                   onClick={() => setTabletSidebarOpen((o) => !o)}
                   className="flex lg:hidden h-full min-h-[52px] w-10 shrink-0 touch-manipulation items-center justify-center border-r border-app-line-25 text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
-                  aria-label="Menu navigazione"
+                  aria-label={t.nav.menuToggleAria ?? 'Menu'}
                 >
                   <svg className={`h-5 w-5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
@@ -727,10 +741,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                   desktopSidebarHost={desktopSidebarNavHost}
                 />
               </Suspense>
-              <ErrorBoundary sectionName="barra di sincronizzazione" fallback={null}>
+              <ErrorBoundary sectionName={t.errorBoundary.sectionSyncBar} fallback={null}>
                 <EmailSyncProgressBar />
               </ErrorBoundary>
-              <ErrorBoundary sectionName="questa pagina">
+              <ErrorBoundary sectionName={t.errorBoundary.sectionThisPage}>
                 <BranchSessionGate>
                   <Suspense fallback={null}>
                     <AppMainScrollRestoration />
