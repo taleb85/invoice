@@ -9,11 +9,17 @@
  *   1. Pass 1 deterministico (veloce, gratis) — corregge fornitore/data/tipo
  *      usando metadata OCR già presenti + catena di qualità 2/3.
  *   2. Pass 2 AI (Gemini Vision) — solo se passi `--with-ai`. Costoso.
+ *   3. Cleanup — solo se passi `--cleanup`. Pulisce bolle/fatture create per
+ *      errore quando il documento sorgente è una conferma d'ordine.
  *
  * Uso:
  *   npm run audit:full                         # solo pass 1 (veloce)
  *   npm run audit:full -- --with-ai            # pass 1 + pass 2 AI (lento)
  *   npm run audit:full -- --phase=ai           # solo pass 2 (AI)
+ *   npm run audit:full -- --phase=cleanup      # solo cleanup (dry-run)
+ *   npm run audit:full -- --cleanup            # cleanup in dry-run (mostra cosa farebbe)
+ *   npm run audit:full -- --cleanup --cleanup-apply
+ *                                              # cleanup REALE (cancella bolle/fatture)
  *   npm run audit:full -- --sede-id=<uuid>     # limita a una sede
  *   npm run audit:full -- --batch=20           # docs per chiamata
  *   npm run audit:full -- --max-iterations=10  # tetto al loop
@@ -80,8 +86,10 @@ const c = (color, text) => (isTty ? `${C[color]}${text}${C.reset}` : text)
 function parseArgs() {
   const args = process.argv.slice(2)
   const flags = {
-    phase: null, // 'deterministic' | 'ai' | null (=> entrambe se withAi)
+    phase: null, // 'deterministic' | 'ai' | 'cleanup' | null
     withAi: false,
+    cleanup: false,
+    cleanupApply: false,
     sedeId: null,
     batch: null,
     maxIterations: 200,
@@ -92,6 +100,8 @@ function parseArgs() {
   for (const arg of args) {
     if (arg === '--help' || arg === '-h') flags.help = true
     else if (arg === '--with-ai') flags.withAi = true
+    else if (arg === '--cleanup') flags.cleanup = true
+    else if (arg === '--cleanup-apply') flags.cleanupApply = true
     else if (arg === '--force') flags.force = true
     else if (arg === '--dry-run') flags.dryRun = true
     else if (arg.startsWith('--phase=')) flags.phase = arg.slice('--phase='.length).trim()
@@ -113,8 +123,13 @@ if (flags.help) {
   npm run audit:full -- --with-ai            pass 1 + pass 2 (AI Gemini)
   npm run audit:full -- --phase=ai           solo pass 2 (AI)
   npm run audit:full -- --phase=deterministic solo pass 1
+  npm run audit:full -- --phase=cleanup      solo cleanup (dry-run)
+  npm run audit:full -- --cleanup            cleanup in dry-run (mostra candidati)
+  npm run audit:full -- --cleanup --cleanup-apply
+                                             cleanup REALE: cancella bolle/fatture
+                                             create per errore da Order Confirmation
   npm run audit:full -- --sede-id=<uuid>     limita a una sede
-  npm run audit:full -- --batch=N            docs per chiamata (default 50/5)
+  npm run audit:full -- --batch=N            docs per chiamata (default 50/5/25)
   npm run audit:full -- --max-iterations=N   tetto al loop (default 200)
   npm run audit:full -- --force              riprocessa anche già marcati
   npm run audit:full -- --dry-run            solo stima, non chiama l'endpoint
@@ -140,11 +155,16 @@ const ENDPOINT = `${SITE}/api/admin/audit-and-fix-all`
 // ─── Caller ───────────────────────────────────────────────────────────────────
 
 async function runOneBatch(phase) {
+  // Cleanup è SEMPRE in dry-run a meno che l'utente non abbia passato esplicitamente
+  // --cleanup-apply. Questo è un guard di sicurezza: cancellazioni vere richiedono
+  // intenzione esplicita.
+  const cleanupDryRun = phase === 'cleanup_misclassified' && !flags.cleanupApply
   const body = {
     phase,
     ...(flags.sedeId ? { sede_id: flags.sedeId } : {}),
     ...(flags.batch ? { batch_size: flags.batch } : {}),
     ...(flags.force ? { force: true } : {}),
+    ...(cleanupDryRun ? { dry_run: true } : {}),
   }
 
   const res = await fetch(ENDPOINT, {
@@ -173,10 +193,20 @@ async function runOneBatch(phase) {
 }
 
 async function loopPhase(phase, label) {
+  const isCleanup = phase === 'cleanup_misclassified'
+  const cleanupDryRun = isCleanup && !flags.cleanupApply
+
   console.log()
   console.log(c('bold', c('cyan', `═══ ${label} ═══`)))
   console.log(c('gray', `endpoint: ${ENDPOINT}`))
-  console.log(c('gray', `phase: ${phase}${flags.sedeId ? `, sede: ${flags.sedeId}` : ''}${flags.force ? ', force=true' : ''}`))
+  console.log(c('gray', `phase: ${phase}${flags.sedeId ? `, sede: ${flags.sedeId}` : ''}${flags.force ? ', force=true' : ''}${cleanupDryRun ? ', dry_run=true' : ''}`))
+  if (isCleanup) {
+    console.log(
+      cleanupDryRun
+        ? c('yellow', '  ! Cleanup in DRY-RUN — nessuna cancellazione. Aggiungi --cleanup-apply per applicare.')
+        : c('red', '  ! Cleanup REALE — bolle/fatture verranno cancellate dal database.'),
+    )
+  }
   console.log()
 
   const totals = {
@@ -187,6 +217,7 @@ async function loopPhase(phase, label) {
     flagged_for_review: 0,
     unchanged: 0,
     errors: 0,
+    cleanup_actions: 0,
   }
 
   let firstRemaining = null
@@ -212,6 +243,9 @@ async function loopPhase(phase, label) {
     totals.flagged_for_review += result.flagged_for_review
     totals.unchanged += result.unchanged
     totals.errors += result.errors
+    if (Array.isArray(result.cleanup_actions)) {
+      totals.cleanup_actions += result.cleanup_actions.length
+    }
 
     if (firstRemaining === null) firstRemaining = result.remaining_estimate
 
@@ -221,16 +255,28 @@ async function loopPhase(phase, label) {
         : 100
 
     const bar = renderBar(pct)
-    process.stdout.write(
-      `  ${c('cyan', `iter ${String(i).padStart(3, ' ')}`)} ${bar} ${String(pct).padStart(3, ' ')}%  ` +
-        `checked=${c('bold', totals.checked)} ` +
-        `forn+${c('green', totals.fornitore_fixed)} ` +
-        `tipo+${c('green', totals.tipo_fixed)} ` +
-        `flagged=${c('yellow', totals.flagged_for_review)} ` +
-        `err=${c('red', totals.errors)} ` +
-        c('gray', `(rem≈${result.remaining_estimate})`) +
-        '\n',
-    )
+    if (isCleanup) {
+      process.stdout.write(
+        `  ${c('cyan', `iter ${String(i).padStart(3, ' ')}`)} ${bar} ${String(pct).padStart(3, ' ')}%  ` +
+          `checked=${c('bold', totals.checked)} ` +
+          `cleaned=${c('green', totals.cleanup_actions)} ` +
+          `err=${c('red', totals.errors)} ` +
+          c('gray', `(rem≈${result.remaining_estimate})`) +
+          (cleanupDryRun ? c('yellow', ' [DRY-RUN]') : '') +
+          '\n',
+      )
+    } else {
+      process.stdout.write(
+        `  ${c('cyan', `iter ${String(i).padStart(3, ' ')}`)} ${bar} ${String(pct).padStart(3, ' ')}%  ` +
+          `checked=${c('bold', totals.checked)} ` +
+          `forn+${c('green', totals.fornitore_fixed)} ` +
+          `tipo+${c('green', totals.tipo_fixed)} ` +
+          `flagged=${c('yellow', totals.flagged_for_review)} ` +
+          `err=${c('red', totals.errors)} ` +
+          c('gray', `(rem≈${result.remaining_estimate})`) +
+          '\n',
+      )
+    }
 
     // Mostra ogni cambiamento (max 5 per batch per non sovraccaricare l'output)
     if (Array.isArray(result.changes) && result.changes.length) {
@@ -251,6 +297,23 @@ async function loopPhase(phase, label) {
       }
     }
 
+    // Cleanup: mostra ogni azione (max 5)
+    if (Array.isArray(result.cleanup_actions) && result.cleanup_actions.length) {
+      for (const a of result.cleanup_actions.slice(0, 5)) {
+        const status = a.applied ? c('green', '✓') : c('yellow', '○')
+        const orph = a.deleted_orphan_fattura_ids?.length ?? 0
+        console.log(
+          c('gray', `        ${status} ${(a.fornitore_nome ?? '?').padEnd(28).slice(0, 28)} ${(a.file_name ?? '').slice(0, 36)}`) +
+            (a.deleted_bolla_id ? c('gray', ` bolla=${shortId(a.deleted_bolla_id)}`) : '') +
+            (a.deleted_fattura_id ? c('gray', ` fat=${shortId(a.deleted_fattura_id)}`) : '') +
+            (orph > 0 ? c('gray', ` +${orph} orfane`) : ''),
+        )
+      }
+      if (result.cleanup_actions.length > 5) {
+        console.log(c('gray', `        · …${result.cleanup_actions.length - 5} altre`))
+      }
+    }
+
     if (!result.has_more) {
       break
     }
@@ -260,10 +323,15 @@ async function loopPhase(phase, label) {
   console.log(c('bold', `  riepilogo ${label}`))
   console.log(`    iterazioni:        ${totals.iterations}`)
   console.log(`    documenti visti:   ${totals.checked}`)
-  console.log(`    fornitore corretti:${c('green', String(totals.fornitore_fixed))}`)
-  console.log(`    tipo corretti:     ${c('green', String(totals.tipo_fixed))}`)
-  console.log(`    da rivedere:       ${c('yellow', String(totals.flagged_for_review))}`)
-  console.log(`    invariati:         ${totals.unchanged}`)
+  if (isCleanup) {
+    const verb = cleanupDryRun ? 'da pulire' : 'puliti'
+    console.log(`    ${verb.padEnd(18)} ${c('green', String(totals.cleanup_actions))}`)
+  } else {
+    console.log(`    fornitore corretti:${c('green', String(totals.fornitore_fixed))}`)
+    console.log(`    tipo corretti:     ${c('green', String(totals.tipo_fixed))}`)
+    console.log(`    da rivedere:       ${c('yellow', String(totals.flagged_for_review))}`)
+    console.log(`    invariati:         ${totals.unchanged}`)
+  }
   console.log(`    errori:            ${c(totals.errors > 0 ? 'red' : 'gray', String(totals.errors))}`)
   return totals
 }
@@ -316,7 +384,17 @@ const startedAt = Date.now()
 const summaries = []
 
 try {
-  if (flags.phase === 'ai' || flags.phase === 'pass2') {
+  if (
+    flags.phase === 'cleanup' ||
+    flags.phase === 'cleanup_misclassified' ||
+    (flags.cleanup && !flags.phase)
+  ) {
+    const label = flags.cleanupApply
+      ? 'CLEANUP — Order Confirmation (REALE)'
+      : 'CLEANUP — Order Confirmation (DRY-RUN)'
+    const t = await loopPhase('cleanup_misclassified', label)
+    summaries.push({ label: 'cleanup_misclassified', ...t })
+  } else if (flags.phase === 'ai' || flags.phase === 'pass2') {
     const t = await loopPhase('ai', 'PASS 2 — AI Gemini Vision')
     summaries.push({ label: 'pass2_ai', ...t })
   } else if (flags.phase === 'deterministic' || flags.phase === 'pass1') {

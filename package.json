@@ -34,6 +34,8 @@
     "audit:full": "node scripts/audit-and-fix-all.mjs",
     "audit:full:ai": "node scripts/audit-and-fix-all.mjs --with-ai",
     "audit:full:dry": "node scripts/audit-and-fix-all.mjs --dry-run",
+    "audit:cleanup": "node scripts/audit-and-fix-all.mjs --phase=cleanup",
+    "audit:cleanup:apply": "node scripts/audit-and-fix-all.mjs --phase=cleanup --cleanup-apply",
     "fix:audit": "node scripts/fix-audit-anomalies.mjs",
     "fix:audit:dry": "node scripts/fix-audit-anomalies.mjs --dry-run"
   },

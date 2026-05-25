@@ -11,7 +11,7 @@ import {
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 
 export const dynamic = 'force-dynamic'
-/** Pass 2 (AI) può richiedere fino a 60s su batch di 5 documenti. */
+/** Pass 2 (AI) può richiedere fino a 60s su batch di 5 documenti. Cleanup è veloce. */
 export const maxDuration = 300
 
 type Body = {
@@ -98,12 +98,10 @@ export async function POST(req: NextRequest) {
     }
 
     const rawPhase = String(body.phase ?? 'deterministic').toLowerCase().trim()
-    const phase: AuditPhase =
-      rawPhase === 'ai' || rawPhase === 'pass2'
-        ? 'ai'
-        : rawPhase === 'cleanup' || rawPhase === 'cleanup_misclassified'
-          ? 'cleanup_misclassified'
-          : 'deterministic'
+    let phase: AuditPhase
+    if (rawPhase === 'ai' || rawPhase === 'pass2') phase = 'ai'
+    else if (rawPhase === 'cleanup' || rawPhase === 'cleanup_misclassified') phase = 'cleanup_misclassified'
+    else phase = 'deterministic'
 
     const requestedSede =
       typeof body.sede_id === 'string' ? body.sede_id.trim() : ''

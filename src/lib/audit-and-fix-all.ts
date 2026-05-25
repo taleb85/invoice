@@ -462,18 +462,49 @@ async function applyAiFix(
   let tipoChanged = false
   let flagged = false
 
-  // Tipo: applica solo se conf alta E differente
-  if (conf >= AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE && tipoNorm && tipoNorm !== currentKind) {
+  // Tipi specifici e affidabili (vincono su qualsiasi AI-altro/comunicazione).
+  const SPECIFIC_KINDS = new Set([
+    'fattura',
+    'bolla',
+    'nota_credito',
+    'statement',
+    'ordine',
+  ])
+  // Tipi "vaghi" che l'AI usa come fallback quando non riesce a classificare meglio.
+  const VAGUE_KINDS = new Set(['comunicazione', 'listino', 'altro'])
+
+  // Tipo: applica solo se conf alta E differente E non è un downgrade da specifico a vago.
+  // Caso reale che ci ha bruciato: AI ritornava 'altro' → mappato a 'comunicazione' →
+  // sostituiva 'bolla'/'fattura'/'ordine' (più affidabili). Le regressioni erano enormi.
+  const aiSuggestsDowngrade =
+    !!tipoNorm && VAGUE_KINDS.has(tipoNorm) && !!currentKind && SPECIFIC_KINDS.has(currentKind)
+
+  if (
+    conf >= AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE &&
+    tipoNorm &&
+    tipoNorm !== currentKind &&
+    !aiSuggestsDowngrade
+  ) {
     updatedMeta.pending_kind = tipoNorm
     if (tipoNorm === 'statement') updates.is_statement = true
     tipoChanged = true
   }
 
-  // Fornitore: applica solo se match certo + conf alta + diverso
+  // Fornitore: applica solo se match certo + conf alta + diverso.
+  // Safeguard extra: se il match attuale è 'email' (mittente verificato), una
+  // sovrascrittura via AI deve avere conf >= 0.9 (più stringente) perché l'email
+  // è in genere il segnale più affidabile.
+  const currentFornitoreLocked =
+    typeof meta.matched_by === 'string' &&
+    (meta.matched_by === 'email' || meta.matched_by === 'piva')
+  const fornitoreThreshold = currentFornitoreLocked
+    ? Math.max(AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE, 0.95)
+    : AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE
+
   if (
     suggestedFornitoreId &&
     suggestedFornitoreId !== doc.fornitore_id &&
-    conf >= AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE
+    conf >= fornitoreThreshold
   ) {
     updates.fornitore_id = suggestedFornitoreId
     updatedMeta.matched_by = suggestedFornitoreSource ?? 'ai'

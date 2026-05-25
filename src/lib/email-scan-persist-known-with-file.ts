@@ -269,11 +269,16 @@ export async function persistKnownFornitoreEmailScanWithFile(
   const learnedOverridesAutoStatement =
     autoPendingKind === 'statement' &&
     (learnedPendingKind === 'fattura' || learnedPendingKind === 'bolla' || learnedPendingKind === 'nota_credito')
-  const effectivePendingKind = learnedOverridesAutoStatement
-    ? learnedPendingKind
-    : autoPendingKind ?? (
-        subjectIsExplicitlyInvoice && learnedPendingKind === 'statement' ? null : learnedPendingKind
-      )
+  // "Ordine" rilevato dai pattern testuali (Order Confirmation, conferma ordine, ecc.)
+  // è ASSOLUTO: nessun learned hint può sovrascriverlo. Vedi nota in scan-emails/route.ts.
+  const effectivePendingKind =
+    autoPendingKind === 'ordine'
+      ? ('ordine' as const)
+      : learnedOverridesAutoStatement
+        ? learnedPendingKind
+        : autoPendingKind ?? (
+            subjectIsExplicitlyInvoice && learnedPendingKind === 'statement' ? null : learnedPendingKind
+          )
   const treatAsStatement = effectivePendingKind === 'statement'
   const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
   const isStatementDoc = effectivePendingKind === 'statement'

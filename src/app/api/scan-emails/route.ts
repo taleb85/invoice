@@ -1968,9 +1968,14 @@ async function processEmails(
 
       /**
        * "estratto conto" auto-detected always wins (prevents statements going to bolla queue).
-       * "ordine" auto-detected is overridden by a learned hint, because some suppliers (e.g. UK wine
-       * distributors) name delivery notes "Order Confirmation" -- once the user teaches the system
-       * that these docs are bolle, the learned hint should stick.
+       *
+       * "ordine" auto-detected is ABSOLUTE: i pattern testuali "Order Confirmation",
+       * "Sales Order Confirmation", "conferma ordine", ecc. sono inequivocabili e
+       * NON devono mai essere sovrascritti da un learned hint. In passato si lasciava
+       * che un hint "bolla" o "fattura" prevalesse (per fornitori che usavano nomi
+       * commerciali simili), ma questo ha generato 30+ bolle/fatture spurie da
+       * conferme d'ordine: ogni Order Confirmation ricevuta restava in coda finché
+       * l'utente non la scartava manualmente.
        *
        * Guard: a learned 'statement' hint must NOT win when the subject explicitly signals an invoice.
        * The subject is the most reliable signal and takes precedence over learned OCR-tipo hints.
@@ -1979,8 +1984,8 @@ async function processEmails(
       const effectivePendingKind =
         autoPendingKind === 'statement'
           ? 'statement'
-          : (autoPendingKind === 'ordine' && learnedPendingKind != null && learnedPendingKind !== 'ordine')
-            ? learnedPendingKind
+          : autoPendingKind === 'ordine'
+            ? 'ordine'
             : autoPendingKind ?? (subjectIsExplicitlyInvoice && learnedPendingKind === 'statement' ? null : learnedPendingKind)
 
       const treatAsStatement = effectivePendingKind === 'statement'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
-import { Sparkles, Zap } from 'lucide-react'
+import { Sparkles, Trash2, Zap } from 'lucide-react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
@@ -21,7 +21,7 @@ import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
  * Idempotente: i documenti già auditati vengono skippati ai cicli successivi.
  */
 
-type Phase = 'deterministic' | 'ai'
+type Phase = 'deterministic' | 'ai' | 'cleanup_misclassified'
 
 type AuditChange = {
   doc_id: string
@@ -32,6 +32,18 @@ type AuditChange = {
   fattura_id: string | null
   bolla_id: string | null
   reason: string
+}
+
+type CleanupAction = {
+  doc_id: string
+  fornitore_nome: string | null
+  oggetto_mail: string | null
+  file_name: string | null
+  pending_kind: string | null
+  deleted_bolla_id: string | null
+  deleted_fattura_id: string | null
+  deleted_orphan_fattura_ids: string[]
+  applied: boolean
 }
 
 type BatchResult = {
@@ -45,6 +57,8 @@ type BatchResult = {
   errors: number
   has_more: boolean
   changes: AuditChange[]
+  cleanup_actions?: CleanupAction[]
+  dry_run?: boolean
   remaining_estimate: number
   error?: string
 }
@@ -89,8 +103,17 @@ export default function AuditAndFixAllCard() {
   const [done, setDone] = useState(false)
   const abortRef = useRef(false)
 
+  // Cleanup state separato — dry-run preview prima della cancellazione vera
+  const [cleanupBusy, setCleanupBusy] = useState(false)
+  const [cleanupPreview, setCleanupPreview] = useState<CleanupAction[] | null>(null)
+  const [cleanupApplied, setCleanupApplied] = useState<{
+    count: number
+    errors: number
+  } | null>(null)
+  const [cleanupError, setCleanupError] = useState<string | null>(null)
+
   const runOneBatch = useCallback(
-    async (currentPhase: Phase): Promise<BatchResult> => {
+    async (currentPhase: Phase, opts?: { dryRun?: boolean }): Promise<BatchResult> => {
       const res = await fetch('/api/admin/audit-and-fix-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,6 +121,7 @@ export default function AuditAndFixAllCard() {
         body: JSON.stringify({
           phase: currentPhase,
           ...(sedeCtx.effectiveSedeId ? { sede_id: sedeCtx.effectiveSedeId } : {}),
+          ...(opts?.dryRun ? { dry_run: true } : {}),
         }),
       })
       const json = (await res.json()) as BatchResult
@@ -204,6 +228,86 @@ export default function AuditAndFixAllCard() {
     abortRef.current = true
   }, [])
 
+  const handleCleanupPreview = useCallback(async () => {
+    setCleanupBusy(true)
+    setCleanupError(null)
+    setCleanupPreview(null)
+    setCleanupApplied(null)
+    try {
+      // Carica TUTTI i candidati in dry-run (con batch grosso per fare meno round-trip).
+      const all: CleanupAction[] = []
+      const HARD_LIMIT = 50
+      let lastRemaining = 0
+      for (let i = 0; i < HARD_LIMIT; i++) {
+        const res = await fetch('/api/admin/audit-and-fix-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            phase: 'cleanup_misclassified',
+            dry_run: true,
+            batch_size: 100,
+            ...(sedeCtx.effectiveSedeId ? { sede_id: sedeCtx.effectiveSedeId } : {}),
+          }),
+        })
+        const json = (await res.json()) as BatchResult
+        if (!res.ok || json.ok === false) {
+          throw new Error(json.error ?? `HTTP ${res.status}`)
+        }
+        if (Array.isArray(json.cleanup_actions)) all.push(...json.cleanup_actions)
+        lastRemaining = json.remaining_estimate
+        if (!json.has_more) break
+      }
+      setCleanupPreview(all)
+      void lastRemaining
+    } catch (e) {
+      setCleanupError(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setCleanupBusy(false)
+    }
+  }, [sedeCtx.effectiveSedeId])
+
+  const handleCleanupApply = useCallback(async () => {
+    if (!cleanupPreview || cleanupPreview.length === 0) return
+    if (!confirm(`Cancellare definitivamente ${cleanupPreview.length} bolle/fatture create per errore da Order Confirmation? I file resteranno accessibili nello storage, ma le righe DB verranno rimosse.`)) {
+      return
+    }
+    setCleanupBusy(true)
+    setCleanupError(null)
+    let applied = 0
+    let errors = 0
+    try {
+      const HARD_LIMIT = 50
+      for (let i = 0; i < HARD_LIMIT; i++) {
+        const res = await fetch('/api/admin/audit-and-fix-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            phase: 'cleanup_misclassified',
+            dry_run: false,
+            batch_size: 50,
+            ...(sedeCtx.effectiveSedeId ? { sede_id: sedeCtx.effectiveSedeId } : {}),
+          }),
+        })
+        const json = (await res.json()) as BatchResult
+        if (!res.ok || json.ok === false) {
+          throw new Error(json.error ?? `HTTP ${res.status}`)
+        }
+        const acts = json.cleanup_actions ?? []
+        applied += acts.filter((a) => a.applied).length
+        errors += json.errors
+        if (!json.has_more) break
+      }
+      setCleanupApplied({ count: applied, errors })
+      setCleanupPreview(null)
+    } catch (e) {
+      setCleanupError(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setCleanupBusy(false)
+    }
+  }, [cleanupPreview, sedeCtx.effectiveSedeId])
+
   if (!canRun) return null
 
   const pct =
@@ -241,7 +345,7 @@ export default function AuditAndFixAllCard() {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || cleanupBusy}
           onClick={() => handleStart('deterministic')}
           className="touch-manipulation rounded-lg border border-emerald-500/40 bg-emerald-500/8 px-3 py-1.5 text-xs font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 disabled:opacity-50"
         >
@@ -250,7 +354,7 @@ export default function AuditAndFixAllCard() {
         </button>
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || cleanupBusy}
           onClick={() => handleStart('with_ai')}
           className="touch-manipulation rounded-lg border border-purple-500/40 bg-purple-500/8 px-3 py-1.5 text-xs font-semibold text-purple-200/95 transition-colors hover:bg-purple-500/15 disabled:opacity-50"
         >
@@ -259,13 +363,104 @@ export default function AuditAndFixAllCard() {
         </button>
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || cleanupBusy}
           onClick={() => handleStart('ai_only')}
           className="touch-manipulation rounded-lg border border-app-line-25 bg-app-line-10 px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-15 disabled:opacity-50"
           title="Salta la passata veloce e fai solo Gemini Vision"
         >
           Solo AI
         </button>
+      </div>
+
+      <div className="mt-4 border-t border-app-line-15 pt-3">
+        <h4 className="text-xs font-semibold text-app-fg">
+          Pulizia bolle/fatture create per errore
+        </h4>
+        <p className="mt-1 text-[11px] text-app-fg-muted">
+          Trova bolle/fatture create automaticamente da email di tipo
+          &laquo;Order Confirmation&raquo;: sono ordini, non documenti contabili.
+          Mostra prima un&rsquo;anteprima, poi cancella solo se confermi.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy || cleanupBusy}
+            onClick={handleCleanupPreview}
+            className="touch-manipulation rounded-lg border border-amber-500/40 bg-amber-500/8 px-3 py-1.5 text-xs font-semibold text-amber-200/95 transition-colors hover:bg-amber-500/15 disabled:opacity-50"
+          >
+            <Trash2 className="-mt-0.5 mr-1 inline-block h-3.5 w-3.5" />
+            {cleanupBusy && !cleanupPreview
+              ? 'Cerco candidati…'
+              : 'Cerca ordini classificati come bolle/fatture'}
+          </button>
+          {cleanupPreview && cleanupPreview.length > 0 ? (
+            <button
+              type="button"
+              disabled={cleanupBusy}
+              onClick={handleCleanupApply}
+              className="touch-manipulation rounded-lg border border-red-500/40 bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-100 transition-colors hover:bg-red-500/25 disabled:opacity-50"
+            >
+              {cleanupBusy
+                ? 'Cancellazione in corso…'
+                : `Conferma cancellazione di ${cleanupPreview.length} record`}
+            </button>
+          ) : null}
+        </div>
+
+        {cleanupError ? (
+          <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+            ⚠ {cleanupError}
+          </p>
+        ) : null}
+
+        {cleanupApplied ? (
+          <p className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            ✓ Cancellati {cleanupApplied.count} documenti
+            {cleanupApplied.errors > 0 ? ` (${cleanupApplied.errors} errori)` : ''}.
+          </p>
+        ) : null}
+
+        {cleanupPreview && cleanupPreview.length === 0 && !cleanupBusy ? (
+          <p className="mt-2 rounded-lg border border-app-line-25 bg-app-line-10 px-3 py-2 text-xs text-app-fg-muted">
+            Nessun candidato trovato: tutto pulito.
+          </p>
+        ) : null}
+
+        {cleanupPreview && cleanupPreview.length > 0 ? (
+          <details className="mt-2" open>
+            <summary className="cursor-pointer text-xs font-medium text-amber-200/80 hover:text-amber-200">
+              {cleanupPreview.length} candidati da cancellare
+            </summary>
+            <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto rounded-lg border border-app-line-15 bg-app-line-5 p-2 text-[11px]">
+              {cleanupPreview.map((a) => {
+                const orph = a.deleted_orphan_fattura_ids?.length ?? 0
+                return (
+                  <li
+                    key={a.doc_id}
+                    className="flex items-start gap-2 truncate text-app-fg-muted"
+                  >
+                    <span className="text-amber-300">•</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium text-app-fg">
+                        {a.fornitore_nome ?? '?'}
+                      </span>{' '}
+                      <span className="text-app-fg-muted">{a.file_name ?? '—'}</span>
+                      {a.deleted_bolla_id ? (
+                        <span className="ml-2 text-cyan-300">bolla</span>
+                      ) : null}
+                      {a.deleted_fattura_id ? (
+                        <span className="ml-2 text-cyan-300">fattura</span>
+                      ) : null}
+                      {orph > 0 ? (
+                        <span className="ml-2 text-amber-300">+{orph} orfane</span>
+                      ) : null}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </details>
+        ) : null}
       </div>
 
       {busy ? (
