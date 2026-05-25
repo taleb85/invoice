@@ -55,6 +55,30 @@ import {
   GlyphXMark,
 } from '@/components/ui/glyph-icons'
 
+/**
+ * Safe i18n template helper.
+ *
+ * Returns `template` with `{key}` placeholders replaced by `params[key]`.
+ * If `template` is `undefined` (e.g. an i18n key is missing because the
+ * locale module was loaded before a key was added — typical Turbopack HMR
+ * race), falls back to `fallback`, or to a best-effort string built from the
+ * params if no fallback is provided. This avoids hard crashes on stale dev
+ * sessions and on locales where a new key has not been backfilled yet.
+ */
+function tpl(
+  template: string | undefined,
+  params: Record<string, string | number> = {},
+  fallback?: string,
+): string {
+  let out = typeof template === 'string'
+    ? template
+    : (typeof fallback === 'string' ? fallback : Object.values(params).join(' '))
+  for (const [k, v] of Object.entries(params)) {
+    out = out.split(`{${k}}`).join(String(v))
+  }
+  return out
+}
+
 async function parsePendingQueueMutationError(res: Response): Promise<string> {
   try {
     const j = (await res.json()) as { error?: unknown }
@@ -3864,39 +3888,55 @@ export function VerificationStatusTab({
              */
             if (phase === 'connect' && !emitted.connect) {
               emitted.connect = true
-              appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogConnecting}`, 'progress')
+              appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogConnecting ?? 'connecting to mailbox…'}`, 'progress')
             } else if (phase === 'search' && (percent ?? 0) <= 30 && !emitted.searching) {
               emitted.searching = true
-              appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogSearching}`, 'progress')
+              appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogSearching ?? 'searching…'}`, 'progress')
             } else if (phase === 'search' && (percent ?? 0) >= 35 && !emitted.searchDone) {
               emitted.searchDone = true
               const n = mailsFound ?? 0
               const msg = n === 0
-                ? t.statements.aiPipelineLogSearchEmpty
-                : (n === 1 ? t.statements.aiPipelineLogSearchFound_one : t.statements.aiPipelineLogSearchFound_other).replace('{n}', String(n))
+                ? (t.statements.aiPipelineLogSearchEmpty ?? 'no email found')
+                : tpl(
+                    n === 1 ? t.statements.aiPipelineLogSearchFound_one : t.statements.aiPipelineLogSearchFound_other,
+                    { n },
+                    `${n} email found`,
+                  )
               appendPipelineLog(`${logLabel}: ${msg}`, n === 0 ? 'info' : 'progress')
             } else if (phase === 'process') {
               if (!emitted.processStarted) {
                 emitted.processStarted = true
-                appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogProcessingStarted}`, 'progress')
+                appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogProcessingStarted ?? 'processing started…'}`, 'progress')
               }
               if (mailsProcessed != null && mailsFound != null && mailsProcessed > emitted.lastProcessedReported) {
                 emitted.lastProcessedReported = mailsProcessed
                 appendPipelineLog(
-                  `${logLabel}: ${t.statements.aiPipelineLogProcessing.replace('{cur}', String(mailsProcessed)).replace('{tot}', String(mailsFound))}`,
+                  `${logLabel}: ${tpl(
+                    t.statements.aiPipelineLogProcessing,
+                    { cur: mailsProcessed, tot: mailsFound },
+                    `processing ${mailsProcessed}/${mailsFound}`,
+                  )}`,
                   'progress',
                 )
               }
             } else if (phase === 'persist' && bozze != null && bozze > 0) {
               appendPipelineLog(
-                `${logLabel}: ${(bozze === 1 ? t.statements.aiPipelineLogSaved_one : t.statements.aiPipelineLogSaved_other).replace('{n}', String(bozze))}`,
+                `${logLabel}: ${tpl(
+                  bozze === 1 ? t.statements.aiPipelineLogSaved_one : t.statements.aiPipelineLogSaved_other,
+                  { n: bozze },
+                  `${bozze} saved`,
+                )}`,
                 'ok',
               )
             }
           } else if (e.type === 'done') {
             bozzeCreate = typeof e.bozzeCreate === 'number' ? e.bozzeCreate : 0
             appendPipelineLog(
-              `${logLabel}: ${(bozzeCreate === 1 ? t.statements.aiPipelineLogDoneOne : t.statements.aiPipelineLogDoneOther).replace('{n}', String(bozzeCreate))}`,
+              `${logLabel}: ${tpl(
+                bozzeCreate === 1 ? t.statements.aiPipelineLogDoneOne : t.statements.aiPipelineLogDoneOther,
+                { n: bozzeCreate },
+                `done (${bozzeCreate})`,
+              )}`,
               'ok',
             )
           } else if (e.type === 'error') {
@@ -3910,7 +3950,7 @@ export function VerificationStatusTab({
       }
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') throw e
-      appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogNetworkError}`, 'warn')
+      appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogNetworkError ?? 'network error'}`, 'warn')
     }
     return bozzeCreate
   }, [appendPipelineLog, supplierLoc.currencyLocale, t])
@@ -3937,7 +3977,7 @@ export function VerificationStatusTab({
       detailsOpen: false,
       lastEventAt: Date.now(),
     })
-    appendPipelineLog(t.statements.aiPipelineLogAnalysing, 'info')
+    appendPipelineLog(t.statements.aiPipelineLogAnalysing ?? 'analysing…', 'info')
 
     try {
       // ── Fase 1: analisi da checkResults già caricato (nessuna API call) ──
@@ -4007,10 +4047,11 @@ export function VerificationStatusTab({
       const totalSteps = 1 + (needsDdtScan && sedeId ? 1 : 0) + (needsInvoiceScan ? 1 : 0) + 1
       setAiPipelineProgress(prev => ({ ...prev, totalSteps }))
       appendPipelineLog(
-        t.statements.aiPipelineLogAnalysisResult
-          .replace('{total}', String(pipelineAnalisi.total))
-          .replace('{fattura}', String(fatturaMancante))
-          .replace('{bolle}', String(bolleMancanti)),
+        tpl(
+          t.statements.aiPipelineLogAnalysisResult,
+          { total: pipelineAnalisi.total, fattura: fatturaMancante, bolle: bolleMancanti },
+          `${pipelineAnalisi.total} anomalies (${fatturaMancante} missing invoices, ${bolleMancanti} missing delivery notes)`,
+        ),
         'info',
       )
 
@@ -4025,9 +4066,11 @@ export function VerificationStatusTab({
             .replace('{days}', String(pipelineAnalisi.ddtLookbackDays))
         )
         appendPipelineLog(
-          t.statements.aiPipelineLogScanStarted
-            .replace('{label}', deliveryNoteLabel)
-            .replace('{days}', String(pipelineAnalisi.ddtLookbackDays)),
+          tpl(
+            t.statements.aiPipelineLogScanStarted,
+            { label: deliveryNoteLabel, days: pipelineAnalisi.ddtLookbackDays },
+            `${deliveryNoteLabel}: scan started (last ${pipelineAnalisi.ddtLookbackDays} days)`,
+          ),
           'info',
         )
         if (!abort.signal.aborted) {
@@ -4058,7 +4101,11 @@ export function VerificationStatusTab({
           ).replace('{location}', supplierEmail ? ` in ${supplierEmail}` : '')
         )
         appendPipelineLog(
-          t.statements.aiPipelineLogInvoiceScanStarted.replace('{location}', supplierEmail ?? ''),
+          tpl(
+            t.statements.aiPipelineLogInvoiceScanStarted,
+            { location: supplierEmail ?? '' },
+            `Invoice scan started${supplierEmail ? ` (${supplierEmail})` : ''}`,
+          ),
           'info',
         )
         // Nota: non duplichiamo la fetch — la pipeline server gestisce la ricerca fatture.
@@ -4072,7 +4119,7 @@ export function VerificationStatusTab({
 
       // ── Fasi 2+3: pipeline server-side scoped allo statement selezionato ──
       setAiPipelineProgress(prev => ({ ...prev, currentStep: totalSteps, subPercent: null }))
-      appendPipelineLog(t.statements.aiPipelineLogMatching, 'info')
+      appendPipelineLog(t.statements.aiPipelineLogMatching ?? 'matching…', 'info')
       const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4104,9 +4151,11 @@ export function VerificationStatusTab({
       setAiPipelinePhase('done')
       setAiPipelineStatusMsg(null)
       appendPipelineLog(
-        t.statements.aiPipelineLogCompleted
-          .replace('{resolved}', String(data.assoc.resolved + data.assoc.fastFixed))
-          .replace('{remaining}', String(data.remainingAnomalies)),
+        tpl(
+          t.statements.aiPipelineLogCompleted,
+          { resolved: data.assoc.resolved + data.assoc.fastFixed, remaining: data.remainingAnomalies },
+          `Completed (${data.assoc.resolved + data.assoc.fastFixed} resolved, ${data.remainingAnomalies} remaining)`,
+        ),
         'ok',
       )
       // Ricarica le righe del triple-check per lo statement corrente
@@ -5150,7 +5199,7 @@ export function VerificationStatusTab({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span className="min-w-0 break-words">
-                          {t.statements.aiPipelineStaleWarning.replace('{sec}', String(staleSec))}
+                          {tpl(t.statements.aiPipelineStaleWarning, { sec: staleSec }, `No update for ${staleSec}s — the server may be slow or stuck.`)}
                         </span>
                       </div>
                     )
@@ -5171,25 +5220,29 @@ export function VerificationStatusTab({
                       const mm = Math.floor(elapsedSec / 60).toString().padStart(1, '0')
                       const ss = (elapsedSec % 60).toString().padStart(2, '0')
                       return (
-                        <span className="shrink-0 tabular-nums text-[10px] font-medium text-purple-200/70" title={t.statements.aiPipelineElapsedTitle}>
+                        <span className="shrink-0 tabular-nums text-[10px] font-medium text-purple-200/70" title={t.statements.aiPipelineElapsedTitle ?? 'Elapsed'}>
                           {mm}:{ss}
                         </span>
                       )
                     })()}
                     {aiPipelineProgress.totalSteps > 0 && (
-                      <span className="shrink-0 text-[10px] font-medium text-purple-300/80 tabular-nums" title={t.statements.aiPipelineStepTitle}>
-                        {t.statements.aiPipelineStepLabel
-                          .replace('{cur}', String(aiPipelineProgress.currentStep))
-                          .replace('{tot}', String(aiPipelineProgress.totalSteps))}
+                      <span className="shrink-0 text-[10px] font-medium text-purple-300/80 tabular-nums" title={t.statements.aiPipelineStepTitle ?? 'Pipeline step'}>
+                        {tpl(
+                          t.statements.aiPipelineStepLabel,
+                          { cur: aiPipelineProgress.currentStep, tot: aiPipelineProgress.totalSteps },
+                          `Step ${aiPipelineProgress.currentStep}/${aiPipelineProgress.totalSteps}`,
+                        )}
                       </span>
                     )}
                     <button
                       type="button"
                       onClick={() => setAiPipelineProgress(prev => ({ ...prev, detailsOpen: !prev.detailsOpen }))}
                       className="shrink-0 text-[10px] text-app-fg-muted/70 hover:text-purple-200 transition-colors underline"
-                      title={t.statements.aiPipelineDetailsTitle}
+                      title={t.statements.aiPipelineDetailsTitle ?? 'Toggle details'}
                     >
-                      {aiPipelineProgress.detailsOpen ? t.statements.aiPipelineHideDetails : t.statements.aiPipelineShowDetails}
+                      {aiPipelineProgress.detailsOpen
+                        ? (t.statements.aiPipelineHideDetails ?? 'Hide')
+                        : (t.statements.aiPipelineShowDetails ?? 'Show details')}
                     </button>
                     <button
                       type="button"
@@ -5216,19 +5269,19 @@ export function VerificationStatusTab({
                       {aiPipelineProgress.mails.found > 0 && (
                         <span>
                           <span className="text-purple-200/85 font-medium">{aiPipelineProgress.mails.processed}/{aiPipelineProgress.mails.found}</span>
-                          <span className="ml-1 opacity-70">{t.statements.aiPipelineCountersMails}</span>
+                          <span className="ml-1 opacity-70">{t.statements.aiPipelineCountersMails ?? 'mails'}</span>
                         </span>
                       )}
                       {aiPipelineProgress.attachments.total > 0 && (
                         <span>
                           <span className="text-purple-200/85 font-medium">{aiPipelineProgress.attachments.processed}/{aiPipelineProgress.attachments.total}</span>
-                          <span className="ml-1 opacity-70">{t.statements.aiPipelineCountersAttachments}</span>
+                          <span className="ml-1 opacity-70">{t.statements.aiPipelineCountersAttachments ?? 'attachments'}</span>
                         </span>
                       )}
                       {aiPipelineProgress.bozzeCreate > 0 && (
                         <span className="text-emerald-300/85">
                           <span className="font-medium">+{aiPipelineProgress.bozzeCreate}</span>
-                          <span className="ml-1 opacity-80">{t.statements.aiPipelineCountersImported}</span>
+                          <span className="ml-1 opacity-80">{t.statements.aiPipelineCountersImported ?? 'imported'}</span>
                         </span>
                       )}
                     </div>
