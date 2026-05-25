@@ -3869,6 +3869,7 @@ export function VerificationStatusTab({
             const attachmentsTotal = typeof e.attachmentsTotal === 'number' ? e.attachmentsTotal : null
             const attachmentsProcessed = typeof e.attachmentsProcessed === 'number' ? e.attachmentsProcessed : null
             const bozze = typeof e.bozzeCreate === 'number' ? e.bozzeCreate : null
+            const note = typeof e.note === 'string' && e.note.trim() ? e.note.trim() : null
 
             setAiPipelineProgress(prev => ({
               ...prev,
@@ -3884,6 +3885,13 @@ export function VerificationStatusTab({
               bozzeCreate: bozze ?? prev.bozzeCreate,
               lastEventAt: Date.now(),
             }))
+
+            // Se l'evento porta una `note` (es. "search 1/3: FROM ..."), la
+            // logghiamo direttamente nel pannello dettagli: utile per debuggare
+            // perché certi fornitori restituiscono 0 email.
+            if (note) {
+              appendPipelineLog(`${logLabel}: ${note}`, 'progress')
+            }
 
             /*
              * Mapping eventi server → log UI:
@@ -5159,39 +5167,83 @@ export function VerificationStatusTab({
           return (
             <div className={`border-b border-app-soft-border px-4 py-2.5 text-xs transition-colors ${isRunning ? 'bg-purple-950/25' : isDone ? 'bg-emerald-950/20' : 'bg-transparent'}`}>
               {isDone && aiPipelineResult ? (
-                /* ── Risultato finale: summary compatto su una riga ── */
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-[10px] font-semibold text-emerald-300">✓</span>
-                  <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px]">
-                    {aiPipelineResult.analisiTotale > 0 && (
-                      <span className="text-app-fg-muted">
-                        {aiPipelineResult.analisiTotale} {aiPipelineResult.analisiTotale === 1 ? t.statements.aiPipelineAnomaliesDetected_one.replace('{n}', '').trim() : t.statements.aiPipelineAnomaliesDetected_other.replace('{n}', String(aiPipelineResult.analisiTotale))}
-                      </span>
+                /* ── Risultato finale: summary compatto + dettagli espandibili (post-run forensics) ── */
+                <>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-[10px] font-semibold text-emerald-300">✓</span>
+                    <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px]">
+                      {aiPipelineResult.analisiTotale > 0 && (
+                        <span className="text-app-fg-muted">
+                          {aiPipelineResult.analisiTotale} {aiPipelineResult.analisiTotale === 1 ? t.statements.aiPipelineAnomaliesDetected_one.replace('{n}', '').trim() : t.statements.aiPipelineAnomaliesDetected_other.replace('{n}', String(aiPipelineResult.analisiTotale))}
+                        </span>
+                      )}
+                      {aiPipelineResult.resolved > 0 && (
+                        <span className="text-emerald-300 font-semibold">
+                          · {aiPipelineResult.resolved === 1 ? t.statements.aiPipelineResolved_one : t.statements.aiPipelineResolved_other.replace('{n}', String(aiPipelineResult.resolved))}
+                          {aiPipelineResult.emailImported > 0 && (
+                            <span className="text-emerald-400 font-normal"> ({aiPipelineResult.emailImported === 1 ? t.statements.aiPipelineEmailImported_one : t.statements.aiPipelineEmailImported_other.replace('{n}', String(aiPipelineResult.emailImported))})</span>
+                          )}
+                        </span>
+                      )}
+                      {aiPipelineResult.remaining > 0 ? (
+                        <span className="text-amber-300 font-semibold">
+                          · {aiPipelineResult.remaining === 1 ? t.statements.aiPipelineRemaining_one : t.statements.aiPipelineRemaining_other.replace('{n}', String(aiPipelineResult.remaining))}
+                        </span>
+                      ) : aiPipelineResult.resolved === 0 ? (
+                        <span className="text-app-fg-muted">· {t.statements.aiPipelineNoneResolvable}</span>
+                      ) : null}
+                    </div>
+                    {/*
+                     * Bottone "Show details" anche nello stato done: utile per il post-mortem
+                     * (es. "perché 0 email trovate?" → l'utente apre il log e vede i termini
+                     * di ricerca + le UID matchate per ciascuno). Senza questo, il log
+                     * resta inaccessibile non appena la pipeline finisce.
+                     */}
+                    {aiPipelineLog.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAiPipelineProgress(prev => ({ ...prev, detailsOpen: !prev.detailsOpen }))}
+                        className="shrink-0 text-[10px] text-app-fg-muted/70 hover:text-purple-200 transition-colors underline"
+                        title={t.statements.aiPipelineDetailsTitle ?? 'Toggle details'}
+                      >
+                        {aiPipelineProgress.detailsOpen
+                          ? (t.statements.aiPipelineHideDetails ?? 'Hide')
+                          : (t.statements.aiPipelineShowDetails ?? 'Show details')}
+                      </button>
                     )}
-                    {aiPipelineResult.resolved > 0 && (
-                      <span className="text-emerald-300 font-semibold">
-                        · {aiPipelineResult.resolved === 1 ? t.statements.aiPipelineResolved_one : t.statements.aiPipelineResolved_other.replace('{n}', String(aiPipelineResult.resolved))}
-                        {aiPipelineResult.emailImported > 0 && (
-                          <span className="text-emerald-400 font-normal"> ({aiPipelineResult.emailImported === 1 ? t.statements.aiPipelineEmailImported_one : t.statements.aiPipelineEmailImported_other.replace('{n}', String(aiPipelineResult.emailImported))})</span>
-                        )}
-                      </span>
-                    )}
-                    {aiPipelineResult.remaining > 0 ? (
-                      <span className="text-amber-300 font-semibold">
-                        · {aiPipelineResult.remaining === 1 ? t.statements.aiPipelineRemaining_one : t.statements.aiPipelineRemaining_other.replace('{n}', String(aiPipelineResult.remaining))}
-                      </span>
-                    ) : aiPipelineResult.resolved === 0 ? (
-                      <span className="text-app-fg-muted">· {t.statements.aiPipelineNoneResolvable}</span>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => { setAiPipelinePhase('idle'); setAiPipelineResult(null); setAiPipelineAnalisi(null) }}
+                      className="shrink-0 text-[10px] text-app-fg-muted/60 hover:text-app-fg transition-colors"
+                    >
+                      {t.statements.aiPipelineReset}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => { setAiPipelinePhase('idle'); setAiPipelineResult(null); setAiPipelineAnalisi(null) }}
-                    className="shrink-0 text-[10px] text-app-fg-muted/60 hover:text-app-fg transition-colors"
-                  >
-                    {t.statements.aiPipelineReset}
-                  </button>
-                </div>
+                  {aiPipelineProgress.detailsOpen && aiPipelineLog.length > 0 && (
+                    <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-emerald-500/15 bg-emerald-950/20 px-2.5 py-1.5">
+                      <ul className="space-y-0.5 text-[10px] font-mono leading-relaxed">
+                        {aiPipelineLog.slice().reverse().map((entry, i) => {
+                          const elapsed = aiPipelineProgress.startedAt
+                            ? Math.max(0, Math.floor((entry.at - aiPipelineProgress.startedAt) / 1000))
+                            : 0
+                          const mm = Math.floor(elapsed / 60).toString().padStart(1, '0')
+                          const ss = (elapsed % 60).toString().padStart(2, '0')
+                          const color =
+                            entry.level === 'ok' ? 'text-emerald-300/90'
+                            : entry.level === 'warn' ? 'text-amber-300/90'
+                            : entry.level === 'progress' ? 'text-emerald-200/75'
+                            : 'text-app-fg-muted/85'
+                          return (
+                            <li key={`${entry.at}-${i}`} className={`flex items-baseline gap-2 ${color}`}>
+                              <span className="shrink-0 tabular-nums text-app-fg-muted/55">{mm}:{ss}</span>
+                              <span className="min-w-0 break-words">{entry.text}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </>
               ) : isRunning ? (
                 /* ── In esecuzione: spinner + stato + timer + indicatore fase/N + dettagli espandibili ── */
                 <>

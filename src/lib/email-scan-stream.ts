@@ -35,6 +35,12 @@ export type EmailScanStreamEvent =
       imapRetry?: { attempt: number; maxAttempts: number } | null
       /** Dettaglio fase connessione (solo `phase === 'connect'`). */
       connectStep?: EmailScanConnectStep | null
+      /**
+       * Nota libera leggibile in UI (es. termine di ricerca corrente quando
+       * si fa IMAP `SEARCH FROM` per ciascun indirizzo/dominio del fornitore).
+       * Non usata per logica, solo per il log "Details" lato client.
+       */
+      note?: string | null
     }
   | {
       /** Emitted immediately when one sede's IMAP connection fails.

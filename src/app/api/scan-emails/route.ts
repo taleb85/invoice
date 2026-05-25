@@ -2969,16 +2969,18 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
                 ...snap(),
               })
             },
-            beforeEachSearchTerm: async ({ index, total }) => {
+            beforeEachSearchTerm: async ({ term, index, total }) => {
               // Quando facciamo N search by-sender, emettiamo un progress per
               // ognuna (l'utente vede la barra avanzare e la UI sa che il pipeline
-              // è vivo anche tra search e fetch).
+              // è vivo anche tra search e fetch). Il `note` porta il termine in
+              // chiaro: utilissimo nei dettagli post-mortem ("perché 0 email?").
               await s({
                 type: 'progress',
                 phase: 'search',
                 percent: 28 + Math.min(3, Math.round((index / Math.max(1, total)) * 3)),
                 connectionWarning: null,
                 ...snap(),
+                note: `search ${index + 1}/${total}: FROM "${term}"`,
               })
             },
             afterSearch: async (info) => {
@@ -2987,6 +2989,9 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
               // NB: NON modifichiamo `mailsFound` qui — quello è il conteggio post-filtro,
               // aggiornato dopo il for-await. Inviamo il raw count solo nel campo `mailsFound`
               // di QUESTO evento (lo snap() lo sovrascriverebbe a 0, quindi mettiamo dopo).
+              const summary = senderScopeForFetch
+                ? `IMAP SEARCH (by sender, ${senderScopeForFetch.emails.length + senderScopeForFetch.domains.length} terms) → ${info.totalUids} UID`
+                : null
               await s({
                 type: 'progress',
                 phase: 'search',
@@ -2994,6 +2999,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
                 connectionWarning: null,
                 ...snap(),
                 mailsFound: info.totalUids,
+                ...(summary ? { note: summary } : {}),
               })
             },
             onFetchProgress: async (info) => {
