@@ -2048,6 +2048,54 @@ function BolleTab({
             }
           }
         }
+
+        // Second pass: for bolle still without a type, look up
+        // documenti_da_processare by bolla_id (rows where file_url was rewritten
+        // or differs from the original document entry).
+        const stillUnlabeledBolle = rows.filter(
+          (b) => b.file_url?.trim() && !tipoMap[b.file_url!.trim()],
+        )
+        if (stillUnlabeledBolle.length > 0) {
+          const bolleIds = stillUnlabeledBolle.map((b) => b.id)
+          const { data: docsByBolla } = await supabase
+            .from('documenti_da_processare')
+            .select('bolla_id, metadata, file_name, oggetto_mail, created_at')
+            .in('bolla_id', bolleIds)
+          if (!cancelled && docsByBolla?.length) {
+            const sortedByBolla = [...docsByBolla].sort((a, b) =>
+              String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')),
+            )
+            const fileUrlByBollaId = new Map(
+              stillUnlabeledBolle.map((b) => [b.id, b.file_url!.trim()] as const),
+            )
+            for (const row of sortedByBolla) {
+              const bid = (row as { bolla_id?: string | null }).bolla_id
+              if (!bid) continue
+              const fu = fileUrlByBollaId.get(bid)
+              if (!fu || tipoMap[fu]) continue
+              const rawTipo = (row.metadata as Record<string, unknown> | null)?.tipo_documento
+              const ocrLabel = tipoDocumentoToLabelStrict(rawTipo)
+              if (ocrLabel) {
+                tipoMap[fu] = ocrLabel
+                continue
+              }
+              const inferred = extractDocTypeLabel(
+                (row as { file_name?: string | null }).file_name ?? null,
+                (row as { oggetto_mail?: string | null }).oggetto_mail ?? null,
+              )
+              if (inferred) tipoMap[fu] = inferred
+            }
+          }
+        }
+
+        // Third pass: as a last resort, infer the type directly from the bolla's
+        // numero_bolla (some references contain hints like "SO", "ORDER", "CONF").
+        for (const b of rows) {
+          const fu = b.file_url?.trim()
+          if (!fu || tipoMap[fu]) continue
+          const inferred = extractDocTypeLabel(b.numero_bolla, fu)
+          if (inferred) tipoMap[fu] = inferred
+        }
       }
       if (!cancelled) {
         setNumeroDaCodaByFileUrl(numeroMap)
