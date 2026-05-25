@@ -1767,7 +1767,12 @@ export type Translations = {
     aiPipelineLogDoneOne: string
     aiPipelineLogDoneOther: string
     aiPipelineLogNetworkError: string
+    /** @deprecated use aiPipelineStaleSoft / aiPipelineStaleSevere */
     aiPipelineStaleWarning: string
+    /** 30–89s di silenzio: tono rassicurante, "ancora al lavoro". `{sec}` per i secondi. */
+    aiPipelineStaleSoft: string
+    /** ≥90s di silenzio: tono più marcato, suggerisce annullamento. `{sec}` per i secondi. */
+    aiPipelineStaleSevere: string
   }
   status: {
     inAttesa: string

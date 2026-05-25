@@ -3854,6 +3854,13 @@ export function VerificationStatusTab({
           try { evt = JSON.parse(line) } catch { continue }
           if (!evt || typeof evt !== 'object') continue
           const e = evt as Record<string, unknown>
+          if (e.type === 'heartbeat') {
+            // Heartbeat dal server: aggiorna solo `lastEventAt` (evita falsi positivi
+            // del rilevatore stale-stream durante operazioni IMAP/AI silenziose).
+            // Nessun log e nessun cambio di counter.
+            setAiPipelineProgress(prev => ({ ...prev, lastEventAt: Date.now() }))
+            continue
+          }
           if (e.type === 'progress') {
             const phase = typeof e.phase === 'string' ? e.phase : ''
             const percent = typeof e.percent === 'number' ? e.percent : null
@@ -5192,15 +5199,31 @@ export function VerificationStatusTab({
                     void aiPipelineTick // forza re-render ogni tick per aggiornare lo stale detector
                     const last = aiPipelineProgress.lastEventAt
                     const staleSec = last ? Math.floor((Date.now() - last) / 1000) : 0
-                    const isStale = staleSec >= 20
-                    return isStale && (
-                      <div className="mb-1.5 flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-950/30 px-2 py-1 text-[10px] text-amber-200/90">
+                    // Soglie di escalation:
+                    //   - <30s: nessun warning (l'heartbeat del server arriva ogni 8s,
+                    //     quindi se passano 30s+ c'è davvero qualcosa che si è inceppato lato rete)
+                    //   - 30–89s: tono morbido ("ancora al lavoro, può richiedere fino a qualche minuto")
+                    //   - ≥90s: tono più marcato ("connessione molto lenta, valuta di annullare")
+                    if (staleSec < 30) return null
+                    const isSevere = staleSec >= 90
+                    const tone = isSevere
+                      ? 'border-amber-500/45 bg-amber-950/40 text-amber-200'
+                      : 'border-amber-500/25 bg-amber-950/20 text-amber-200/85'
+                    const fallbackSoft = `Still working — no update from the server for ${staleSec}s. Large mailboxes or AI inference can take a while.`
+                    const fallbackHard = `No update for ${staleSec}s — the connection may be very slow. You can press Cancel if you don't want to wait.`
+                    const msg = isSevere
+                      ? tpl(t.statements.aiPipelineStaleSevere, { sec: staleSec }, fallbackHard)
+                      : tpl(t.statements.aiPipelineStaleSoft, { sec: staleSec }, fallbackSoft)
+                    return (
+                      <div className={`mb-1.5 flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] ${tone}`}>
                         <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          {isSevere ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          )}
                         </svg>
-                        <span className="min-w-0 break-words">
-                          {tpl(t.statements.aiPipelineStaleWarning, { sec: staleSec }, `No update for ${staleSec}s — the server may be slow or stuck.`)}
-                        </span>
+                        <span className="min-w-0 break-words">{msg}</span>
                       </div>
                     )
                   })()}

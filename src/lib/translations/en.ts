@@ -1463,6 +1463,8 @@ const translations: Translations = {
     aiPipelineLogDoneOther: 'completed — {n} documents imported',
     aiPipelineLogNetworkError: 'network error',
     aiPipelineStaleWarning: 'No update for {sec}s — the server may be slow or stuck. You can press Cancel to abort.',
+    aiPipelineStaleSoft: 'Still working — no update for {sec}s. Large mailboxes or AI inference can take a while.',
+    aiPipelineStaleSevere: 'No update for {sec}s — the connection may be very slow. Press Cancel if you don\'t want to wait.',
   },
   appStrings: {
     brandFooter: 'Smart Pair · Purchase Management',

@@ -3498,13 +3498,61 @@ export async function POST(req: Request) {
     const streamOut = new TransformStream()
     const writer = streamOut.writable.getWriter()
 
+    /**
+     * Serializza ogni `writer.write` su una catena di promise, così le scritture
+     * dell'heartbeat e quelle del worker non si intrecciano mai (NDJSON valido)
+     * e nessuna scrittura prende un lock condiviso esclusivo.
+     */
+    let writeChain: Promise<void> = Promise.resolve()
+    let writerClosed = false
+    const safeWrite = (obj: EmailScanStreamEvent): Promise<void> => {
+      if (writerClosed) return Promise.resolve()
+      const next = writeChain.then(async () => {
+        if (writerClosed) return
+        try {
+          await writer.write(encoder.encode(JSON.stringify(obj) + '\n'))
+        } catch {
+          // writer was closed/aborted while we were queued — non-fatal
+          writerClosed = true
+        }
+      })
+      writeChain = next.catch(() => undefined)
+      return next
+    }
+
+    /**
+     * Heartbeat: 8s di silenzio sono sufficienti per il client a mostrare la
+     * barra "Looks slow". Inviamo un evento neutro `type: 'heartbeat'` che il
+     * client usa solo per aggiornare `lastEventAt`. Lo `stage` è informativo.
+     */
+    let currentStage: string = 'queued'
+    const streamOpenedAt = Date.now()
+    const HEARTBEAT_MS = 8_000
+    const heartbeatTimer: ReturnType<typeof setInterval> = setInterval(() => {
+      if (writerClosed) return
+      void safeWrite({
+        type: 'heartbeat',
+        stage: currentStage,
+        sinceOpenMs: Date.now() - streamOpenedAt,
+      })
+    }, HEARTBEAT_MS)
+
     void (async () => {
-      const write = async (obj: EmailScanStreamEvent) => {
-        await writer.write(encoder.encode(JSON.stringify(obj) + '\n'))
-      }
       try {
+        // Stato "in coda": emesso PRIMA di entrare nella queue, così il client
+        // vede subito qualcosa anche se un'altra scansione blocca emailScanTail.
+        currentStage = 'queued'
+        await safeWrite({ type: 'progress', phase: 'queued', percent: 3, connectionWarning: null })
+
         await queueEmailScan(async () => {
-          await write({ type: 'progress', phase: 'queued', percent: 5, connectionWarning: null })
+          currentStage = 'preparing'
+          await safeWrite({ type: 'progress', phase: 'queued', percent: 5, connectionWarning: null })
+          const wrappedEmit = async (e: EmailScanStreamEvent) => {
+            if (e.type === 'progress') {
+              currentStage = e.phase
+            }
+            await safeWrite(e)
+          }
           const result = await runEmailScanCore({
             userSedeId,
             filterSedeId,
@@ -3514,9 +3562,10 @@ export async function POST(req: Request) {
             lookbackDaysOverride,
             documentKind,
             imapSyncMode,
-            emit: write,
+            emit: wrappedEmit,
           })
-          await write({
+          currentStage = 'complete'
+          await safeWrite({
             type: 'done',
             ricevuti: result.ricevuti,
             ignorate: result.ignorate,
@@ -3537,10 +3586,14 @@ export async function POST(req: Request) {
         const message = err instanceof Error ? err.message : 'Errore sconosciuto'
         console.error('[scan-emails] stream error:', err)
         try {
-          await write({ type: 'error', error: message })
+          await safeWrite({ type: 'error', error: message })
         } catch { /* ignore */ }
       } finally {
+        clearInterval(heartbeatTimer)
+        writerClosed = true
         try {
+          // Attendi che le scritture in coda siano flushate prima di chiudere.
+          await writeChain
           await writer.close()
         } catch { /* ignore */ }
       }
@@ -3550,6 +3603,9 @@ export async function POST(req: Request) {
       headers: {
         'Content-Type': 'application/x-ndjson; charset=utf-8',
         'Cache-Control': 'no-store',
+        // Disabilita il buffering di Vercel/Nginx davanti al runtime così
+        // ogni `write` arriva subito al client (cruciale per NDJSON live).
+        'X-Accel-Buffering': 'no',
       },
     })
   }

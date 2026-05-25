@@ -1409,6 +1409,8 @@ const translations: Translations = {
     aiPipelineLogDoneOther: 'terminé — {n} documents importés',
     aiPipelineLogNetworkError: 'erreur réseau',
     aiPipelineStaleWarning: 'Aucune mise à jour depuis {sec}s — le serveur est peut-être lent ou bloqué. Tu peux annuler.',
+    aiPipelineStaleSoft: 'Toujours en cours — aucune mise à jour depuis {sec}s. Les boîtes volumineuses ou l\'IA peuvent prendre du temps.',
+    aiPipelineStaleSevere: 'Aucune mise à jour depuis {sec}s — la connexion est peut-être très lente. Annule si tu ne veux pas attendre.',
   },
   appStrings: {
     brandFooter: 'Smart Pair · Gestion des achats',

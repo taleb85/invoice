@@ -72,3 +72,17 @@ export type EmailScanStreamEvent =
       blacklistSkipped?: number
     }
   | { type: 'error'; error: string }
+  | {
+      /**
+       * Server → client keep-alive ping emitted every few seconds while the
+       * stream is open. Carries no semantic state; the client just uses it to
+       * keep `lastEventAt` fresh and to know the connection is healthy even
+       * when no `progress` event would otherwise fire (long IMAP search,
+       * queued behind another scan, AI inference, etc).
+       */
+      type: 'heartbeat'
+      /** Server-side label hint for UX ("queued" | "searching" | "processing" | "ai" | "idle"). Optional. */
+      stage?: string
+      /** Server-side seconds since stream open (monotonic). Optional. */
+      sinceOpenMs?: number
+    }
