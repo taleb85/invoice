@@ -3641,6 +3641,33 @@ export function VerificationStatusTab({
   const [aiPipelineResult, setAiPipelineResult] = useState<FornitoreAIPipelineResult | null>(null)
   const [aiPipelineAnalisi, setAiPipelineAnalisi] = useState<FornitoreAIPipelineAnalisi | null>(null)
   const [aiPipelineStatusMsg, setAiPipelineStatusMsg] = useState<string | null>(null)
+  /** Progresso live: timestamp di partenza e step corrente (1..N) per indicatore "Fase X di Y". */
+  const [aiPipelineProgress, setAiPipelineProgress] = useState<{
+    startedAt: number | null
+    currentStep: number
+    totalSteps: number
+    /** Contatori dal mailbox-scan in streaming: mostrati nel pannello dettagli */
+    mails: { found: number; processed: number }
+    attachments: { total: number; processed: number }
+    bozzeCreate: number
+    /** Sub-percent (0-100) della fase mailbox-scan corrente per progress bar fine-grained */
+    subPercent: number | null
+    /** Quando true, l'utente ha aperto il pannello dettagli per vedere il log */
+    detailsOpen: boolean
+  }>({
+    startedAt: null,
+    currentStep: 0,
+    totalSteps: 0,
+    mails: { found: 0, processed: 0 },
+    attachments: { total: 0, processed: 0 },
+    bozzeCreate: 0,
+    subPercent: null,
+    detailsOpen: false,
+  })
+  /** Log eventi (cronologia): mostrato nel pannello dettagli espandibile. Cappato a 50 per non gonfiare DOM. */
+  const [aiPipelineLog, setAiPipelineLog] = useState<Array<{ at: number; text: string; level: 'info' | 'progress' | 'ok' | 'warn' }>>([])
+  /** Tick per re-render del timer ogni secondo (state minimo, niente date object). */
+  const [aiPipelineTick, setAiPipelineTick] = useState(0)
 
   const now = new Date()
   const loc = getLocale(countryCode)
@@ -3713,7 +3740,138 @@ export function VerificationStatusTab({
     setAiPipelinePhase('idle')
     setAiPipelineAnalisi(null)
     setAiPipelineStatusMsg(null)
+    setAiPipelineProgress(prev => ({ ...prev, startedAt: null, currentStep: 0, totalSteps: 0, subPercent: null }))
   }, [])
+
+  /** Tick ogni secondo per refresh del timer durante la pipeline (zero costo quando idle). */
+  useEffect(() => {
+    const isRunning = aiPipelinePhase !== 'idle' && aiPipelinePhase !== 'done'
+    if (!isRunning) return
+    const id = window.setInterval(() => setAiPipelineTick(t => t + 1), 1000)
+    return () => window.clearInterval(id)
+  }, [aiPipelinePhase])
+
+  /** Helper: aggiunge una riga al log con timestamp. */
+  const appendPipelineLog = useCallback((text: string, level: 'info' | 'progress' | 'ok' | 'warn' = 'info') => {
+    setAiPipelineLog(prev => {
+      const next = [...prev, { at: Date.now(), text, level }]
+      return next.length > 50 ? next.slice(-50) : next
+    })
+  }, [])
+
+  /**
+   * Esegue una scansione email in modalità streaming NDJSON e aggiorna progress + log live.
+   * Ritorna il numero di bozze create al termine del run; aggiorna i contatori durante.
+   */
+  const runStreamedEmailScan = useCallback(async (params: {
+    fornitoreId: string
+    sedeId: string
+    lookbackDays: number
+    documentKind: 'bolla' | 'fattura'
+    abortSignal: AbortSignal
+    /** Etichetta per il log (es. "Bolle" / "Fatture") */
+    logLabel: string
+  }): Promise<number> => {
+    const { fornitoreId, sedeId, lookbackDays, documentKind, abortSignal, logLabel } = params
+    let bozzeCreate = 0
+
+    try {
+      const res = await fetch('/api/scan-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
+        signal: abortSignal,
+        body: JSON.stringify({
+          stream: true,
+          fornitore_id: fornitoreId,
+          user_sede_id: sedeId,
+          filter_sede_id: sedeId,
+          mode: 'historical',
+          email_sync_scope: 'lookback',
+          email_sync_lookback_days: lookbackDays,
+          email_sync_document_kind: documentKind,
+          client_locale: supplierLoc.currencyLocale,
+        }),
+      })
+
+      if (!res.ok || !res.body) {
+        appendPipelineLog(`${logLabel}: scan non disponibile (HTTP ${res.status})`, 'warn')
+        return 0
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        if (abortSignal.aborted) {
+          try { await reader.cancel() } catch { /* ignore */ }
+          break
+        }
+        buf += decoder.decode(value, { stream: true })
+        let idx: number
+        while ((idx = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, idx).trim()
+          buf = buf.slice(idx + 1)
+          if (!line) continue
+          let evt: unknown
+          try { evt = JSON.parse(line) } catch { continue }
+          if (!evt || typeof evt !== 'object') continue
+          const e = evt as Record<string, unknown>
+          if (e.type === 'progress') {
+            const phase = typeof e.phase === 'string' ? e.phase : ''
+            const percent = typeof e.percent === 'number' ? e.percent : null
+            const mailsFound = typeof e.mailsFound === 'number' ? e.mailsFound : null
+            const mailsProcessed = typeof e.mailsProcessed === 'number' ? e.mailsProcessed : null
+            const attachmentsTotal = typeof e.attachmentsTotal === 'number' ? e.attachmentsTotal : null
+            const attachmentsProcessed = typeof e.attachmentsProcessed === 'number' ? e.attachmentsProcessed : null
+            const bozze = typeof e.bozzeCreate === 'number' ? e.bozzeCreate : null
+
+            setAiPipelineProgress(prev => ({
+              ...prev,
+              subPercent: percent,
+              mails: {
+                found: mailsFound ?? prev.mails.found,
+                processed: mailsProcessed ?? prev.mails.processed,
+              },
+              attachments: {
+                total: attachmentsTotal ?? prev.attachments.total,
+                processed: attachmentsProcessed ?? prev.attachments.processed,
+              },
+              bozzeCreate: bozze ?? prev.bozzeCreate,
+            }))
+
+            if (phase === 'connect') {
+              appendPipelineLog(`${logLabel}: connessione mailbox…`, 'progress')
+            } else if (phase === 'search' && mailsFound != null) {
+              appendPipelineLog(`${logLabel}: trovate ${mailsFound} email`, 'progress')
+            } else if (phase === 'process' && mailsProcessed != null && mailsFound != null) {
+              appendPipelineLog(`${logLabel}: elaborate ${mailsProcessed}/${mailsFound}`, 'progress')
+            } else if (phase === 'persist' && bozze != null && bozze > 0) {
+              appendPipelineLog(`${logLabel}: ${bozze} ${bozze === 1 ? 'documento salvato' : 'documenti salvati'}`, 'ok')
+            }
+          } else if (e.type === 'done') {
+            bozzeCreate = typeof e.bozzeCreate === 'number' ? e.bozzeCreate : 0
+            appendPipelineLog(
+              `${logLabel}: completato — ${bozzeCreate} ${bozzeCreate === 1 ? 'documento' : 'documenti'} importati`,
+              'ok',
+            )
+          } else if (e.type === 'error') {
+            const msg = typeof e.error === 'string' ? e.error : 'errore sconosciuto'
+            appendPipelineLog(`${logLabel}: ${msg}`, 'warn')
+          } else if (e.type === 'sede_error') {
+            const msg = typeof e.error === 'string' ? e.error : 'errore sede'
+            appendPipelineLog(`${logLabel}: ${msg}`, 'warn')
+          }
+        }
+      }
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') throw e
+      appendPipelineLog(`${logLabel}: errore di rete`, 'warn')
+    }
+    return bozzeCreate
+  }, [appendPipelineLog, supplierLoc.currencyLocale])
 
   const handleAiPipeline = useCallback(async () => {
     if (!sedeId || !fornitoreId) return
@@ -3725,6 +3883,18 @@ export function VerificationStatusTab({
     setAiPipelineResult(null)
     setAiPipelineAnalisi(null)
     setAiPipelineStatusMsg(t.statements.aiPipelineStatusAnalysing)
+    setAiPipelineLog([])
+    setAiPipelineProgress({
+      startedAt: Date.now(),
+      currentStep: 1,
+      totalSteps: 2,
+      mails: { found: 0, processed: 0 },
+      attachments: { total: 0, processed: 0 },
+      bozzeCreate: 0,
+      subPercent: null,
+      detailsOpen: false,
+    })
+    appendPipelineLog(t.statements.aiPipelineLogAnalysing, 'info')
 
     try {
       // ── Fase 1: analisi da checkResults già caricato (nessuna API call) ──
@@ -3739,6 +3909,7 @@ export function VerificationStatusTab({
 
       const needsEmailScan = (fatturaMancante > 0 || bolleMancanti > 0) && hasEmail
       const needsDdtScan   = bolleMancanti > 0
+      const needsInvoiceScan = needsEmailScan && fatturaMancante > 0
 
       // ── Calcola finestra di ricerca mirata sui DDT ──
       // Parte dalla data più vecchia tra le righe bolle_mancanti, meno 14gg di buffer.
@@ -3788,52 +3959,67 @@ export function VerificationStatusTab({
         return
       }
 
+      // ── Calcola totale step dinamico in base a cosa effettivamente eseguiremo ──
+      // 1: analisi (sempre) → step ricerca DDT (se needed) → step ricerca fatture (se needed) → associazione (sempre)
+      const totalSteps = 1 + (needsDdtScan && sedeId ? 1 : 0) + (needsInvoiceScan ? 1 : 0) + 1
+      setAiPipelineProgress(prev => ({ ...prev, totalSteps }))
+      appendPipelineLog(
+        t.statements.aiPipelineLogAnalysisResult
+          .replace('{total}', String(pipelineAnalisi.total))
+          .replace('{fattura}', String(fatturaMancante))
+          .replace('{bolle}', String(bolleMancanti)),
+        'info',
+      )
+
       // ── Fase 2a: cerca DDT nelle email (bolle mancanti) ─────────────────
       let bolleImportate = 0
       if (needsDdtScan && sedeId) {
         setAiPipelinePhase('ricerca')
+        setAiPipelineProgress(prev => ({ ...prev, currentStep: 2, subPercent: 0, mails: { found: 0, processed: 0 }, attachments: { total: 0, processed: 0 }, bozzeCreate: 0 }))
         setAiPipelineStatusMsg(
           t.statements.aiPipelineStatusSearchingDeliveryNotes
             .replace('{label}', deliveryNoteLabel)
             .replace('{days}', String(pipelineAnalisi.ddtLookbackDays))
         )
+        appendPipelineLog(
+          t.statements.aiPipelineLogScanStarted
+            .replace('{label}', deliveryNoteLabel)
+            .replace('{days}', String(pipelineAnalisi.ddtLookbackDays)),
+          'info',
+        )
         if (!abort.signal.aborted) {
           try {
-            const fid = fornitoreId
-            const ddtRes = await fetch('/api/scan-emails', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              signal: abort.signal,
-              body: JSON.stringify({
-                fornitore_id:              fid,
-                user_sede_id:              sedeId,
-                filter_sede_id:            sedeId,
-                mode:                      'historical',
-                email_sync_scope:          'lookback',
-                email_sync_lookback_days:  pipelineAnalisi.ddtLookbackDays,
-                email_sync_document_kind:  'bolla',
-                client_locale:             supplierLoc.currencyLocale,
-              }),
+            bolleImportate = await runStreamedEmailScan({
+              fornitoreId,
+              sedeId,
+              lookbackDays: pipelineAnalisi.ddtLookbackDays,
+              documentKind: 'bolla',
+              abortSignal: abort.signal,
+              logLabel: deliveryNoteLabel,
             })
-            if (ddtRes.ok) {
-              const ddtData = await ddtRes.json() as { bozzeCreate?: number }
-              bolleImportate = ddtData.bozzeCreate ?? 0
-            }
-          } catch {
+          } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') return
             // ignora errori DDT scan, continua con la pipeline
           }
         }
       }
 
       // ── Fase 2b: ricerca email fatture mancanti ──────────────────────────
-      if (needsEmailScan && fatturaMancante > 0) {
+      if (needsInvoiceScan) {
         setAiPipelinePhase('ricerca')
+        setAiPipelineProgress(prev => ({ ...prev, currentStep: prev.currentStep + 1, subPercent: 0, mails: { found: 0, processed: 0 }, attachments: { total: 0, processed: 0 }, bozzeCreate: 0 }))
         setAiPipelineStatusMsg(
           (fatturaMancante === 1
             ? t.statements.aiPipelineStatusSearchingInvoices_one
             : t.statements.aiPipelineStatusSearchingInvoices_other.replace('{n}', String(fatturaMancante))
           ).replace('{location}', supplierEmail ? ` in ${supplierEmail}` : '')
         )
+        appendPipelineLog(
+          t.statements.aiPipelineLogInvoiceScanStarted.replace('{location}', supplierEmail ?? ''),
+          'info',
+        )
+        // Nota: non duplichiamo la fetch — la pipeline server gestisce la ricerca fatture.
+        // Lo step UI riflette comunque la sotto-fase per chiarezza.
       } else if (!needsDdtScan) {
         setAiPipelinePhase('associazione')
         setAiPipelineStatusMsg(t.statements.aiPipelineStatusCrossChecking)
@@ -3842,6 +4028,8 @@ export function VerificationStatusTab({
       if (abort.signal.aborted) return
 
       // ── Fasi 2+3: pipeline server-side scoped allo statement selezionato ──
+      setAiPipelineProgress(prev => ({ ...prev, currentStep: totalSteps, subPercent: null }))
+      appendPipelineLog(t.statements.aiPipelineLogMatching, 'info')
       const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3872,6 +4060,12 @@ export function VerificationStatusTab({
       })
       setAiPipelinePhase('done')
       setAiPipelineStatusMsg(null)
+      appendPipelineLog(
+        t.statements.aiPipelineLogCompleted
+          .replace('{resolved}', String(data.assoc.resolved + data.assoc.fastFixed))
+          .replace('{remaining}', String(data.remainingAnomalies)),
+        'ok',
+      )
       // Ricarica le righe del triple-check per lo statement corrente
       if (selectedStmt) {
         setStmtRecheckBusy(true)
@@ -3880,13 +4074,16 @@ export function VerificationStatusTab({
       }
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return // annullato dall'utente
-      showToast(e instanceof Error ? e.message : 'Errore pipeline AI', 'error')
+      const errMsg = e instanceof Error ? e.message : 'Errore pipeline AI'
+      showToast(errMsg, 'error')
+      appendPipelineLog(errMsg, 'warn')
       setAiPipelinePhase('idle')
       setAiPipelineStatusMsg(null)
+      setAiPipelineProgress(prev => ({ ...prev, startedAt: null, currentStep: 0, totalSteps: 0, subPercent: null }))
     } finally {
       pipelineAbortRef.current = null
     }
-  }, [sedeId, fornitoreId, selectedStmt, showToast, t, deliveryNoteLabel])
+  }, [sedeId, fornitoreId, selectedStmt, showToast, t, deliveryNoteLabel, runStreamedEmailScan, appendPipelineLog])
 
   /* ── Triple-check state ───────────────────────────── */
   const [checkResults,   setCheckResults]   = useState<CheckResult[] | null>(null)
@@ -4897,23 +5094,113 @@ export function VerificationStatusTab({
                   </button>
                 </div>
               ) : isRunning ? (
-                /* ── In esecuzione: spinner compatto + stato corrente ── */
-                <div className="flex items-center gap-2">
-                  <svg className="w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                  </svg>
-                  <span className="flex-1 min-w-0 text-[10px] text-purple-200/80 truncate">
-                    {aiPipelineStatusMsg ?? t.statements.aiPipelineStatusAnalysing}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={cancelAiPipeline}
-                    className="shrink-0 text-[10px] text-app-fg-muted/60 hover:text-red-300 transition-colors underline"
-                  >
-                    {t.common.cancel}
-                  </button>
-                </div>
+                /* ── In esecuzione: spinner + stato + timer + indicatore fase/N + dettagli espandibili ── */
+                <>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    <span className="flex-1 min-w-0 text-[10px] text-purple-200/80 truncate">
+                      {aiPipelineStatusMsg ?? t.statements.aiPipelineStatusAnalysing}
+                    </span>
+                    {(() => {
+                      void aiPipelineTick // dipendenza implicita per re-render del timer
+                      const startedAt = aiPipelineProgress.startedAt
+                      if (!startedAt) return null
+                      const elapsedSec = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+                      const mm = Math.floor(elapsedSec / 60).toString().padStart(1, '0')
+                      const ss = (elapsedSec % 60).toString().padStart(2, '0')
+                      return (
+                        <span className="shrink-0 tabular-nums text-[10px] font-medium text-purple-200/70" title={t.statements.aiPipelineElapsedTitle}>
+                          {mm}:{ss}
+                        </span>
+                      )
+                    })()}
+                    {aiPipelineProgress.totalSteps > 0 && (
+                      <span className="shrink-0 text-[10px] font-medium text-purple-300/80 tabular-nums" title={t.statements.aiPipelineStepTitle}>
+                        {t.statements.aiPipelineStepLabel
+                          .replace('{cur}', String(aiPipelineProgress.currentStep))
+                          .replace('{tot}', String(aiPipelineProgress.totalSteps))}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setAiPipelineProgress(prev => ({ ...prev, detailsOpen: !prev.detailsOpen }))}
+                      className="shrink-0 text-[10px] text-app-fg-muted/70 hover:text-purple-200 transition-colors underline"
+                      title={t.statements.aiPipelineDetailsTitle}
+                    >
+                      {aiPipelineProgress.detailsOpen ? t.statements.aiPipelineHideDetails : t.statements.aiPipelineShowDetails}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelAiPipeline}
+                      className="shrink-0 text-[10px] text-app-fg-muted/60 hover:text-red-300 transition-colors underline"
+                    >
+                      {t.common.cancel}
+                    </button>
+                  </div>
+
+                  {/* Sub-progress bar visible solo durante scan email (subPercent valorizzato) */}
+                  {aiPipelineProgress.subPercent != null && aiPipelineProgress.subPercent >= 0 && (
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-purple-900/30" aria-hidden>
+                      <div
+                        className="h-full rounded-full bg-purple-400/60 transition-all duration-300"
+                        style={{ width: `${Math.max(2, Math.min(100, aiPipelineProgress.subPercent))}%` }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Counter di sintesi sempre visibili sotto la barra (anche senza pannello dettagli aperto) */}
+                  {(aiPipelineProgress.mails.found > 0 || aiPipelineProgress.attachments.total > 0 || aiPipelineProgress.bozzeCreate > 0) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-purple-200/70 tabular-nums">
+                      {aiPipelineProgress.mails.found > 0 && (
+                        <span>
+                          <span className="text-purple-200/85 font-medium">{aiPipelineProgress.mails.processed}/{aiPipelineProgress.mails.found}</span>
+                          <span className="ml-1 opacity-70">{t.statements.aiPipelineCountersMails}</span>
+                        </span>
+                      )}
+                      {aiPipelineProgress.attachments.total > 0 && (
+                        <span>
+                          <span className="text-purple-200/85 font-medium">{aiPipelineProgress.attachments.processed}/{aiPipelineProgress.attachments.total}</span>
+                          <span className="ml-1 opacity-70">{t.statements.aiPipelineCountersAttachments}</span>
+                        </span>
+                      )}
+                      {aiPipelineProgress.bozzeCreate > 0 && (
+                        <span className="text-emerald-300/85">
+                          <span className="font-medium">+{aiPipelineProgress.bozzeCreate}</span>
+                          <span className="ml-1 opacity-80">{t.statements.aiPipelineCountersImported}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Pannello "Dettagli" espandibile: cronologia log */}
+                  {aiPipelineProgress.detailsOpen && aiPipelineLog.length > 0 && (
+                    <div className="mt-2 max-h-40 overflow-y-auto rounded-md border border-purple-500/20 bg-purple-950/40 px-2.5 py-1.5">
+                      <ul className="space-y-0.5 text-[10px] font-mono leading-relaxed">
+                        {aiPipelineLog.slice().reverse().map((entry, i) => {
+                          const elapsed = aiPipelineProgress.startedAt
+                            ? Math.max(0, Math.floor((entry.at - aiPipelineProgress.startedAt) / 1000))
+                            : 0
+                          const mm = Math.floor(elapsed / 60).toString().padStart(1, '0')
+                          const ss = (elapsed % 60).toString().padStart(2, '0')
+                          const color =
+                            entry.level === 'ok' ? 'text-emerald-300/90'
+                            : entry.level === 'warn' ? 'text-amber-300/90'
+                            : entry.level === 'progress' ? 'text-purple-200/75'
+                            : 'text-app-fg-muted/85'
+                          return (
+                            <li key={`${entry.at}-${i}`} className={`flex items-baseline gap-2 ${color}`}>
+                              <span className="shrink-0 tabular-nums text-app-fg-muted/55">{mm}:{ss}</span>
+                              <span className="min-w-0 break-words">{entry.text}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </>
               ) : (
                 /* ── Idle: pipeline auto-starts; this shows briefly or after a manual reset ── */
                 <div className="flex items-center gap-2 flex-wrap">

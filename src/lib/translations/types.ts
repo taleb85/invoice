@@ -1740,6 +1740,21 @@ export type Translations = {
     aiPipelineStatusSearchingInvoices_other: string
     aiPipelineStatusCrossChecking: string
     aiPipelineStatusMatching: string
+    aiPipelineElapsedTitle: string
+    aiPipelineStepLabel: string
+    aiPipelineStepTitle: string
+    aiPipelineDetailsTitle: string
+    aiPipelineShowDetails: string
+    aiPipelineHideDetails: string
+    aiPipelineCountersMails: string
+    aiPipelineCountersAttachments: string
+    aiPipelineCountersImported: string
+    aiPipelineLogAnalysing: string
+    aiPipelineLogAnalysisResult: string
+    aiPipelineLogScanStarted: string
+    aiPipelineLogInvoiceScanStarted: string
+    aiPipelineLogMatching: string
+    aiPipelineLogCompleted: string
   }
   status: {
     inAttesa: string
