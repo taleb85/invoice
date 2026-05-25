@@ -3597,6 +3597,16 @@ export function VerificationStatusTab({
   const [alsoFatturaBusy, setAlsoFatturaBusy] = useState(false)
   const [alsoFatturaImporto, setAlsoFatturaImporto] = useState('')
   const [alsoFatturaNumero, setAlsoFatturaNumero] = useState('')
+  /** OCR auto-prefill della modale: phase 'reading' mostra spinner, 'ok' mostra hint verifica, 'fail' silenzioso */
+  const [alsoFatturaOcr, setAlsoFatturaOcr] = useState<{
+    phase: 'idle' | 'reading' | 'ok' | 'fail'
+    /** Quale dei due campi è stato pre-compilato dall'OCR (per badge di verifica) */
+    filled: { numero: boolean; importo: boolean }
+    /** Statement id processato: evita refetch sugli stessi dati quando la modale viene riaperta */
+    sourceStmtId: string | null
+    /** Messaggio errore opzionale (solo per log; UI mostra hint generico) */
+    error: string | null
+  }>({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
 
   // ── Pipeline AI per fornitore (state only; handler declared after selectedStmt) ──
   type FornitoreAIPipelinePhase = 'idle' | 'analisi' | 'ricerca' | 'associazione' | 'done'
@@ -4091,6 +4101,86 @@ export function VerificationStatusTab({
     setCheckError(null)
   }, [stmts, stmtsLoading, selectedStmt])
 
+  /**
+   * Pre-fill della modale "Crea fattura anche": quando si apre, scarica i dati
+   * dal PDF via OCR (numero fattura, importo) e popola i campi vuoti. L'utente
+   * può sempre modificare prima di confermare. Refetch evitato se già fatto.
+   */
+  useEffect(() => {
+    if (!alsoFatturaOpen || !selectedStmt) return
+    if (alsoFatturaOcr.sourceStmtId === selectedStmt.id) return
+
+    const stmtId = selectedStmt.id
+    let cancelled = false
+    setAlsoFatturaOcr({
+      phase: 'reading',
+      filled: { numero: false, importo: false },
+      sourceStmtId: stmtId,
+      error: null,
+    })
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/statements/read-pdf-for-invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ statement_id: stmtId }),
+        })
+        if (cancelled) return
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string }
+          setAlsoFatturaOcr({
+            phase: 'fail',
+            filled: { numero: false, importo: false },
+            sourceStmtId: stmtId,
+            error: j.error ?? null,
+          })
+          return
+        }
+        const j = (await res.json()) as {
+          ok: true
+          hasAny: boolean
+          read: { numero_fattura: string | null; importo: number | null; data: string | null }
+        }
+        if (cancelled) return
+        const filled = { numero: false, importo: false }
+        if (j.read.numero_fattura) {
+          setAlsoFatturaNumero(prev => {
+            if (prev.trim() !== '') return prev
+            filled.numero = true
+            return j.read.numero_fattura ?? ''
+          })
+        }
+        if (j.read.importo != null && Number.isFinite(j.read.importo)) {
+          setAlsoFatturaImporto(prev => {
+            if (prev.trim() !== '') return prev
+            filled.importo = true
+            return String(j.read.importo).replace('.', ',')
+          })
+        }
+        setAlsoFatturaOcr({
+          phase: j.hasAny && (filled.numero || filled.importo) ? 'ok' : 'fail',
+          filled,
+          sourceStmtId: stmtId,
+          error: null,
+        })
+      } catch (e) {
+        if (cancelled) return
+        setAlsoFatturaOcr({
+          phase: 'fail',
+          filled: { numero: false, importo: false },
+          sourceStmtId: stmtId,
+          error: e instanceof Error ? e.message : null,
+        })
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [alsoFatturaOpen, selectedStmt, alsoFatturaOcr.sourceStmtId])
+
   /* ── Load rows for a specific statement ─────────────────────────────── */
   async function loadStatementRows(stmt: StmtRecord) {
     setSelectedStmt(stmt)
@@ -4573,7 +4663,11 @@ export function VerificationStatusTab({
         {alsoFatturaOpen && selectedStmt && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-            onClick={() => { if (!alsoFatturaBusy) setAlsoFatturaOpen(false) }}
+            onClick={() => {
+              if (alsoFatturaBusy) return
+              setAlsoFatturaOpen(false)
+              setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
+            }}
           >
             <div
               className="mx-4 w-full max-w-md rounded-xl border border-app-line-28 bg-app-bg shadow-2xl shadow-black/20"
@@ -4584,6 +4678,25 @@ export function VerificationStatusTab({
                 <p className="mt-0.5 text-[11px] text-app-fg-muted">
                   {t.statements.alsoFatturaModalDesc}
                 </p>
+                {alsoFatturaOcr.phase === 'reading' && (
+                  <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[10px] font-medium text-cyan-200">
+                    <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-200 border-t-transparent" />
+                    {t.statements.alsoFatturaOcrReading}
+                  </p>
+                )}
+                {alsoFatturaOcr.phase === 'ok' && (alsoFatturaOcr.filled.numero || alsoFatturaOcr.filled.importo) && (
+                  <p className="mt-1.5 inline-flex items-center gap-1 rounded-md border border-emerald-500/35 bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-200">
+                    <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {t.statements.alsoFatturaOcrPrefilled}
+                  </p>
+                )}
+                {alsoFatturaOcr.phase === 'fail' && (
+                  <p className="mt-1.5 text-[10px] text-app-fg-muted/80">
+                    {t.statements.alsoFatturaOcrFailed}
+                  </p>
+                )}
               </div>
               <div className="space-y-3 px-5 py-4">
                 <div>
@@ -4593,10 +4706,15 @@ export function VerificationStatusTab({
                   <input
                     type="text"
                     value={alsoFatturaNumero}
-                    onChange={(e) => setAlsoFatturaNumero(e.target.value)}
+                    onChange={(e) => {
+                      setAlsoFatturaNumero(e.target.value)
+                      if (alsoFatturaOcr.filled.numero) {
+                        setAlsoFatturaOcr(prev => ({ ...prev, filled: { ...prev.filled, numero: false } }))
+                      }
+                    }}
                     placeholder={t.statements.alsoFatturaNumeroPlaceholder}
-                    disabled={alsoFatturaBusy}
-                    className="w-full rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
+                    disabled={alsoFatturaBusy || alsoFatturaOcr.phase === 'reading'}
+                    className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:outline-none focus:ring-1 disabled:opacity-50 ${alsoFatturaOcr.filled.numero ? 'border-emerald-500/40 focus:border-emerald-500/60 focus:ring-emerald-500/30' : 'border-app-line-28 focus:border-emerald-500/50 focus:ring-emerald-500/30'}`}
                   />
                 </div>
                 <div>
@@ -4607,10 +4725,15 @@ export function VerificationStatusTab({
                     type="text"
                     inputMode="decimal"
                     value={alsoFatturaImporto}
-                    onChange={(e) => setAlsoFatturaImporto(e.target.value)}
+                    onChange={(e) => {
+                      setAlsoFatturaImporto(e.target.value)
+                      if (alsoFatturaOcr.filled.importo) {
+                        setAlsoFatturaOcr(prev => ({ ...prev, filled: { ...prev.filled, importo: false } }))
+                      }
+                    }}
                     placeholder={t.statements.alsoFatturaImportoPlaceholder}
-                    disabled={alsoFatturaBusy}
-                    className="w-full rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-50"
+                    disabled={alsoFatturaBusy || alsoFatturaOcr.phase === 'reading'}
+                    className={`w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:outline-none focus:ring-1 disabled:opacity-50 ${alsoFatturaOcr.filled.importo ? 'border-emerald-500/40 focus:border-emerald-500/60 focus:ring-emerald-500/30' : 'border-app-line-28 focus:border-emerald-500/50 focus:ring-emerald-500/30'}`}
                   />
                 </div>
                 <div className="rounded-lg border border-app-line-15 bg-app-line-5 px-3 py-2 text-[11px] text-app-fg-muted">
@@ -4621,7 +4744,11 @@ export function VerificationStatusTab({
               <div className="flex items-center justify-end gap-2 border-t border-app-line-28 px-5 py-3">
                 <button
                   type="button"
-                  onClick={() => { if (!alsoFatturaBusy) setAlsoFatturaOpen(false) }}
+                  onClick={() => {
+                    if (alsoFatturaBusy) return
+                    setAlsoFatturaOpen(false)
+                    setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
+                  }}
                   disabled={alsoFatturaBusy}
                   className="rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:bg-app-line-10 disabled:opacity-50"
                 >
@@ -4653,6 +4780,7 @@ export function VerificationStatusTab({
                       setAlsoFatturaOpen(false)
                       setAlsoFatturaImporto('')
                       setAlsoFatturaNumero('')
+                      setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sourceStmtId: null, error: null })
                       if (j.fattura_id) {
                         setStmts(prev => prev.map(s => s.id === selectedStmt.id ? { ...s, linked_fattura_id: j.fattura_id! } : s))
                       }

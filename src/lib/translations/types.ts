@@ -1698,6 +1698,9 @@ export type Translations = {
     alsoFatturaConfirm: string
     alsoFatturaSuccessToast: string
     alsoFatturaErrorToast: string
+    alsoFatturaOcrReading: string
+    alsoFatturaOcrPrefilled: string
+    alsoFatturaOcrFailed: string
     aiPipelineResolveBtn: string
     aiPipelineCanAnalyze: string
     aiPipelineAnomaliesDetected_one: string
