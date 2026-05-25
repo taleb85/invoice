@@ -72,7 +72,12 @@ export function ApprovalQueue() {
     for (let i = 0; i < toCheck.length; i++) {
       const f = toCheck[i]
       setBulkCurrentId(f.id)
-      setBulkProgress(`Controllo fattura ${i + 1} di ${toCheck.length}: ${f.fornitoreNome ?? 'Fornitore'}...`)
+      setBulkProgress(
+        t.appStrings.approvazioni_bulkProgress
+          .replace('{i}', String(i + 1))
+          .replace('{n}', String(toCheck.length))
+          .replace('{name}', f.fornitoreNome ?? t.appStrings.approvazioni_genericFornitore),
+      )
       try {
         const res = await fetch('/api/fatture/check-and-approve', {
           method: 'POST',
@@ -89,10 +94,10 @@ export function ApprovalQueue() {
           approved++
           setRows((prev) => prev.filter((r) => r.id !== f.id))
         } else {
-          failed.push({ id: f.id, motivazione: data.motivazione ?? 'Verifica non superata' })
+          failed.push({ id: f.id, motivazione: data.motivazione ?? t.appStrings.approvazioni_verificationFailed })
         }
       } catch {
-        failed.push({ id: f.id, motivazione: 'Errore di rete' })
+        failed.push({ id: f.id, motivazione: t.common.networkError })
       }
     }
 
@@ -113,13 +118,13 @@ export function ApprovalQueue() {
       setBulkCurrentId(null)
       setBulkProgress(null)
     }
-  }, [])
+  }, [t])
 
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
     fetch('/api/fatture/pending-approval')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Errore caricamento'))))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(t.appStrings.approvazioni_loadError))))
       .then((d: { rows: PendingApprovalFattura[] }) => {
         setRows(d.rows)
         if (!autoStarted.current && d.rows.length > 0) {
@@ -131,7 +136,7 @@ export function ApprovalQueue() {
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [processNextBatch])
+  }, [processNextBatch, t])
 
   useEffect(() => {
     load()
@@ -148,7 +153,7 @@ export function ApprovalQueue() {
         })
         if (!res.ok) {
           const d = (await res.json().catch(() => ({}))) as { error?: string }
-          throw new Error(d.error ?? 'Errore')
+          throw new Error(d.error ?? t.common.error)
         }
         setRows((prev) => prev.filter((r) => r.id !== id))
         setRejectState(null)
@@ -158,7 +163,7 @@ export function ApprovalQueue() {
         setActionPending(null)
       }
     },
-    [],
+    [t],
   )
 
   const handleCheckAndApprove = useCallback(async (id: string) => {
@@ -190,7 +195,7 @@ export function ApprovalQueue() {
         setAiCheckState({
           id,
           status: 'failed',
-          message: data.motivazione ?? 'Verifica non superata',
+          message: data.motivazione ?? t.appStrings.approvazioni_verificationFailed,
         })
         singleCheckIds.current.delete(id)
       }
@@ -202,7 +207,7 @@ export function ApprovalQueue() {
       })
       singleCheckIds.current.delete(id)
     }
-  }, [])
+  }, [t])
 
   const handleBulkCheck = useCallback(() => {
     // Reset processed set so user can re-check
@@ -250,9 +255,11 @@ export function ApprovalQueue() {
       {/* Header con pulsante bulk */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-app-fg-subtle">
-          {rows.length} fatture da approvare
+          {t.appStrings.approvazioni_invoicesToApprove.replace('{n}', String(rows.length))}
           {withFileCount < rows.length && (
-            <span className="ml-2 text-amber-300">({rows.length - withFileCount} senza allegato)</span>
+            <span className="ml-2 text-amber-300">
+              {t.appStrings.approvazioni_invoicesWithoutAttachment.replace('{n}', String(rows.length - withFileCount))}
+            </span>
           )}
         </div>
         <button
@@ -264,14 +271,14 @@ export function ApprovalQueue() {
           {bulkChecking ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              {bulkProgress ?? 'Controllo in corso...'}
+              {bulkProgress ?? t.appStrings.approvazioni_bulkInProgress}
             </>
           ) : (
             <>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
-              Controlla le prime {Math.min(3, withFileCount)} fatture
+              {t.appStrings.approvazioni_bulkButtonLabel.replace('{n}', String(Math.min(3, withFileCount)))}
             </>
           )}
         </button>
@@ -285,14 +292,16 @@ export function ApprovalQueue() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
             <span className="font-semibold text-app-fg">
-              {bulkResult.approved} di {bulkResult.total} fatture approvate in questo gruppo
+              {t.appStrings.approvazioni_bulkResultSummary
+                .replace('{n}', String(bulkResult.approved))
+                .replace('{total}', String(bulkResult.total))}
             </span>
           </div>
           {bulkResult.failed.length > 0 && (
             <div className="mt-2 space-y-1">
               {bulkResult.failed.map((f) => (
                 <div key={f.id} className="text-amber-300">
-                  <strong>Non superata:</strong> {f.motivazione}
+                  <strong>{t.appStrings.approvazioni_bulkResultFailed}</strong> {f.motivazione}
                 </div>
               ))}
             </div>
@@ -321,7 +330,7 @@ export function ApprovalQueue() {
                       <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
                     )}
                     <p className="truncate font-bold text-app-fg">
-                      {f.fornitoreNome ?? 'Fornitore sconosciuto'}
+                      {f.fornitoreNome ?? t.appStrings.approvazioni_unknownSupplier}
                     </p>
                     {f.sedeNome && (
                       <span className="rounded-full border border-app-line-20 bg-transparent px-2 py-0.5 text-[10px] font-semibold text-app-fg-subtle">
@@ -409,12 +418,12 @@ export function ApprovalQueue() {
                       disabled={actionPending === f.id || !f.file_url?.trim()}
                       onClick={() => void handleCheckAndApprove(f.id)}
                       className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50"
-                      title={!f.file_url?.trim() ? 'Nessun file allegato' : undefined}
+                      title={!f.file_url?.trim() ? t.appStrings.approvazioni_noAttachmentTitle : undefined}
                     >
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
-                      Controlla e approva (AI)
+                      {t.appStrings.approvazioni_checkAndApprove}
                     </button>
                   )}
 
@@ -425,7 +434,7 @@ export function ApprovalQueue() {
                       className="flex items-center gap-1.5 rounded-xl bg-cyan-500/30 px-4 py-2 text-sm font-semibold text-cyan-300 opacity-60"
                     >
                       <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
-                      Controllo in corso...
+                      {t.appStrings.approvazioni_bulkInProgress}
                     </button>
                   )}
 
@@ -436,7 +445,7 @@ export function ApprovalQueue() {
                         onClick={() => setAiCheckState(null)}
                         className="flex items-center gap-1.5 rounded-xl border border-app-line-25 px-3 py-2 text-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
                       >
-                        Chiudi
+                        {t.common.close}
                       </button>
                       <button
                         type="button"

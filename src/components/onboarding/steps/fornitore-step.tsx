@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { VatLookupField } from '@/components/vat-lookup-field'
+import { useT } from '@/lib/use-t'
 
 type Props = {
   sedeId: string
@@ -14,6 +15,7 @@ const inputCls =
 const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-subtle'
 
 export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
+  const t = useT()
   const [form, setForm] = useState({ nome: '', email: '', piva: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,10 +37,10 @@ export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
         }),
       })
       const data = await res.json() as { id?: string; nome?: string; error?: string }
-      if (!res.ok) throw new Error(data.error ?? 'Errore nella creazione')
+      if (!res.ok) throw new Error(data.error ?? t.onboarding.fornitoreCreateError)
       onComplete(data.id!, data.nome ?? form.nome.trim())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore sconosciuto')
+      setError(err instanceof Error ? err.message : t.common.unknownError)
     } finally {
       setSaving(false)
     }
@@ -47,7 +49,7 @@ export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className={labelCls}>P.IVA / VAT Number</label>
+        <label className={labelCls}>{t.onboarding.fornitoreVatLabel}</label>
         <VatLookupField
           value={form.piva}
           onChange={(val) => setForm({ ...form, piva: val })}
@@ -58,31 +60,31 @@ export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
             }))
           }
           inputClassName={inputCls}
-          placeholder="es. 01234567890"
+          placeholder="01234567890"
         />
-        <p className="mt-1 text-[11px] text-app-fg-subtle">Inserisci la P.IVA per auto-compilare il nome</p>
+        <p className="mt-1 text-[11px] text-app-fg-subtle">{t.onboarding.fornitoreVatHint}</p>
       </div>
 
       <div>
-        <label className={labelCls}>Ragione Sociale *</label>
+        <label className={labelCls}>{t.onboarding.fornitoreNomeLabel}</label>
         <input
           className={inputCls}
           required
           value={form.nome}
           onChange={(e) => setForm({ ...form, nome: e.target.value })}
-          placeholder="es. Rossi S.r.l."
+          placeholder={t.onboarding.fornitoreNomePlaceholder}
           autoFocus
         />
       </div>
 
       <div>
-        <label className={labelCls}>Email fornitore</label>
+        <label className={labelCls}>{t.onboarding.fornitoreEmailLabel}</label>
         <input
           className={inputCls}
           type="email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          placeholder="fatture@fornitore.it"
+          placeholder={t.onboarding.fornitoreEmailPlaceholder}
         />
       </div>
 
@@ -96,7 +98,7 @@ export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
           disabled={saving || !form.nome.trim()}
           className="w-full rounded-xl bg-[#22d3ee] py-3 text-sm font-bold text-[#020617] transition hover:opacity-90 active:scale-[.98] disabled:opacity-50"
         >
-          {saving ? 'Salvataggio…' : 'Aggiungi fornitore e continua →'}
+          {saving ? t.onboarding.emailSaving : t.onboarding.fornitoreCreateCta}
         </button>
 
         <button
@@ -104,7 +106,7 @@ export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
           onClick={onSkip}
           className="w-full py-2 text-xs text-app-fg-subtle transition hover:text-app-fg-muted"
         >
-          Salta questo passaggio
+          {t.onboarding.skipStep}
         </button>
       </div>
     </form>

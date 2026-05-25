@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useT } from '@/lib/use-t'
 
 type Props = {
   sedeId: string
@@ -13,6 +14,7 @@ const inputCls =
 const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-subtle'
 
 export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
+  const t = useT()
   const [form, setForm] = useState({
     host: '',
     port: '993',
@@ -41,14 +43,14 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
       const data = await res.json() as { message?: string; error?: string }
       if (!res.ok) {
         setTestStatus('error')
-        setTestMessage(data.error ?? 'Connessione fallita')
+        setTestMessage(data.error ?? t.onboarding.emailConnectionFailed)
       } else {
         setTestStatus('ok')
-        setTestMessage(data.message ?? 'Connessione riuscita!')
+        setTestMessage(data.message ?? t.onboarding.emailConnectionOk)
       }
     } catch {
       setTestStatus('error')
-      setTestMessage('Impossibile raggiungere il server IMAP')
+      setTestMessage(t.onboarding.emailUnreachable)
     }
   }
 
@@ -68,10 +70,10 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
         }),
       })
       const data = await res.json() as { error?: string }
-      if (!res.ok) throw new Error(data.error ?? 'Errore nel salvataggio')
+      if (!res.ok) throw new Error(data.error ?? t.onboarding.emailSaveError)
       onComplete()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore sconosciuto')
+      setError(err instanceof Error ? err.message : t.common.unknownError)
     } finally {
       setSaving(false)
     }
@@ -82,7 +84,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
   return (
     <form onSubmit={handleSave} className="space-y-5">
       <div>
-        <label className={labelCls}>Server IMAP</label>
+        <label className={labelCls}>{t.onboarding.emailHostLabel}</label>
         <input
           className={inputCls}
           value={form.host}
@@ -93,17 +95,17 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
 
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
-          <label className={labelCls}>Username / Email</label>
+          <label className={labelCls}>{t.onboarding.emailUsernameLabel}</label>
           <input
             className={inputCls}
             type="email"
             value={form.user}
             onChange={(e) => setForm({ ...form, user: e.target.value })}
-            placeholder="fatture@tuaazienda.it"
+            placeholder="invoices@yourcompany.com"
           />
         </div>
         <div>
-          <label className={labelCls}>Porta</label>
+          <label className={labelCls}>{t.onboarding.emailPortLabel}</label>
           <input
             className={inputCls}
             type="number"
@@ -115,7 +117,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
       </div>
 
       <div>
-        <label className={labelCls}>Password / App Password</label>
+        <label className={labelCls}>{t.onboarding.emailPasswordLabel}</label>
         <input
           className={inputCls}
           type="password"
@@ -138,7 +140,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
           {testStatus === 'testing' && (
             <span className="flex items-center gap-2">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Test in corso…
+              {t.onboarding.emailTesting}
             </span>
           )}
           {testStatus !== 'testing' && testMessage}
@@ -156,7 +158,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
           disabled={!canTest || testStatus === 'testing'}
           className="w-full rounded-xl border border-[#22d3ee]/30 py-2.5 text-sm font-semibold text-[#22d3ee] transition hover:bg-[#22d3ee]/10 disabled:opacity-40"
         >
-          {testStatus === 'testing' ? 'Test in corso…' : 'Testa connessione'}
+          {testStatus === 'testing' ? t.onboarding.emailTesting : t.onboarding.emailTestConnection}
         </button>
 
         <button
@@ -164,7 +166,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
           disabled={saving || !canTest}
           className="w-full rounded-xl bg-[#22d3ee] py-3 text-sm font-bold text-[#020617] transition hover:opacity-90 active:scale-[.98] disabled:opacity-50"
         >
-          {saving ? 'Salvataggio…' : 'Salva e continua →'}
+          {saving ? t.onboarding.emailSaving : t.onboarding.emailSaveCta}
         </button>
 
         <button
@@ -172,7 +174,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
           onClick={onSkip}
           className="w-full py-2 text-xs text-app-fg-subtle transition hover:text-app-fg-muted"
         >
-          Salta questo passaggio
+          {t.onboarding.skipStep}
         </button>
       </div>
     </form>

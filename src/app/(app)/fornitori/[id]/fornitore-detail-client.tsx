@@ -1999,30 +1999,49 @@ function BolleTab({
   )
 
   const handleTipoOverride = useCallback(
-    (fileUrl: string, tipoRaw: string, label: string) => {
+    (bollaId: string, fileUrl: string | null, tipoRaw: string, label: string) => {
       setTipoEditingBollaId(null)
-      const key = fileUrl.trim()
-      if (!key) return
+      // Apply optimistic UI update keyed by file_url (used by the rendering lookup);
+      // when the bolla has no file_url we still cache a synthetic key per bolla id so
+      // the row reflects the chosen label until reload.
+      const key = fileUrl?.trim() || `__bolla__:${bollaId}`
       manualTipoOverridesRef.current = { ...manualTipoOverridesRef.current, [key]: label }
       setTipoDocByFileUrl((prev) => ({ ...prev, [key]: label }))
       void (async () => {
         try {
-          const supabase = createClient()
-          const { data: docRow } = await supabase
-            .from('documenti_da_processare')
-            .select('id, metadata')
-            .eq('file_url', key)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (docRow) {
-            const existing = (docRow.metadata ?? {}) as Record<string, unknown>
-            await supabase
-              .from('documenti_da_processare')
-              .update({ metadata: { ...existing, tipo_documento: tipoRaw } })
-              .eq('id', docRow.id)
+          const res = await fetch('/api/bolle/update-tipo-documento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ bolla_id: bollaId, tipo_documento: tipoRaw }),
+          })
+          if (!res.ok) {
+            // Revert the optimistic update so the user notices the failure.
+            const next = { ...manualTipoOverridesRef.current }
+            delete next[key]
+            manualTipoOverridesRef.current = next
+            const data = (await res.json().catch(() => ({}))) as { error?: string }
+            setOcrError(data.error?.trim() || `Impossibile aggiornare il tipo documento (${res.status})`)
+            window.setTimeout(() => setOcrError(null), 8000)
+            // Force a re-render so the label falls back to the OCR-derived value.
+            setTipoDocByFileUrl((prev) => {
+              const n = { ...prev }
+              delete n[key]
+              return n
+            })
           }
-        } catch { /* ignore */ }
+        } catch (e) {
+          const next = { ...manualTipoOverridesRef.current }
+          delete next[key]
+          manualTipoOverridesRef.current = next
+          setOcrError(e instanceof Error ? e.message : 'Errore di rete')
+          window.setTimeout(() => setOcrError(null), 8000)
+          setTipoDocByFileUrl((prev) => {
+            const n = { ...prev }
+            delete n[key]
+            return n
+          })
+        }
       })()
     },
     [],
@@ -2406,7 +2425,7 @@ function BolleTab({
                       title={!readOnly && b.file_url ? 'Click to change document type' : undefined}
                       className={`font-sans text-[10px] font-normal opacity-60 hover:opacity-90${!readOnly && b.file_url ? ' cursor-pointer underline decoration-dotted' : ''}`}
                     >
-                      {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                      {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : tipoDocByFileUrl[`__bolla__:${b.id}`]) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
                     </button>
                     {tipoEditingBollaId === b.id && b.file_url ? (
                       <span
@@ -2420,7 +2439,7 @@ function BolleTab({
                             type="button"
                             className="whitespace-nowrap px-3 py-1.5 text-left font-sans text-[11px] text-app-fg-muted hover:bg-white/5 hover:text-app-fg"
                             onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => { e.stopPropagation(); handleTipoOverride(b.file_url!, opt.tipo, opt.label) }}
+                            onClick={(e) => { e.stopPropagation(); handleTipoOverride(b.id, b.file_url, opt.tipo, opt.label) }}
                           >
                             {opt.label}
                           </button>
@@ -2558,7 +2577,7 @@ function BolleTab({
                       title={!readOnly && b.file_url ? 'Click to change document type' : undefined}
                       className={`font-sans text-[10px] font-normal not-italic text-app-fg-muted/60 hover:text-app-fg-muted${!readOnly && b.file_url ? ' cursor-pointer underline decoration-dotted' : ''}`}
                     >
-                      {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
+                      {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : tipoDocByFileUrl[`__bolla__:${b.id}`]) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
                     </button>
                     {tipoEditingBollaId === b.id && b.file_url ? (
                       <span
@@ -2572,7 +2591,7 @@ function BolleTab({
                             type="button"
                             className="whitespace-nowrap px-3 py-1.5 text-left font-sans text-[11px] text-app-fg-muted hover:bg-white/5 hover:text-app-fg"
                             onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => { e.stopPropagation(); handleTipoOverride(b.file_url!, opt.tipo, opt.label) }}
+                            onClick={(e) => { e.stopPropagation(); handleTipoOverride(b.id, b.file_url, opt.tipo, opt.label) }}
                           >
                             {opt.label}
                           </button>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useT } from '@/lib/use-t'
 
 type Props = {
   sedeId: string
@@ -15,6 +16,7 @@ const inputCls =
 const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-subtle'
 
 export function OperatoreStep({ sedeId, onComplete, onSkip }: Props) {
+  const t = useT()
   const [nome, setNome] = useState('')
   const [pin, setPin] = useState<string[]>(Array(PIN_LENGTH).fill(''))
   const [saving, setSaving] = useState(false)
@@ -60,10 +62,10 @@ export function OperatoreStep({ sedeId, onComplete, onSkip }: Props) {
         }),
       })
       const data = await res.json() as { message?: string; error?: string }
-      if (!res.ok) throw new Error(data.error ?? 'Errore nella creazione')
+      if (!res.ok) throw new Error(data.error ?? t.onboarding.operatoreCreateError)
       onComplete(nome.trim().toUpperCase())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore sconosciuto')
+      setError(err instanceof Error ? err.message : t.common.unknownError)
     } finally {
       setSaving(false)
     }
@@ -72,21 +74,21 @@ export function OperatoreStep({ sedeId, onComplete, onSkip }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className={labelCls}>Nome operatore *</label>
+        <label className={labelCls}>{t.onboarding.operatoreNameLabel}</label>
         <input
           className={inputCls}
           required
           value={nome}
           onChange={(e) => setNome(e.target.value.toUpperCase())}
-          placeholder="es. MARIO"
+          placeholder={t.onboarding.operatoreNamePlaceholder}
           autoFocus
           style={{ textTransform: 'uppercase' }}
         />
-        <p className="mt-1 text-[11px] text-app-fg-subtle">Il nome appare nella schermata di selezione operatore</p>
+        <p className="mt-1 text-[11px] text-app-fg-subtle">{t.onboarding.operatoreNameHint}</p>
       </div>
 
       <div>
-        <label className={labelCls}>PIN (4 cifre) *</label>
+        <label className={labelCls}>{t.onboarding.operatorePinLabel}</label>
         <div className="flex gap-3 justify-center">
           {Array.from({ length: PIN_LENGTH }).map((_, i) => (
             <input
@@ -102,7 +104,7 @@ export function OperatoreStep({ sedeId, onComplete, onSkip }: Props) {
             />
           ))}
         </div>
-        <p className="mt-2 text-center text-[11px] text-app-fg-subtle">{"L'operatore userà questo PIN per accedere"}</p>
+        <p className="mt-2 text-center text-[11px] text-app-fg-subtle">{t.onboarding.operatorePinHint}</p>
       </div>
 
       {error && (
@@ -115,7 +117,7 @@ export function OperatoreStep({ sedeId, onComplete, onSkip }: Props) {
           disabled={saving || !canSubmit}
           className="w-full rounded-xl bg-[#22d3ee] py-3 text-sm font-bold text-[#020617] transition hover:opacity-90 active:scale-[.98] disabled:opacity-50"
         >
-          {saving ? 'Creazione…' : 'Crea operatore e continua →'}
+          {saving ? t.onboarding.operatoreCreating : t.onboarding.operatoreCreateCta}
         </button>
 
         <button
@@ -123,7 +125,7 @@ export function OperatoreStep({ sedeId, onComplete, onSkip }: Props) {
           onClick={onSkip}
           className="w-full py-2 text-xs text-app-fg-subtle transition hover:text-app-fg-muted"
         >
-          Salta questo passaggio
+          {t.onboarding.skipStep}
         </button>
       </div>
     </form>

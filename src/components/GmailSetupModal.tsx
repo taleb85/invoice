@@ -402,19 +402,19 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-emerald-200">Tutto pronto!</h3>
+                <h3 className="text-xl font-bold text-emerald-200">{g.successTitle}</h3>
                 <p className="mt-2 text-sm text-emerald-200/80">
-                  Gmail è connesso e lo scanner automatico è attivo
+                  {g.successSubtitle}
                 </p>
               </div>
 
               <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 p-4 text-left">
-                <p className="text-xs font-semibold text-emerald-200">Funzionalità attive:</p>
+                <p className="text-xs font-semibold text-emerald-200">{g.activeFeatures}</p>
                 <ul className="mt-2 ml-4 list-disc space-y-1 text-xs text-emerald-200/80">
-                  <li>Scanner automatico email Rekki (ogni 15 minuti)</li>
-                  <li>Aggiornamento listino prezzi in background</li>
-                  <li>Confronto automatico fatture vs ordini</li>
-                  <li>Sincronizzazione storico prezzi (disponibile ora!)</li>
+                  <li>{g.feature1}</li>
+                  <li>{g.feature2}</li>
+                  <li>{g.feature3}</li>
+                  <li>{g.feature4}</li>
                 </ul>
               </div>
 
@@ -426,7 +426,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 <svg className={`h-4 w-4 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                Avvia Scansione Storico
+                {g.startHistoricScan}
               </button>
             </div>
           )}
@@ -436,7 +436,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
         <div className="border-t border-app-line-25 px-6 py-3">
           <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-xs text-app-fg-muted">
             <GlyphLightBulb className="h-3.5 w-3.5 shrink-0 text-amber-300/90" aria-hidden />
-            Configurazione sicura · Tokens crittografati · Revocabile in qualsiasi momento
+            {g.footerSecurityNote}
           </p>
         </div>
       </div>

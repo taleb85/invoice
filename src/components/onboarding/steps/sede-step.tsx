@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useT } from '@/lib/use-t'
+import type { Translations } from '@/lib/translations'
 
 type CountryOption = {
   code: string
@@ -9,13 +11,15 @@ type CountryOption = {
   timezone: string
 }
 
-const COUNTRIES: CountryOption[] = [
-  { code: 'IT', label: '🇮🇹 Italia', currency: 'EUR', timezone: 'Europe/Rome' },
-  { code: 'GB', label: '🇬🇧 Regno Unito', currency: 'GBP', timezone: 'Europe/London' },
-  { code: 'ES', label: '🇪🇸 Spagna', currency: 'EUR', timezone: 'Europe/Madrid' },
-  { code: 'FR', label: '🇫🇷 Francia', currency: 'EUR', timezone: 'Europe/Paris' },
-  { code: 'DE', label: '🇩🇪 Germania', currency: 'EUR', timezone: 'Europe/Berlin' },
-]
+function buildCountries(t: Translations): CountryOption[] {
+  return [
+    { code: 'IT', label: t.onboarding.sedeCountryItaly, currency: 'EUR', timezone: 'Europe/Rome' },
+    { code: 'GB', label: t.onboarding.sedeCountryUk, currency: 'GBP', timezone: 'Europe/London' },
+    { code: 'ES', label: t.onboarding.sedeCountrySpain, currency: 'EUR', timezone: 'Europe/Madrid' },
+    { code: 'FR', label: t.onboarding.sedeCountryFrance, currency: 'EUR', timezone: 'Europe/Paris' },
+    { code: 'DE', label: t.onboarding.sedeCountryGermany, currency: 'EUR', timezone: 'Europe/Berlin' },
+  ]
+}
 
 type Props = {
   onComplete: (sedeId: string, sedeNome: string) => void
@@ -26,6 +30,8 @@ const inputCls =
 const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-subtle'
 
 export function SedeStep({ onComplete }: Props) {
+  const t = useT()
+  const COUNTRIES = useMemo(() => buildCountries(t), [t])
   const [nome, setNome] = useState('')
   const [country, setCountry] = useState<CountryOption>(COUNTRIES[0]!)
   const [saving, setSaving] = useState(false)
@@ -48,10 +54,10 @@ export function SedeStep({ onComplete }: Props) {
         }),
       })
       const data = await res.json() as { ok?: boolean; sede?: { id: string; nome: string }; error?: string }
-      if (!res.ok) throw new Error(data.error ?? 'Errore nella creazione')
+      if (!res.ok) throw new Error(data.error ?? t.onboarding.sedeCreateError)
       onComplete(data.sede!.id, data.sede!.nome)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore sconosciuto')
+      setError(err instanceof Error ? err.message : t.common.unknownError)
     } finally {
       setSaving(false)
     }
@@ -60,19 +66,19 @@ export function SedeStep({ onComplete }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className={labelCls}>Nome sede *</label>
+        <label className={labelCls}>{t.onboarding.sedeNameLabel}</label>
         <input
           className={inputCls}
           required
           value={nome}
           onChange={(e) => setNome(e.target.value)}
-          placeholder="es. Ristorante Roma, Supermercato Milano…"
+          placeholder={t.onboarding.sedeNamePlaceholder}
           autoFocus
         />
       </div>
 
       <div>
-        <label className={labelCls}>Paese</label>
+        <label className={labelCls}>{t.onboarding.sedeCountryLabel}</label>
         <select
           value={country.code}
           onChange={(e) => {
@@ -89,11 +95,11 @@ export function SedeStep({ onComplete }: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={labelCls}>Valuta</label>
+          <label className={labelCls}>{t.onboarding.sedeCurrencyLabel}</label>
           <input className={`${inputCls} cursor-not-allowed opacity-60`} value={country.currency} readOnly />
         </div>
         <div>
-          <label className={labelCls}>Fuso orario</label>
+          <label className={labelCls}>{t.onboarding.sedeTimezoneLabel}</label>
           <input className={`${inputCls} cursor-not-allowed opacity-60`} value={country.timezone} readOnly />
         </div>
       </div>
@@ -110,10 +116,10 @@ export function SedeStep({ onComplete }: Props) {
         {saving ? (
           <span className="flex items-center justify-center gap-2">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#020617] border-t-transparent" />
-            Creazione in corso…
+            {t.onboarding.sedeCreating}
           </span>
         ) : (
-          'Crea sede e continua →'
+          t.onboarding.sedeCreateCta
         )}
       </button>
     </form>

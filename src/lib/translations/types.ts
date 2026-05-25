@@ -254,6 +254,23 @@ export type Translations = {
     approvazioni_checkingAi: string
     approvazioni_checkFailed: string
     approvazioni_checkApproved: string
+    /** "{i}", "{n}" placeholders for current and total invoices, "{name}" for supplier. */
+    approvazioni_bulkProgress: string
+    approvazioni_bulkInProgress: string
+    /** "{n}" placeholder for invoice count. */
+    approvazioni_bulkButtonLabel: string
+    /** "{n}" placeholder for invoice count. */
+    approvazioni_invoicesToApprove: string
+    /** "{n}" placeholder for missing-attachment count. */
+    approvazioni_invoicesWithoutAttachment: string
+    /** "{n}" and "{total}" placeholders. */
+    approvazioni_bulkResultSummary: string
+    approvazioni_bulkResultFailed: string
+    approvazioni_unknownSupplier: string
+    approvazioni_genericFornitore: string
+    approvazioni_loadError: string
+    approvazioni_verificationFailed: string
+    approvazioni_noAttachmentTitle: string
     attivitaFilterAll: string
     attivitaFilterBolle: string
     attivitaFilterFatture: string
@@ -1954,6 +1971,115 @@ export type Translations = {
     drawerClickToOpen: string
     errorSave: string
     errorNetwork: string
+  }
+  duplicateManager: {
+    entityFatture: string
+    entityBolle: string
+    entityFornitori: string
+    /** "{n}" placeholder for the number of items. */
+    itemsCount: string
+    toDelete: string
+    allSelected: string
+    suggestedToKeep: string
+    /** "{n}" placeholder for short id. */
+    viewDocumentAria: string
+    viewButton: string
+    /** "{n}" group count, "{m}" item count. */
+    groupsAndItems: string
+    smartSuggest: string
+    keepMostRecent: string
+    keepMostRecentTitle: string
+    deselectAll: string
+    confirmTitle: string
+    /** "{n}" item count, includes inline conditional. */
+    confirmMessageOne: string
+    confirmMessageMany: string
+    deleteIrreversible: string
+    cancelBtn: string
+    deletePermanently: string
+    title: string
+    noDuplicatesFound: string
+    /** "{n}" total groups, "{f}" fatture, "{b}" bolle, "{s}" fornitori. */
+    summary: string
+    rescan: string
+    scanning: string
+    closeBtn: string
+    scanInProgress: string
+    scanError: string
+    allDataUnique: string
+    selectItemsToDelete: string
+    /** "{n}" item count, with one/many handled by *One/*Many keys. */
+    itemSelectedOne: string
+    itemSelectedMany: string
+    /** "{n}" placeholder. */
+    deleteSelectedCta: string
+    /** "{name}" placeholder. */
+    smartSuggestApplied: string
+    /** "{groups}" placeholder. */
+    keepAtLeastOne: string
+    /** "{entity}" and "{error}" placeholders. */
+    deleteEntityError: string
+    /** "{entity}" placeholder. */
+    deleteEntityNetworkError: string
+    /** "{n}" placeholder. */
+    deleteSuccessOne: string
+    deleteSuccessMany: string
+  }
+  onboarding: {
+    sedeNameLabel: string
+    sedeNamePlaceholder: string
+    sedeCountryLabel: string
+    sedeCurrencyLabel: string
+    sedeTimezoneLabel: string
+    sedeCountryItaly: string
+    sedeCountryUk: string
+    sedeCountrySpain: string
+    sedeCountryFrance: string
+    sedeCountryGermany: string
+    sedeCreating: string
+    sedeCreateCta: string
+    sedeCreateError: string
+    fornitoreVatLabel: string
+    fornitoreVatHint: string
+    fornitoreNomeLabel: string
+    fornitoreNomePlaceholder: string
+    fornitoreEmailLabel: string
+    fornitoreEmailPlaceholder: string
+    fornitoreCreateCta: string
+    fornitoreCreateError: string
+    operatoreNameLabel: string
+    operatoreNamePlaceholder: string
+    operatoreNameHint: string
+    operatorePinLabel: string
+    operatorePinHint: string
+    operatoreCreating: string
+    operatoreCreateCta: string
+    operatoreCreateError: string
+    skipStep: string
+    emailHostLabel: string
+    emailUsernameLabel: string
+    emailPortLabel: string
+    emailPasswordLabel: string
+    emailTestConnection: string
+    emailTesting: string
+    emailConnectionFailed: string
+    emailConnectionOk: string
+    emailUnreachable: string
+    emailSaveError: string
+    emailSaveCta: string
+    emailSaving: string
+    completeTitle: string
+    completeSubtitle: string
+    completeSummaryHeading: string
+    completeSummarySede: string
+    completeSummaryFornitore: string
+    completeSummaryOperatore: string
+    completeNextSteps: string
+    completeTip1: string
+    completeTip2: string
+    completeTip3: string
+    completeTip4: string
+    completeGoToDashboard: string
   }
   gmailSetup: {
     title: string

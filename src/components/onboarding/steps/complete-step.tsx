@@ -1,5 +1,7 @@
 'use client'
 
+import { useT } from '@/lib/use-t'
+
 type Props = {
   sedeNome: string | null
   fornitoreNome: string | null
@@ -7,14 +9,15 @@ type Props = {
   onDone: () => void
 }
 
-const TIPS = [
-  { icon: '📧', text: 'Sincronizza le email dalla Dashboard per importare le prime fatture automaticamente' },
-  { icon: '📸', text: 'Usa il pulsante fotocamera su mobile per registrare bolle e DDT in pochi secondi' },
-  { icon: '👤', text: "Il tuo operatore può accedere con il suo nome e PIN dalla schermata di login" },
-  { icon: '🔔', text: 'Attiva le notifiche push nelle Impostazioni per ricevere avvisi in tempo reale' },
-]
-
 export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }: Props) {
+  const t = useT()
+  const TIPS = [
+    { icon: '📧', text: t.onboarding.completeTip1 },
+    { icon: '📸', text: t.onboarding.completeTip2 },
+    { icon: '👤', text: t.onboarding.completeTip3 },
+    { icon: '🔔', text: t.onboarding.completeTip4 },
+  ]
+
   return (
     <div className="flex flex-col items-center text-center">
       {/* Animated checkmark */}
@@ -27,13 +30,13 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold text-white">Tutto pronto!</h2>
-      <p className="mt-1 text-sm text-app-fg-subtle">{"Smart Pair è configurato e pronto all'uso"}</p>
+      <h2 className="text-2xl font-bold text-white">{t.onboarding.completeTitle}</h2>
+      <p className="mt-1 text-sm text-app-fg-subtle">{t.onboarding.completeSubtitle}</p>
 
       {/* Summary */}
       {(sedeNome || fornitoreNome || operatoreNome) && (
         <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-app-fg-subtle">Riepilogo configurazione</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-app-fg-subtle">{t.onboarding.completeSummaryHeading}</p>
           <div className="space-y-2">
             {sedeNome && (
               <div className="flex items-center gap-3">
@@ -43,7 +46,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] text-app-fg-subtle">Sede creata</p>
+                  <p className="text-[11px] text-app-fg-subtle">{t.onboarding.completeSummarySede}</p>
                   <p className="text-sm font-medium text-white">{sedeNome}</p>
                 </div>
               </div>
@@ -56,7 +59,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] text-app-fg-subtle">Primo fornitore</p>
+                  <p className="text-[11px] text-app-fg-subtle">{t.onboarding.completeSummaryFornitore}</p>
                   <p className="text-sm font-medium text-white">{fornitoreNome}</p>
                 </div>
               </div>
@@ -69,7 +72,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] text-app-fg-subtle">Operatore creato</p>
+                  <p className="text-[11px] text-app-fg-subtle">{t.onboarding.completeSummaryOperatore}</p>
                   <p className="text-sm font-medium text-white">{operatoreNome}</p>
                 </div>
               </div>
@@ -80,7 +83,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
 
       {/* Quick tips */}
       <div className="mt-6 w-full space-y-2 text-left">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-app-fg-subtle">Prossimi passi</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-app-fg-subtle">{t.onboarding.completeNextSteps}</p>
         {TIPS.map((tip, i) => (
           <div key={i} className="flex items-start gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-3">
             <span className="mt-px shrink-0 text-base">{tip.icon}</span>
@@ -94,7 +97,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
         onClick={onDone}
         className="mt-8 w-full rounded-xl bg-[#22d3ee] py-3.5 text-sm font-bold text-[#020617] transition hover:opacity-90 active:scale-[.98]"
       >
-        Vai alla Dashboard →
+        {t.onboarding.completeGoToDashboard}
       </button>
     </div>
   )
