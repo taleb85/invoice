@@ -1755,6 +1755,19 @@ export type Translations = {
     aiPipelineLogInvoiceScanStarted: string
     aiPipelineLogMatching: string
     aiPipelineLogCompleted: string
+    aiPipelineLogConnecting: string
+    aiPipelineLogSearching: string
+    aiPipelineLogSearchEmpty: string
+    aiPipelineLogSearchFound_one: string
+    aiPipelineLogSearchFound_other: string
+    aiPipelineLogProcessingStarted: string
+    aiPipelineLogProcessing: string
+    aiPipelineLogSaved_one: string
+    aiPipelineLogSaved_other: string
+    aiPipelineLogDoneOne: string
+    aiPipelineLogDoneOther: string
+    aiPipelineLogNetworkError: string
+    aiPipelineStaleWarning: string
   }
   status: {
     inAttesa: string

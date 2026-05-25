@@ -297,6 +297,12 @@ type FetchImapHooks = {
   /** Dopo `connect()` riuscito, prima di aprire la casella (stream UI). */
   afterConnect?: () => void | Promise<void>
   afterMailboxOpen?: () => void | Promise<void>
+  /** Dopo `client.search()` con conteggio UIDs (stream UI: "trovate N email"). */
+  afterSearch?: (info: { totalUids: number }) => void | Promise<void>
+  /** Heartbeat durante il loop FETCH per evitare l'illusione di blocco. */
+  onFetchProgress?: (info: { fetched: number; total: number }) => void | Promise<void>
+  /** Frequenza chiamata (ogni N messaggi). Default 5. */
+  fetchProgressEvery?: number
 }
 
 function scanEmailMessageDate(
@@ -373,14 +379,44 @@ async function fetchFromImap(
       await client.mailboxOpen('INBOX')
       await hooks?.afterMailboxOpen?.()
 
+      // Eseguiamo SEARCH separatamente da FETCH per due motivi:
+      //  1. Conosciamo N upfront → hook `afterSearch` può emettere "trovate N email"
+      //  2. Possiamo emettere progress ogni K messaggi durante il FETCH lungo
+      // (prima il search era implicito dentro `client.fetch(searchCriteria,...)`
+      // e l'utente non aveva feedback per minuti.)
+      let uids: number[] = []
+      try {
+        const searchRes = await client.search(searchCriteria, { uid: true })
+        uids = Array.isArray(searchRes) ? searchRes : []
+      } catch (searchErr) {
+        mailDebugLog(`[IMAP] SEARCH fallita su ${host}, fallback a fetch diretto:`, searchErr)
+        // fallback: lasciamo che `fetch(searchCriteria, ...)` faccia search+fetch insieme.
+      }
+      await hooks?.afterSearch?.({ totalUids: uids.length })
+
+      if (uids.length === 0 && !Array.isArray(uids)) {
+        return emails // SEARCH fallita E nessun fallback: meglio uscire pulito
+      }
+
+      const fetchSource = uids.length > 0 ? uids : searchCriteria
+      const fetchProgressEvery = Math.max(1, hooks?.fetchProgressEvery ?? 5)
+      const fetchTotal = uids.length
+
       let totalMsg = 0
       let withAttach = 0
-      for await (const msg of client.fetch(searchCriteria, {
+      for await (const msg of client.fetch(fetchSource, {
         envelope: true,
         source: true,
         internalDate: true,
-      })) {
+      }, uids.length > 0 ? { uid: true } : undefined)) {
         totalMsg++
+        if (fetchTotal > 0 && hooks?.onFetchProgress) {
+          if (totalMsg === 1 || totalMsg % fetchProgressEvery === 0 || totalMsg === fetchTotal) {
+            try {
+              await hooks.onFetchProgress({ fetched: totalMsg, total: fetchTotal })
+            } catch { /* best-effort */ }
+          }
+        }
         if (!msg.source) continue
         const parsed = await simpleParser(msg.source)
 
@@ -2851,6 +2887,34 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
                 ...snap(),
               })
             },
+            afterSearch: async (info) => {
+              // Subito dopo SEARCH (prima del lungo FETCH) emettiamo un evento con il conteggio
+              // grezzo dei UID. La UI vede "trovate N email" senza aspettare il download.
+              // NB: NON modifichiamo `mailsFound` qui — quello è il conteggio post-filtro,
+              // aggiornato dopo il for-await. Inviamo il raw count solo nel campo `mailsFound`
+              // di QUESTO evento (lo snap() lo sovrascriverebbe a 0, quindi mettiamo dopo).
+              await s({
+                type: 'progress',
+                phase: 'search',
+                percent: 32,
+                connectionWarning: null,
+                ...snap(),
+                mailsFound: info.totalUids,
+              })
+            },
+            onFetchProgress: async (info) => {
+              // Heartbeat ogni 5 messaggi: muove `mailsProcessed` mentre FETCH è ancora in corso.
+              // Senza questo, FETCH lunghi (200+ email) sembrano un blocco silenzioso.
+              await s({
+                type: 'progress',
+                phase: 'search',
+                percent: 32 + Math.min(5, Math.round((info.fetched / Math.max(1, info.total)) * 5)),
+                connectionWarning: null,
+                ...snap(),
+                mailsFound: info.total,
+                mailsProcessed: Math.min(info.fetched, info.total),
+              })
+            },
           }
         )
         const filtered = supplierScope
@@ -3010,6 +3074,27 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
             percent: 28,
             connectionWarning: null,
             ...snap(),
+          })
+        },
+        afterSearch: async (info) => {
+          await s({
+            type: 'progress',
+            phase: 'search',
+            percent: 32,
+            connectionWarning: null,
+            ...snap(),
+            mailsFound: info.totalUids,
+          })
+        },
+        onFetchProgress: async (info) => {
+          await s({
+            type: 'progress',
+            phase: 'search',
+            percent: 32 + Math.min(5, Math.round((info.fetched / Math.max(1, info.total)) * 5)),
+            connectionWarning: null,
+            ...snap(),
+            mailsFound: info.total,
+            mailsProcessed: Math.min(info.fetched, info.total),
           })
         },
       }

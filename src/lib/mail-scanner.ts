@@ -76,6 +76,20 @@ export type FetchUnseenImapHooks = {
   beforeConnect?: () => void | Promise<void>
   afterConnect?: () => void | Promise<void>
   afterInboxOpen?: () => void | Promise<void>
+  /**
+   * Chiamato dopo che `client.search()` ritorna il primo set di UID. Permette al chiamante
+   * di emettere un evento UI "trovate N email" PRIMA che inizi il lungo loop FETCH —
+   * fondamentale per evitare il "buco visivo" durante il download.
+   */
+  afterSearch?: (info: { totalUids: number }) => void | Promise<void>
+  /**
+   * Chiamato ogni `fetchProgressEvery` messaggi durante il loop FETCH (default 5).
+   * Lo scan-emails route usa questo per emettere progressi NDJSON anche durante un FETCH
+   * lungo, così la UI non sembra bloccata.
+   */
+  onFetchProgress?: (info: { fetched: number; total: number }) => void | Promise<void>
+  /** Frequenza chiamata onFetchProgress: ogni N messaggi (default 5). */
+  fetchProgressEvery?: number
 }
 
 export async function fetchUnseenEmails(
@@ -113,13 +127,24 @@ export async function fetchUnseenEmails(
         { uid: true }
       )
       const uids = Array.isArray(searchResult) ? searchResult : []
+      await hooks?.afterSearch?.({ totalUids: uids.length })
       if (uids.length === 0) return results
 
+      const fetchProgressEvery = Math.max(1, hooks?.fetchProgressEvery ?? 5)
+      let fetched = 0
       for await (const msg of client.fetch(
         uids,
         { source: true, internalDate: true, envelope: true },
         { uid: true }
       )) {
+        fetched++
+        // Heartbeat ogni N messaggi: il chiamante può emettere stream events
+        // per evitare che la UI sembri bloccata durante FETCH lunghi (es. 200+ email).
+        if (hooks?.onFetchProgress && (fetched === 1 || fetched % fetchProgressEvery === 0 || fetched === uids.length)) {
+          try {
+            await hooks.onFetchProgress({ fetched, total: uids.length })
+          } catch { /* hook deve essere best-effort: errori del consumer non bloccano il fetch */ }
+        }
         if (!msg.source) continue
         let parsed
         try {

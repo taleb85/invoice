@@ -3654,6 +3654,8 @@ export function VerificationStatusTab({
     subPercent: number | null
     /** Quando true, l'utente ha aperto il pannello dettagli per vedere il log */
     detailsOpen: boolean
+    /** Timestamp dell'ultimo evento ricevuto dal server (per detector "stallo silenzioso"). */
+    lastEventAt: number | null
   }>({
     startedAt: null,
     currentStep: 0,
@@ -3663,6 +3665,7 @@ export function VerificationStatusTab({
     bozzeCreate: 0,
     subPercent: null,
     detailsOpen: false,
+    lastEventAt: null,
   })
   /** Log eventi (cronologia): mostrato nel pannello dettagli espandibile. Cappato a 50 per non gonfiare DOM. */
   const [aiPipelineLog, setAiPipelineLog] = useState<Array<{ at: number; text: string; level: 'info' | 'progress' | 'ok' | 'warn' }>>([])
@@ -3801,6 +3804,14 @@ export function VerificationStatusTab({
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buf = ''
+      /** Dedup: ogni messaggio di log viene emesso solo al primo cambio significativo del valore (evita rumore). */
+      const emitted = {
+        connect: false,
+        searching: false,
+        searchDone: false,
+        processStarted: false,
+        lastProcessedReported: -1,
+      }
 
       while (true) {
         const { value, done } = await reader.read()
@@ -3840,21 +3851,52 @@ export function VerificationStatusTab({
                 processed: attachmentsProcessed ?? prev.attachments.processed,
               },
               bozzeCreate: bozze ?? prev.bozzeCreate,
+              lastEventAt: Date.now(),
             }))
 
-            if (phase === 'connect') {
-              appendPipelineLog(`${logLabel}: connessione mailbox…`, 'progress')
-            } else if (phase === 'search' && mailsFound != null) {
-              appendPipelineLog(`${logLabel}: trovate ${mailsFound} email`, 'progress')
-            } else if (phase === 'process' && mailsProcessed != null && mailsFound != null) {
-              appendPipelineLog(`${logLabel}: elaborate ${mailsProcessed}/${mailsFound}`, 'progress')
+            /*
+             * Mapping eventi server → log UI:
+             *  - `connect` (percent ~15-20) → "connessione mailbox…" UNA volta
+             *  - `search` con percent ≤30 → mailbox appena aperta, FETCH in corso (NO conteggio)
+             *  - `search` con percent ≥35 → FETCH completato, mailsFound è il vero conteggio
+             *  - `process` → elaborazione email; logghiamo solo quando il contatore avanza
+             *  - `persist` → conferma salvataggio bozze
+             */
+            if (phase === 'connect' && !emitted.connect) {
+              emitted.connect = true
+              appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogConnecting}`, 'progress')
+            } else if (phase === 'search' && (percent ?? 0) <= 30 && !emitted.searching) {
+              emitted.searching = true
+              appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogSearching}`, 'progress')
+            } else if (phase === 'search' && (percent ?? 0) >= 35 && !emitted.searchDone) {
+              emitted.searchDone = true
+              const n = mailsFound ?? 0
+              const msg = n === 0
+                ? t.statements.aiPipelineLogSearchEmpty
+                : (n === 1 ? t.statements.aiPipelineLogSearchFound_one : t.statements.aiPipelineLogSearchFound_other).replace('{n}', String(n))
+              appendPipelineLog(`${logLabel}: ${msg}`, n === 0 ? 'info' : 'progress')
+            } else if (phase === 'process') {
+              if (!emitted.processStarted) {
+                emitted.processStarted = true
+                appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogProcessingStarted}`, 'progress')
+              }
+              if (mailsProcessed != null && mailsFound != null && mailsProcessed > emitted.lastProcessedReported) {
+                emitted.lastProcessedReported = mailsProcessed
+                appendPipelineLog(
+                  `${logLabel}: ${t.statements.aiPipelineLogProcessing.replace('{cur}', String(mailsProcessed)).replace('{tot}', String(mailsFound))}`,
+                  'progress',
+                )
+              }
             } else if (phase === 'persist' && bozze != null && bozze > 0) {
-              appendPipelineLog(`${logLabel}: ${bozze} ${bozze === 1 ? 'documento salvato' : 'documenti salvati'}`, 'ok')
+              appendPipelineLog(
+                `${logLabel}: ${(bozze === 1 ? t.statements.aiPipelineLogSaved_one : t.statements.aiPipelineLogSaved_other).replace('{n}', String(bozze))}`,
+                'ok',
+              )
             }
           } else if (e.type === 'done') {
             bozzeCreate = typeof e.bozzeCreate === 'number' ? e.bozzeCreate : 0
             appendPipelineLog(
-              `${logLabel}: completato — ${bozzeCreate} ${bozzeCreate === 1 ? 'documento' : 'documenti'} importati`,
+              `${logLabel}: ${(bozzeCreate === 1 ? t.statements.aiPipelineLogDoneOne : t.statements.aiPipelineLogDoneOther).replace('{n}', String(bozzeCreate))}`,
               'ok',
             )
           } else if (e.type === 'error') {
@@ -3868,10 +3910,10 @@ export function VerificationStatusTab({
       }
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') throw e
-      appendPipelineLog(`${logLabel}: errore di rete`, 'warn')
+      appendPipelineLog(`${logLabel}: ${t.statements.aiPipelineLogNetworkError}`, 'warn')
     }
     return bozzeCreate
-  }, [appendPipelineLog, supplierLoc.currencyLocale])
+  }, [appendPipelineLog, supplierLoc.currencyLocale, t])
 
   const handleAiPipeline = useCallback(async () => {
     if (!sedeId || !fornitoreId) return
@@ -3893,6 +3935,7 @@ export function VerificationStatusTab({
       bozzeCreate: 0,
       subPercent: null,
       detailsOpen: false,
+      lastEventAt: Date.now(),
     })
     appendPipelineLog(t.statements.aiPipelineLogAnalysing, 'info')
 
@@ -5096,6 +5139,22 @@ export function VerificationStatusTab({
               ) : isRunning ? (
                 /* ── In esecuzione: spinner + stato + timer + indicatore fase/N + dettagli espandibili ── */
                 <>
+                  {(() => {
+                    void aiPipelineTick // forza re-render ogni tick per aggiornare lo stale detector
+                    const last = aiPipelineProgress.lastEventAt
+                    const staleSec = last ? Math.floor((Date.now() - last) / 1000) : 0
+                    const isStale = staleSec >= 20
+                    return isStale && (
+                      <div className="mb-1.5 flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-950/30 px-2 py-1 text-[10px] text-amber-200/90">
+                        <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="min-w-0 break-words">
+                          {t.statements.aiPipelineStaleWarning.replace('{sec}', String(staleSec))}
+                        </span>
+                      </div>
+                    )
+                  })()}
                   <div className="flex items-center gap-2">
                     <svg className="w-3 h-3 animate-spin shrink-0 text-purple-300" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
