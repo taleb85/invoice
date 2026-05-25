@@ -1393,6 +1393,7 @@ const translations: Translations = {
     aiPipelineLogAnalysisResult: 'Erkannte Abweichungen: {total} (fehlende Rechnungen: {fattura}, fehlende Lieferscheine: {bolle})',
     aiPipelineLogScanStarted: 'E-Mail-Scan gestartet: {label} der letzten {days} Tage',
     aiPipelineLogInvoiceScanStarted: 'Suche nach fehlenden Rechnungen{location}',
+    aiPipelineInvoiceLabel: 'Rechnung',
     aiPipelineLogMatching: 'Server-seitige Zuordnung lösbarer Zeilen läuft…',
     aiPipelineLogCompleted: 'Pipeline abgeschlossen: {resolved} gelöst, {remaining} noch offen',
     aiPipelineLogConnecting: 'Verbinde zum Postfach…',

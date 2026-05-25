@@ -1394,6 +1394,7 @@ const translations: Translations = {
     aiPipelineLogAnalysisResult: 'Anomalies détectées : {total} (factures manquantes : {fattura}, bons de livraison manquants : {bolle})',
     aiPipelineLogScanStarted: 'Lancement du scan e-mail : {label} sur les {days} derniers jours',
     aiPipelineLogInvoiceScanStarted: 'Recherche des factures manquantes{location}',
+    aiPipelineInvoiceLabel: 'Facture',
     aiPipelineLogMatching: 'Exécution de l’association côté serveur pour les lignes résolvables…',
     aiPipelineLogCompleted: 'Pipeline terminée : {resolved} résolues, {remaining} encore ouvertes',
     aiPipelineLogConnecting: 'connexion à la boîte aux lettres…',

@@ -1753,6 +1753,8 @@ export type Translations = {
     aiPipelineLogAnalysisResult: string
     aiPipelineLogScanStarted: string
     aiPipelineLogInvoiceScanStarted: string
+    /** Etichetta breve per il log di scan fatture (es. "Invoice", "Fattura"). */
+    aiPipelineInvoiceLabel: string
     aiPipelineLogMatching: string
     aiPipelineLogCompleted: string
     aiPipelineLogConnecting: string

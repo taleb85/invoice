@@ -2436,6 +2436,7 @@ const translations: Translations = {
     aiPipelineLogAnalysisResult: 'Anomalie rilevate: {total} (fatture mancanti: {fattura}, bolle mancanti: {bolle})',
     aiPipelineLogScanStarted: 'Avvio scansione email: {label} negli ultimi {days} giorni',
     aiPipelineLogInvoiceScanStarted: 'Ricerca fatture mancanti{location}',
+    aiPipelineInvoiceLabel: 'Fattura',
     aiPipelineLogMatching: 'Esecuzione associazione righe risolvibili sul server…',
     aiPipelineLogCompleted: 'Pipeline completata: {resolved} risolte, {remaining} ancora aperte',
     aiPipelineLogConnecting: 'connessione mailbox…',

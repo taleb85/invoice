@@ -52,8 +52,15 @@ export async function POST(req: NextRequest) {
     /** Quando il client fornisce già i conteggi da checkResults, evitiamo una query ridondante */
     fattura_mancante_count?: number
     has_email?: boolean
+    /**
+     * Quando true, salta la fase 2 (scan IMAP) — il client l'ha già eseguita in
+     * modalità streaming via `/api/scan-emails`, mostrando i log live all'utente.
+     * Senza questo flag, la pipeline farebbe DUE scan IMAP (uno streaming dal client,
+     * uno silenzioso dal server): lento e costoso.
+     */
+    skip_email_scan?: boolean
   }
-  const { sede_id, fornitore_id, statement_id, fattura_mancante_count, has_email } = body
+  const { sede_id, fornitore_id, statement_id, fattura_mancante_count, has_email, skip_email_scan } = body
   if (!sede_id) return NextResponse.json({ error: 'sede_id obbligatorio' }, { status: 400 })
   if (!fornitore_id) return NextResponse.json({ error: 'fornitore_id obbligatorio' }, { status: 400 })
 
@@ -85,8 +92,10 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Fase 2: Ricerca email ────────────────────────────────────────────────
+  // Se il client ha già eseguito lo scan in streaming, saltiamo: la fase 2
+  // viene marcata come "skipped" (ricerca=null lasciato com'era).
   let ricerca: PipelinePerFornitoreResult['ricerca'] = null
-  if (analisi.fatturaMancante > 0 && analisi.hasEmail) {
+  if (!skip_email_scan && analisi.fatturaMancante > 0 && analisi.hasEmail) {
     const emailResult = await runEmailScanForFornitore({
       fornitoreId: fornitore_id,
       filterSedeId: sede_id,

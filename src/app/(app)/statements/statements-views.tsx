@@ -4105,26 +4105,53 @@ export function VerificationStatusTab({
         }
       }
 
-      // ── Fase 2b: ricerca email fatture mancanti ──────────────────────────
-      if (needsInvoiceScan) {
+      // ── Fase 2b: ricerca email fatture mancanti (streaming, come per i DDT) ─
+      // Prima il server-side `pipeline-per-fornitore` faceva uno scan IMAP qui ma
+      // non-streaming, quindi il client non vedeva nessun log. Ora lo facciamo
+      // anche per le fatture e poi diciamo al server di SKIPPARE la sua fase 2.
+      let fattureImportate = 0
+      if (needsInvoiceScan && sedeId) {
         setAiPipelinePhase('ricerca')
         setAiPipelineProgress(prev => ({ ...prev, currentStep: prev.currentStep + 1, subPercent: 0, mails: { found: 0, processed: 0 }, attachments: { total: 0, processed: 0 }, bozzeCreate: 0 }))
+        // `{location}` deve includere il " in " perché il template lo concatena senza
+        // spazio (es. "Searching missing invoices{location}"). Sia per singolare che
+        // plurale: prima il `tpl` interpolava solo sulla branch `_other`, lasciando
+        // `{location}` letterale nella branch `_one`.
+        const locationFragment = supplierEmail ? ` in ${supplierEmail}` : ''
         setAiPipelineStatusMsg(
-          (fatturaMancante === 1
-            ? t.statements.aiPipelineStatusSearchingInvoices_one
-            : t.statements.aiPipelineStatusSearchingInvoices_other.replace('{n}', String(fatturaMancante))
-          ).replace('{location}', supplierEmail ? ` in ${supplierEmail}` : '')
+          tpl(
+            fatturaMancante === 1
+              ? t.statements.aiPipelineStatusSearchingInvoices_one
+              : t.statements.aiPipelineStatusSearchingInvoices_other,
+            { n: fatturaMancante, location: locationFragment },
+            `Searching ${fatturaMancante} missing invoice${fatturaMancante === 1 ? '' : 's'}${locationFragment}…`,
+          )
         )
         appendPipelineLog(
           tpl(
             t.statements.aiPipelineLogInvoiceScanStarted,
-            { location: supplierEmail ?? '' },
-            `Invoice scan started${supplierEmail ? ` (${supplierEmail})` : ''}`,
+            { location: locationFragment },
+            `Invoice scan started${locationFragment}`,
           ),
           'info',
         )
-        // Nota: non duplichiamo la fetch — la pipeline server gestisce la ricerca fatture.
-        // Lo step UI riflette comunque la sotto-fase per chiarezza.
+        if (!abort.signal.aborted) {
+          try {
+            // Per le fatture usiamo una finestra più ampia (default 400gg, ~13 mesi)
+            // per coprire fatture vecchie che potrebbero non essere state importate.
+            fattureImportate = await runStreamedEmailScan({
+              fornitoreId,
+              sedeId,
+              lookbackDays: 400,
+              documentKind: 'fattura',
+              abortSignal: abort.signal,
+              logLabel: t.statements.aiPipelineInvoiceLabel ?? 'Invoice',
+            })
+          } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') return
+            // ignora errori invoice scan, continua con la pipeline
+          }
+        }
       } else if (!needsDdtScan) {
         setAiPipelinePhase('associazione')
         setAiPipelineStatusMsg(t.statements.aiPipelineStatusCrossChecking)
@@ -4133,6 +4160,10 @@ export function VerificationStatusTab({
       if (abort.signal.aborted) return
 
       // ── Fasi 2+3: pipeline server-side scoped allo statement selezionato ──
+      // `skip_email_scan: true`: abbiamo già fatto lo scan IMAP qui (streaming).
+      // Il server deve solo eseguire l'associazione / triple-check, evitando di
+      // ripetere una fetch IMAP costosa.
+      void fattureImportate
       setAiPipelineProgress(prev => ({ ...prev, currentStep: totalSteps, subPercent: null }))
       appendPipelineLog(t.statements.aiPipelineLogMatching ?? 'matching…', 'info')
       const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
@@ -4145,6 +4176,7 @@ export function VerificationStatusTab({
           statement_id: selectedStmt?.id ?? undefined,
           fattura_mancante_count: fatturaMancante,
           has_email: hasEmail,
+          skip_email_scan: needsInvoiceScan,
         }),
       })
       setAiPipelinePhase('associazione')
