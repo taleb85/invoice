@@ -90,7 +90,7 @@ export default function BolleListClient({
     void (async () => {
       const { data: docs } = await supabase
         .from('documenti_da_processare')
-        .select('file_url, metadata')
+        .select('file_url, metadata, file_name, oggetto_mail')
         .in('file_url', newUrls)
       if (cancelled || !docs?.length) return
       const map: Record<string, string> = {}
@@ -101,7 +101,17 @@ export default function BolleListClient({
         // 'fattura' / 'bolla_ddt') so the user can spot rows landed in the
         // wrong tab (e.g. an Invoice mistakenly saved under Bolle).
         const label = tipoDocumentoToLabelStrict((row.metadata as Record<string, unknown> | null)?.tipo_documento)
-        if (label) map[fu] = label
+        if (label) {
+          map[fu] = label
+        } else {
+          // Fallback: infer the type from the original file name / email subject
+          // (storage URLs are hashed and rarely contain meaningful keywords).
+          const inferred = extractDocTypeLabel(
+            (row as { file_name?: string | null }).file_name ?? null,
+            (row as { oggetto_mail?: string | null }).oggetto_mail ?? null,
+          )
+          if (inferred) map[fu] = inferred
+        }
       }
       if (Object.keys(map).length) setTipoDocByFileUrl((prev) => ({ ...prev, ...map }))
     })()

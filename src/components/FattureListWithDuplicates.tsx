@@ -138,7 +138,7 @@ export default function FattureListWithDuplicates({
     void (async () => {
       const { data: docs } = await supabase
         .from('documenti_da_processare')
-        .select('file_url, metadata')
+        .select('file_url, metadata, file_name, oggetto_mail')
         .in('file_url', newUrls)
       if (cancelled || !docs?.length) return
       const map: Record<string, string> = {}
@@ -146,7 +146,16 @@ export default function FattureListWithDuplicates({
         const fu = row.file_url?.trim()
         if (!fu) continue
         const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
-        if (label) map[fu] = label
+        if (label) {
+          map[fu] = label
+        } else {
+          // Fallback: infer the type from the original file name / email subject
+          const inferred = extractDocTypeLabel(
+            (row as { file_name?: string | null }).file_name ?? null,
+            (row as { oggetto_mail?: string | null }).oggetto_mail ?? null,
+          )
+          if (inferred) map[fu] = inferred
+        }
       }
       if (Object.keys(map).length) setTipoByFileUrl((prev) => ({ ...prev, ...map }))
     })()

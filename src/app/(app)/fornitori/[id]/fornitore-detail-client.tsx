@@ -2015,7 +2015,7 @@ function BolleTab({
       if (allUrls.length > 0) {
         const { data: docs } = await supabase
           .from('documenti_da_processare')
-          .select('file_url, metadata, created_at')
+          .select('file_url, metadata, file_name, oggetto_mail, created_at')
           .in('file_url', allUrls)
         if (!cancelled && docs?.length) {
           const sorted = [...docs].sort((a, b) =>
@@ -2033,8 +2033,18 @@ function BolleTab({
               // Strict variant: always surface the OCR-detected type (including
               // 'fattura' / 'bolla_ddt') so the user can spot rows landed in
               // the wrong tab (e.g. an Invoice mistakenly saved under Bolle).
-              const label = tipoDocumentoToLabelStrict(rawTipo)
-              if (label) tipoMap[fu] = label
+              const ocrLabel = tipoDocumentoToLabelStrict(rawTipo)
+              if (ocrLabel) {
+                tipoMap[fu] = ocrLabel
+              } else {
+                // Fallback: try to infer from the original file name and email subject
+                // (the storage URL is a hashed path, so it rarely contains keywords).
+                const inferred = extractDocTypeLabel(
+                  (row as { file_name?: string | null }).file_name ?? null,
+                  (row as { oggetto_mail?: string | null }).oggetto_mail ?? null,
+                )
+                if (inferred) tipoMap[fu] = inferred
+              }
             }
           }
         }
@@ -2593,7 +2603,7 @@ function FattureTab({
     void (async () => {
       const { data: docs } = await supabase
         .from('documenti_da_processare')
-        .select('file_url, metadata')
+        .select('file_url, metadata, file_name, oggetto_mail')
         .in('file_url', urls)
       if (cancelled || !docs?.length) return
       const map: Record<string, string> = {}
@@ -2601,7 +2611,16 @@ function FattureTab({
         const fu = row.file_url?.trim()
         if (!fu) continue
         const label = tipoDocumentoToLabel((row.metadata as Record<string, unknown> | null)?.tipo_documento)
-        if (label) map[fu] = label
+        if (label) {
+          map[fu] = label
+        } else {
+          // Fallback: try to infer from the original file name / email subject
+          const inferred = extractDocTypeLabel(
+            (row as { file_name?: string | null }).file_name ?? null,
+            (row as { oggetto_mail?: string | null }).oggetto_mail ?? null,
+          )
+          if (inferred) map[fu] = inferred
+        }
       }
       // Merge so manual overrides set via onTipoDocumentoUpdated are not lost
       setTipoFatturaByFileUrl((prev) => ({ ...prev, ...map }))
