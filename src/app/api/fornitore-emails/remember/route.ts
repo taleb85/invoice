@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
-import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
+import {
+  autoProcessAfterFornitoreEmailAdded,
+  realignStatementsAfterFornitoreEmailAdded,
+  type RealignStatementsResult,
+} from '@/lib/documenti-revisione-auto'
 
 /**
  * Salva l'email del mittente come alias del fornitore (scansione IMAP futura).
@@ -57,5 +61,18 @@ export async function POST(req: NextRequest) {
     retroactive = { processed: 0, scanned: 0, errors: [e instanceof Error ? e.message : String(e)] }
   }
 
-  return NextResponse.json({ ok: true, retroactive })
+  let realigned: RealignStatementsResult | null = null
+  try {
+    realigned = await realignStatementsAfterFornitoreEmailAdded(service, fornitoreId, emailRaw)
+  } catch (e) {
+    console.warn('[POST /api/fornitore-emails/remember] realignStatements', e)
+    realigned = {
+      documentsRebound: 0,
+      statementsRebound: 0,
+      statementRowsReset: 0,
+      errors: [e instanceof Error ? e.message : String(e)],
+    }
+  }
+
+  return NextResponse.json({ ok: true, retroactive, realigned })
 }

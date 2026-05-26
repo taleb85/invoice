@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
-import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
+import {
+  autoProcessAfterFornitoreEmailAdded,
+  realignStatementsAfterFornitoreEmailAdded,
+  type RealignStatementsResult,
+} from '@/lib/documenti-revisione-auto'
 
 /** Estrae primo indirizzo email da stringa mittente (header o solo email). */
 function extractEmail(raw: string): string | null {
@@ -71,5 +75,18 @@ export async function POST(req: NextRequest) {
     retroactive = { processed: 0, scanned: 0, errors: [e instanceof Error ? e.message : String(e)] }
   }
 
-  return NextResponse.json({ ok: true, retroactive })
+  let realigned: RealignStatementsResult | null = null
+  try {
+    realigned = await realignStatementsAfterFornitoreEmailAdded(service, fornitoreId, emailExtracted)
+  } catch (e) {
+    console.warn('[POST /api/fornitore-emails] realignStatements', e)
+    realigned = {
+      documentsRebound: 0,
+      statementsRebound: 0,
+      statementRowsReset: 0,
+      errors: [e instanceof Error ? e.message : String(e)],
+    }
+  }
+
+  return NextResponse.json({ ok: true, retroactive, realigned })
 }
