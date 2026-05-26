@@ -5990,6 +5990,7 @@ function FornitoreDetailClient({
             ledgerDateFrom={ledgerPeriod.from}
             ledgerDateToExclusive={ledgerDateToExclusive}
             cardAccent="cyan"
+            supplierDesktopVerificaMode="statementsPanel"
           />
         ) : null)}
       {displayTab === 'audit' &&
