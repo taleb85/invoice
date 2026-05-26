@@ -79,6 +79,7 @@ const MIGRATIONS = [
   'supabase/migrations/20260507180000_protocollo_fornitori_potenziali.sql',
   'supabase/migrations/20260515100000_sync_verifica_actions_to_ai_learning.sql',
   'supabase/migrations/20260515110000_v_coda_unificata_v3.sql',
+  'supabase/migrations/20260525210000_fornitori_emette_bolle.sql',
 ]
 
 function loadEnvLocal() {
