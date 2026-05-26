@@ -87,13 +87,31 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, rechecked: 0, status: 'error' })
     }
 
+    // Leggi flag `emette_bolle` del fornitore (default true se NULL o colonna
+    // non ancora migrata). Quando false NON forziamo 'ok'→'bolle_mancanti'.
+    let emetteBolleForRecheck = true
+    if (stmt.fornitore_id) {
+      const { data: fornForRecheck } = await supabase
+        .from('fornitori')
+        .select('emette_bolle')
+        .eq('id', stmt.fornitore_id)
+        .maybeSingle()
+      if (fornForRecheck && (fornForRecheck as { emette_bolle?: boolean | null }).emette_bolle === false) {
+        emetteBolleForRecheck = false
+      }
+    }
+
     const lines = existingRows.map(r => ({ numero: r.numero_doc, importo: Number(r.importo) }))
     const { results: rawResults } = await runTripleCheck(supabase, lines, stmt.sede_id, stmt.fornitore_id)
 
-    // Bolle sono obbligatorie: 'ok' senza bolle → 'bolle_mancanti'.
-    const results = rawResults.map(r =>
-      r.status === 'ok' && r.bolle.length === 0 ? { ...r, status: 'bolle_mancanti' as const } : r
-    )
+    // Per fornitori che emettono DDT, manteniamo lo storico: una 'ok' senza
+    // bolle viene forzata a 'bolle_mancanti'. Per fornitori "no-DDT" la
+    // 'ok' resta valida.
+    const results = emetteBolleForRecheck
+      ? rawResults.map(r =>
+          r.status === 'ok' && r.bolle.length === 0 ? { ...r, status: 'bolle_mancanti' as const } : r
+        )
+      : rawResults
 
     // Single upsert replaces R sequential UPDATE calls (N+1 pattern).
     // Conflict target: the (statement_id, numero_doc) unique constraint on statement_rows.
