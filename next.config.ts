@@ -49,6 +49,16 @@ const nextConfig: NextConfig = {
 
   turbopack: {},
 
+  /**
+   * Lascia che Node carichi questi pacchetti con require nativo invece di bundle-arli:
+   * - `pdfjs-dist` lazily importa `./pdf.worker.mjs` a runtime; quando passa
+   *   dal bundler (specie Turbopack in dev), il path viene riscritto a
+   *   `.next/dev/server/chunks/pdf.worker.mjs` e il file non esiste, rompendo
+   *   l'OCR PDF con "Setting up fake worker failed".
+   * - `pdf-parse` dipende internamente da `pdfjs-dist` per la stessa ragione.
+   */
+  serverExternalPackages: ["pdfjs-dist", "pdf-parse"],
+
   // Aggiunge security headers a tutte le rotte
   async headers() {
     return [
