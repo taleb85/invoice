@@ -32,6 +32,8 @@ import { formattaPriorita, labelPendingKind } from '@/lib/command-system/utils'
 import { useDocumentActions } from '@/lib/document-actions-context'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { useT } from '@/lib/use-t'
+import { useLocale } from '@/lib/locale-context'
+import { formatDate, formatDateTime } from '@/lib/locale'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
 import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
@@ -1624,6 +1626,7 @@ function RigaDocumento({
   onApriAzioni?: (item: CodaItem) => void
 }) {
   const t = useT()
+  const { locale, timezone } = useLocale()
   const priorita = formattaPriorita(item.priorita, {
     priorityCritical: t.strumentiCentroControllo.priorityCritical,
     priorityHigh: t.strumentiCentroControllo.priorityHigh,
@@ -1632,6 +1635,14 @@ function RigaDocumento({
   })
   const isRunning = eseguendoId?.startsWith(item.id)
   const [azioniDisponibili, setAzioniDisponibili] = useState<Command[]>([])
+
+  // Date: `data_doc` è una calendar-date (YYYY-MM-DD) → solo giorno localizzato.
+  // `data_inserimento` è un timestamp con timezone (ISO) → data + ora nel fuso utente,
+  // ISO completo nel tooltip per debug/copia.
+  const dataDocFormatted = item.data_doc ? formatDate(item.data_doc, locale, timezone) : null
+  const inseritoFormatted = item.data_inserimento
+    ? formatDateTime(item.data_inserimento, locale, timezone)
+    : null
 
   const statementId = item.origine === 'riga_statement'
     ? (item.contesto_originale as Record<string, unknown> | null)?.statement_id as string | undefined
@@ -1744,11 +1755,19 @@ function RigaDocumento({
           )}
 
           <div className="flex items-center gap-3 text-[11px] text-app-fg-muted/50">
-            {item.data_doc && <span>Data doc: {item.data_doc}</span>}
-            {item.data_inserimento && <span>Inserito: {item.data_inserimento}</span>}
+            {dataDocFormatted && (
+              <span title={item.data_doc ?? undefined}>
+                {t.strumentiCentroControllo.rigaDataDocLabel}: {dataDocFormatted}
+              </span>
+            )}
+            {inseritoFormatted && (
+              <span title={item.data_inserimento ?? undefined}>
+                {t.strumentiCentroControllo.rigaRicevutoLabel}: {inseritoFormatted}
+              </span>
+            )}
             {item.giorni_in_stato != null && (
               <span className={item.giorni_in_stato > 7 ? 'text-rose-300/70' : ''}>
-                {item.giorni_in_stato}g in stato
+                {t.strumentiCentroControllo.rigaGiorniInStato.replace('{n}', String(item.giorni_in_stato))}
               </span>
             )}
           </div>

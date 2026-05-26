@@ -1844,6 +1844,9 @@ export type Translations = {
     queuePerPage: string
     queuePrev: string
     queueNext: string
+    rigaDataDocLabel: string
+    rigaRicevutoLabel: string
+    rigaGiorniInStato: string
     priorityCritical: string
     priorityHigh: string
     priorityMedium: string
