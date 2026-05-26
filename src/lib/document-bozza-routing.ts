@@ -73,7 +73,15 @@ export function snippetFieldsLookLikeStatementDoc(
   )
 }
 
-/** L'oggetto dice esplicitamente che si tratta di una fattura. */
+/**
+ * L'oggetto (o filename) dice esplicitamente che si tratta di una fattura / nota credito / bolla
+ * — o di una notifica/sollecito di pagamento riferito a una fattura specifica
+ * (es. "Payment of £274.10 is outstanding for INV-2606", "INV-2882 from Tacco",
+ *  "SI120832 18.05.26"). In tutti questi casi NON è uno statement.
+ *
+ * Quando aggiungi nuovi pattern, mantieni la regola "matcha un riferimento
+ * a un singolo documento numerato" (non a un riepilogo periodico).
+ */
 export function subjectLooksLikeInvoice(s: string | null | undefined): boolean {
   const subj = (s ?? '').toLowerCase().replace(/[_.\-]/g, ' ')
   if (!subj.trim()) return false
@@ -87,10 +95,21 @@ export function subjectLooksLikeInvoice(s: string | null | undefined): boolean {
     /\bsales\s?invoice\b/.test(subj) ||
     /\bvat\s?invoice\b/.test(subj) ||
     /\bcredit\s?note\b/.test(subj) ||
+    /\bcredit\s?memo\b/.test(subj) ||
+    /\breturn\s?note\b/.test(subj) ||
     /nota\s+credito/.test(subj) ||
     /\bddt\b/.test(subj) ||
     /\bbolla\b/.test(subj) ||
-    /delivery\s?note/.test(subj)
+    /delivery\s?note/.test(subj) ||
+    /\binv\s?\d{2,}\b/.test(subj) ||
+    /\bsi\s?\d{4,}\b/.test(subj) ||
+    /\brtn\s?\d{2,}\b/.test(subj) ||
+    /\bpayment\s+of\b.*\boutstanding\s+for\b/.test(subj) ||
+    /\boutstanding\s+for\s+(inv|si|invoice|fattura)\b/.test(subj) ||
+    /\bpayment\s+reminder\b/.test(subj) ||
+    /\bsollecito\s+(di\s+)?pagamento\b/.test(subj) ||
+    /\bavviso\s+di\s+pagamento\b/.test(subj) ||
+    /\boverdue\s+(invoice|payment)\b/.test(subj)
   )
 }
 

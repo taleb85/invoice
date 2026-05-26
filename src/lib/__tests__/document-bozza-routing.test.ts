@@ -3,6 +3,8 @@ import {
   inferPendingDocumentKindForQueueRow,
   scanContextSuggestsFattura,
   scanContextSuggestsBolla,
+  subjectLooksLikeInvoice,
+  inferAutoPendingKindFromEmailScan,
 } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
@@ -247,5 +249,85 @@ describe('inferPendingDocumentKindForQueueRow', () => {
         metadata: { tipo_documento: null, totale_iva_inclusa: 999 },
       }),
     ).toBe('comunicazione')
+  })
+})
+
+// ─── subjectLooksLikeInvoice (sollecito/notifica pagamento + INV/SI/RTN) ──
+//
+// Regressione: storicamente email tipo "Payment of £X is outstanding for INV-NNNN"
+// o "MONDIAL WINE LTD - SI120832" finivano in `statements` (is_statement=true)
+// perché il subject NON conteneva la parola "invoice/fattura". L'estensione
+// dell'euristica deve riconoscere il riferimento puntuale a una fattura
+// (INV-NNNN, SI<NNNN>, "outstanding for INV-…", "sollecito di pagamento")
+// e bloccare la classificazione come statement.
+describe('subjectLooksLikeInvoice — riferimenti a singola fattura / solleciti', () => {
+  it('riconosce "INV-NNNN" / "INV NNNN" come riferimento a fattura', () => {
+    expect(subjectLooksLikeInvoice('INV-2882 from Tacco')).toBe(true)
+    expect(subjectLooksLikeInvoice('Re: INV 12345 outstanding')).toBe(true)
+  })
+
+  it('riconosce "SI<NNNN>" (Sales Invoice numerata) come riferimento a fattura', () => {
+    expect(subjectLooksLikeInvoice('MONDIAL WINE LTD - SI120832 18.05.26')).toBe(true)
+    expect(subjectLooksLikeInvoice('BWT UK Ltd Invoice - SI000010552')).toBe(true)
+  })
+
+  it('riconosce "RTN<NNNN>" (Return Note / credit note) come riferimento a fattura', () => {
+    expect(subjectLooksLikeInvoice('RTN108331 Mondial Wine')).toBe(true)
+  })
+
+  it('riconosce notifiche/solleciti "Payment of … outstanding for INV-…"', () => {
+    expect(
+      subjectLooksLikeInvoice('Payment of £274.10 is outstanding for INV-2606 - Sent Using Zoho Books'),
+    ).toBe(true)
+    expect(subjectLooksLikeInvoice('Outstanding for invoice 12345')).toBe(true)
+  })
+
+  it('riconosce solleciti generici in italiano e inglese', () => {
+    expect(subjectLooksLikeInvoice('Sollecito di pagamento fattura 123')).toBe(true)
+    expect(subjectLooksLikeInvoice('Payment reminder')).toBe(true)
+    expect(subjectLooksLikeInvoice('Overdue payment notice')).toBe(true)
+  })
+
+  it('non si attiva su "Statement of Account" puro né su statement mensile', () => {
+    expect(subjectLooksLikeInvoice('Statement of Account - Berkmann Wine Cellars Limited')).toBe(false)
+    expect(subjectLooksLikeInvoice('Account statement March 2026')).toBe(false)
+    expect(subjectLooksLikeInvoice('Estratto conto mensile')).toBe(false)
+  })
+})
+
+describe('inferAutoPendingKindFromEmailScan — niente statement per solleciti/INV/SI', () => {
+  it('"Payment of … outstanding for INV-…" NON è statement', () => {
+    expect(
+      inferAutoPendingKindFromEmailScan(
+        'Payment of £706.39 is outstanding for INV-2800 - Sent Using Zoho Books',
+        null,
+        // body contiene anche "statement" ma il subject è chiaramente fattura/sollecito
+        'Hello, your statement update: please pay the outstanding amount.',
+        null,
+      ),
+    ).toBeNull()
+  })
+
+  it('"MONDIAL WINE LTD - SI120832" NON è statement', () => {
+    expect(
+      inferAutoPendingKindFromEmailScan('MONDIAL WINE LTD - SI120832 18.05.26', null, null, null),
+    ).toBeNull()
+  })
+
+  it('"Invoice - INV-2882 from Tacco" NON è statement', () => {
+    expect(
+      inferAutoPendingKindFromEmailScan(
+        'Invoice - INV-2882 from Tacco - Sent Using Zoho Books',
+        null,
+        null,
+        null,
+      ),
+    ).toBeNull()
+  })
+
+  it('"Account statement March 2026" rimane statement', () => {
+    expect(
+      inferAutoPendingKindFromEmailScan('Account statement March 2026', null, null, null),
+    ).toBe('statement')
   })
 })
