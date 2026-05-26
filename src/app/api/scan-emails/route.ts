@@ -2302,8 +2302,7 @@ async function processEmails(
               }).catch(() => {})
             } else if ('duplicateId' in res) {
               duplicateSkippedFatturaId = res.duplicateId
-              needsDocRevision = true
-              mailDebugLog(`[AUTO] WARN Fattura già esistente (id=${res.duplicateId}) — in coda revisione`)
+              mailDebugLog(`[AUTO] Fattura già in archivio (id=${res.duplicateId}) — skip silenzioso, nessuna coda`)
             } else if ('error' in res) {
               console.warn(`[AUTO] Fattura non registrata: ${res.error}`)
             }
@@ -2343,6 +2342,36 @@ async function processEmails(
         isLikelyRekkiEmail(email.subject, email.from, email.bodyText)
       ) {
         earlyRekkiLines = parseRekkiFromEmailParts({ subject: email.subject, text: email.bodyText })
+      }
+
+      /**
+       * Fattura già in archivio: niente riga nella coda documenti, niente revisione manuale.
+       * Logghiamo `successo` con dettaglio audit. Le eventuali righe Rekki si persistono comunque.
+       * (Stessa policy in `email-scan-persist-known-with-file.ts`.)
+       */
+      if (duplicateSkippedFatturaId && !registratoAutoFatturaId && !registratoAutoBollaId) {
+        await insertLog(supabase, email, 'successo', {
+          fornitore_id: fornitore.id,
+          file_url,
+          errore_dettaglio:
+            `Duplicato saltato: fattura ${ocr.numero_fattura ?? ''} già in archivio (id=${duplicateSkippedFatturaId}).`.trim(),
+          sede_id: documentSedeId,
+          allegato_nome: attachment?.filename ?? null,
+          scan_attachment_fingerprint: fp,
+        })
+        ignorate++
+        if (earlyRekkiLines.length && !rekkiPersistedUids.has(email.uid)) {
+          rekkiPersistedUids.add(email.uid)
+          persistRekkiOrderStatement(supabase, {
+            fornitoreId: fornitore.id,
+            sedeId: documentSedeId,
+            rekkiLines: earlyRekkiLines,
+            emailSubject: email.subject ?? `Rekki — ${fornitore.nome}`,
+            fileUrl: file_url,
+          }).catch((err) => console.error('[REKKI] persist fallito:', err))
+        }
+        bumpAttach(email.uid)
+        continue
       }
 
       const pendingKindStored =

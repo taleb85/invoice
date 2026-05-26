@@ -357,7 +357,6 @@ export async function persistKnownFornitoreEmailScanWithFile(
         }).catch(() => {})
       } else if ('duplicateId' in res) {
         duplicateSkippedFatturaId = res.duplicateId
-        needsDocRevision = true
       }
     } else if (targetKind === 'bolla') {
       if (hasDocDateFallback) needsDocRevision = true
@@ -384,6 +383,36 @@ export async function persistKnownFornitoreEmailScanWithFile(
   let earlyRekkiLines: RekkiLine[] = []
   if (!rekkiPersistedUids.has(email.uid) && email.bodyText && isLikelyRekkiEmail(email.subject, email.from, email.bodyText)) {
     earlyRekkiLines = parseRekkiFromEmailParts({ subject: email.subject, text: email.bodyText })
+  }
+
+  /**
+   * Fattura già in archivio (stesso fornitore+data+numero o senza-numero+importo).
+   * Niente riga `da_revisionare`: la coda non deve riproporre un duplicato a mano
+   * che è semantica già risolta in archivio. Si logga solo come `successo` con
+   * dettaglio per audit (`/log` mostra il `errore_dettaglio`). Le eventuali
+   * righe Rekki sono già state estratte poco sopra e vanno persistite comunque.
+   */
+  if (duplicateSkippedFatturaId && !registratoAutoFatturaId && !registratoAutoBollaId) {
+    await insertSyncLog(supabase, email, 'successo', {
+      fornitore_id: fornitore.id,
+      file_url,
+      errore_dettaglio: `Duplicato saltato: fattura ${ocr.numero_fattura ?? ''} già in archivio (id=${duplicateSkippedFatturaId}).`.trim(),
+      sede_id: documentSedeId,
+      allegato_nome: storedFileName,
+      scan_attachment_fingerprint: fp,
+    })
+    counters.ignorate++
+    if (earlyRekkiLines.length && !rekkiPersistedUids.has(email.uid)) {
+      rekkiPersistedUids.add(email.uid)
+      persistRekkiOrderStatement(supabase, {
+        fornitoreId: fornitore.id,
+        sedeId: documentSedeId,
+        rekkiLines: earlyRekkiLines,
+        emailSubject: email.subject ?? `Rekki — ${fornitore.nome}`,
+        fileUrl: file_url,
+      }).catch((err) => console.error('[REKKI] persist fallito:', err))
+    }
+    return
   }
 
   const pendingKindStored =

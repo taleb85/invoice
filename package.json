@@ -1,6 +1,6 @@
 {
   "name": "invoice",
-  "version": "0.1.196",
+  "version": "0.1.197",
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev --turbopack",

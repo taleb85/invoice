@@ -4,6 +4,7 @@ import {
   findDuplicateFatturaSansNumeroByImporto,
   normalizeNumeroFattura,
 } from '@/lib/fattura-duplicate-check'
+import { normalizeNumeroBolla } from '@/lib/fix-ocr-dates-helpers'
 
 const AUTO_SAVED_AT = () => new Date().toISOString()
 
@@ -117,6 +118,34 @@ export async function insertEmailAutoBolla(
     .limit(1)
     .maybeSingle()
   if (existingByUrl) return { duplicateId: existingByUrl.id }
+
+  /**
+   * Stesso fornitore + data + numero bolla normalizzato (sede inclusa) ⇒ duplicato.
+   * Allineato al check delle fatture: evita di re-importare la stessa bolla
+   * quando lo scan email rilegge la stessa mail con un nuovo `file_url` (rescan,
+   * reset stato IMAP, fallback corpo email ↦ sintetico, ecc.).
+   */
+  const numeroNormBolla =
+    typeof opts.numeroBolla === 'string' && opts.numeroBolla.trim()
+      ? normalizeNumeroBolla(opts.numeroBolla)
+      : null
+  if (numeroNormBolla && opts.dataDoc) {
+    const { data: rows } = await supabase
+      .from('bolle')
+      .select('id, numero_bolla, sede_id')
+      .eq('fornitore_id', opts.fornitoreId)
+      .eq('data', opts.dataDoc)
+    const ctxSede = opts.sedeId ?? null
+    const wantLower = numeroNormBolla.toLowerCase()
+    const dupByKey = (rows ?? []).find((row) => {
+      const dbNum = normalizeNumeroBolla(row.numero_bolla as string | null)
+      if (!dbNum) return false
+      if (dbNum.toLowerCase() !== wantLower) return false
+      const rowSede = (row.sede_id as string | null) ?? null
+      return rowSede === ctxSede
+    })
+    if (dupByKey?.id) return { duplicateId: dupByKey.id as string }
+  }
 
   const autoAt = AUTO_SAVED_AT()
   const { data: bolla, error: insErr } = await supabase
