@@ -4400,8 +4400,17 @@ export function VerificationStatusTab({
   }
 
   /* ── Fetch statement list + auto-process pending docs ──────────────── */
+  /**
+   * Quando il tab è incorporato nella scheda fornitore (`statementsPanel`) l'utente
+   * si aspetta di vedere SEMPRE la lista degli statement ricevuti, ordinati per
+   * data di ricezione, e di decidere quale aprire. L'auto-apertura del primo
+   * statement è quindi soppressa in quella modalità (anche dopo che
+   * `process-pending-statements` ha parsato qualcosa di nuovo). Le modalità
+   * `full` / `classicToolbar` mantengono il comportamento storico.
+   */
   const fetchStmts = useCallback(async (autoOpenLatest = false) => {
     setStmtsLoading(true)
+    const isSupplierPanel = verificaMode === 'statementsPanel'
 
     // Step 1: process any pending statement docs that haven't been parsed yet
     if (sedeId) {
@@ -4416,7 +4425,7 @@ export function VerificationStatusTab({
           setStmtsLoading(false)
           return
         }
-        if (proc.ok) {
+        if (proc.ok && !isSupplierPanel) {
           const procJson = await proc.json() as { processed?: number }
           if ((procJson.processed ?? 0) > 0) autoOpenLatest = true
         }
@@ -4436,8 +4445,9 @@ export function VerificationStatusTab({
         setStmts(list)
         setNeedsMigration(json.needsMigration ?? false)
 
-        // Auto-open the most recent done statement (with or without anomalies)
-        if (autoOpenLatest && list.length > 0) {
+        // Auto-open the most recent done statement (with or without anomalies).
+        // Skipped in supplier panel — there we always show the list first.
+        if (autoOpenLatest && !isSupplierPanel && list.length > 0) {
           const latest = list.find(s => s.status === 'done') ?? list[0]
           if (latest) {
             setTimeout(() => loadStatementRows(latest), 50)
@@ -4448,11 +4458,11 @@ export function VerificationStatusTab({
     setStmtsLoading(false)
   // loadStatementRows is stable (defined below) — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sedeId, fornitoreId])
+  }, [sedeId, fornitoreId, verificaMode])
 
   useEffect(() => {
     if (verificaMode === 'classicToolbar') return
-    void fetchStmts(true)
+    void fetchStmts(verificaMode !== 'statementsPanel')
   }, [fetchStmts, verificaMode])
 
   useEffect(() => {

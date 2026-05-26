@@ -82,16 +82,29 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     return 'comunicazione'
   }
 
-  // ── Nota credito ──────────────────────────────────────────────────────────
+  // ── Nota credito (e suoi alias: return note, credit memo, RMA, storno) ────
   if (
     s === 'nota_credito' ||
     s === 'credito' ||
     s === 'credit_note' ||
     s === 'credit' ||
+    s === 'credit_memo' ||
+    s === 'credit_invoice' ||
     s === 'nota_di_credito' ||
     s === 'note_de_credit' ||
     s === 'avoir' ||
-    s === 'gutschrift'
+    s === 'gutschrift' ||
+    s === 'return_note' ||
+    s === 'returns_note' ||
+    s === 'return' ||
+    s === 'returns' ||
+    s === 'reso' ||
+    s === 'reso_merce' ||
+    s === 'rma' ||
+    s === 'rga' ||
+    s === 'storno' ||
+    s === 'rectificative' ||
+    s === 'facture_rectificative'
   ) {
     return 'nota_credito'
   }
@@ -169,10 +182,16 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     return 'fattura'
   }
   if (
-    /nota\s+credito/.test(s) ||
-    /credit[\s_-]?note/.test(s) ||
+    /nota\s+(?:di\s+)?credito/.test(s) ||
+    /credit[\s_-]?(?:note|memo|invoice)/.test(s) ||
     /\bavoir\b/.test(s) ||
-    /\bgutschrift\b/.test(s)
+    /\bgutschrift\b/.test(s) ||
+    /\bstorno\b/.test(s) ||
+    /facture[\s_-]?rectificative/.test(s) ||
+    /return[\s_-]?(?:note|form)/.test(s) ||
+    /\breturns?\b/.test(s) ||
+    /reso\s+merce/.test(s) ||
+    /\b(?:rma|rga|rtv)\b/.test(s)
   ) {
     return 'nota_credito'
   }
