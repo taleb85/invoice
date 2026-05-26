@@ -365,8 +365,13 @@ export async function processLegacyPendingDoc(
           body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
         }).catch(() => {})
       } else if ('duplicateId' in res) {
+        /**
+         * La fattura è già in archivio (stessa chiave fornitore+data+numero).
+         * Niente revisione manuale: chiudi la riga collegandola alla fattura
+         * esistente (vedi update sotto: `rowStato='associato'`, `fattura_id`).
+         */
         duplicateSkippedFatturaId = res.duplicateId
-        needsDocRevision = true
+        registratoAutoFatturaId = res.duplicateId
       }
     } else if (targetKind === 'bolla') {
       if (hasDocDateFallback) needsDocRevision = true
