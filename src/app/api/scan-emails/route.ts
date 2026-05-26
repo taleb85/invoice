@@ -362,6 +362,18 @@ type FetchImapHooks = {
 type SenderSearchScopeOpt = {
   emails: string[]
   domains: string[]
+  /**
+   * Numeri documento (fattura/DDT) per la ricerca chirurgica scoped allo
+   * statement. Quando presenti, la SEARCH IMAP usa `(FROM ∧ SUBJECT|BODY needle)`
+   * invece della sola `(FROM)`. Vedi `mail-scanner.ts` per il dettaglio.
+   */
+  subjectAnyOf?: string[]
+  /**
+   * Solo rilevante con `subjectAnyOf`: se `true`, in caso di 0 risultati
+   * by-subject riprova con la sola search by-sender (più ampia). Default
+   * `false` (rispetta il "mirato per statement").
+   */
+  useSenderFallback?: boolean
 } | null
 
 function scanEmailMessageDate(
@@ -406,7 +418,7 @@ async function fetchFromImap(
 ): Promise<ScannedEmail[]> {
   const { lookbackDays, lookbackHours, fiscalRange, narrowDateRange, senderScope } = opts
   mailDebugLog(
-    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackHours != null && lookbackHours > 0 ? `${lookbackHours}h` : lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'} narrow=${narrowDateRange ? 'sì' : 'no'} senderScope=${senderScope ? `${senderScope.emails.length}emails+${senderScope.domains.length}dom` : 'no'}`
+    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackHours != null && lookbackHours > 0 ? `${lookbackHours}h` : lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'} narrow=${narrowDateRange ? 'sì' : 'no'} senderScope=${senderScope ? `${senderScope.emails.length}emails+${senderScope.domains.length}dom${senderScope.subjectAnyOf?.length ? `+${senderScope.subjectAnyOf.length}subj` : ''}${senderScope.useSenderFallback ? '+fallback' : ''}` : 'no'}`
   )
 
   /**
@@ -440,6 +452,16 @@ async function fetchFromImap(
       ]
     : []
   const useSenderSearch = senderTerms.length > 0
+  /**
+   * Numeri fattura/DDT per la ricerca chirurgica scoped allo statement.
+   * Vedi `mail-scanner.ts` per la semantica esatta. Quando valorizzati, la
+   * SEARCH IMAP combina (FROM ∧ SUBJECT|BODY needle) come query congiunta.
+   */
+  const subjectTerms = senderScope?.subjectAnyOf
+    ? senderScope.subjectAnyOf.map(s => (typeof s === 'string' ? s.trim() : '')).filter(Boolean)
+    : []
+  const useSubjectScopedSearch = useSenderSearch && subjectTerms.length > 0
+  const useSenderFallback = senderScope?.useSenderFallback === true
 
   return withImapSession(
     {
@@ -463,7 +485,70 @@ async function fetchFromImap(
       // e l'utente non aveva feedback per minuti.)
       let uids: number[] = []
       let searchOk = true
-      if (useSenderSearch) {
+      if (useSubjectScopedSearch) {
+        // Ricerca chirurgica per statement: prodotto cartesiano FROM × SUBJECT/BODY.
+        // Tipicamente N≤4 alias mittente × M≤10 numeri × 2 campi = ~80 SEARCH veloci.
+        const seen = new Set<number>()
+        let pairIndex = 0
+        const totalPairs = senderTerms.length * subjectTerms.length * 2
+        for (const fromTerm of senderTerms) {
+          for (const needle of subjectTerms) {
+            for (const field of ['subject', 'body'] as const) {
+              pairIndex++
+              try {
+                await hooks?.beforeEachSearchTerm?.({
+                  term: `FROM "${fromTerm}" ${field.toUpperCase()} "${needle}"`,
+                  index: pairIndex - 1,
+                  total: totalPairs,
+                })
+              } catch { /* hook best-effort */ }
+              try {
+                const partial = await client.search(
+                  { ...dateCriteria, from: fromTerm, [field]: needle } as Parameters<typeof client.search>[0],
+                  { uid: true }
+                )
+                if (Array.isArray(partial)) {
+                  for (const u of partial) {
+                    if (typeof u === 'number' && !seen.has(u)) {
+                      seen.add(u)
+                      uids.push(u)
+                    }
+                  }
+                }
+              } catch (e) {
+                mailDebugLog(
+                  `[IMAP] SEARCH FROM "${fromTerm}" ${field.toUpperCase()} "${needle}" fallita su ${host}: continuo`,
+                  e
+                )
+              }
+            }
+          }
+        }
+        // Fallback opzionale: solo se by-subject ha trovato 0 UID E l'utente l'ha
+        // richiesto esplicitamente. Senza fallback, manteniamo il "mirato".
+        if (uids.length === 0 && useSenderFallback) {
+          const seenFb = new Set<number>()
+          for (let i = 0; i < senderTerms.length; i++) {
+            const term = senderTerms[i]
+            try {
+              await hooks?.beforeEachSearchTerm?.({ term, index: i, total: senderTerms.length })
+            } catch { /* hook best-effort */ }
+            try {
+              const partial = await client.search({ ...dateCriteria, from: term }, { uid: true })
+              if (Array.isArray(partial)) {
+                for (const u of partial) {
+                  if (typeof u === 'number' && !seenFb.has(u)) {
+                    seenFb.add(u)
+                    uids.push(u)
+                  }
+                }
+              }
+            } catch (e) {
+              mailDebugLog(`[IMAP] FALLBACK FROM "${term}" fallita su ${host}: continuo`, e)
+            }
+          }
+        }
+      } else if (useSenderSearch) {
         const seen = new Set<number>()
         for (let i = 0; i < senderTerms.length; i++) {
           const term = senderTerms[i]
@@ -504,8 +589,9 @@ async function fetchFromImap(
         // diretto col date criteria (vecchio comportamento). Per la modalità
         // by-sender invece NON facciamo fallback (rispetta scelta utente).
       }
-      if (uids.length === 0 && useSenderSearch) {
-        // Zero email del fornitore in finestra: usciamo subito, niente fetch.
+      if (uids.length === 0 && (useSenderSearch || useSubjectScopedSearch)) {
+        // Zero email del fornitore (o del singolo statement) in finestra:
+        // usciamo subito, niente fetch.
         return emails
       }
 
@@ -2645,6 +2731,24 @@ type RunEmailScanParams = {
     rangeStartInclusive: Date
     rangeEndExclusive: Date
   }
+  /**
+   * Numeri documento (fattura/DDT) per la ricerca chirurgica scoped a un
+   * singolo statement. Quando valorizzato (>=1), la SEARCH IMAP combina FROM
+   * mittenti del fornitore con SUBJECT/BODY dei numeri elencati — output
+   * scoped chirurgicamente alle mail del singolo statement, niente download
+   * di mail non rilevanti.
+   *
+   * Solo rilevante quando `fornitoreId` è valorizzato (la pipeline mirata).
+   * Ignorato per i cron globali.
+   */
+  docNumbersFilter?: string[]
+  /**
+   * Solo rilevante con `docNumbersFilter`: se `true`, in caso di 0 risultati
+   * by-subject riprova con la sola search by-sender. Default `false` (rispetta
+   * il "mirato per statement" — niente download a tappeto se la subject-search
+   * fallisce).
+   */
+  useSenderFallback?: boolean
 }
 
 function resolveSedeImapLookbackWindow(p: {
@@ -2953,10 +3057,18 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         // a `fetchFromImap` così la SEARCH IMAP chiede SOLO le UID dei messaggi
         // del fornitore (FROM = email/dominio), invece di scaricare l'intero
         // batch della finestra temporale e filtrare in memoria.
+        // Se inoltre `docNumbersFilter` è valorizzato (pipeline "mirato per
+        // statement"), la SEARCH combina FROM ∧ SUBJECT|BODY ⟦numero⟧ —
+        // ricerca chirurgica delle sole mail riferite a quei doc.
+        const subjectAnyOf = (params.docNumbersFilter ?? [])
+          .map(s => (typeof s === 'string' ? s.trim() : ''))
+          .filter(Boolean)
         const senderScopeForFetch = supplierScope
           ? {
               emails: Array.from(supplierScope.allowedEmails),
               domains: Array.from(supplierScope.allowedDomains),
+              ...(subjectAnyOf.length > 0 ? { subjectAnyOf } : {}),
+              ...(params.useSenderFallback === true ? { useSenderFallback: true } : {}),
             }
           : null
         const emails = await fetchFromImap(
@@ -3032,9 +3144,15 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
               // NB: NON modifichiamo `mailsFound` qui — quello è il conteggio post-filtro,
               // aggiornato dopo il for-await. Inviamo il raw count solo nel campo `mailsFound`
               // di QUESTO evento (lo snap() lo sovrascriverebbe a 0, quindi mettiamo dopo).
-              const summary = senderScopeForFetch
-                ? `IMAP SEARCH (by sender, ${senderScopeForFetch.emails.length + senderScopeForFetch.domains.length} terms) → ${info.totalUids} UID`
-                : null
+              const subjN = senderScopeForFetch?.subjectAnyOf?.length ?? 0
+              const sendN = senderScopeForFetch
+                ? senderScopeForFetch.emails.length + senderScopeForFetch.domains.length
+                : 0
+              const summary = subjN > 0
+                ? `IMAP SEARCH (statement-scoped: ${sendN} senders × ${subjN} doc numbers) → ${info.totalUids} UID`
+                : senderScopeForFetch
+                  ? `IMAP SEARCH (by sender, ${sendN} terms) → ${info.totalUids} UID`
+                  : null
               await s({
                 type: 'progress',
                 phase: 'search',
@@ -3605,6 +3723,19 @@ export async function POST(req: Request) {
   let documentKind: EmailSyncDocumentKind = 'all'
   /** Default POST: `historical` (giorni sede / override). */
   let imapSyncMode: ImapSyncMode = 'historical'
+  /**
+   * Numeri documento (fattura/DDT) per la ricerca chirurgica scoped allo
+   * statement aperto. Quando >=1 entry, la SEARCH IMAP è combinata
+   * `(FROM mittenti fornitore) ∧ (SUBJECT|BODY contiene uno dei numeri)`.
+   * Ignorato quando `fornitoreId` non è valorizzato.
+   */
+  let docNumbersFilter: string[] | undefined
+  /**
+   * Solo rilevante con `docNumbersFilter`: se `true`, in caso di 0 risultati
+   * by-subject riprova con la sola search by-sender (più ampia). Default
+   * `false` (rispetta il "mirato per statement").
+   */
+  let useSenderFallback: boolean | undefined
   try {
     const body = await req.json() as {
       user_sede_id?: string
@@ -3617,6 +3748,8 @@ export async function POST(req: Request) {
       email_sync_document_kind?: string
       client_locale?: string
       mode?: unknown
+      doc_numbers?: unknown
+      use_sender_fallback?: unknown
     }
     userSedeId = body?.user_sede_id ?? undefined
     filterSedeId = body?.filter_sede_id ?? undefined
@@ -3635,6 +3768,19 @@ export async function POST(req: Request) {
     if (parsedMode) imapSyncMode = parsedMode
     if (typeof body?.client_locale === 'string' && body.client_locale.trim().length > 0) {
       clientLocale = body.client_locale.trim().slice(0, 32)
+    }
+    if (Array.isArray(body?.doc_numbers)) {
+      // Hard-cap difensivo: 50 numeri massimo per evitare query SEARCH esplosive
+      // (con 4 mittenti × 50 needles × 2 campi = 400 SEARCH per scan).
+      const cleaned = body.doc_numbers
+        .filter((s): s is string => typeof s === 'string')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && s.length <= 80)
+        .slice(0, 50)
+      if (cleaned.length > 0) docNumbersFilter = cleaned
+    }
+    if (typeof body?.use_sender_fallback === 'boolean') {
+      useSenderFallback = body.use_sender_fallback
     }
   } catch { /* no body */ }
 
@@ -3708,6 +3854,8 @@ export async function POST(req: Request) {
             documentKind,
             imapSyncMode,
             emit: wrappedEmit,
+            ...(docNumbersFilter ? { docNumbersFilter } : {}),
+            ...(useSenderFallback !== undefined ? { useSenderFallback } : {}),
           })
           currentStage = 'complete'
           await safeWrite({
@@ -3785,6 +3933,8 @@ export async function POST(req: Request) {
         lookbackDaysOverride,
         documentKind,
         imapSyncMode,
+        ...(docNumbersFilter ? { docNumbersFilter } : {}),
+        ...(useSenderFallback !== undefined ? { useSenderFallback } : {}),
       }),
     )
     if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {

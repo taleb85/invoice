@@ -88,6 +88,14 @@ export type FetchUnseenImapHooks = {
    */
   beforeEachSearchTerm?: (info: { term: string; index: number; total: number }) => void | Promise<void>
   /**
+   * Riepiloga l'esito del tentativo "by-subject" (modalità chirurgica per
+   * statement): quando `subjectAnyOf` è valorizzato, eseguiamo prima N×M
+   * `search({from, subject})` e logghiamo il totale UID trovato. Se zero, il
+   * chiamante può decidere se attivare il fallback "by-sender" (vedi
+   * `useSenderFallback` in `SenderSearchScope`).
+   */
+  afterSubjectScopedSearch?: (info: { totalUids: number; subjectCount: number; senderCount: number }) => void | Promise<void>
+  /**
    * Chiamato ogni `fetchProgressEvery` messaggi durante il loop FETCH (default 5).
    * Lo scan-emails route usa questo per emettere progressi NDJSON anche durante un FETCH
    * lungo, così la UI non sembra bloccata.
@@ -110,6 +118,23 @@ export type SenderSearchScope = {
   emails: string[]
   /** Domini non generici (es. "acmespa.it"). Match come substring `FROM @dominio`. */
   domains: string[]
+  /**
+   * Quando valorizzato (>=1 entry), la SEARCH IMAP combina ciascun `FROM` con
+   * ciascun `SUBJECT/BODY` come query congiunta: ricerca chirurgica scoped al
+   * singolo statement, drasticamente meno costosa. Tipicamente sono numeri
+   * fattura/DDT (es. ["INV1153076", "INV1154087"]).
+   *
+   * Senza `useSenderFallback`, se la search by-subject torna 0 UID l'output è
+   * vuoto (rispettoso dell'intento dell'utente). Con `useSenderFallback: true`
+   * la pipeline riprova con la sola search by-sender (comportamento storico).
+   */
+  subjectAnyOf?: string[]
+  /**
+   * Solo rilevante quando `subjectAnyOf` ha entries. Se `true`, in caso di 0
+   * risultati by-subject riprova con la sola search by-sender (più ampia).
+   * Default `false`: rispetta la scelta dell'utente "mirato per statement".
+   */
+  useSenderFallback?: boolean
 }
 
 export async function fetchUnseenEmails(
@@ -173,9 +198,88 @@ export async function fetchUnseenEmails(
           ]
         : []
       const useSenderSearch = senderTerms.length > 0
+      // Termini opzionali per la ricerca chirurgica per oggetto/corpo
+      // (es. numeri fattura dello statement aperto). Quando presenti, si
+      // combinano con `senderTerms` come query congiunta SUBJECT/BODY ∧ FROM.
+      const subjectTerms = (senderScope?.subjectAnyOf ?? [])
+        .map(s => (typeof s === 'string' ? s.trim() : ''))
+        .filter(Boolean)
+      const useSubjectScopedSearch = useSenderSearch && subjectTerms.length > 0
 
       let uids: number[] = []
-      if (useSenderSearch) {
+      if (useSubjectScopedSearch) {
+        // Modalità "mirato per statement": cerchiamo SOLO mail il cui oggetto
+        // o corpo contiene uno dei numeri fattura/DDT noti, vincolate al
+        // mittente del fornitore e alla finestra di date. ImapFlow non supporta
+        // OR-list nativa per N>2 termini, quindi facciamo prodotto cartesiano
+        // di N×M search e uniamo gli UID. Tipicamente N≤4 (alias mittente) e
+        // M≤10 (righe statement) → ~40 search rapide.
+        const seen = new Set<number>()
+        let pairIndex = 0
+        const totalPairs = senderTerms.length * subjectTerms.length * 2
+        for (const fromTerm of senderTerms) {
+          for (const needle of subjectTerms) {
+            for (const field of ['subject', 'body'] as const) {
+              pairIndex++
+              try {
+                await hooks?.beforeEachSearchTerm?.({
+                  term: `FROM "${fromTerm}" ${field.toUpperCase()} "${needle}"`,
+                  index: pairIndex - 1,
+                  total: totalPairs,
+                })
+              } catch { /* hook best-effort */ }
+              try {
+                const partial = await client.search(
+                  { ...dateCriteria, from: fromTerm, [field]: needle } as Parameters<typeof client.search>[0],
+                  { uid: true }
+                )
+                if (Array.isArray(partial)) {
+                  for (const u of partial) {
+                    if (typeof u === 'number' && !seen.has(u)) {
+                      seen.add(u)
+                      uids.push(u)
+                    }
+                  }
+                }
+              } catch {
+                // Search singola fallita: continuiamo con il prossimo pair.
+              }
+            }
+          }
+        }
+        await hooks?.afterSubjectScopedSearch?.({
+          totalUids: uids.length,
+          subjectCount: subjectTerms.length,
+          senderCount: senderTerms.length,
+        })
+
+        // Fallback opzionale: se 0 UID e l'utente l'ha richiesto, riproviamo
+        // con la sola search by-sender (più ampia). Senza fallback, "0 UID
+        // by-subject" significa output vuoto.
+        if (uids.length === 0 && senderScope?.useSenderFallback === true) {
+          const seenFb = new Set<number>()
+          for (let i = 0; i < senderTerms.length; i++) {
+            const term = senderTerms[i]
+            try {
+              await hooks?.beforeEachSearchTerm?.({ term, index: i, total: senderTerms.length })
+            } catch { /* hook best-effort */ }
+            try {
+              const partial = await client.search(
+                { ...dateCriteria, from: term },
+                { uid: true }
+              )
+              if (Array.isArray(partial)) {
+                for (const u of partial) {
+                  if (typeof u === 'number' && !seenFb.has(u)) {
+                    seenFb.add(u)
+                    uids.push(u)
+                  }
+                }
+              }
+            } catch { /* tolleranza search fallite */ }
+          }
+        }
+      } else if (useSenderSearch) {
         const seen = new Set<number>()
         for (let i = 0; i < senderTerms.length; i++) {
           const term = senderTerms[i]

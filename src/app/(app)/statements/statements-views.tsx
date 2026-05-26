@@ -3798,8 +3798,19 @@ export function VerificationStatusTab({
     abortSignal: AbortSignal
     /** Etichetta per il log (es. "Bolle" / "Fatture") */
     logLabel: string
+    /**
+     * Numeri documento (fattura/DDT) dello statement aperto per la ricerca
+     * chirurgica. Quando valorizzato, la SEARCH IMAP combina FROM ∧
+     * SUBJECT|BODY del numero — ricerca scoped al solo statement.
+     */
+    docNumbers?: string[]
+    /**
+     * Solo rilevante con `docNumbers`: fallback by-sender se la search
+     * chirurgica torna 0. Default `false` (rispetta "mirato per statement").
+     */
+    useSenderFallback?: boolean
   }): Promise<number> => {
-    const { fornitoreId, sedeId, lookbackDays, documentKind, abortSignal, logLabel } = params
+    const { fornitoreId, sedeId, lookbackDays, documentKind, abortSignal, logLabel, docNumbers, useSenderFallback } = params
     let bozzeCreate = 0
 
     try {
@@ -3817,6 +3828,8 @@ export function VerificationStatusTab({
           email_sync_lookback_days: lookbackDays,
           email_sync_document_kind: documentKind,
           client_locale: supplierLoc.currencyLocale,
+          ...(docNumbers && docNumbers.length > 0 ? { doc_numbers: docNumbers } : {}),
+          ...(useSenderFallback !== undefined ? { use_sender_fallback: useSenderFallback } : {}),
         }),
       })
 
@@ -4031,6 +4044,33 @@ export function VerificationStatusTab({
       const needsDdtScan   = bolleMancanti > 0
       const needsInvoiceScan = needsEmailScan && fatturaMancante > 0
 
+      /**
+       * Ricerca chirurgica scoped allo statement aperto:
+       *  - Per i DDT: cerchiamo le mail il cui oggetto/corpo contiene il numero
+       *    fattura della riga "bolle_mancanti" (il provider tipicamente nomina
+       *    il DDT come "DDT for invoice INV…" oppure include il numero fattura
+       *    nell'oggetto della mail di accompagnamento).
+       *  - Per le fatture: cerchiamo le mail con il numero fattura mancante.
+       *
+       * Limiti difensivi: max 50 numeri per scan (cap server-side). Se lo
+       * statement ha più anomalie, ridurremo a 50 (le altre verranno trovate
+       * a un re-run successivo, comunque comune in scenari sani).
+       *
+       * NB: senza fallback by-sender. Se la search chirurgica torna 0, la UI
+       * mostra "no email matching" — utente sa con chiarezza che le mail non
+       * ci sono, niente download a tappeto.
+       */
+      const docNumbersBolle = anomaleRows
+        .filter(r => r.status === 'bolle_mancanti')
+        .map(r => r.numero?.trim() ?? '')
+        .filter(n => n.length > 0)
+        .slice(0, 50)
+      const docNumbersFatture = anomaleRows
+        .filter(r => r.status === 'fattura_mancante')
+        .map(r => r.numero?.trim() ?? '')
+        .filter(n => n.length > 0)
+        .slice(0, 50)
+
       // ── Calcola finestra di ricerca mirata ──
       // Parte dalla data più vecchia tra TUTTE le righe non risolte
       // (fattura_mancante + bolle_mancanti + errore_importo), meno 14gg di buffer.
@@ -4123,6 +4163,7 @@ export function VerificationStatusTab({
               documentKind: 'bolla',
               abortSignal: abort.signal,
               logLabel: deliveryNoteLabel,
+              docNumbers: docNumbersBolle.length > 0 ? docNumbersBolle : undefined,
             })
           } catch (e) {
             if (e instanceof Error && e.name === 'AbortError') return
@@ -4172,6 +4213,7 @@ export function VerificationStatusTab({
               documentKind: 'fattura',
               abortSignal: abort.signal,
               logLabel: t.statements.aiPipelineInvoiceLabel ?? 'Invoice',
+              docNumbers: docNumbersFatture.length > 0 ? docNumbersFatture : undefined,
             })
           } catch (e) {
             if (e instanceof Error && e.name === 'AbortError') return
