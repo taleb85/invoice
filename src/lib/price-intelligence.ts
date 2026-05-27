@@ -168,10 +168,11 @@ export async function analyzeSupplierPriceTrends(
    */
   const rawRows = rawRowsAll.filter((r) => !isPromoListinoRow({ prodotto: r.prodotto, note: r.note }))
 
-  const fornitoreNome = (rawRows[0] ?? rawRowsAll[0])?.fornitori
-    ? (Array.isArray((rawRows[0] ?? rawRowsAll[0])!.fornitori)
-        ? (rawRows[0] ?? rawRowsAll[0])!.fornitori![0]!.nome
-        : ((rawRows[0] ?? rawRowsAll[0])!.fornitori as { nome: string; display_name?: string | null }).nome)
+  const fornitoreJoin = (rawRows[0] ?? rawRowsAll[0])?.fornitori
+  const fornitoreNome = fornitoreJoin
+    ? Array.isArray(fornitoreJoin)
+      ? (fornitoreJoin[0]?.nome ?? 'Sconosciuto')
+      : fornitoreJoin.nome
     : 'Sconosciuto'
 
   const prodotti = new Map<string, PriceRow[]>()

@@ -5153,7 +5153,7 @@ function ListinoTab({
                           {/* Badges inline */}
                           <div className="flex flex-wrap items-center gap-1.5">
                             {isPromo ? (
-                              <StatusBadge tone="amber">
+                              <StatusBadge tone="orange">
                                 {t.fornitori.listinoRowBadgePromo}
                               </StatusBadge>
                             ) : hasAnomaly ? (
