@@ -1672,6 +1672,10 @@ export type Translations = {
     recheckTripleCheckTitle: string
     recheckTripleCheckSelectStmt: string
     recheckTripleCheckDone: string
+    recheckTripleCheckAllTitle: string
+    recheckTripleCheckAllTitleFornitore: string
+    recheckTripleCheckAllDone: string
+    recheckTripleCheckNoStmts: string
     stmtListProcessing: string
     stmtListParseError: string
     stmtRowsCount: string

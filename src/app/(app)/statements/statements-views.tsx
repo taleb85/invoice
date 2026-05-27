@@ -4622,10 +4622,18 @@ export function VerificationStatusTab({
     try {
       const res = await fetch(`/api/statements?id=${stmt.id}&action=recheck`)
       if (res.ok) {
-        const updated = await res.json() as { status?: string }
+        const updated = await res.json() as { missing_rows?: number; status?: string }
         if (updated.status === 'done' || updated.status === 'error') {
           setStmts((prev) =>
-            prev.map((s) => (s.id === stmt.id ? { ...s, status: updated.status as StmtRecord['status'] } : s)),
+            prev.map((s) =>
+              s.id === stmt.id
+                ? {
+                    ...s,
+                    status: updated.status as StmtRecord['status'],
+                    missing_rows: updated.missing_rows ?? s.missing_rows,
+                  }
+                : s,
+            ),
           )
         }
         showToast(t.statements.recheckTripleCheckDone, 'success')
@@ -4634,6 +4642,52 @@ export function VerificationStatusTab({
         showToast(j.error ?? t.statements.loadError, 'error')
       }
       await loadStatementRows(stmt)
+    } catch {
+      showToast(t.ui.networkError, 'error')
+    } finally {
+      setStmtRecheckBusy(false)
+    }
+  }
+
+  /** Ricalcolo triple-check su tutti gli estratti visibili in lista (scheda fornitore / filtro attivo). */
+  async function runAllStmtsRecheck() {
+    if (!sedeId) return
+    const targets = stmts.filter((s) => s.status === 'done')
+    if (targets.length === 0) {
+      showToast(t.statements.recheckTripleCheckNoStmts, 'info')
+      return
+    }
+    setStmtRecheckBusy(true)
+    try {
+      const res = await fetch('/api/reprocess-statement-checks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sede_id: sedeId,
+          fornitore_id: fornitoreId ?? undefined,
+          statement_ids: targets.map((s) => s.id),
+          limit: targets.length,
+        }),
+      })
+      const j = await res.json().catch(() => ({})) as {
+        error?: string
+        processed?: number
+        righe_rivalutate?: number
+        message?: string
+      }
+      if (!res.ok) {
+        showToast(j.error ?? t.statements.loadError, 'error')
+        return
+      }
+      const n = j.processed ?? 0
+      showToast(
+        n > 0
+          ? t.statements.recheckTripleCheckAllDone.replace('{n}', String(n))
+          : t.statements.recheckTripleCheckNoStmts,
+        n > 0 ? 'success' : 'info',
+      )
+      await fetchStmts(false)
+      if (selectedStmt) await loadStatementRows(selectedStmt)
     } catch {
       showToast(t.ui.networkError, 'error')
     } finally {
@@ -4875,15 +4929,17 @@ export function VerificationStatusTab({
             </button>
             <button
               type="button"
-              disabled={!selectedStmt || stmtRecheckBusy || stmtHeaderRefreshPending}
+              disabled={stmtRecheckBusy || stmtHeaderRefreshPending || stmtsLoading || stmts.length === 0}
               aria-busy={stmtRecheckBusy}
               title={
-                selectedStmt
-                  ? t.statements.recheckTripleCheckTitle
+                stmts.length > 0
+                  ? fornitoreId
+                    ? t.statements.recheckTripleCheckAllTitleFornitore.replace('{n}', String(stmts.filter((s) => s.status === 'done').length))
+                    : t.statements.recheckTripleCheckAllTitle.replace('{n}', String(stmts.filter((s) => s.status === 'done').length))
                   : t.statements.recheckTripleCheckSelectStmt
               }
               onClick={() => {
-                if (selectedStmt) void runStmtRecheck(selectedStmt)
+                void runAllStmtsRecheck()
               }}
               className={
                 vsEmbeddedSupplier
