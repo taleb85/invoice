@@ -3736,6 +3736,10 @@ export function VerificationStatusTab({
   const vsCompactS1 = verificaMode === 'statementsPanel' && vsEmbeddedSupplier
 
   /* ── Statement list (received via email) ─────────────────── */
+  type StmtAnomalyPreviewItem = {
+    numero_doc: string
+    check_status: CheckStatus
+  }
   type StmtRecord = {
     id: string
     email_subject: string | null
@@ -3748,6 +3752,7 @@ export function VerificationStatusTab({
     missing_rows: number
     fornitore_nome: string | null
     linked_fattura_id?: string | null
+    anomaly_preview?: StmtAnomalyPreviewItem[]
   }
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
@@ -5069,16 +5074,43 @@ export function VerificationStatusTab({
                     <span className="text-xs text-red-500 font-medium">{t.statements.stmtListParseError}</span>
                   ) : (
                     <>
-                    <div className="text-right shrink-0">
+                    <div className="min-w-0 max-w-[10.5rem] shrink-0 text-right sm:max-w-[12rem]">
                       <p className="text-xs font-semibold text-app-fg-muted">
                         {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
                       </p>
                       {s.missing_rows > 0 ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
-                          {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
-                        </span>
+                        <div className="mt-0.5 flex flex-col items-end gap-0.5">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
+                            {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
+                          </span>
+                          {(s.anomaly_preview?.length ?? 0) > 0 ? (
+                            <ul
+                              className="w-full space-y-0.5 text-[10px] leading-tight text-red-100/90"
+                              aria-label={t.statements.stmtAnomalyPreviewAria}
+                            >
+                              {s.anomaly_preview!.map((item) => {
+                                const cfg = STATUS_CONFIG[item.check_status]
+                                return (
+                                  <li key={`${item.numero_doc}-${item.check_status}`} className="truncate" title={`${item.numero_doc} — ${cfg.label}`}>
+                                    <span className="font-mono font-semibold tabular-nums">{item.numero_doc}</span>
+                                    <span className="text-red-200/50"> · </span>
+                                    <span className="text-red-200/80">{cfg.label}</span>
+                                  </li>
+                                )
+                              })}
+                              {s.missing_rows > (s.anomaly_preview?.length ?? 0) && (
+                                <li className="text-[10px] text-app-fg-muted">
+                                  {t.statements.stmtAnomalyPreviewMore.replace(
+                                    '{n}',
+                                    String(s.missing_rows - (s.anomaly_preview?.length ?? 0)),
+                                  )}
+                                </li>
+                              )}
+                            </ul>
+                          ) : null}
+                        </div>
                       ) : (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
+                        <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
                           <GlyphCheck className="h-3 w-3" aria-hidden />
                           OK
                         </span>

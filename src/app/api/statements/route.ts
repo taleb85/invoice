@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
 import { runTripleCheck } from '@/lib/triple-check' // bolle obbligatorie v2
+import { attachStatementAnomalyPreviews } from '@/lib/statement-anomaly-preview'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
 
 export async function GET(req: NextRequest) {
@@ -275,12 +276,19 @@ export async function GET(req: NextRequest) {
 
   const hasMissing = deduped.some((s) => ((s.missing_rows as number | null) ?? 0) > 0)
 
+  const statementsOut = hasMissing
+    ? await attachStatementAnomalyPreviews(
+        supabase,
+        deduped as Array<StmtListRow & { id: string }>,
+      )
+    : (deduped as StmtListRow[]).map((s) => ({ ...s, anomaly_preview: [] as const }))
+
   // Pulizia automatica: fire-and-forget, non blocca la risposta.
   cleanupBadStatements(service).catch(() => {})
   autoConvertInvoiceStatements(service).catch(() => {})
   autoCleanupDuplicateFatture(service).catch(() => {})
 
-  return NextResponse.json({ statements: deduped, hasMissing })
+  return NextResponse.json({ statements: statementsOut, hasMissing })
 }
 
 /**

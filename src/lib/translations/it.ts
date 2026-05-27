@@ -2390,6 +2390,8 @@ const translations: Translations = {
     stmtRowsCount: '{n} righe',
     stmtAnomalies_one: '{n} anomalia',
     stmtAnomalies_other: '{n} anomalie',
+    stmtAnomalyPreviewMore: '+{n} altre',
+    stmtAnomalyPreviewAria: 'Documenti con anomalie',
     stmtBackToList: 'Torna alla lista',
     needsMigrationTitle: 'Tabelle non ancora create',
     needsMigrationBody:

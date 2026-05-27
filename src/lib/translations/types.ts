@@ -1681,6 +1681,8 @@ export type Translations = {
     stmtRowsCount: string
     stmtAnomalies_one: string
     stmtAnomalies_other: string
+    stmtAnomalyPreviewMore: string
+    stmtAnomalyPreviewAria: string
     stmtBackToList: string
     needsMigrationTitle: string
     needsMigrationBody: string

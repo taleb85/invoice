@@ -1335,6 +1335,8 @@ const translations: Translations = {
     stmtRowsCount: '{n} Zeilen',
     stmtAnomalies_one: '{n} Auffälligkeit',
     stmtAnomalies_other: '{n} Auffälligkeiten',
+    stmtAnomalyPreviewMore: '+{n} weitere',
+    stmtAnomalyPreviewAria: 'Dokumente mit Auffälligkeiten',
     stmtBackToList: 'Zurück zur Liste',
     needsMigrationTitle: 'Tabellen noch nicht angelegt',
     needsMigrationBody:
