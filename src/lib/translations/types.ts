@@ -1856,6 +1856,18 @@ export type Translations = {
     rigaDataDocLabel: string
     rigaRicevutoLabel: string
     rigaGiorniInStato: string
+    queueStatementGroupRows: string
+    queueStatementGroupOpen: string
+    queueStatementGroupResolve: string
+    queueStatementGroupResolving: string
+    queueStatementGroupResolved: string
+    queueStatementGroupResolveError: string
+    queueStatementStatusFatturaMancante: string
+    queueStatementStatusBolleMancanti: string
+    queueStatementStatusErroreImporto: string
+    queueStatementStatusRekki: string
+    queueStatementStatusPending: string
+    queueStatementStatusOther: string
     priorityCritical: string
     priorityHigh: string
     priorityMedium: string

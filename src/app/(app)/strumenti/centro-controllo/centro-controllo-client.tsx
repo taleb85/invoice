@@ -43,6 +43,8 @@ import AssociaFornitoreDialog from './_dialogs/associa-fornitore-dialog'
 import AggiornaCategoriaDialog from './_dialogs/aggiorna-categoria-dialog'
 import RifiutaFatturaDialog from './_dialogs/rifiuta-fattura-dialog'
 import AssegnaFatturaDialog from './_dialogs/assegna-fattura-dialog'
+import StatementGruppoCoda from './statement-gruppo-coda'
+import { buildCodaDisplayEntries } from '@/lib/centro-controllo-coda-grouping'
 
 INITIALIZE_COMMANDS()
 
@@ -110,6 +112,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
   })
   const [suggerimenti, setSuggerimenti] = useState<Map<string, AiSuggestion>>(new Map())
   const [eseguendoId, setEseguendoId] = useState<string | null>(null)
+  const [resolvingStatementId, setResolvingStatementId] = useState<string | null>(null)
   const [cmdPaletteAperta, setCmdPaletteAperta] = useState(false)
   const [ricercaCmd, setRicercaCmd] = useState('')
 
@@ -832,6 +835,61 @@ export default function CentroControlloClient({ sedeId }: Props) {
 
   const conteggi = codaConteggi
 
+  const codaDisplayEntries = useMemo(() => buildCodaDisplayEntries(items), [items])
+
+  const handleResolveStatement = useCallback(
+    async (statementId: string, fornitoreId: string) => {
+      if (!sedeId) return
+      setResolvingStatementId(statementId)
+      try {
+        const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sede_id: sedeId,
+            fornitore_id: fornitoreId,
+            statement_id: statementId,
+            skip_email_scan: true,
+          }),
+        })
+        const data = await res.json() as {
+          error?: string
+          assoc?: { resolved?: number; remaining?: number }
+        }
+        if (!res.ok) {
+          showToast(data.error ?? t.strumentiCentroControllo.queueStatementGroupResolveError, 'error')
+          return
+        }
+        const resolved = data.assoc?.resolved ?? 0
+        const remaining = data.assoc?.remaining ?? 0
+        if (resolved > 0) {
+          showToast(
+            t.strumentiCentroControllo.queueStatementGroupResolved.replace('{n}', String(resolved)),
+            'success',
+          )
+        }
+        if (remaining > 0) {
+          showToast(
+            t.strumentiCentroControllo.statementPipelineRemaining.replace('{n}', String(remaining)),
+            'success',
+          )
+        }
+        if (resolved === 0 && remaining === 0) {
+          showToast(t.strumentiCentroControllo.statementPipelineNoResolvable, 'success')
+        }
+        await caricaCoda()
+      } catch (e) {
+        showToast(
+          e instanceof Error ? e.message : t.strumentiCentroControllo.queueStatementGroupResolveError,
+          'error',
+        )
+      } finally {
+        setResolvingStatementId(null)
+      }
+    },
+    [sedeId, caricaCoda, showToast, t],
+  )
+
   const eseguiComando = async (item: CodaItem, commandId: CommandId) => {
     const dialogCommands: Record<string, DialogType> = {
       'documento.associa': 'associa',
@@ -1080,19 +1138,37 @@ export default function CentroControlloClient({ sedeId }: Props) {
           {!loading && !error && codaTotal > 0 && (
             <SectionCard title={t.strumentiCentroControllo.queueTitle} badge={codaTotal}>
               <div className="max-h-[min(70vh,42rem)] overflow-y-auto overscroll-contain divide-y divide-app-line-10">
-                {items.map((item) => (
-                  <RigaDocumento
-                    key={item.id}
-                    item={item}
-                    sedeId={sedeId}
-                    suggerimento={suggerimenti.get(item.id) ?? null}
-                    eseguendoId={eseguendoId}
-                    onEsegui={eseguiComando}
-                    onConfermaSuggerimento={confermaSuggerimento}
-                    onRifiutaSuggerimento={rifiutaSuggerimento}
-                    onApriAzioni={(item) => openActions(item)}
-                  />
-                ))}
+                {codaDisplayEntries.map((entry) =>
+                  entry.type === 'statement_group' ? (
+                    <StatementGruppoCoda
+                      key={`stmt-${entry.statementId}`}
+                      statementId={entry.statementId}
+                      items={entry.items}
+                      sedeId={sedeId}
+                      suggerimenti={suggerimenti}
+                      eseguendoId={eseguendoId}
+                      resolving={resolvingStatementId === entry.statementId}
+                      onEsegui={eseguiComando}
+                      onConfermaSuggerimento={confermaSuggerimento}
+                      onRifiutaSuggerimento={rifiutaSuggerimento}
+                      onApriAzioni={(item) => openActions(item)}
+                      onResolveStatement={handleResolveStatement}
+                      RigaDocumento={RigaDocumento}
+                    />
+                  ) : (
+                    <RigaDocumento
+                      key={entry.item.id}
+                      item={entry.item}
+                      sedeId={sedeId}
+                      suggerimento={suggerimenti.get(entry.item.id) ?? null}
+                      eseguendoId={eseguendoId}
+                      onEsegui={eseguiComando}
+                      onConfermaSuggerimento={confermaSuggerimento}
+                      onRifiutaSuggerimento={rifiutaSuggerimento}
+                      onApriAzioni={(item) => openActions(item)}
+                    />
+                  ),
+                )}
               </div>
               <div className="flex flex-col gap-3 border-t border-app-line-10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-app-fg-muted">
@@ -1632,6 +1708,7 @@ function RigaDocumento({
   onConfermaSuggerimento,
   onRifiutaSuggerimento,
   onApriAzioni,
+  nested = false,
 }: {
   item: CodaItem
   sedeId: string | null
@@ -1641,6 +1718,7 @@ function RigaDocumento({
   onConfermaSuggerimento: (item: CodaItem, commandId: CommandId) => void
   onRifiutaSuggerimento: (item: CodaItem, commandId: CommandId) => void
   onApriAzioni?: (item: CodaItem) => void
+  nested?: boolean
 }) {
   const t = useT()
   const { locale, timezone } = useLocale()
@@ -1706,19 +1784,23 @@ function RigaDocumento({
     })
   }, [item, sedeId])
 
-  return (
-    <div className="app-card overflow-hidden">
-      <div className={`app-card-bar-accent ${priorita.colore.split(' ')[0].replace('text-', 'bg-')}`} aria-hidden />
-      <div className="flex items-start gap-3 p-3 md:gap-4 md:p-4">
-        <div className="flex-1 min-w-0">
+  const rowBody = (
+      <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${priorita.colore}`}>
-              {priorita.label}
-            </span>
-            <TipoBadge origine={item.origine} pendingKind={item.pending_kind} />
-            {item.fornitore_nome && (
+            {!nested && (
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${priorita.colore}`}>
+                {priorita.label}
+              </span>
+            )}
+            {!nested && <TipoBadge origine={item.origine} pendingKind={item.pending_kind} />}
+            {!nested && item.fornitore_nome && (
               <span className="text-xs font-medium text-app-fg truncate max-w-[140px] md:max-w-[200px]" title={item.fornitore_nome}>
                 {item.fornitore_nome}
+              </span>
+            )}
+            {nested && (
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${priorita.colore}`}>
+                {priorita.label}
               </span>
             )}
             {importoFormattato && (
@@ -1867,6 +1949,23 @@ function RigaDocumento({
             </div>
           )}
         </div>
+  )
+
+  if (nested) {
+    return (
+      <div className="border-t border-app-line-10 first:border-t-0">
+        <div className="flex items-start gap-3 p-3 md:gap-4 md:p-4 pl-5 md:pl-6">
+          {rowBody}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="app-card overflow-hidden">
+      <div className={`app-card-bar-accent ${priorita.colore.split(' ')[0].replace('text-', 'bg-')}`} aria-hidden />
+      <div className="flex items-start gap-3 p-3 md:gap-4 md:p-4">
+        {rowBody}
       </div>
     </div>
   )
