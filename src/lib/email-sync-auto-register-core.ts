@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   findDuplicateFatturaId,
   findDuplicateFatturaSansNumeroByImporto,
+  findDuplicateFatturaBySupplierDateAmount,
   normalizeNumeroFattura,
 } from '@/lib/fattura-duplicate-check'
 import { normalizeNumeroBolla } from '@/lib/fix-ocr-dates-helpers'
@@ -40,7 +41,22 @@ export async function insertEmailAutoFattura(
       numeroFattura: numeroNorm,
     })
     if (dupId) return { duplicateId: dupId }
-  } else if (opts.meta.totale_iva_inclusa != null && opts.sedeId) {
+  }
+
+  if (opts.meta.totale_iva_inclusa != null && opts.sedeId) {
+    const imp = Number(opts.meta.totale_iva_inclusa)
+    if (Number.isFinite(imp)) {
+      const dupByAmount = await findDuplicateFatturaBySupplierDateAmount(supabase, {
+        sedeId: opts.sedeId,
+        fornitoreId: opts.fornitoreId,
+        data: opts.dataDoc,
+        importo: imp,
+      })
+      if (dupByAmount) return { duplicateId: dupByAmount }
+    }
+  }
+
+  if (!numeroNorm && opts.meta.totale_iva_inclusa != null && opts.sedeId) {
     const imp = Number(opts.meta.totale_iva_inclusa)
     if (Number.isFinite(imp)) {
       const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {

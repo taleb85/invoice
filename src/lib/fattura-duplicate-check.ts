@@ -8,6 +8,10 @@ export const FATTURA_DUPLICATE_USER_MESSAGE_IT =
 export const FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT =
   'Questa fattura è già registrata: stesso fornitore, stessa data e stesso importo (nessun numero documento). Per sostituire il PDF apri la fattura esistente e usa «Sostituisci file».'
 
+/** Stesso fornitore + data + importo ma numero OCR diverso (doppia email / lettura errata). */
+export const FATTURA_DUPLICATE_SAME_SUPPLIER_DATE_AMOUNT_IT =
+  'Questa fattura è già registrata: stesso fornitore, stessa data e stesso importo (numero documento diverso — possibile duplicato OCR). Per sostituire il PDF apri la fattura esistente e usa «Sostituisci file».'
+
 export function normalizeNumeroFattura(raw: string | null | undefined): string {
   const s = (raw ?? '').trim().replace(/\s+/g, ' ')
   if (!s) return ''
@@ -100,6 +104,37 @@ export async function findDuplicateFatturaId(
     const rowSede = row.sede_id ?? null
     const ctxSede = p.sedeId ?? null
     if (rowSede !== ctxSede) continue
+    return row.id
+  }
+  return null
+}
+
+/**
+ * Duplicato probabile: stesso fornitore, stessa data documento, stesso importo (centesimi),
+ * anche se il numero fattura letto dall'OCR differisce (es. account number vs invoice no.).
+ */
+export async function findDuplicateFatturaBySupplierDateAmount(
+  supabase: SupabaseClient,
+  p: { sedeId: string | null; fornitoreId: string; data: string; importo: number },
+): Promise<string | null> {
+  if (!p.fornitoreId || !p.data) return null
+  if (p.importo == null || Number.isNaN(p.importo)) return null
+
+  const { data: rows, error } = await supabase
+    .from('fatture')
+    .select('id, sede_id, importo')
+    .eq('fornitore_id', p.fornitoreId)
+    .eq('data', p.data)
+
+  if (error || !rows?.length) return null
+
+  const ctxSede = p.sedeId ?? null
+  for (const row of rows) {
+    const rowSede = row.sede_id ?? null
+    if (rowSede !== ctxSede) continue
+    const rowImp = row.importo != null ? Number(row.importo) : null
+    if (rowImp == null || Number.isNaN(rowImp)) continue
+    if (!importiEquivalenti(rowImp, p.importo)) continue
     return row.id
   }
   return null

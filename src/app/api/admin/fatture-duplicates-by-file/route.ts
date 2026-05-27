@@ -31,7 +31,7 @@ type FRow = {
   approval_status: string | null
 }
 
-type DupGroupKind = 'same_file_url' | 'shell_fatture' | 'same_numero' | 'same_day_cluster'
+type DupGroupKind = 'same_file_url' | 'shell_fatture' | 'same_numero' | 'same_date_amount' | 'same_day_cluster'
 
 type DupGroup = {
   group_key: string
@@ -62,6 +62,12 @@ function normalizeNumero(n: string | null | undefined): string | null {
   return t || null
 }
 
+function numeroInFileUrl(f: FRow): boolean {
+  const n = normalizeNumero(f.numero_fattura)
+  if (!n || !f.file_url) return false
+  return f.file_url.toLowerCase().includes(n.toLowerCase())
+}
+
 /** Restituisce un punteggio: più alto = più "forte" (candidato a essere mantenuto). */
 function strength(f: FRow): number {
   let s = 0
@@ -74,6 +80,9 @@ function strength(f: FRow): number {
 
 function pickKeep(group: FRow[]): { keep: FRow; reason: string } {
   const sorted = [...group].sort((a, b) => {
+    const aNumInUrl = numeroInFileUrl(a) ? 1 : 0
+    const bNumInUrl = numeroInFileUrl(b) ? 1 : 0
+    if (aNumInUrl !== bNumInUrl) return bNumInUrl - aNumInUrl
     const ds = strength(b) - strength(a)
     if (ds !== 0) return ds
     return a.created_at.localeCompare(b.created_at) // più vecchia prima a parità
@@ -176,6 +185,24 @@ async function buildGroups(
     items.forEach(i => usedIds.add(i.id))
   }
 
+  // ── Gruppo 3b: stesso (fornitore, data, importo) — numeri OCR diversi ──
+  const byDateAmount = new Map<string, FRow[]>()
+  for (const r of rows) {
+    if (usedIds.has(r.id)) continue
+    if (!r.fornitore_id || !r.data || r.importo == null) continue
+    const cents = Math.round(Number(r.importo) * 100)
+    if (!Number.isFinite(cents)) continue
+    const k = `${r.fornitore_id}|${r.data}|${cents}`
+    const arr = byDateAmount.get(k) ?? []
+    arr.push(r)
+    byDateAmount.set(k, arr)
+  }
+  for (const [k, items] of byDateAmount.entries()) {
+    if (items.length < 2) continue
+    rawGroups.push({ key: `dateamt:${k}`, kind: 'same_date_amount', items })
+    items.forEach(i => usedIds.add(i.id))
+  }
+
   // ── Gruppo 4: cluster ≥3 per (fornitore, data) — bassa confidenza ─────
   // Es. Eden Springs 31/03/2026: 9+ righe con numero misto. Sopra 3 record
   // nello stesso giorno per lo stesso fornitore è quasi certamente un loop
@@ -211,6 +238,7 @@ async function buildGroups(
   const reasonForKind: Record<DupGroupKind, (base: string) => string> = {
     same_file_url: r => `${r} · stesso file PDF`,
     same_numero: r => `${r} · stesso fornitore + data + numero fattura`,
+    same_date_amount: r => `${r} · stesso fornitore + data + importo (numeri diversi)`,
     shell_fatture: r => `${r} · "shell" — stesso fornitore + data, senza numero né importo`,
     same_day_cluster: r => `${r} · cluster sospetto: ≥3 fatture stesso fornitore + giorno`,
   }

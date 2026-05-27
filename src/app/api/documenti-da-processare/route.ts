@@ -7,6 +7,7 @@ import { recordLearnedKindFromDocMetadata } from '@/lib/fornitore-doc-type-hints
 import {
   findDuplicateFatturaId,
   findDuplicateFatturaSansNumeroByImporto,
+  findDuplicateFatturaBySupplierDateAmount,
   normalizeNumeroFattura,
   numeroFatturaFromDocMetadata,
 } from '@/lib/fattura-duplicate-check'
@@ -145,7 +146,29 @@ async function finalizePendingByTipo(
       return NextResponse.json({ ok: true, fattura_id: dupId, duplicate: true })
     }
 
-    const fatturaImporto = m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null
+    const fatturaImportoEarly = m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null
+    if (fatturaImportoEarly != null && Number.isFinite(fatturaImportoEarly)) {
+      const dupAmt = await findDuplicateFatturaBySupplierDateAmount(supabase, {
+        sedeId: sedeDefinitiva,
+        fornitoreId: doc.fornitore_id,
+        data: dataDoc,
+        importo: fatturaImportoEarly,
+      })
+      if (dupAmt) {
+        await supabase
+          .from('documenti_da_processare')
+          .update({
+            stato: 'associato',
+            fattura_id: dupAmt,
+            bolla_id: null,
+            ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+          })
+          .eq('id', id)
+        return NextResponse.json({ ok: true, fattura_id: dupAmt, duplicate: true })
+      }
+    }
+
+    const fatturaImporto = fatturaImportoEarly
 
     // Determine approval_status before insert
     let approvalStatus = 'pending'
@@ -914,6 +937,26 @@ export async function POST(req: NextRequest) {
           })
           .eq('id', doc.id)
         return NextResponse.json({ ok: true, fattura_id: dupId, duplicate: true })
+      }
+      if (importoTotale > 0) {
+        const dupAmt = await findDuplicateFatturaBySupplierDateAmount(supabase, {
+          sedeId: sedeDefinitiva,
+          fornitoreId: primaBolla.fornitore_id,
+          data: dataFatturaAssocia,
+          importo: importoTotale,
+        })
+        if (dupAmt) {
+          await supabase
+            .from('documenti_da_processare')
+            .update({
+              stato: 'associato',
+              fattura_id: dupAmt,
+              bolla_id: null,
+              ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+            })
+            .eq('id', doc.id)
+          return NextResponse.json({ ok: true, fattura_id: dupAmt, duplicate: true })
+        }
       }
     } else {
       const insImporto = importoTotale > 0 ? importoTotale : null

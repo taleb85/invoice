@@ -2759,6 +2759,7 @@ function FattureTab({
         fornitore_id: f.fornitore_id,
         importo: f.importo,
         data: f.data,
+        file_url: f.file_url,
       })),
     )
     return serializeFatturaDuplicateDeletionPayload(analysis)

@@ -16,7 +16,7 @@ export type FatturaDupProbe = {
 }
 
 /** Riga fattura con data documento per scegliere quale copia tenere (più vecchia = originale). */
-export type FatturaDupListRow = FatturaDupProbe & { data: string }
+export type FatturaDupListRow = FatturaDupProbe & { data: string; file_url?: string | null }
 
 export type FatturaDuplicateDeletionAnalysis = {
   memberIds: Set<string>
@@ -87,6 +87,22 @@ function fatturaDupKey(r: FatturaDupProbe): string | null {
   const cents = importoCents(r.importo)
   if (cents == null) return null
   return `${r.fornitore_id}\u0000${cents}\u0000${num.toLowerCase()}`
+}
+
+/** Stesso fornitore + data documento + importo (OCR numero diverso). */
+function fatturaDupKeyBySupplierDateAmount(r: FatturaDupListRow): string | null {
+  if (!r.fornitore_id) return null
+  const d = (r.data ?? '').trim().slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null
+  const cents = importoCents(r.importo)
+  if (cents == null) return null
+  return `${r.fornitore_id}\u0000dateamt\u0000${d}\u0000${cents}`
+}
+
+function numeroMatchesFileUrl(numero: string | null | undefined, fileUrl: string | null | undefined): boolean {
+  const n = normalizeNumeroFattura(numero)
+  if (!n || !fileUrl?.trim()) return false
+  return fileUrl.toLowerCase().includes(n.toLowerCase())
 }
 
 function bollaDupKey(r: BollaDupProbe): string | null {
@@ -254,10 +270,48 @@ function fatturaImporto(r: FatturaDupProbe): number | null {
   return r.importo
 }
 
+function mergeDuplicateAnalyses(
+  primary: FatturaDuplicateDeletionAnalysis,
+  secondary: FatturaDuplicateDeletionAnalysis,
+): FatturaDuplicateDeletionAnalysis {
+  const canonicalIds = new Set<string>([
+    ...primary.canonicalIdByGroupKey.values(),
+    ...secondary.canonicalIdByGroupKey.values(),
+  ])
+  const excessIds = new Set<string>()
+  for (const id of [...primary.excessIds, ...secondary.excessIds]) {
+    if (!canonicalIds.has(id)) excessIds.add(id)
+  }
+  return {
+    memberIds: new Set([...primary.memberIds, ...secondary.memberIds]),
+    excessIds,
+    canonicalIdByGroupKey: new Map([...primary.canonicalIdByGroupKey, ...secondary.canonicalIdByGroupKey]),
+    groupMembers: new Map([...primary.groupMembers, ...secondary.groupMembers]),
+    surplusCount: excessIds.size,
+    surplusImporto: primary.surplusImporto + secondary.surplusImporto,
+  }
+}
+
+function fatturaDateAmountSortFn(a: FatturaDupListRow, b: FatturaDupListRow): number {
+  const aMatch = numeroMatchesFileUrl(a.numero_fattura, a.file_url) ? 1 : 0
+  const bMatch = numeroMatchesFileUrl(b.numero_fattura, b.file_url) ? 1 : 0
+  if (aMatch !== bMatch) return bMatch - aMatch
+  return fattureSortFn(a, b)
+}
+
 /** Duplicati per stesso fornitore + numero + importo: mantiene la fattura con **data più vecchia**
- * (a parità di data, `id` lessicografico minore). Le altre righe sono `excessIds`. */
+ * (a parità di data, `id` lessicografico minore). Le altre righe sono `excessIds`.
+ * Include anche stesso fornitore + data + importo (numeri OCR diversi). */
 export function analyzeFatturaDuplicatesForDeletion(rows: FatturaDupListRow[]): FatturaDuplicateDeletionAnalysis {
-  return analyzeDuplicatesForDeletion(rows, fatturaDupKey, fattureSortFn, true, fatturaImporto)
+  const byNumero = analyzeDuplicatesForDeletion(rows, fatturaDupKey, fattureSortFn, true, fatturaImporto)
+  const byDateAmount = analyzeDuplicatesForDeletion(
+    rows,
+    fatturaDupKeyBySupplierDateAmount,
+    fatturaDateAmountSortFn,
+    true,
+    fatturaImporto,
+  )
+  return mergeDuplicateAnalyses(byNumero, byDateAmount)
 }
 
 /** Raggruppa per fornitore + numero fattura normalizzato + importo (centesimi). */
