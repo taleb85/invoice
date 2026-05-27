@@ -17,6 +17,7 @@ import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reprocess-pending-docs-ocr'
 import { safeDate } from '@/lib/safe-date'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
+import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -438,6 +439,20 @@ export async function GET(req: NextRequest) {
     query = query.or(`sede_id.eq.${profile.sede_id},sede_id.is.null`) as typeof query
   }
   // Admin Master with no sedeId filter sees everything
+
+  if (fornitoreId) {
+    const cleanupSede =
+      sedeId ??
+      (profile?.sede_id && !isMasterAdmin ? profile.sede_id : null)
+    try {
+      await cleanupPendingStatementDuplicates(service, {
+        sedeId: cleanupSede,
+        fornitoreId,
+      })
+    } catch {
+      /* non-blocking */
+    }
+  }
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

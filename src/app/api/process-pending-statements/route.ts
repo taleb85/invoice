@@ -10,6 +10,8 @@ import {
   autoRegisterCombinedPdfInvoiceAfterStatement,
   backfillCombinedInvoicesForStatements,
 } from '@/lib/statement-combined-pdf-invoice'
+import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
+import { normalizeStatementFileUrl } from '@/lib/statement-list-dedup'
 
 export async function POST(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -41,6 +43,17 @@ export async function POST(req: NextRequest) {
       error: 'needsMigration',
       message: 'Le tabelle statements/statement_rows non sono ancora state create. Esegui la migrazione SQL.',
     }, { status: 409 })
+  }
+
+  try {
+    await cleanupPendingStatementDuplicates(supabase, {
+      sedeId: sede_id,
+      fornitoreId: fornitore_id ?? null,
+    })
+  } catch (cleanupErr) {
+    logger.warn(
+      `[PENDING-STMT] Cleanup coda statement duplicati: ${cleanupErr instanceof Error ? cleanupErr.message : cleanupErr}`,
+    )
   }
 
   // ── Find unprocessed statement docs ────────────────────────────────────
@@ -83,7 +96,7 @@ export async function POST(req: NextRequest) {
 
   const stmtRecords = allStmts ?? []
   const existingFileUrls = new Set(
-    stmtRecords.map((s: { file_url: string | null }) => s.file_url).filter(Boolean),
+    stmtRecords.map((s: { file_url: string | null }) => normalizeStatementFileUrl(s.file_url)).filter(Boolean),
   )
 
   const normalizeSubject = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
