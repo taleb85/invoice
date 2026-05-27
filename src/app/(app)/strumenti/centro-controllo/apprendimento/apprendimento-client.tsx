@@ -5,7 +5,6 @@ import { useT } from '@/lib/use-t'
 import type { Translations } from '@/lib/translations'
 import { Loader2, AlertCircle, CheckCircle, XCircle, Brain, TrendingUp, Zap } from 'lucide-react'
 import type { ApprendimentoStats } from '@/app/api/centro-controllo/apprendimento/route'
-import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 interface Props {
   sedeId: string | null
@@ -63,24 +62,20 @@ export default function ApprendimentoClient({ sedeId }: Props) {
 
   if (loading) {
     return (
-      <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-app-fg-muted" />
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-app-fg-muted" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-        <div className="flex flex-col items-center gap-4 py-20">
-          <AlertCircle className="h-10 w-10 text-rose-400" />
-          <p className="text-sm text-rose-300">{error}</p>
-          <button onClick={loadStats} className="rounded-lg border border-app-line-28 px-4 py-2 text-xs font-semibold text-app-fg-muted hover:text-app-fg">
-            {t.apprendimento.retry}
-          </button>
-        </div>
+      <div className="flex flex-col items-center gap-4 py-20">
+        <AlertCircle className="h-10 w-10 text-rose-400" />
+        <p className="text-sm text-rose-300">{error}</p>
+        <button onClick={loadStats} className="rounded-lg border border-app-line-28 px-4 py-2 text-xs font-semibold text-app-fg-muted hover:text-app-fg">
+          {t.apprendimento.retry}
+        </button>
       </div>
     )
   }
@@ -88,8 +83,7 @@ export default function ApprendimentoClient({ sedeId }: Props) {
   if (!stats) return null
 
   return (
-    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <div className="app-shell-page-padding space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard
             icon={<Brain className="h-5 w-5" />}
@@ -202,7 +196,6 @@ export default function ApprendimentoClient({ sedeId }: Props) {
                 color="bg-teal-500"
               />
             </div>
-          </div>
         </div>
       </div>
     </div>

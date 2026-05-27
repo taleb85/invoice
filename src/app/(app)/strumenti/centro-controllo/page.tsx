@@ -28,8 +28,9 @@ export default async function CentroControlloPage() {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <AppPageHeaderStrip>
-        <BackButton href="/" />
+      <AppPageHeaderStrip
+        leadingAccessory={<BackButton href="/" className="mb-0 shrink-0" />}
+      >
         <div className="flex-1">
           <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>
             {t.strumentiCentroControllo.pageTitle}
