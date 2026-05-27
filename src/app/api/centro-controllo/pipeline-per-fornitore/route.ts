@@ -3,6 +3,7 @@ import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabas
 import { isSedePrivilegedRole } from '@/lib/roles'
 import { analyzeAnomaliePerFornitore, autoRisolviPerFornitoreChunk } from '@/lib/statement-auto-resolve'
 import { runEmailScanForFornitore } from '@/app/api/scan-emails/route'
+import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
 import { runTripleCheck } from '@/lib/triple-check'
 
 export type PipelinePerFornitoreResult = {
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
       let resolved = 0
       let remaining = 0
       for (const r of checkRes) {
-        const dbRow = rows?.find((row) => row.numero_doc === r.numero)
+        const dbRow = findStatementRowByNumeroDoc(rows ?? [], r.numero)
         if (!dbRow) continue
 
         const bolle_json =

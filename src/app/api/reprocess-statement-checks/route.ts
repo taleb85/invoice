@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
+import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
 import { runTripleCheck, type StatementLine } from '@/lib/triple-check'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 import { logger } from '@/lib/logger'
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     // ── Aggiorna ogni riga ──────────────────────────────────────────────
     for (const r of results) {
-      const existingRow = rows.find(row => row.numero_doc === r.numero)
+      const existingRow = findStatementRowByNumeroDoc(rows, r.numero)
       if (!existingRow) continue
 
       const bolle_json = r.bolle.length > 0 ? r.bolle.map(b => ({

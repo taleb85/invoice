@@ -9,7 +9,23 @@ export const FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT =
   'Questa fattura è già registrata: stesso fornitore, stessa data e stesso importo (nessun numero documento). Per sostituire il PDF apri la fattura esistente e usa «Sostituisci file».'
 
 export function normalizeNumeroFattura(raw: string | null | undefined): string {
-  return (raw ?? '').trim().replace(/\s+/g, ' ')
+  const s = (raw ?? '').trim().replace(/\s+/g, ' ')
+  if (!s) return ''
+  // Allinea zeri iniziali su numeri puri (es. estratto 53101 ↔ fattura 0053101).
+  if (/^\d+$/.test(s)) {
+    return s.replace(/^0+/, '') || '0'
+  }
+  return s
+}
+
+/** Trova una riga statement per `numero_doc` con confronto normalizzato. */
+export function findStatementRowByNumeroDoc<T extends { numero_doc: string | null }>(
+  rows: T[],
+  numero: string,
+): T | undefined {
+  const want = normalizeNumeroFattura(numero)
+  if (!want) return undefined
+  return rows.find((r) => normalizeNumeroFattura(r.numero_doc) === want)
 }
 
 /** Estrae `numero_fattura` dai metadata documento email / OCR (documenti_da_processare). */

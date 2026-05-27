@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
 import { runTripleCheck, type StatementLine, TRIPLE_CHECK_TOLERANCE, amountsMatchForTripleCheck } from '@/lib/triple-check'
 
 export type FornitoreAnomaliaBreakdown = {
@@ -512,7 +513,7 @@ async function reprocessStatement(
   let anomale = 0
 
   for (const r of results) {
-    const existingRow = rows.find((row) => row.numero_doc === r.numero)
+    const existingRow = findStatementRowByNumeroDoc(rows, r.numero)
     if (!existingRow) continue
 
     const bolle_json =
