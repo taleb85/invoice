@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
-import { getProfile } from '@/utils/supabase/server'
+import { getCookieStore, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { getT } from '@/lib/locale-server'
 import { isSedePrivilegedRole } from '@/lib/roles'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
 import { Brain } from 'lucide-react'
@@ -13,10 +14,19 @@ import {
 import ApprendimentoClient from './apprendimento-client'
 
 export default async function ApprendimentoPage() {
-  const [profile, t] = await Promise.all([getProfile(), getT()])
+  const [profile, t, cookieStore, { supabase }] = await Promise.all([
+    getProfile(),
+    getT(),
+    getCookieStore(),
+    getRequestAuth(),
+  ])
   if (!profile || !isSedePrivilegedRole(profile.role)) redirect('/')
 
-  const activeSedeId = profile.role === 'admin' ? null : profile.sede_id
+  const activeSedeId = await resolveActiveSedeIdForLists(
+    supabase,
+    { role: profile.role, sede_id: profile.sede_id },
+    (n) => cookieStore.get(n),
+  )
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>

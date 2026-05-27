@@ -29,24 +29,27 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url)
-  const sedeId = searchParams.get('sede_id')
+  const sedeIdParam = searchParams.get('sede_id')?.trim() || null
 
   const service = createServiceClient()
 
-  const [patternRes, logRes] = await Promise.all([
-    service.from('ai_action_learning')
-      .select('id, azione_id, totali_conferme, totali_suggerimenti')
-      .eq('sede_id', sedeId)
-      .limit(1000),
-    service.from('ai_action_learning_log')
-      .select('id, azione_id, confermata, eseguita, created_at, error')
-      .eq('sede_id', sedeId)
-      .order('created_at', { ascending: false })
-      .limit(50),
-  ])
+  let patternQuery = service
+    .from('ai_action_learning')
+    .select('id, azione_id, totali_conferme, totali_suggerimenti, ultima_esecuzione_at, updated_at, created_at')
+    .limit(1000)
+  if (sedeIdParam) patternQuery = patternQuery.eq('sede_id', sedeIdParam)
+
+  let logQuery = service
+    .from('ai_action_learning_log')
+    .select('id, azione_eseguita, esito, era_suggerimento, created_at, errore')
+    .order('created_at', { ascending: false })
+    .limit(50)
+  if (sedeIdParam) logQuery = logQuery.eq('sede_id', sedeIdParam)
+
+  const [patternRes, logRes] = await Promise.all([patternQuery, logQuery])
 
   const patterns = patternRes.data || []
-  const logs = logRes.data || []
+  let logs = logRes.data || []
 
   const confermeTotali = patterns.reduce((acc, p) => acc + (p.totali_conferme || 0), 0)
   const suggerimentiTotali = patterns.reduce((acc, p) => acc + (p.totali_suggerimenti || 0), 0)
@@ -96,21 +99,49 @@ export async function GET(req: Request) {
       }, 0) / patterns.length
     : 0
 
+  if (!logs.length && patterns.length) {
+    logs = [...patterns]
+      .sort((a, b) => {
+        const at = a.ultima_esecuzione_at || a.updated_at || a.created_at || ''
+        const bt = b.ultima_esecuzione_at || b.updated_at || b.created_at || ''
+        return bt.localeCompare(at)
+      })
+      .slice(0, 50)
+      .map((p) => ({
+        id: p.id,
+        azione_eseguita: p.azione_id,
+        esito: 'successo' as const,
+        era_suggerimento: false,
+        created_at: p.ultima_esecuzione_at || p.updated_at || p.created_at || new Date().toISOString(),
+        errore: null,
+      }))
+  }
+
   const result: ApprendimentoStats = {
     pattern_totali: patterns.length,
     conferme_totali: confermeTotali,
     suggerimenti_totali: suggerimentiTotali,
     pattern_auto_eseguibili: patternAutoEseguibili,
     azioni_piu_comuni: azioniPiuComuni,
-    log_recenti: logs.map((l) => ({
-      id: l.id,
-      azione_id: l.azione_id,
-      label: labelMap[l.azione_id] || l.azione_id,
-      confermata: l.confermata,
-      eseguita: l.eseguita,
-      created_at: l.created_at,
-      error: l.error,
-    })),
+    log_recenti: logs.map((l) => {
+      const azioneId = (l as { azione_eseguita?: string; azione_id?: string }).azione_eseguita
+        ?? (l as { azione_id?: string }).azione_id
+        ?? ''
+      const esito = (l as { esito?: string }).esito
+      const confermataLegacy = (l as { confermata?: boolean }).confermata
+      const eseguitaLegacy = (l as { eseguita?: boolean }).eseguita
+      return {
+        id: l.id,
+        azione_id: azioneId,
+        label: labelMap[azioneId] || azioneId,
+        confermata: esito != null ? esito !== 'annullato' : !!confermataLegacy,
+        eseguita: esito != null ? esito === 'successo' : !!eseguitaLegacy,
+        created_at: l.created_at,
+        error: (l as { errore?: string | null; error?: string | null }).errore
+          ?? (l as { error?: string | null }).error
+          ?? null,
+      }
+    }),
     confidenza_media: Math.round(confidenzaMedia * 100),
   }
 
