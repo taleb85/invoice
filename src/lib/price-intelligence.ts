@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { filterOutliersForTrend, isPromoListinoRow } from '@/lib/listino-display'
 
 export type PriceTrend = {
   prodotto: string
@@ -160,11 +161,17 @@ export async function analyzeSupplierPriceTrends(
     }
   }
 
-  const rawRows = rows as PriceRow[]
-  const fornitoreNome = rawRows[0]?.fornitori
-    ? (Array.isArray(rawRows[0].fornitori)
-        ? rawRows[0].fornitori[0]?.nome
-        : (rawRows[0].fornitori as { nome: string; display_name?: string | null }).nome)
+  const rawRowsAll = rows as PriceRow[]
+  /*
+   * Esclude righe-promo (Menabrea Deal, codici FOC/DEAL/PROMO): non sono
+   * prodotti comparabili, sono sconti bundle che falsano il trend.
+   */
+  const rawRows = rawRowsAll.filter((r) => !isPromoListinoRow({ prodotto: r.prodotto, note: r.note }))
+
+  const fornitoreNome = (rawRows[0] ?? rawRowsAll[0])?.fornitori
+    ? (Array.isArray((rawRows[0] ?? rawRowsAll[0])!.fornitori)
+        ? (rawRows[0] ?? rawRowsAll[0])!.fornitori![0]!.nome
+        : ((rawRows[0] ?? rawRowsAll[0])!.fornitori as { nome: string; display_name?: string | null }).nome)
     : 'Sconosciuto'
 
   const prodotti = new Map<string, PriceRow[]>()
@@ -185,7 +192,14 @@ export async function analyzeSupplierPriceTrends(
   let stabili = 0
 
   for (const [prodotto, entries] of prodotti) {
-    const sorted = entries.sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+    const sortedAll = entries.sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+    /*
+     * Filtra outlier prima di calcolare trend/anomalie: l'OCR estrae
+     * prezzi diversi dalla stessa fattura (lordo riga vs unitario vs
+     * sconto) — vedi Beer Menabrea Blonde con serie £1.48/£7/£35.66.
+     * `sortedAll` resta usato per nomi/last-update display.
+     */
+    const sorted = filterOutliersForTrend(sortedAll)
     const prices = sorted.map((r) => r.prezzo)
     const dates = sorted.map((r) => r.data_prezzo)
     const ultimo = sorted[sorted.length - 1]!

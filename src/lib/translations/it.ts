@@ -1593,6 +1593,7 @@ const translations: Translations = {
     listinoVerifyAnomaliesTitle: 'Apri la tab Verifica con filtro anomalie prezzo Rekki per questo prodotto',
     listinoRowBadgeOk: 'OK',
     listinoRowBadgeAnomaly: 'Anomalie',
+    listinoRowBadgePromo: 'Promo / Sconto',
     listinoRowActionsLabel: 'Azioni',
     listinoLastIncrease: 'Ultimo aumento: {delta} ({pct})',
     listinoLastDecrease: 'Ultimo ribasso: {delta} ({pct})',

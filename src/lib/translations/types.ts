@@ -1048,6 +1048,7 @@ export type Translations = {
     listinoVerifyAnomaliesTitle: string
     listinoRowBadgeOk: string
     listinoRowBadgeAnomaly: string
+    listinoRowBadgePromo: string
     listinoRowActionsLabel: string
     listinoLastIncrease: string
     listinoLastDecrease: string

@@ -26,7 +26,10 @@ import {
 import { buildListLocationPath, hrefWithReturnTo, readReturnToFromGetter } from '@/lib/return-navigation'
 import { saveScrollForListPath } from '@/lib/return-navigation-client'
 import {
+  dynamicStaleThresholdDays,
   extractListinoSrcFatturaId,
+  filterOutliersForTrend,
+  isPromoListinoRow,
   LISTINO_SRC_FATTURA_MARK,
   parseListinoNoteParts,
   referencePriceForListinoRow,
@@ -4982,7 +4985,21 @@ function ListinoTab({
               {Object.entries(filteredListinoByProduct).map(([prodotto, prezzi]) => {
                 const sorted = [...prezzi].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
                 const ultimo = sorted[sorted.length - 1]!
-                const { ref } = referencePriceForListinoRow(sorted, ultimo)
+                /*
+                 * Riga "promo" (bundle/omaggi/sconti tipo Menabrea Deal,
+                 * codici FOC/DEAL): nessun confronto, niente anomalia.
+                 * L'utente vede comunque la riga ma marcata come promo.
+                 * Per il calcolo del riferimento, usiamo il subset di prezzi
+                 * "cluster" (vedi filterOutliersForTrend) per evitare che
+                 * letture OCR multi-colonna falsino il trend.
+                 */
+                const isPromo = isPromoListinoRow({ prodotto, note: ultimo.note })
+                const trendInput = isPromo ? sorted : filterOutliersForTrend(sorted)
+                const ultimoForTrend =
+                  trendInput.find((r) => r.id === ultimo.id) ?? trendInput[trendInput.length - 1] ?? ultimo
+                const { ref } = isPromo
+                  ? { ref: null }
+                  : referencePriceForListinoRow(trendInput, ultimoForTrend)
                 const priceDelta = ref ? ultimo.prezzo - ref.prezzo : 0
                 const pct = ref && Math.abs(ref.prezzo) > 1e-9 ? (priceDelta / ref.prezzo) * 100 : 0
                 const up = Boolean(ref && priceDelta > 0.0001)
@@ -5025,8 +5042,17 @@ function ListinoTab({
                     ? 'border-l-[#39FF14]'
                     : 'border-l-app-line-28/80'
                 const todayIso = new Date().toISOString().slice(0, 10)
+                /*
+                 * Soglia "prezzo scaduto" dinamica: invece di 60gg fissi,
+                 * usa il doppio dell'intervallo mediano tra acquisti per
+                 * questo prodotto (min 30, max 365). Evita di marcare stale
+                 * promo natalizie o prodotti stagionali. Cfr. listino-display.
+                 */
+                const staleThresholdDays = isPromo
+                  ? 365
+                  : dynamicStaleThresholdDays(sorted.map((r) => r.data_prezzo.slice(0, 10)))
                 const listinoPriceStale =
-                  calendarDaysBetweenIso(ultimo.data_prezzo.slice(0, 10), todayIso) > 60
+                  calendarDaysBetweenIso(ultimo.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
 
                 return (
                   <div
@@ -5097,7 +5123,11 @@ function ListinoTab({
                           
                           {/* Badges inline */}
                           <div className="flex flex-wrap items-center gap-1.5">
-                            {hasAnomaly ? (
+                            {isPromo ? (
+                              <StatusBadge tone="amber">
+                                {t.fornitori.listinoRowBadgePromo}
+                              </StatusBadge>
+                            ) : hasAnomaly ? (
                               <StatusBadge
                                 tone="red"
                                 className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"

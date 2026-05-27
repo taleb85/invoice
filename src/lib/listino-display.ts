@@ -113,6 +113,110 @@ export function referencePriceForListinoRow(
   return { ref: sortedByDateAsc[idx - 1]!, mode: 'previous_entry' }
 }
 
+/**
+ * Riconosce righe "promozione" (sconti, bundle, omaggi) che NON sono
+ * prodotti comparabili. Esempi visti in produzione (Del Italia):
+ *   - prodotto `Menabrea Deal`, codice `61MENABREA` → riga-sconto bundle 6+1
+ *   - codice contenente `FOC`, `OMAGGIO`, `DEAL`, `PROMO`, `OFFERTA`
+ * Da nascondere nel dashboard "Analisi prezzi" e nei calcoli trend/anomalie.
+ */
+/*
+ * Niente \b davanti perché tokens come `DEAL` compaiono spesso suffisso di
+ * codice (es. `61MENABREA_DEAL`, `WINEDEAL2026`). \b dopo è invece utile per
+ * non matchare `dealer`/`dealership`. Per `foc` lasciamo case-insensitive ma
+ * richiediamo che sia parola intera per non innescare su `focaccia` ecc.
+ */
+/*
+ * Niente \b davanti perché tokens come `DEAL` compaiono spesso suffisso di
+ * codice (es. `61MENABREA_DEAL`, `WINEDEAL2026`). Per `foc` cerchiamo varianti
+ * come `FOC`, `FOC123`, `FOC-something` ma escludiamo `focaccia` etc. usando
+ * \bfoc (inizio parola, free dopo).
+ */
+const PROMO_TOKENS_REGEX =
+  /(deal|promo|promotion|promotional|\bfoc\b|\bfoc[0-9_\-]|free\s*of\s*charge|omaggio|sconto|discount|offerta|bundle|6\s*\+\s*1|\bgift\b)/i
+
+export function isPromoListinoRow(row: { prodotto: string; note?: string | null }): boolean {
+  if (PROMO_TOKENS_REGEX.test(row.prodotto)) return true
+  const parsed = parseListinoNoteParts(row.note ?? null)
+  if (parsed.codice && PROMO_TOKENS_REGEX.test(parsed.codice)) return true
+  if (parsed.humanTail && PROMO_TOKENS_REGEX.test(parsed.humanTail)) return true
+  return false
+}
+
+/**
+ * Calcola la mediana di un array di numeri (ignora NaN/Infinity).
+ */
+function median(values: number[]): number {
+  const cleaned = values.filter((v) => Number.isFinite(v))
+  if (cleaned.length === 0) return 0
+  const sorted = [...cleaned].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!
+}
+
+/**
+ * Filtra outlier dai prezzi di un singolo prodotto per il calcolo del trend.
+ *
+ * Motivazione: i prezzi nel listino vengono estratti dall'OCR da diverse
+ * colonne della stessa fattura (lordo riga vs. unitario vs. sconto vs. totale).
+ * Per "Beer Menabrea Blonde" abbiamo visto serie come
+ *   £1.48, £5.02, £7.00, £10.40, £12.84, £35.66, £36.04
+ * dove £35.66/£36.04 sono i prezzi-cassa veri (24 bottiglie × £1.49) e gli
+ * altri sono unitari di bottiglia singola o sconti volumetrici. Mescolarli
+ * fa esplodere il trend (es. +414%).
+ *
+ * Strategia: tieni solo i prezzi che cadono entro ±50% della mediana del
+ * cluster (1ª stima). Serve almeno 4 punti, sotto questa soglia non filtra.
+ * Nei test: per la serie sopra, mediana = 8.7, range [4.35, 13.05] → tiene
+ * 5.02/7.00/7.00/10.40/12.84 e scarta 1.48/35.66/35.66/36.04. Ancora non
+ * perfetto ma utilizzabile.
+ *
+ * NB: questo filtro è SOLO per analisi/trend, NON per la visualizzazione
+ * dello storico (l'utente vede ancora tutti i prezzi).
+ */
+export function filterOutliersForTrend<T extends { prezzo: number }>(rows: T[]): T[] {
+  if (rows.length < 4) return rows
+  const m = median(rows.map((r) => r.prezzo))
+  if (m <= 0) return rows
+  const lo = m * 0.5
+  const hi = m * 1.5
+  const kept = rows.filter((r) => r.prezzo >= lo && r.prezzo <= hi)
+  // Safety: se il filtro ha azzerato la serie, ritorna l'input (fallback).
+  return kept.length >= 2 ? kept : rows
+}
+
+/**
+ * Soglia dinamica "prezzo storico/scaduto" per un singolo prodotto, in giorni.
+ *
+ * Invece di usare 60 giorni fissi (che marcano stale anche prodotti acquistati
+ * trimestralmente o promo natalizie), calcola la mediana degli intervalli
+ * effettivi tra rilevazioni e usa `mediana × 2` come soglia di freschezza
+ * (range: min 30, max 365). Esempi:
+ *   - acqua acquistata ogni 7gg → stale dopo 14gg
+ *   - vino acquistato ogni 60gg → stale dopo 120gg
+ *   - promo natalizia (1 acquisto/anno) → 365gg (mai stale entro l'anno)
+ */
+export function dynamicStaleThresholdDays(sortedDataPrezzoAsc: string[]): number {
+  const DEFAULT = 60
+  const MIN = 30
+  const MAX = 365
+  if (sortedDataPrezzoAsc.length < 3) return DEFAULT
+  const intervals: number[] = []
+  for (let i = 1; i < sortedDataPrezzoAsc.length; i++) {
+    const a = Date.parse(sortedDataPrezzoAsc[i - 1]!)
+    const b = Date.parse(sortedDataPrezzoAsc[i]!)
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue
+    const diffDays = Math.round((b - a) / (1000 * 60 * 60 * 24))
+    if (diffDays > 0) intervals.push(diffDays)
+  }
+  if (intervals.length === 0) return DEFAULT
+  const med = median(intervals)
+  const proposed = Math.round(med * 2)
+  if (proposed < MIN) return MIN
+  if (proposed > MAX) return MAX
+  return proposed
+}
+
 export function checkResultMatchesVerificaProdotto(
   r: {
     numero: string
