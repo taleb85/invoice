@@ -4936,11 +4936,20 @@ export function VerificationStatusTab({
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
-            <p
-              className={`font-semibold ${vsCompactS1 ? 'text-xs' : 'text-sm'} text-app-fg`}
-            >
-              {t.statements.stmtReceived}
-            </p>
+            <div className="min-w-0">
+              <p
+                className={`font-semibold ${vsCompactS1 ? 'text-xs' : 'text-sm'} text-app-fg`}
+              >
+                {t.statements.stmtReceived}
+              </p>
+              {fornitoreId && !selectedStmt && (
+                <p
+                  className={`mt-0.5 leading-snug text-app-fg-muted ${vsCompactS1 ? 'text-[10px]' : 'text-[11px]'}`}
+                >
+                  {t.statements.stmtListCumulativeHint}
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
             {selectedStmt && (

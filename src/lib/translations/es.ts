@@ -1165,6 +1165,8 @@ const translations: Translations = {
     statusErrImporto: 'Error de importe',
     statusRekkiPrezzo: 'Precio Rekki vs factura',
     stmtReceived: 'Extractos recibidos',
+    stmtListCumulativeHint:
+      'Los extractos antiguos ya incluidos en uno más reciente no se muestran (extractos acumulativos semanales).',
     stmtProcessing: 'Extracto en procesamiento — inténtalo de nuevo en unos segundos.',
     stmtEmpty: 'No se han recibido extractos',
     stmtEmptyHint: 'Los extractos llegan automáticamente por email.',

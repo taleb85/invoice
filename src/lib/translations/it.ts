@@ -2217,6 +2217,8 @@ const translations: Translations = {
     statusErrImporto: 'Errore importo',
     statusRekkiPrezzo: 'Prezzo Rekki vs fattura',
     stmtReceived: 'Estratti conto ricevuti',
+    stmtListCumulativeHint:
+      'Gli estratti più vecchi già inclusi in uno più recente non sono mostrati (tipico estratti cumulativi settimanali).',
     stmtProcessing: 'Statement ancora in elaborazione — riprova tra qualche secondo.',
     stmtEmpty: 'Nessun estratto conto ricevuto',
     stmtEmptyHint: 'Gli estratti conto arrivano automaticamente via email.',

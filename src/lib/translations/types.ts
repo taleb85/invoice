@@ -1515,6 +1515,7 @@ export type Translations = {
     statusErrImporto: string
     statusRekkiPrezzo: string
     stmtReceived: string
+    stmtListCumulativeHint: string
     stmtProcessing: string
     stmtEmpty: string
     stmtEmptyHint: string

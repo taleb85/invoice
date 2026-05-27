@@ -1164,6 +1164,8 @@ const translations: Translations = {
     statusErrImporto: 'Betragsfehler',
     statusRekkiPrezzo: 'Rekki-Preis vs Rechnung',
     stmtReceived: 'Empfangene Kontoauszüge',
+    stmtListCumulativeHint:
+      'Ältere Auszüge, die vollständig in einem neueren enthalten sind, werden ausgeblendet (wöchentliche kumulative Auszüge).',
     stmtProcessing: 'Kontoauszug wird noch verarbeitet — bitte in wenigen Sekunden erneut versuchen.',
     stmtEmpty: 'Noch keine Kontoauszüge empfangen',
     stmtEmptyHint: 'Kontoauszüge kommen automatisch per E-Mail.',

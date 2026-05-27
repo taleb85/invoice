@@ -1165,6 +1165,8 @@ const translations: Translations = {
     statusErrImporto: 'Erreur de montant',
     statusRekkiPrezzo: 'Prix Rekki vs facture',
     stmtReceived: 'Relevés reçus',
+    stmtListCumulativeHint:
+      'Les relevés plus anciens entièrement inclus dans un plus récent sont masqués (relevés cumulatifs hebdomadaires).',
     stmtProcessing: 'Relevé en cours de traitement — réessayez dans quelques secondes.',
     stmtEmpty: 'Aucun relevé reçu',
     stmtEmptyHint: 'Les relevés arrivent automatiquement par email.',

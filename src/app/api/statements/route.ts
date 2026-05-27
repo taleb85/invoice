@@ -14,6 +14,7 @@ import {
   attachStatementAnomalyPreviews,
   fetchAnomalyByStatusMap,
 } from '@/lib/statement-anomaly-preview'
+import { hideSupersededStatementsForList } from '@/lib/statement-content-dedup'
 import { dedupeStatementsForList } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
 
@@ -262,7 +263,10 @@ export async function GET(req: NextRequest) {
     file_url?: string | null
   }
 
-  const deduped = dedupeStatementsForList(statements as StmtListRow[])
+  let deduped = dedupeStatementsForList(statements as StmtListRow[])
+  if (deduped.length > 1) {
+    deduped = await hideSupersededStatementsForList(supabase, deduped)
+  }
 
   const hasMissing = deduped.some((s) => ((s.missing_rows as number | null) ?? 0) > 0)
 

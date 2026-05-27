@@ -1219,6 +1219,8 @@ const translations: Translations = {
     statusErrImporto: 'Amount Mismatch',
     statusRekkiPrezzo: 'Rekki price vs invoice',
     stmtReceived: 'Received Statements',
+    stmtListCumulativeHint:
+      'Older statements fully contained in a newer one are hidden (weekly cumulative statements).',
     stmtProcessing: 'Statement still processing — please try again in a moment.',
     stmtEmpty: 'No statements received yet',
     stmtEmptyHint: 'Statements arrive automatically by email.',
