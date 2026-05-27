@@ -1613,6 +1613,7 @@ const translations: Translations = {
     listinoHistoryColChange: 'Variazione',
     listinoHistoryColOrigin: 'Origine',
     listinoHistoryCurrent: 'Attuale',
+    listinoHistoryLikelyOcrError: 'Probabile qty OCR',
     listinoPriceStaleBadge: 'Prezzo storico/scaduto',
     listinoPriceStaleHint: 'Ultimo aggiornamento da oltre 60 giorni.',
     preferredLanguageEmail: 'Lingua preferita (per email)',

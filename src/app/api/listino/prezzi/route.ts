@@ -4,6 +4,7 @@ import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabas
 import type { Profile } from '@/types'
 import { isMasterAdminRole } from '@/lib/roles'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
+import { rejectReasonForListinoPrice } from '@/lib/listino-price-sanity'
 
 function canManageListino(
   profile: Profile,
@@ -119,25 +120,43 @@ export async function POST(req: NextRequest) {
   const distinctProducts = [...new Set(parsed.map((p) => p.prodotto))]
   const { data: existingRows, error: exErr } = await service
     .from('listino_prezzi')
-    .select('prodotto, data_prezzo')
+    .select('prodotto, data_prezzo, prezzo')
     .eq('fornitore_id', fornitoreId)
     .in('prodotto', distinctProducts)
 
   if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 })
 
   const maxByProduct = new Map<string, string>()
+  const pricesByProduct = new Map<string, number[]>()
   for (const row of existingRows ?? []) {
     const p = String(row.prodotto).trim()
     const d = String(row.data_prezzo).slice(0, 10)
     const cur = maxByProduct.get(p)
     if (!cur || compareIsoDateStrings(d, cur) > 0) maxByProduct.set(p, d)
+    const pr = typeof row.prezzo === 'number' ? row.prezzo : parseFloat(String(row.prezzo))
+    if (Number.isFinite(pr) && pr > 0) {
+      const arr = pricesByProduct.get(p) ?? []
+      arr.push(pr)
+      pricesByProduct.set(p, arr)
+    }
   }
 
-  const skipped: { prodotto: string; reason: 'document_date_before_latest' }[] = []
+  const skipped: {
+    prodotto: string
+    reason: 'document_date_before_latest' | 'price_outlier_likely_qty'
+    prezzo?: number
+  }[] = []
   const toInsert: Array<{ fornitore_id: string; prodotto: string; prezzo: number; data_prezzo: string; note: string | null; rekki_product_id: string | null }> = []
   const workingMax = new Map(maxByProduct)
 
   for (const r of parsed) {
+    const hist = pricesByProduct.get(r.prodotto) ?? []
+    const priceReject = rejectReasonForListinoPrice(r.prezzo, hist)
+    if (priceReject) {
+      skipped.push({ prodotto: r.prodotto, reason: priceReject, prezzo: r.prezzo })
+      continue
+    }
+
     const latest = workingMax.get(r.prodotto) ?? null
     const allowed = isDocumentDateAtLeastLatestListino(r.data_prezzo, latest)
     if (!allowed) {
@@ -169,6 +188,8 @@ export async function POST(req: NextRequest) {
     const d = r.data_prezzo.slice(0, 10)
     const wm = workingMax.get(r.prodotto)
     if (!wm || compareIsoDateStrings(d, wm) > 0) workingMax.set(r.prodotto, d)
+    hist.push(r.prezzo)
+    pricesByProduct.set(r.prodotto, hist)
   }
 
   if (toInsert.length === 0) {

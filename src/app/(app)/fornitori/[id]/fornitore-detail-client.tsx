@@ -5057,6 +5057,10 @@ function ListinoTab({
                   : dynamicStaleThresholdDays(sorted.map((r) => r.data_prezzo.slice(0, 10)))
                 const listinoPriceStale =
                   calendarDaysBetweenIso(displayRow.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
+                const plausibleHistoryIds =
+                  sorted.length >= 4
+                    ? new Set(filterOutliersForTrend(sorted).map((r) => r.id))
+                    : new Set(sorted.map((r) => r.id))
 
                 return (
                   <div
@@ -5379,6 +5383,7 @@ function ListinoTab({
                             </thead>
                             <tbody className="divide-y divide-app-line-18/60">
                               {[...sorted].reverse().map((entry, idx, historyDesc) => {
+                                const likelyOcrQty = !plausibleHistoryIds.has(entry.id)
                                 const older = historyDesc[idx + 1]
                                 const deltaPct =
                                   older && Math.abs(older.prezzo) > 1e-9
@@ -5418,8 +5423,21 @@ function ListinoTab({
                                         </span>
                                       ) : null}
                                     </td>
-                                    <td className="py-2 pr-3 text-right font-mono font-semibold tabular-nums text-app-fg">
-                                      {fmtMoney(entry.prezzo)}
+                                    <td className="py-2 pr-3 text-right font-mono font-semibold tabular-nums">
+                                      <span
+                                        className={
+                                          likelyOcrQty
+                                            ? 'text-amber-300/90 line-through decoration-amber-500/50'
+                                            : 'text-app-fg'
+                                        }
+                                      >
+                                        {fmtMoney(entry.prezzo)}
+                                      </span>
+                                      {likelyOcrQty ? (
+                                        <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-300/80">
+                                          {t.fornitori.listinoHistoryLikelyOcrError}
+                                        </span>
+                                      ) : null}
                                     </td>
                                     <td className="py-2 pr-3 text-right font-mono tabular-nums">
                                       {deltaPct == null ? (

@@ -1068,6 +1068,7 @@ export type Translations = {
     listinoHistoryColChange: string
     listinoHistoryColOrigin: string
     listinoHistoryCurrent: string
+    listinoHistoryLikelyOcrError: string
     listinoPriceStaleBadge: string
     listinoPriceStaleHint: string
     preferredLanguageEmail: string
