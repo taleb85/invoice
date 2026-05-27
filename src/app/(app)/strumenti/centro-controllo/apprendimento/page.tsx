@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
-import { getCookieStore, getProfile, getRequestAuth } from '@/utils/supabase/server'
-import { getT } from '@/lib/locale-server'
+import { getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { getCookieStore, getT } from '@/lib/locale-server'
 import { isSedePrivilegedRole } from '@/lib/roles'
 import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
