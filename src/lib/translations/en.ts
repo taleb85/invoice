@@ -1391,7 +1391,7 @@ const translations: Translations = {
     stmtAnomalies_one: '{n} issue',
     stmtAnomalies_other: '{n} issues',
     stmtAnomalyPreviewMore: '+{n} more',
-    stmtAnomalyPreviewAria: 'Documents with issues',
+    stmtAnomalyPreviewAria: 'Issue counts by type',
     stmtBackToList: 'Back to list',
     needsMigrationTitle: 'Database tables not created yet',
     needsMigrationBody:

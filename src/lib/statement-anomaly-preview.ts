@@ -9,53 +9,65 @@ export const STATEMENT_ANOMALY_STATUSES = [
 
 export type StatementAnomalyStatus = (typeof STATEMENT_ANOMALY_STATUSES)[number]
 
-export type StatementAnomalyPreviewItem = {
-  numero_doc: string
+/** Conteggio anomalie per tipologia (inbox estratti). */
+export type StatementAnomalyCountByStatus = {
   check_status: StatementAnomalyStatus
+  count: number
 }
 
-/** Max righe mostrate in inbox estratti (scheda fornitore / lista statement). */
-export const STATEMENT_ANOMALY_PREVIEW_LIMIT = 6
+/** Ordine di visualizzazione (più urgenti prima). */
+export const STATEMENT_ANOMALY_STATUS_ORDER: StatementAnomalyStatus[] = [
+  'errore_importo',
+  'fattura_mancante',
+  'bolle_mancanti',
+  'rekki_prezzo_discordanza',
+]
 
 type StmtRow = { id: string }
 
+function countsMapToSortedArray(
+  counts: Map<StatementAnomalyStatus, number>,
+): StatementAnomalyCountByStatus[] {
+  return STATEMENT_ANOMALY_STATUS_ORDER.filter((status) => (counts.get(status) ?? 0) > 0).map(
+    (status) => ({ check_status: status, count: counts.get(status)! }),
+  )
+}
+
 /**
- * Allega `anomaly_preview` a ogni statement con `missing_rows > 0`.
+ * Allega `anomaly_by_status` a ogni statement con `missing_rows > 0`.
  */
 export async function attachStatementAnomalyPreviews<T extends StmtRow>(
   supabase: SupabaseClient,
   statements: T[],
-  previewLimit = STATEMENT_ANOMALY_PREVIEW_LIMIT,
-): Promise<Array<T & { anomaly_preview: StatementAnomalyPreviewItem[] }>> {
+): Promise<Array<T & { anomaly_by_status: StatementAnomalyCountByStatus[] }>> {
   const withIssues = statements.filter((s) => {
     const missing = (s as T & { missing_rows?: number }).missing_rows
     return typeof missing === 'number' && missing > 0
   })
   if (withIssues.length === 0) {
-    return statements.map((s) => ({ ...s, anomaly_preview: [] }))
+    return statements.map((s) => ({ ...s, anomaly_by_status: [] }))
   }
 
   const ids = withIssues.map((s) => s.id)
   const { data: rows } = await supabase
     .from('statement_rows')
-    .select('statement_id, numero_doc, check_status')
+    .select('statement_id, check_status')
     .in('statement_id', ids)
     .in('check_status', [...STATEMENT_ANOMALY_STATUSES])
-    .order('numero_doc', { ascending: true })
 
-  const byStmt = new Map<string, StatementAnomalyPreviewItem[]>()
+  const byStmt = new Map<string, Map<StatementAnomalyStatus, number>>()
   for (const row of rows ?? []) {
     const sid = row.statement_id as string
     const status = row.check_status as string
     if (!STATEMENT_ANOMALY_STATUSES.includes(status as StatementAnomalyStatus)) continue
-    const numero = String(row.numero_doc ?? '').trim() || '—'
-    const list = byStmt.get(sid) ?? []
-    list.push({ numero_doc: numero, check_status: status as StatementAnomalyStatus })
-    byStmt.set(sid, list)
+    const counts = byStmt.get(sid) ?? new Map<StatementAnomalyStatus, number>()
+    const key = status as StatementAnomalyStatus
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+    byStmt.set(sid, counts)
   }
 
   return statements.map((s) => ({
     ...s,
-    anomaly_preview: (byStmt.get(s.id) ?? []).slice(0, previewLimit),
+    anomaly_by_status: countsMapToSortedArray(byStmt.get(s.id) ?? new Map()),
   }))
 }

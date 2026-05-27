@@ -3736,9 +3736,9 @@ export function VerificationStatusTab({
   const vsCompactS1 = verificaMode === 'statementsPanel' && vsEmbeddedSupplier
 
   /* ── Statement list (received via email) ─────────────────── */
-  type StmtAnomalyPreviewItem = {
-    numero_doc: string
+  type StmtAnomalyCountByStatus = {
     check_status: CheckStatus
+    count: number
   }
   type StmtRecord = {
     id: string
@@ -3752,7 +3752,7 @@ export function VerificationStatusTab({
     missing_rows: number
     fornitore_nome: string | null
     linked_fattura_id?: string | null
-    anomaly_preview?: StmtAnomalyPreviewItem[]
+    anomaly_by_status?: StmtAnomalyCountByStatus[]
   }
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
@@ -5083,29 +5083,21 @@ export function VerificationStatusTab({
                           <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
                             {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
                           </span>
-                          {(s.anomaly_preview?.length ?? 0) > 0 ? (
+                          {(s.anomaly_by_status?.length ?? 0) > 0 ? (
                             <ul
                               className="w-full space-y-0.5 text-[10px] leading-tight text-red-100/90"
                               aria-label={t.statements.stmtAnomalyPreviewAria}
                             >
-                              {s.anomaly_preview!.map((item) => {
+                              {s.anomaly_by_status!.map((item) => {
                                 const cfg = STATUS_CONFIG[item.check_status]
                                 return (
-                                  <li key={`${item.numero_doc}-${item.check_status}`} className="truncate" title={`${item.numero_doc} — ${cfg.label}`}>
-                                    <span className="font-mono font-semibold tabular-nums">{item.numero_doc}</span>
+                                  <li key={item.check_status} className="truncate" title={cfg.label}>
+                                    <span className="font-bold tabular-nums text-red-100">{item.count}</span>
                                     <span className="text-red-200/50"> · </span>
                                     <span className="text-red-200/80">{cfg.label}</span>
                                   </li>
                                 )
                               })}
-                              {s.missing_rows > (s.anomaly_preview?.length ?? 0) && (
-                                <li className="text-[10px] text-app-fg-muted">
-                                  {t.statements.stmtAnomalyPreviewMore.replace(
-                                    '{n}',
-                                    String(s.missing_rows - (s.anomaly_preview?.length ?? 0)),
-                                  )}
-                                </li>
-                              )}
                             </ul>
                           ) : null}
                         </div>

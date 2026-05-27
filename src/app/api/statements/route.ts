@@ -281,7 +281,7 @@ export async function GET(req: NextRequest) {
         supabase,
         deduped as Array<StmtListRow & { id: string }>,
       )
-    : (deduped as StmtListRow[]).map((s) => ({ ...s, anomaly_preview: [] as const }))
+    : (deduped as StmtListRow[]).map((s) => ({ ...s, anomaly_by_status: [] as const }))
 
   // Pulizia automatica: fire-and-forget, non blocca la risposta.
   cleanupBadStatements(service).catch(() => {})
