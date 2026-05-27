@@ -4,6 +4,7 @@ import { getT } from '@/lib/locale-server'
 import { isSedePrivilegedRole } from '@/lib/roles'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
+import { Brain } from 'lucide-react'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
@@ -20,6 +21,8 @@ export default async function ApprendimentoPage() {
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
+        accent="teal"
+        icon={<Brain className="h-5 w-5" strokeWidth={2} aria-hidden />}
         leadingAccessory={
           <BackButton href="/strumenti/centro-controllo" className="mb-0 shrink-0" />
         }
