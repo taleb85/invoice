@@ -77,6 +77,40 @@ export function getLocale(countryCode: string | null | undefined): CountryLocale
   return LOCALES[(countryCode ?? 'UK') as CountryCode] ?? LOCALES.UK
 }
 
+/** Termine bolla/DDT per etichette brevi in lista (minuscolo salvo acronimi come DDT). */
+export function deliveryNoteTermForList(countryCode: string | null | undefined): string {
+  const cc = (countryCode ?? 'UK').toUpperCase()
+  if (cc === 'IT') return 'DDT'
+  const term = getLocale(countryCode).deliveryNoteLabel
+  if (term.length <= 4 || term === term.toUpperCase()) return term
+  return term.toLowerCase()
+}
+
+/** Etichetta breve bolle_mancanti in lista estratti (paese → DDT solo in IT). */
+export function statementAnomalyShortBolle(
+  countryCode: string | null | undefined,
+  t: { statements: { anomalyShortBolleNo: string } },
+): string {
+  const cc = (countryCode ?? 'UK').toUpperCase()
+  if (cc === 'IT') return 'DDT assenti'
+  return t.statements.anomalyShortBolleNo.replace(
+    '{deliveryNote}',
+    deliveryNoteTermForList(countryCode),
+  )
+}
+
+/** Hint sotto la riga quando coesistono fattura_mancante e bolle_mancanti. */
+export function statementAnomalyBolleHint(
+  countryCode: string | null | undefined,
+  t: { statements: { stmtAnomalyBolleHint: string } },
+): string {
+  const short = statementAnomalyShortBolle(countryCode, t)
+  const term = deliveryNoteTermForList(countryCode)
+  return t.statements.stmtAnomalyBolleHint
+    .replace('{shortLabel}', short)
+    .replace('{deliveryNote}', term)
+}
+
 /**
  * Formatta un importo nella valuta e nel formato del paese.
  *

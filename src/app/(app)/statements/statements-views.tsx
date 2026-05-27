@@ -6,7 +6,12 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { thumbnailUrl } from '@/lib/storage-transform'
-import { getLocale, formatCurrency } from '@/lib/localization'
+import {
+  getLocale,
+  formatCurrency,
+  statementAnomalyShortBolle,
+  statementAnomalyBolleHint,
+} from '@/lib/localization'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import { useToast } from '@/lib/toast-context'
@@ -3711,7 +3716,7 @@ export function VerificationStatusTab({
     pending: t.statements.statusCheckPending,
     ok: t.statements.statusOk,
     fattura_mancante: t.statements.anomalyShortFattura,
-    bolle_mancanti: t.statements.anomalyShortBolle,
+    bolle_mancanti: statementAnomalyShortBolle(countryCode, t),
     errore_importo: t.statements.anomalyShortImporto,
     rekki_prezzo_discordanza: t.statements.anomalyShortRekki,
   }
@@ -5228,7 +5233,7 @@ export function VerificationStatusTab({
                               {s.anomaly_by_status!.some((x) => x.check_status === 'bolle_mancanti') &&
                                 s.anomaly_by_status!.some((x) => x.check_status === 'fattura_mancante') && (
                                 <p className="text-[9px] leading-tight text-app-fg-muted/80">
-                                  {t.statements.stmtAnomalyBolleHint}
+                                  {statementAnomalyBolleHint(countryCode, t)}
                                 </p>
                               )}
                             </>

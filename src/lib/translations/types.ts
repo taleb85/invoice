@@ -1685,7 +1685,7 @@ export type Translations = {
     stmtAnomalyPreviewMore: string
     stmtAnomalyPreviewAria: string
     anomalyShortFattura: string
-    anomalyShortBolle: string
+    anomalyShortBolleNo: string
     anomalyShortImporto: string
     anomalyShortRekki: string
     stmtAnomalyBolleHint: string
