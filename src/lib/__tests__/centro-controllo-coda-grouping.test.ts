@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   buildCodaDisplayEntries,
   countStatementRowsByStatus,
+  formatStatementStatusCount,
   getStatementIdFromCodaItem,
+  summarizeStatementGroup,
   worstPrioritaInGroup,
 } from '@/lib/centro-controllo-coda-grouping'
 import type { CodaItem } from '@/lib/command-system/types'
@@ -92,5 +94,36 @@ describe('countStatementRowsByStatus', () => {
 describe('worstPrioritaInGroup', () => {
   it('returns minimum priorita (most urgent)', () => {
     expect(worstPrioritaInGroup([stmtRow('a', 'st', 3), stmtRow('b', 'st', 1)])).toBe(1)
+  })
+})
+
+describe('summarizeStatementGroup', () => {
+  it('sums importi and collects doc numbers', () => {
+    const items = [
+      { ...stmtRow('53739', 'st'), importo: 114.06, data_doc: '2026-05-08' },
+      { ...stmtRow('53804', 'st'), importo: 200, data_doc: '2026-05-22' },
+    ]
+    expect(summarizeStatementGroup(items)).toEqual({
+      totalImporto: 314.06,
+      docDateFrom: '2026-05-08',
+      docDateTo: '2026-05-22',
+      numeriDoc: ['53739', '53804'],
+    })
+  })
+})
+
+describe('formatStatementStatusCount', () => {
+  const labels = {
+    fattura_mancante: { one: '{n} one', many: '{n} many' },
+    bolle_mancanti: { one: '', many: '' },
+    errore_importo: { one: '', many: '' },
+    rekki_prezzo_discordanza: { one: '', many: '' },
+    pending: { one: '', many: '' },
+    other: { one: '', many: '' },
+  }
+
+  it('uses plural form when n > 1', () => {
+    expect(formatStatementStatusCount(5, 'fattura_mancante', labels)).toBe('5 many')
+    expect(formatStatementStatusCount(1, 'fattura_mancante', labels)).toBe('1 one')
   })
 })

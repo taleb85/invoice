@@ -1857,17 +1857,27 @@ export type Translations = {
     rigaRicevutoLabel: string
     rigaGiorniInStato: string
     queueStatementGroupRows: string
+    queueStatementGroupTotal: string
+    queueStatementGroupDocDates: string
+    queueStatementGroupRefs: string
+    queueStatementGroupRefsMore: string
     queueStatementGroupOpen: string
     queueStatementGroupResolve: string
     queueStatementGroupResolving: string
     queueStatementGroupResolved: string
     queueStatementGroupResolveError: string
-    queueStatementStatusFatturaMancante: string
-    queueStatementStatusBolleMancanti: string
-    queueStatementStatusErroreImporto: string
-    queueStatementStatusRekki: string
-    queueStatementStatusPending: string
-    queueStatementStatusOther: string
+    queueStatementStatusFatturaMancanteOne: string
+    queueStatementStatusFatturaMancanteMany: string
+    queueStatementStatusBolleMancantiOne: string
+    queueStatementStatusBolleMancantiMany: string
+    queueStatementStatusErroreImportoOne: string
+    queueStatementStatusErroreImportoMany: string
+    queueStatementStatusRekkiOne: string
+    queueStatementStatusRekkiMany: string
+    queueStatementStatusPendingOne: string
+    queueStatementStatusPendingMany: string
+    queueStatementStatusOtherOne: string
+    queueStatementStatusOtherMany: string
     priorityCritical: string
     priorityHigh: string
     priorityMedium: string
