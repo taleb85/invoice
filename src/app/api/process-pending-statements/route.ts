@@ -60,25 +60,81 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ processed: 0, skipped: 0, errors: [], message: 'Nessun documento statement in attesa.' })
   }
 
-  // ── Find which file_urls are already processed ─────────────────────────
-  // Query tutti gli statement della sede (invece di .in() con 414+ URL che
-  // tronca la richiesta HTTP). Filtriamo in memory per i file_url di interesse.
+  // ── Find which file_urls / (fornitore + subject + data) sono già stati elaborati ──
+  //
+  // PROBLEMA STORICO: ogni rescan email rigenera `email_auto_<uuid>.pdf` per lo
+  // stesso PDF allegato (scan-emails carica con nome random, mai content-hash).
+  // Risultato: la dedup `file_url` non scatta mai per gli statement ricaricati
+  // → si creano N copie dello stesso `statements` + N×rows duplicate (visti casi
+  // di 14 copie dello stesso PDF). Aggiungiamo una seconda chiave di dedup
+  // logica: (fornitore_id, document_date, normalized email_subject).
+  //
+  // Per essere conservativi consideriamo "duplicato logico" solo gli statement
+  // che hanno almeno una riga (total_rows > 0) o status='done' — così non
+  // blocchiamo il riprocesso di statement passati in error/processing vuoto.
   const { data: allStmts } = await supabase
     .from('statements')
-    .select('file_url')
+    .select('file_url, fornitore_id, document_date, email_subject, status, total_rows')
     .eq('sede_id', sede_id)
 
-  const existingFileUrls = new Set((allStmts ?? []).map((s: { file_url: string | null }) => s.file_url).filter(Boolean))
-  const alreadyProcessedUrls = new Set(allDocs.filter(d => d.file_url && existingFileUrls.has(d.file_url)).map(d => d.file_url))
+  const stmtRecords = allStmts ?? []
+  const existingFileUrls = new Set(
+    stmtRecords.map((s: { file_url: string | null }) => s.file_url).filter(Boolean),
+  )
 
-  // Deduplica per file_url e filtra quelli già elaborati
+  const normalizeSubject = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+  const tripleKey = (
+    fornitoreId: string | null | undefined,
+    docDate: string | null | undefined,
+    subject: string | null | undefined,
+  ) => `${fornitoreId ?? ''}|${docDate ?? ''}|${normalizeSubject(subject)}`
+
+  const existingTriples = new Set(
+    stmtRecords
+      .filter((s) => (s.total_rows ?? 0) > 0 || s.status === 'done')
+      .filter((s) => s.fornitore_id && s.document_date && s.email_subject)
+      .map((s) => tripleKey(s.fornitore_id, s.document_date, s.email_subject)),
+  )
+
+  const alreadyProcessedUrls = new Set(
+    allDocs.filter((d) => d.file_url && existingFileUrls.has(d.file_url)).map((d) => d.file_url),
+  )
+
   const seenFileUrls = new Set<string>()
-  const pending = allDocs.filter(d => {
+  const seenTriples = new Set<string>()
+  const logicalDuplicateDocIds: string[] = []
+  const pending = allDocs.filter((d) => {
     if (alreadyProcessedUrls.has(d.file_url)) return false
     if (!d.file_url || seenFileUrls.has(d.file_url)) return false
+
+    const triple = tripleKey(d.fornitore_id, d.data_documento, d.oggetto_mail)
+    if (d.fornitore_id && d.data_documento && d.oggetto_mail) {
+      if (existingTriples.has(triple) || seenTriples.has(triple)) {
+        // Stesso statement logico già presente in DB (o appena messo in questo batch):
+        // skip per non gonfiare duplicati. Marco il documento come 'associato' in coda
+        // per non riselezionarlo a ogni run successivo.
+        logicalDuplicateDocIds.push(d.id)
+        return false
+      }
+      seenTriples.add(triple)
+    }
+
     seenFileUrls.add(d.file_url)
     return true
   })
+
+  // Best-effort: sgancia subito i duplicati logici dalla coda statement.
+  if (logicalDuplicateDocIds.length > 0) {
+    const { error: dedupErr } = await supabase
+      .from('documenti_da_processare')
+      .update({ is_statement: false, stato: 'associato' })
+      .in('id', logicalDuplicateDocIds)
+    if (dedupErr) {
+      logger.warn(`[PENDING-STMT] Impossibile sganciare duplicati logici: ${dedupErr.message}`)
+    } else {
+      logger.info(`[PENDING-STMT] Sganciati ${logicalDuplicateDocIds.length} duplicati logici (stesso fornitore+data+subject)`)
+    }
+  }
 
   if (!pending.length) {
     return NextResponse.json({ processed: 0, skipped: allDocs.length, errors: [], message: 'Tutti i documenti sono già stati processati.' })

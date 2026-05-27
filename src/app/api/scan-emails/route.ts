@@ -218,6 +218,48 @@ async function insertDocumento(
     }
   }
 
+  /*
+   * Dedup specifico STATEMENT: per gli estratti conto NON basta guardare gli
+   * stati attivi della coda — un PDF già processato passa a `stato='associato'`,
+   * ma una rilettura email genera comunque un nuovo `email_auto_<uuid>.pdf`
+   * e un nuovo `file_url` univoco. Senza questo controllo si creano N copie
+   * dello stesso statement (visti casi storici di 14 copie dello stesso PDF
+   * Alivini). Per gli statement, quindi, blocca anche se esiste già un doc
+   * `associato` con stessa (fornitore + oggetto + data) marcato `is_statement`
+   * — oppure se esiste già un record in `statements` per quella terna.
+   */
+  const isStatementInsert = (payload as Record<string, unknown>).is_statement === true
+  if (isStatementInsert && fornitoreId && oggettoMail && dataDoc) {
+    const { data: stmtAlready } = await supabase
+      .from('documenti_da_processare')
+      .select('id')
+      .eq('fornitore_id', fornitoreId)
+      .eq('oggetto_mail', oggettoMail)
+      .eq('data_documento', dataDoc)
+      .eq('stato', 'associato')
+      .limit(1)
+      .maybeSingle()
+    if (stmtAlready?.id) {
+      return null
+    }
+
+    const sedeIdForCheck = typeof payload.sede_id === 'string' ? payload.sede_id : null
+    if (sedeIdForCheck) {
+      const { data: stmtRecord } = await supabase
+        .from('statements')
+        .select('id')
+        .eq('sede_id', sedeIdForCheck)
+        .eq('fornitore_id', fornitoreId)
+        .eq('document_date', dataDoc)
+        .eq('email_subject', oggettoMail)
+        .limit(1)
+        .maybeSingle()
+      if (stmtRecord?.id) {
+        return null
+      }
+    }
+  }
+
   const { error } = await supabase.from('documenti_da_processare').insert([payloadNorm])
 
   if (error) {
