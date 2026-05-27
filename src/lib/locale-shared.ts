@@ -115,13 +115,25 @@ export function formatDateTime(
   return `${datePart} ${timePart}`
 }
 
+function intlLocaleForCurrency(currencyCode: string, locale: Locale): string {
+  const code = currencyCode.trim().toUpperCase()
+  // GBP/USD: formato del paese della valuta (es. £36.04), indipendente dalla lingua UI.
+  if (code === 'GBP') return 'en-GB'
+  if (code === 'USD') return 'en-US'
+  if (code === 'CHF') return 'de-CH'
+  return locale === 'it'
+    ? 'it-IT'
+    : locale === 'en'
+      ? 'en-GB'
+      : locale === 'es'
+        ? 'es-ES'
+        : locale === 'fr'
+          ? 'fr-FR'
+          : 'de-DE'
+}
+
 export function formatCurrency(amount: number, currencyCode = 'EUR', locale: Locale = 'it') {
-  const intlLocale =
-    locale === 'it' ? 'it-IT'
-    : locale === 'en' ? 'en-GB'
-    : locale === 'es' ? 'es-ES'
-    : locale === 'fr' ? 'fr-FR'
-    : 'de-DE'
+  const intlLocale = intlLocaleForCurrency(currencyCode, locale)
   return new Intl.NumberFormat(intlLocale, {
     style: 'currency',
     currency: currencyCode,

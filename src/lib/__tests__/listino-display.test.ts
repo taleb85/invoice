@@ -3,6 +3,7 @@ import {
   parseListinoNoteParts,
   isPromoListinoRow,
   filterOutliersForTrend,
+  pickDisplayListinoRow,
   dynamicStaleThresholdDays,
 } from '@/lib/listino-display'
 
@@ -92,7 +93,7 @@ describe('filterOutliersForTrend', () => {
     expect(filterOutliersForTrend(rows)).toBe(rows)
   })
 
-  it('keeps the dominant price cluster (Menabrea-like noisy OCR series)', () => {
+  it('keeps the upper case-price cluster (Menabrea-like noisy OCR series)', () => {
     const rows = [
       { id: 'a', prezzo: 1.48 },
       { id: 'b', prezzo: 5.02 },
@@ -106,15 +107,22 @@ describe('filterOutliersForTrend', () => {
     ]
     const kept = filterOutliersForTrend(rows).map((r) => r.id)
     expect(kept).not.toContain('a')
-    expect(kept).not.toContain('g')
-    expect(kept).not.toContain('h')
-    expect(kept).not.toContain('i')
-    expect(kept).toContain('c')
-    expect(kept).toContain('e')
+    expect(kept).not.toContain('c')
+    expect(kept).not.toContain('e')
+    expect(kept).toContain('g')
+    expect(kept).toContain('h')
+    expect(kept).toContain('i')
+  })
+
+  it('bimodal split keeps the upper cluster when spread is wide', () => {
+    const rows = [{ prezzo: 1 }, { prezzo: 1 }, { prezzo: 100 }, { prezzo: 100 }]
+    const out = filterOutliersForTrend(rows)
+    expect(out.length).toBe(2)
+    expect(out.every((r) => r.prezzo === 100)).toBe(true)
   })
 
   it('falls back to input if the cluster filter would leave <2 rows', () => {
-    const rows = [{ prezzo: 1 }, { prezzo: 1 }, { prezzo: 100 }, { prezzo: 100 }]
+    const rows = [{ prezzo: 1 }, { prezzo: 1 }, { prezzo: 1 }, { prezzo: 100 }]
     expect(filterOutliersForTrend(rows).length).toBe(rows.length)
   })
 
@@ -122,6 +130,28 @@ describe('filterOutliersForTrend', () => {
     const rows = [{ prezzo: 0 }, { prezzo: 0 }, { prezzo: 1 }, { prezzo: 2 }]
     const out = filterOutliersForTrend(rows)
     expect(out.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('pickDisplayListinoRow', () => {
+  it('shows case price when latest OCR row is quantity (Menabrea)', () => {
+    const rows = [
+      { id: '1', data_prezzo: '2025-08-05', prezzo: 35.66 },
+      { id: '2', data_prezzo: '2025-09-26', prezzo: 7.0 },
+      { id: '3', data_prezzo: '2026-03-13', prezzo: 36.04 },
+      { id: '4', data_prezzo: '2026-03-31', prezzo: 7.0 },
+    ]
+    const display = pickDisplayListinoRow(rows)
+    expect(display.id).toBe('3')
+    expect(display.prezzo).toBe(36.04)
+  })
+
+  it('returns chronological latest when it is in the plausible cluster', () => {
+    const rows = [
+      { id: '1', data_prezzo: '2026-01-01', prezzo: 35.66 },
+      { id: '2', data_prezzo: '2026-02-01', prezzo: 36.04 },
+    ]
+    expect(pickDisplayListinoRow(rows).id).toBe('2')
   })
 })
 

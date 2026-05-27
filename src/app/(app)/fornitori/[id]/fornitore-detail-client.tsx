@@ -32,6 +32,7 @@ import {
   isPromoListinoRow,
   LISTINO_SRC_FATTURA_MARK,
   parseListinoNoteParts,
+  pickDisplayListinoRow,
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
 } from '@/lib/listino-display'
@@ -4985,6 +4986,9 @@ function ListinoTab({
               {Object.entries(filteredListinoByProduct).map(([prodotto, prezzi]) => {
                 const sorted = [...prezzi].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
                 const ultimo = sorted[sorted.length - 1]!
+                const displayRow = isPromoListinoRow({ prodotto, note: ultimo.note })
+                  ? ultimo
+                  : pickDisplayListinoRow(sorted)
                 /*
                  * Riga "promo" (bundle/omaggi/sconti tipo Menabrea Deal,
                  * codici FOC/DEAL): nessun confronto, niente anomalia.
@@ -4993,14 +4997,14 @@ function ListinoTab({
                  * "cluster" (vedi filterOutliersForTrend) per evitare che
                  * letture OCR multi-colonna falsino il trend.
                  */
-                const isPromo = isPromoListinoRow({ prodotto, note: ultimo.note })
+                const isPromo = isPromoListinoRow({ prodotto, note: displayRow.note })
                 const trendInput = isPromo ? sorted : filterOutliersForTrend(sorted)
-                const ultimoForTrend =
-                  trendInput.find((r) => r.id === ultimo.id) ?? trendInput[trendInput.length - 1] ?? ultimo
+                const displayForTrend =
+                  trendInput.find((r) => r.id === displayRow.id) ?? trendInput[trendInput.length - 1] ?? displayRow
                 const { ref } = isPromo
                   ? { ref: null }
-                  : referencePriceForListinoRow(trendInput, ultimoForTrend)
-                const priceDelta = ref ? ultimo.prezzo - ref.prezzo : 0
+                  : referencePriceForListinoRow(trendInput, displayForTrend)
+                const priceDelta = ref ? displayRow.prezzo - ref.prezzo : 0
                 const pct = ref && Math.abs(ref.prezzo) > 1e-9 ? (priceDelta / ref.prezzo) * 100 : 0
                 const up = Boolean(ref && priceDelta > 0.0001)
                 const down = Boolean(ref && priceDelta < -0.0001)
@@ -5017,8 +5021,8 @@ function ListinoTab({
                             .replace('{delta}', fmtMoney(Math.abs(priceDelta)))
                             .replace('{pct}', pctLabel)
                         : t.fornitori.listinoLastFlat.replace('{pct}', pctLabel)
-                const parsed = parseListinoNoteParts(ultimo.note)
-                const fid = extractListinoSrcFatturaId(ultimo.note)
+                const parsed = parseListinoNoteParts(displayRow.note)
+                const fid = extractListinoSrcFatturaId(displayRow.note)
                 const originRow = fid ? rows.find((r) => r.tipo === 'fattura' && r.id === fid) : null
                 const originLine = originRow
                   ? t.fornitori.listinoOriginInvoice
@@ -5034,7 +5038,7 @@ function ListinoTab({
                 verificaQ.set('stato', 'rekki_prezzo_discordanza')
                 verificaQ.set('verifica_prodotto', prodotto)
                 const verificaHref = `${pathname}?${verificaQ.toString()}`
-                const noteDisplay = stripListinoSrcMachineSuffix(ultimo.note)
+                const noteDisplay = stripListinoSrcMachineSuffix(displayRow.note)
                 const hasAnomaly = Boolean(ref && up && pct > 0)
                 const rowAccentBorder = hasAnomaly
                   ? 'border-l-[#FF3131]'
@@ -5052,7 +5056,7 @@ function ListinoTab({
                   ? 365
                   : dynamicStaleThresholdDays(sorted.map((r) => r.data_prezzo.slice(0, 10)))
                 const listinoPriceStale =
-                  calendarDaysBetweenIso(ultimo.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
+                  calendarDaysBetweenIso(displayRow.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
 
                 return (
                   <div
@@ -5103,7 +5107,7 @@ function ListinoTab({
                                   : 'text-white'
                             }`}
                           >
-                            {fmtMoney(ultimo.prezzo)}
+                            {fmtMoney(displayRow.prezzo)}
                           </p>
 
                           {/* Badge delta prezzo vivido (solo se esiste riferimento) */}
@@ -5177,7 +5181,7 @@ function ListinoTab({
                         {/* Metadati (piccoli e muted) — codice/unità sono già nei badge della col. 1 */}
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-app-fg-muted">
                           <span className="font-medium">
-                            {formatDateLib(ultimo.data_prezzo, locale, timezone, {
+                            {formatDateLib(displayRow.data_prezzo, locale, timezone, {
                               day: 'numeric',
                               month: 'short',
                               year: 'numeric',

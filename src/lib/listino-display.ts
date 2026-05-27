@@ -155,34 +155,57 @@ function median(values: number[]): number {
 }
 
 /**
- * Filtra outlier dai prezzi di un singolo prodotto per il calcolo del trend.
+ * Filtra outlier dai prezzi di un singolo prodotto per trend e display.
  *
- * Motivazione: i prezzi nel listino vengono estratti dall'OCR da diverse
- * colonne della stessa fattura (lordo riga vs. unitario vs. sconto vs. totale).
- * Per "Beer Menabrea Blonde" abbiamo visto serie come
- *   £1.48, £5.02, £7.00, £10.40, £12.84, £35.66, £36.04
- * dove £35.66/£36.04 sono i prezzi-cassa veri (24 bottiglie × £1.49) e gli
- * altri sono unitari di bottiglia singola o sconti volumetrici. Mescolarli
- * fa esplodere il trend (es. +414%).
+ * Motivazione: l'OCR legge colonne diverse (qty, unitario, totale riga).
+ * Es. Beer Menabrea Blonde: £1.48, £7.00 (qty), £35.66/£36.04 (cassa 24×).
+ * Con mediana semplice restava il cluster basso (qty/unitario) e si scartavano
+ * i prezzi-cassa corretti — il contrario di quanto serve.
  *
- * Strategia: tieni solo i prezzi che cadono entro ±50% della mediana del
- * cluster (1ª stima). Serve almeno 4 punti, sotto questa soglia non filtra.
- * Nei test: per la serie sopra, mediana = 8.7, range [4.35, 13.05] → tiene
- * 5.02/7.00/7.00/10.40/12.84 e scarta 1.48/35.66/35.66/36.04. Ancora non
- * perfetto ma utilizzabile.
- *
- * NB: questo filtro è SOLO per analisi/trend, NON per la visualizzazione
- * dello storico (l'utente vede ancora tutti i prezzi).
+ * Strategia bimodale: se max/min > 2.5×, tieni solo prezzi ≥ 50% del massimo
+ * (cluster alto = prezzo listino reale). Altrimenti, banda ±50% attorno alla
+ * mediana per serie omogenee.
  */
 export function filterOutliersForTrend<T extends { prezzo: number }>(rows: T[]): T[] {
   if (rows.length < 4) return rows
-  const m = median(rows.map((r) => r.prezzo))
-  if (m <= 0) return rows
-  const lo = m * 0.5
-  const hi = m * 1.5
-  const kept = rows.filter((r) => r.prezzo >= lo && r.prezzo <= hi)
-  // Safety: se il filtro ha azzerato la serie, ritorna l'input (fallback).
+  const prices = rows.map((r) => r.prezzo).filter((p) => p > 0 && Number.isFinite(p))
+  if (prices.length < 4) return rows
+  const minP = Math.min(...prices)
+  const maxP = Math.max(...prices)
+  if (maxP <= 0) return rows
+
+  let kept: T[]
+  if (minP > 0 && maxP / minP > 2.5) {
+    const cutoff = maxP * 0.5
+    kept = rows.filter((r) => r.prezzo >= cutoff)
+  } else {
+    const m = median(prices)
+    if (m <= 0) return rows
+    const lo = m * 0.5
+    const hi = m * 1.5
+    kept = rows.filter((r) => r.prezzo >= lo && r.prezzo <= hi)
+  }
+
   return kept.length >= 2 ? kept : rows
+}
+
+/**
+ * Riga da mostrare come "prezzo attuale" in ListinoTab.
+ * Se l'ultima rilevazione cronologica è un outlier OCR (es. qty 7 al posto
+ * di £36.04), usa l'ultima voce del cluster plausibile.
+ */
+export function pickDisplayListinoRow<T extends PriceRow>(sortedByDateAsc: T[]): T {
+  if (sortedByDateAsc.length === 0) {
+    throw new Error('pickDisplayListinoRow: empty input')
+  }
+  if (sortedByDateAsc.length === 1) return sortedByDateAsc[0]!
+  const latest = sortedByDateAsc[sortedByDateAsc.length - 1]!
+  const cluster = filterOutliersForTrend(sortedByDateAsc)
+  if (cluster.length === 0) return latest
+  if (!cluster.some((r) => r.id === latest.id)) {
+    return cluster[cluster.length - 1]!
+  }
+  return latest
 }
 
 /**
