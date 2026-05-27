@@ -262,12 +262,14 @@ export function qualityValidateDate(
 function extractDateFromText(text: string | null | undefined): string | null {
   if (!text?.trim()) return null
 
-  // Cerca YYYY-MM-DD
-  const iso = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/)
+  // Cerca YYYY-MM-DD (anche dopo _ o . nel nome file)
+  const iso = text.match(/(\d{4})-(\d{2})-(\d{2})/)
   if (iso) {
-    const [_, y, m, d] = iso
+    const y = iso[1]!
+    const m = iso[2]!
+    const d = iso[3]!
     if (Number(m) >= 1 && Number(m) <= 12 && Number(d) >= 1 && Number(d) <= 31) {
-      return iso[1]
+      return `${y}-${m}-${d}`
     }
   }
 

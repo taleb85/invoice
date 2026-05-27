@@ -60,6 +60,8 @@ export default function FatturaRefreshDateButton({
         ok?: boolean
         data?: string
         data_changed?: boolean
+        date_rejected?: boolean
+        info?: string
         importo?: number | null
         importo_changed?: boolean
         numero_fattura?: string | null
@@ -79,7 +81,7 @@ export default function FatturaRefreshDateButton({
       const dataChanged = j.data_changed === true
       const importoChanged = j.importo_changed === true && j.importo != null
       const numeroChanged = j.numero_fattura_changed === true && j.numero_fattura != null
-      if (j.data) {
+      if (j.data && dataChanged) {
         onDataUpdated(j.data)
       }
       if (importoChanged) {
@@ -88,7 +90,7 @@ export default function FatturaRefreshDateButton({
       if (numeroChanged) {
         onNumeroFatturaUpdated?.(j.numero_fattura as string)
       }
-      if (j.data || importoChanged || numeroChanged) {
+      if (dataChanged || importoChanged || numeroChanged) {
         onLedgerMutated?.()
         if (dataChanged) {
           showToast(
@@ -99,9 +101,13 @@ export default function FatturaRefreshDateButton({
           showToast(t.fatture.refreshImportoFromDocSuccess, 'success')
         } else if (numeroChanged) {
           showToast(t.fatture.refreshNumeroFatturaFromDocSuccess, 'success')
-        } else {
-          showToast(t.fatture.refreshDateFromDocUnchanged, 'info')
         }
+      } else if (j.date_rejected && j.info) {
+        showToast(j.info, 'info')
+      } else if (j.tipo_documento || j.info) {
+        showToast(j.info ?? t.fatture.refreshDateFromDocUnchanged, 'info')
+      } else {
+        showToast(t.fatture.refreshDateFromDocUnchanged, 'info')
       }
     } catch {
       showToast(t.ui.networkError, 'error')

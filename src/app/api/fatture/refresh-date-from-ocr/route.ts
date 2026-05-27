@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
-import { safeDate } from '@/lib/safe-date'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { fileNameFromStorageUrl } from '@/lib/fix-ocr-dates-helpers'
+import {
+  documentDateRejectMessage,
+  resolveDocumentDateFromOcrContext,
+} from '@/lib/resolve-document-date-from-ocr'
 
 function resolvedContentType(url: string, header: string | null): string {
   const h = (header ?? '').toLowerCase()
@@ -26,6 +30,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const service = createServiceClient()
+  const acceptLang = req.headers.get('accept-language') ?? ''
+  const locale = acceptLang.toLowerCase().includes('it') ? 'it' : 'en'
 
   let fatturaId: string
   try {
@@ -53,6 +59,20 @@ export async function POST(req: NextRequest) {
       { status: 422 },
     )
   }
+
+  const { data: docRow } = await service
+    .from('documenti_da_processare')
+    .select('created_at, oggetto_mail, file_name')
+    .eq('file_url', fattura.file_url)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const fileName =
+    (docRow as { file_name?: string | null } | null)?.file_name?.trim()
+    || fileNameFromStorageUrl(fattura.file_url)
+  const emailSubject = (docRow as { oggetto_mail?: string | null } | null)?.oggetto_mail ?? null
+  const receivedAt = (docRow as { created_at?: string | null } | null)?.created_at ?? null
 
   let buffer: Buffer
   let contentType: string
@@ -85,14 +105,21 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let normalized: string | null
   let importFromOcr: number | null = null
   let numeroFatturaFromOcr: string | null = null
   let tipoDocumentoFromOcr: string | null = null
+  let dateResolution: ReturnType<typeof resolveDocumentDateFromOcrContext>
   try {
-    const ocr = await ocrInvoice(new Uint8Array(buffer), contentType)
-    const raw = ocr.data_fattura ?? ocr.data
-    normalized = raw != null && String(raw).trim() ? safeDate(String(raw)) : null
+    const ocr = await ocrInvoice(new Uint8Array(buffer), contentType, undefined, {
+      preferVisionForPdf: true,
+    })
+    dateResolution = resolveDocumentDateFromOcrContext({
+      ocr,
+      currentDate: fattura.data,
+      fileName,
+      emailSubject,
+      receivedAt,
+    })
     if (ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))) {
       importFromOcr = Number(ocr.totale_iva_inclusa)
     }
@@ -106,21 +133,27 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
+  const normalized = dateResolution.proposedDate
+  const dateRejected = Boolean(dateResolution.skipReason && dateResolution.skipReason !== 'unchanged')
+  const dateRejectInfo = dateResolution.skipReason
+    ? documentDateRejectMessage(dateResolution.skipReason, locale)
+    : undefined
+
   // Persist the updated tipo_documento into documenti_da_processare so the UI can reflect it
   if (tipoDocumentoFromOcr && fattura.file_url) {
-    const { data: docRow } = await service
+    const { data: docMetaRow } = await service
       .from('documenti_da_processare')
       .select('id, metadata')
       .eq('file_url', fattura.file_url)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (docRow) {
-      const existing = (docRow.metadata ?? {}) as Record<string, unknown>
+    if (docMetaRow) {
+      const existing = (docMetaRow.metadata ?? {}) as Record<string, unknown>
       await service
         .from('documenti_da_processare')
         .update({ metadata: { ...existing, tipo_documento: tipoDocumentoFromOcr } })
-        .eq('id', docRow.id)
+        .eq('id', docMetaRow.id)
     }
   }
 
@@ -135,12 +168,14 @@ export async function POST(req: NextRequest) {
         ok: true,
         data: fattura.data,
         data_changed: false,
+        date_rejected: dateRejected,
+        ocr_date: dateResolution.ocrDate,
         importo: fattura.importo,
         importo_changed: false,
         numero_fattura: fattura.numero_fattura ?? null,
         numero_fattura_changed: false,
         tipo_documento: normalizedTipo,
-        info: "Nessun campo data/importo/numero aggiornato. Il tipo documento potrebbe essere stato aggiornato.",
+        info: dateRejectInfo ?? "Nessun campo data/importo/numero aggiornato. Il tipo documento potrebbe essere stato aggiornato.",
       },
     )
   }
@@ -161,12 +196,15 @@ export async function POST(req: NextRequest) {
       ok: true,
       data: fattura.data,
       data_changed: false,
+      date_rejected: dateRejected,
+      ocr_date: dateResolution.ocrDate,
       previous: fattura.data,
       importo: fattura.importo,
       importo_changed: false,
       numero_fattura: fattura.numero_fattura ?? null,
       numero_fattura_changed: false,
       tipo_documento: normalizedTipo,
+      info: dateRejectInfo,
     })
   }
 
@@ -180,6 +218,8 @@ export async function POST(req: NextRequest) {
     ok: true,
     data: updates.data ?? fattura.data,
     data_changed: updates.data !== undefined,
+    date_rejected: dateRejected,
+    ocr_date: dateResolution.ocrDate,
     previous: fattura.data,
     importo: updates.importo ?? fattura.importo ?? null,
     importo_changed: updates.importo !== undefined,
