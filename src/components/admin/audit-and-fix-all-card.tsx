@@ -101,6 +101,7 @@ export default function AuditAndFixAllCard() {
   const [recentChanges, setRecentChanges] = useState<AuditChange[]>([])
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [lastRunForced, setLastRunForced] = useState(false)
   const abortRef = useRef(false)
 
   // Cleanup state separato — dry-run preview prima della cancellazione vera
@@ -113,7 +114,7 @@ export default function AuditAndFixAllCard() {
   const [cleanupError, setCleanupError] = useState<string | null>(null)
 
   const runOneBatch = useCallback(
-    async (currentPhase: Phase, opts?: { dryRun?: boolean }): Promise<BatchResult> => {
+    async (currentPhase: Phase, opts?: { dryRun?: boolean; force?: boolean }): Promise<BatchResult> => {
       const res = await fetch('/api/admin/audit-and-fix-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,6 +123,7 @@ export default function AuditAndFixAllCard() {
           phase: currentPhase,
           ...(sedeCtx.effectiveSedeId ? { sede_id: sedeCtx.effectiveSedeId } : {}),
           ...(opts?.dryRun ? { dry_run: true } : {}),
+          ...(opts?.force ? { force: true } : {}),
         }),
       })
       const json = (await res.json()) as BatchResult
@@ -134,7 +136,7 @@ export default function AuditAndFixAllCard() {
   )
 
   const runPhase = useCallback(
-    async (currentPhase: Phase): Promise<Totals> => {
+    async (currentPhase: Phase, opts?: { force?: boolean }): Promise<Totals> => {
       setPhase(currentPhase)
       let runningTotals: Totals = { ...EMPTY_TOTALS }
       setTotals(runningTotals)
@@ -147,7 +149,7 @@ export default function AuditAndFixAllCard() {
         if (abortRef.current) break
         let result: BatchResult
         try {
-          result = await runOneBatch(currentPhase)
+          result = await runOneBatch(currentPhase, { force: opts?.force })
           consecutiveErrors = 0
         } catch (e) {
           consecutiveErrors++
@@ -190,25 +192,29 @@ export default function AuditAndFixAllCard() {
   )
 
   const handleStart = useCallback(
-    async (mode: 'deterministic' | 'with_ai' | 'ai_only') => {
+    async (mode: 'deterministic' | 'deterministic_force' | 'with_ai' | 'ai_only') => {
+      const force = mode === 'deterministic_force'
       const confirmMsg =
-        mode === 'deterministic'
-          ? 'Avvia ricontrollo veloce di TUTTI i documenti? Corregge fornitore + tipo dove la catena di qualità è certa (2/3 segnali). Nessuna chiamata AI.'
-          : mode === 'ai_only'
-            ? 'Avvia SOLO la passata AI Gemini? Scarica e riclassifica ogni file: può essere lento e consumare quota Gemini.'
-            : 'Avvia ricontrollo COMPLETO (passata veloce + passata AI Gemini)? L\'AI rallenta significativamente e consuma quota.'
+        mode === 'deterministic_force'
+          ? 'Rieseguire la passata veloce su TUTTI i documenti in coda (anche già auditati)? Usa solo i metadata OCR salvati — non rilegge i PDF.'
+          : mode === 'deterministic'
+            ? 'Avvia ricontrollo veloce sui documenti in coda non ancora auditati? Corregge fornitore + tipo dove la catena di qualità è certa (2/3 segnali). Non rilegge i PDF.'
+            : mode === 'ai_only'
+              ? 'Avvia SOLO la passata AI Gemini? Scarica e riclassifica ogni file: può essere lento e consumare quota Gemini.'
+              : 'Avvia ricontrollo COMPLETO (passata veloce + passata AI Gemini)? L\'AI rallenta significativamente e consuma quota.'
       if (!confirm(confirmMsg)) return
 
       abortRef.current = false
       setBusy(true)
       setErrorMsg(null)
       setDone(false)
+      setLastRunForced(force)
       setRecentChanges([])
       setTotals(EMPTY_TOTALS)
 
       try {
-        if (mode === 'deterministic' || mode === 'with_ai') {
-          await runPhase('deterministic')
+        if (mode === 'deterministic' || mode === 'deterministic_force' || mode === 'with_ai') {
+          await runPhase('deterministic', { force })
         }
         if (!abortRef.current && (mode === 'with_ai' || mode === 'ai_only')) {
           await runPhase('ai')
@@ -326,9 +332,11 @@ export default function AuditAndFixAllCard() {
             </span>
           </h3>
           <p className="mt-1 text-xs text-app-fg-muted">
-            Ricalcola fornitore e tipo documento su ogni riga in coda (qualunque
-            stato), propaga le correzioni a fatture/bolle. Idempotente: i
-            documenti già auditati non vengono toccati.
+            Solo righe in <strong className="font-medium text-app-fg">documenti da processare</strong>:
+            ricalcola fornitore/tipo/data dai <strong className="font-medium text-app-fg">metadata OCR già salvati</strong>{' '}
+            (email, nome file) — <strong className="font-medium text-app-fg">non apre i PDF</strong>.
+            I documenti già auditati vengono saltati; usa «Riesegui (forza)» o «Completo + AI» per un secondo giro.
+            Per date/importi sulle fatture archiviate: Fix date OCR o «Rileggi documento».
           </p>
         </div>
         {busy ? (
@@ -351,6 +359,15 @@ export default function AuditAndFixAllCard() {
         >
           <Zap className="-mt-0.5 mr-1 inline-block h-3.5 w-3.5" />
           Veloce (gratis)
+        </button>
+        <button
+          type="button"
+          disabled={busy || cleanupBusy}
+          onClick={() => handleStart('deterministic_force')}
+          title="Ricalcola anche documenti già auditati in passata veloce (sempre senza rileggere il PDF)"
+          className="touch-manipulation rounded-lg border border-app-line-25 bg-app-line-10 px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-15 disabled:opacity-50"
+        >
+          Riesegui (forza)
         </button>
         <button
           type="button"
@@ -500,6 +517,15 @@ export default function AuditAndFixAllCard() {
           {errorMsg ? (
             <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
               ⚠ {errorMsg}
+            </p>
+          ) : null}
+          {done && totals.checked === 0 && !lastRunForced ? (
+            <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
+              Nessun documento da processare in passata veloce: la coda risulta già auditata.
+              Questo strumento non rilegge i PDF né corregge direttamente le fatture in archivio.
+              Per OCR sul file usa <strong>Completo + AI</strong>, <strong>Fix date OCR</strong> (sotto) o
+              <strong> Rileggi documento</strong> sulla riga fattura. Per ricalcolare solo da metadata:{' '}
+              <strong>Riesegui (forza)</strong>.
             </p>
           ) : null}
           <div className="rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-3 text-xs">
