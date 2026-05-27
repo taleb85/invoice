@@ -5126,7 +5126,7 @@ function ListinoTab({
                                 <GlyphCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                               )}
                               <span>
-                                {hasAnomaly ? 'Attenzione: ' : ''}
+                                {hasAnomaly ? t.fornitori.listinoAnomalyPrefix : ''}
                                 {summaryLine}
                               </span>
                             </p>
@@ -5144,7 +5144,7 @@ function ListinoTab({
                           </div>
                         ) : null}
 
-                        {/* Metadati (piccoli e muted) */}
+                        {/* Metadati (piccoli e muted) — codice/unità sono già nei badge della col. 1 */}
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-app-fg-muted">
                           <span className="font-medium">
                             {formatDateLib(ultimo.data_prezzo, locale, timezone, {
@@ -5156,16 +5156,6 @@ function ListinoTab({
                           {sorted.length > 1 ? (
                             <span>
                               · {t.fornitori.listinoHistoryDepth.replace('{n}', String(sorted.length - 1))}
-                            </span>
-                          ) : null}
-                          {parsed.codice ? (
-                            <span>
-                              · Cod: <span className="font-mono">{parsed.codice}</span>
-                            </span>
-                          ) : null}
-                          {parsed.unita ? (
-                            <span>
-                              · {parsed.unita}
                             </span>
                           ) : null}
                         </div>

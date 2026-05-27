@@ -24,29 +24,46 @@ export type ParsedListinoNote = {
 }
 
 /**
- * Parses "Codice: … — Unità: … — …" prefix from import flow; keeps remainder as `humanTail`.
+ * Estrae prefisso `Codice: …`, `Unità: …` (o varianti) dalla nota di listino,
+ * preservando il resto come `humanTail`.
+ *
+ * Supporta due formati storici:
+ *   1) `Codice: 61025 — Unità: 24x33cl — restante` (separatore em-dash con spazi,
+ *      etichette capitalizzate e con accento). Salvato dal flow di import manuale.
+ *   2) `codice:61025 · unita:24x33cl · restante` (separatore mezzopunto, etichette
+ *      minuscole, senza accento, senza spazi). Salvato dall'auto-import OCR
+ *      `/api/listino/importa-da-fattura`.
+ *
+ * Bug storico: prima del fix solo (1) era riconosciuto, quindi le note OCR (2)
+ * cadevano interamente nel `humanTail` e nella UI si vedeva ad es.
+ * `Beer Menabrea 61025 · unita:24x33cl · codice:61025 · unita:24x33cl`
+ * (le etichette comparivano sia nel badge sia nei metadati testuali).
  */
 export function parseListinoNoteParts(note: string | null | undefined): ParsedListinoNote {
   const raw = stripListinoSrcMachineSuffix(note)
   if (!raw) return { codice: null, unita: null, humanTail: null }
   let codice: string | null = null
   let unita: string | null = null
-  const parts = raw.split(/\s+—\s+/)
+  const parts = raw.split(/\s*(?:—|·)\s*/)
   const tail: string[] = []
   for (const p of parts) {
-    const c = p.match(/^Codice:\s*(.+)$/i)
+    const trimmed = p.trim()
+    if (!trimmed) continue
+    const c = trimmed.match(/^codice\s*:\s*(.+)$/i)
     if (c) {
-      codice = c[1]!.trim() || null
+      const val = c[1]!.trim()
+      if (val) codice = val
       continue
     }
-    const u = p.match(/^Unità:\s*(.+)$/i)
+    const u = trimmed.match(/^(?:unit[aà])\s*:\s*(.+)$/i)
     if (u) {
-      unita = u[1]!.trim() || null
+      const val = u[1]!.trim()
+      if (val) unita = val
       continue
     }
-    tail.push(p)
+    tail.push(trimmed)
   }
-  const humanTail = tail.length ? tail.join(' — ') : null
+  const humanTail = tail.length ? tail.join(' · ') : null
   return { codice, unita, humanTail }
 }
 

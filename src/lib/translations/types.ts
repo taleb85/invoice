@@ -1052,6 +1052,7 @@ export type Translations = {
     listinoLastIncrease: string
     listinoLastDecrease: string
     listinoLastFlat: string
+    listinoAnomalyPrefix: string
     listinoVsReferenceHint: string
     listinoOriginInvoice: string
     listinoFilterEmptyKpi: string

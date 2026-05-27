@@ -51,8 +51,14 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
         const rawCode = i.codice_prodotto ?? i.codice ?? i.sku
         const codice =
           rawCode != null && String(rawCode).trim() !== '' ? String(rawCode).trim() : null
+        // Strip trailing punctuation (`.`, `,`, `:`, `;`, `-`) per evitare
+        // che lo stesso prodotto venga raggruppato in 2 serie distinte
+        // (`Beer Menabrea Blonde` vs `Beer Menabrea Blonde.`).
+        const prodottoNorm = String(i.prodotto)
+          .trim()
+          .replace(/[\s.,;:\-]+$/, '')
         return {
-          prodotto: String(i.prodotto).trim(),
+          prodotto: prodottoNorm,
           codice_prodotto: codice,
           prezzo: typeof i.prezzo === 'number' ? i.prezzo : parseFloat(String(i.prezzo)) || 0,
           unita: i.unita ? String(i.unita) : null,

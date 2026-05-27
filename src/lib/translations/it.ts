@@ -1597,6 +1597,7 @@ const translations: Translations = {
     listinoLastIncrease: 'Ultimo aumento: {delta} ({pct})',
     listinoLastDecrease: 'Ultimo ribasso: {delta} ({pct})',
     listinoLastFlat: 'Prezzo in linea col riferimento ({pct})',
+    listinoAnomalyPrefix: 'Attenzione: ',
     listinoVsReferenceHint: 'rispetto al mese precedente o all’aggiornamento precedente.',
     listinoOriginInvoice: 'Origine ultimo prezzo: fattura {inv} del {data} · {supplier}',
     listinoFilterEmptyKpi: 'Nessun prodotto corrisponde al filtro KPI selezionato.',
