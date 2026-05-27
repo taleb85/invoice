@@ -41,7 +41,11 @@ type Props = {
   onConfermaSuggerimento: (item: CodaItem, commandId: CommandId) => void
   onRifiutaSuggerimento: (item: CodaItem, commandId: CommandId) => void
   onApriAzioni?: (item: CodaItem) => void
-  onResolveStatement: (statementId: string, fornitoreId: string) => void
+  onResolveStatement: (
+    statementId: string,
+    fornitoreId: string,
+    items: CodaItem[],
+  ) => Promise<{ remaining: number } | void>
   RigaDocumento: React.ComponentType<RigaDocumentoProps>
 }
 
@@ -226,13 +230,17 @@ export default function StatementGruppoCoda({
             <ExternalLink className="h-3.5 w-3.5 shrink-0" />
             {tc.queueStatementGroupOpen}
           </OpenDocumentInAppButton>
-          {fornitoreId && (
-            <button
-              type="button"
-              disabled={resolving || !sedeId}
-              onClick={() => onResolveStatement(statementId, fornitoreId)}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-50 sm:w-auto"
-            >
+            {fornitoreId && (
+              <button
+                type="button"
+                disabled={resolving || !sedeId}
+                title={tc.queueStatementGroupResolveHint}
+                onClick={async () => {
+                  const result = await onResolveStatement(statementId, fornitoreId, items)
+                  if (result && result.remaining > 0) setExpanded(true)
+                }}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-50 sm:w-auto"
+              >
               {resolving ? (
                 <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
               ) : (

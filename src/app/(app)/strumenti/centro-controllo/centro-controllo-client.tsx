@@ -838,10 +838,11 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const codaDisplayEntries = useMemo(() => buildCodaDisplayEntries(items), [items])
 
   const handleResolveStatement = useCallback(
-    async (statementId: string, fornitoreId: string) => {
+    async (statementId: string, fornitoreId: string, groupItems: CodaItem[]) => {
       if (!sedeId) return
       setResolvingStatementId(statementId)
       try {
+        const fatturaMancante = groupItems.filter((i) => i.stato_origine === 'fattura_mancante').length
         const res = await fetch('/api/centro-controllo/pipeline-per-fornitore', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -849,12 +850,14 @@ export default function CentroControlloClient({ sedeId }: Props) {
             sede_id: sedeId,
             fornitore_id: fornitoreId,
             statement_id: statementId,
-            skip_email_scan: true,
+            fattura_mancante_count: fatturaMancante,
+            skip_email_scan: false,
           }),
         })
         const data = await res.json() as {
           error?: string
           assoc?: { resolved?: number; remaining?: number }
+          ricerca?: { imported?: number; ok?: boolean; error?: string } | null
         }
         if (!res.ok) {
           showToast(data.error ?? t.strumentiCentroControllo.queueStatementGroupResolveError, 'error')
@@ -862,22 +865,31 @@ export default function CentroControlloClient({ sedeId }: Props) {
         }
         const resolved = data.assoc?.resolved ?? 0
         const remaining = data.assoc?.remaining ?? 0
-        if (resolved > 0) {
+        const imported = data.ricerca?.imported ?? 0
+
+        if (remaining === 0 && resolved > 0) {
           showToast(
-            t.strumentiCentroControllo.queueStatementGroupResolved.replace('{n}', String(resolved)),
+            t.strumentiCentroControllo.queueStatementGroupResolveAllDone.replace('{n}', String(resolved)),
             'success',
           )
+        } else if (remaining > 0) {
+          let msg = t.strumentiCentroControllo.queueStatementGroupResolvePartial
+            .replace('{resolved}', String(resolved))
+            .replace('{remaining}', String(remaining))
+          if (imported > 0) {
+            msg += ` ${t.strumentiCentroControllo.queueStatementGroupResolveImported.replace('{n}', String(imported))}`
+          }
+          showToast(msg, 'info')
+        } else if (resolved === 0 && remaining === 0) {
+          showToast(t.strumentiCentroControllo.statementPipelineNoResolvable, 'info')
         }
-        if (remaining > 0) {
-          showToast(
-            t.strumentiCentroControllo.statementPipelineRemaining.replace('{n}', String(remaining)),
-            'success',
-          )
+
+        if (data.ricerca?.error) {
+          showToast(data.ricerca.error, 'error')
         }
-        if (resolved === 0 && remaining === 0) {
-          showToast(t.strumentiCentroControllo.statementPipelineNoResolvable, 'success')
-        }
+
         await caricaCoda()
+        return { remaining }
       } catch (e) {
         showToast(
           e instanceof Error ? e.message : t.strumentiCentroControllo.queueStatementGroupResolveError,

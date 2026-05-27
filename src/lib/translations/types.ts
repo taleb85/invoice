@@ -1863,8 +1863,12 @@ export type Translations = {
     queueStatementGroupRefsMore: string
     queueStatementGroupOpen: string
     queueStatementGroupResolve: string
+    queueStatementGroupResolveHint: string
     queueStatementGroupResolving: string
     queueStatementGroupResolved: string
+    queueStatementGroupResolveAllDone: string
+    queueStatementGroupResolvePartial: string
+    queueStatementGroupResolveImported: string
     queueStatementGroupResolveError: string
     queueStatementStatusFatturaMancanteOne: string
     queueStatementStatusFatturaMancanteMany: string
