@@ -4,7 +4,7 @@ import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabas
 import type { Profile } from '@/types'
 import { isMasterAdminRole } from '@/lib/roles'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
-import { isLikelyQtyOcrPrice } from '@/lib/listino-price-sanity'
+import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 
 function canManageListino(
   profile: Profile,
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
 
   const skipped: {
     prodotto: string
-    reason: 'document_date_before_latest' | 'price_outlier_likely_qty'
+    reason: 'document_date_before_latest' | 'price_outlier_ocr'
     prezzo?: number
   }[] = []
   const toInsert: Array<{ fornitore_id: string; prodotto: string; prezzo: number; data_prezzo: string; note: string | null; rekki_product_id: string | null }> = []
@@ -151,8 +151,8 @@ export async function POST(req: NextRequest) {
 
   for (const r of parsed) {
     const hist = pricesByProduct.get(r.prodotto) ?? []
-    if (isLikelyQtyOcrPrice(r.prezzo, hist)) {
-      skipped.push({ prodotto: r.prodotto, reason: 'price_outlier_likely_qty', prezzo: r.prezzo })
+    if (isBadListinoOcrPrice(r.prezzo, hist)) {
+      skipped.push({ prodotto: r.prodotto, reason: 'price_outlier_ocr', prezzo: r.prezzo })
       continue
     }
 

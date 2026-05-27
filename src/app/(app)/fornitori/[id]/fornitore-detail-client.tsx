@@ -36,7 +36,11 @@ import {
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
 } from '@/lib/listino-display'
-import { isLikelyQtyOcrPrice } from '@/lib/listino-price-sanity'
+import {
+  listinoHistoryDeltaPercent,
+  previousPlausiblePriceByRowId,
+} from '@/lib/listino-history-delta'
+import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 import {
   calendarDaysBetweenIso,
   isDocumentDateAtLeastLatestListino,
@@ -5058,6 +5062,8 @@ function ListinoTab({
                   : dynamicStaleThresholdDays(sorted.map((r) => r.data_prezzo.slice(0, 10)))
                 const listinoPriceStale =
                   calendarDaysBetweenIso(displayRow.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
+                const prevPlausibleById = previousPlausiblePriceByRowId(sorted)
+
                 return (
                   <div
                     key={prodotto}
@@ -5378,18 +5384,17 @@ function ListinoTab({
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-app-line-18/60">
-                              {[...sorted].reverse().map((entry, idx, historyDesc) => {
+                              {[...sorted].reverse().map((entry) => {
                                 const likelyOcrQty =
                                   sorted.length >= 2 &&
-                                  isLikelyQtyOcrPrice(
+                                  isBadListinoOcrPrice(
                                     entry.prezzo,
                                     sorted.filter((g) => g.id !== entry.id).map((g) => g.prezzo),
                                   )
-                                const older = historyDesc[idx + 1]
-                                const deltaPct =
-                                  older && Math.abs(older.prezzo) > 1e-9
-                                    ? ((entry.prezzo - older.prezzo) / older.prezzo) * 100
-                                    : null
+                                const deltaPct = listinoHistoryDeltaPercent(
+                                  entry.prezzo,
+                                  prevPlausibleById.get(entry.id),
+                                )
                                 const isDisplay = entry.id === displayRow.id
                                 const rowFid = extractListinoSrcFatturaId(entry.note)
                                 const rowOrigin = rowFid

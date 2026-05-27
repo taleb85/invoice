@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isBadListinoOcrPrice,
   isLikelyQtyOcrPrice,
   isPlausibleListinoPrice,
   rejectReasonForListinoPrice,
@@ -14,12 +15,19 @@ describe('isPlausibleListinoPrice', () => {
   it('rejects Minestrone-like qty 0.75 vs case prices ~38', () => {
     const hist = [37.6, 37.6, 38.7, 38.7]
     expect(isPlausibleListinoPrice(0.75, hist)).toBe(false)
-    expect(rejectReasonForListinoPrice(0.75, hist)).toBe('price_outlier_likely_qty')
+    expect(rejectReasonForListinoPrice(0.75, hist)).toBe('price_outlier_ocr')
   })
 
   it('rejects Menabrea-like qty 7 vs case prices ~36', () => {
     const hist = [35.66, 36.04, 35.66, 36.04]
     expect(isPlausibleListinoPrice(7, hist)).toBe(false)
+  })
+
+  it('rejects unit bottle price vs case cluster', () => {
+    const hist = [35.66, 36.04, 35.66, 36.04]
+    expect(isBadListinoOcrPrice(1.48, hist)).toBe(true)
+    expect(isBadListinoOcrPrice(5.02, hist)).toBe(true)
+    expect(isBadListinoOcrPrice(36.04, hist)).toBe(false)
   })
 
   it('accepts normal price drift', () => {

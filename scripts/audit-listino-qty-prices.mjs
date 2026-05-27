@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Audit globale listino_prezzi: righe con prezzo = quantità OCR (tutti i fornitori).
+ * Audit globale listino_prezzi: righe OCR errate (qty, unitario, colonna sbagliata).
  * Logica in src/lib/listino-price-audit.ts (eseguita via vitest integration).
  *
  *   npm run audit:listino-qty

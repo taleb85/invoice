@@ -46,13 +46,23 @@ export function isPlausibleListinoPrice(candidate: number, existingPrices: numbe
   return candidate >= med * 0.15 && candidate <= med * 3
 }
 
-export type ListinoPriceRejectReason = 'price_outlier_likely_qty'
+export type ListinoPriceRejectReason = 'price_outlier_ocr'
 
 export function rejectReasonForListinoPrice(
   candidate: number,
   existingPrices: number[],
 ): ListinoPriceRejectReason | null {
-  return isPlausibleListinoPrice(candidate, existingPrices) ? null : 'price_outlier_likely_qty'
+  return isBadListinoOcrPrice(candidate, existingPrices) ? 'price_outlier_ocr' : null
+}
+
+/**
+ * Prezzo da rimuovere o ignorare: qty OCR, unitario bottiglia, colonna sbagliata, ecc.
+ */
+export function isBadListinoOcrPrice(candidate: number, existingPrices: number[]): boolean {
+  if (isLikelyQtyOcrPrice(candidate, existingPrices)) return true
+  const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length < 2) return false
+  return !isPlausibleListinoPrice(candidate, hist)
 }
 
 /** Prezzo più frequente nello storico (approssimato al centesimo). */

@@ -1,4 +1,4 @@
-import { isLikelyQtyOcrPrice } from '@/lib/listino-price-sanity'
+import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 
 export type ListinoPriceAuditRow = {
   id: string
@@ -21,7 +21,7 @@ export function findSuspiciousInProductGroup(group: ListinoPriceAuditRow[]): Lis
   const out: ListinoPriceAuditRow[] = []
   for (const row of group) {
     const others = group.filter((g) => g.id !== row.id).map((g) => g.prezzo)
-    if (isLikelyQtyOcrPrice(row.prezzo, others)) out.push(row)
+    if (isBadListinoOcrPrice(row.prezzo, others)) out.push(row)
   }
   return out
 }
