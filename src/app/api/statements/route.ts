@@ -200,6 +200,7 @@ export async function GET(req: NextRequest) {
     let q = (supabase as any)
       .from('statements')
       .select(columns.join(', '))
+      .order('document_date', { ascending: false, nullsFirst: false })
       .order('received_at', { ascending: false })
       .limit(listLimit)
     if (sedeId)      q = q.eq('sede_id',      sedeId)

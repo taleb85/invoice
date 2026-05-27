@@ -26,6 +26,7 @@ import {
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
+import { sortStatementsByDocumentDateDesc } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
 import type { StatementAnomalyCountByStatus } from '@/lib/statement-anomaly-preview'
 import {
@@ -4476,13 +4477,14 @@ export function VerificationStatusTab({
             }
           } catch { /* non-critical */ }
         }
-        setStmts(list)
+        setStmts(sortStatementsByDocumentDateDesc(list))
         setNeedsMigration(json.needsMigration ?? false)
 
         // Auto-open the most recent done statement (with or without anomalies).
         // Skipped in supplier panel — there we always show the list first.
         if (autoOpenLatest && !isSupplierPanel && list.length > 0) {
-          const latest = list.find(s => s.status === 'done') ?? list[0]
+          const latest =
+            sortStatementsByDocumentDateDesc(list.filter((s) => s.status === 'done'))[0] ?? list[0]
           if (latest) {
             setTimeout(() => loadStatementRows(latest), 50)
           }

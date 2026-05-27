@@ -1,7 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
-import { statementOfficialDateIso, type StatementExtractedPdfDates } from '@/lib/statement-official-date'
-import type { StatementListRow } from '@/lib/statement-list-dedup'
+import {
+  sortStatementsByDocumentDateDesc,
+  statementListDocumentDateKey,
+  type StatementListRow,
+} from '@/lib/statement-list-dedup'
 
 export type StatementRowSigInput = {
   numero_doc: string | null
@@ -30,18 +33,6 @@ export function isStatementSignatureSubset(subset: Set<string>, superset: Set<st
   return true
 }
 
-function statementSortDate(s: StatementListRow): string {
-  return (
-    statementOfficialDateIso({
-      document_date: s.document_date,
-      extracted_pdf_dates: s.extracted_pdf_dates as StatementExtractedPdfDates | null,
-    }) ??
-    s.document_date ??
-    s.received_at ??
-    ''
-  )
-}
-
 /**
  * Nasconde estratti il cui contenuto righe è interamente incluso in un estratto
  * più recente dello stesso fornitore (tipico statement cumulativi settimanali).
@@ -67,7 +58,9 @@ export function hideStatementsSupersededByContent<T extends StatementListRow>(
   const kept: T[] = [...passthrough]
 
   for (const group of byFornitore.values()) {
-    const sorted = [...group].sort((a, b) => statementSortDate(b).localeCompare(statementSortDate(a)))
+    const sorted = [...group].sort((a, b) =>
+      statementListDocumentDateKey(b).localeCompare(statementListDocumentDateKey(a)),
+    )
     const keptSigs: Set<string>[] = []
 
     for (const s of sorted) {
@@ -80,7 +73,7 @@ export function hideStatementsSupersededByContent<T extends StatementListRow>(
     }
   }
 
-  return kept.sort((a, b) => String(b.received_at ?? '').localeCompare(String(a.received_at ?? '')))
+  return sortStatementsByDocumentDateDesc(kept)
 }
 
 export async function fetchStatementRowSignatures(

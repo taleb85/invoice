@@ -17,13 +17,30 @@ export function normalizeStatementFileUrl(fileUrl: string | null | undefined): s
   return fileUrl.replace(/\s+/g, '').trim()
 }
 
-function statementPeriodKey(s: StatementListRow): string {
+/** Chiave di ordinamento lista: data documento (PDF), non data ricezione email. */
+export function statementListDocumentDateKey(s: StatementListRow): string {
   return (
     statementOfficialDateIso({
       document_date: s.document_date,
       extracted_pdf_dates: s.extracted_pdf_dates,
-    }) ?? ''
+    }) ??
+    s.document_date ??
+    s.received_at ??
+    ''
   )
+}
+
+export function sortStatementsByDocumentDateDesc<T extends StatementListRow>(statements: T[]): T[] {
+  return [...statements].sort((a, b) =>
+    statementListDocumentDateKey(b).localeCompare(statementListDocumentDateKey(a)),
+  )
+}
+
+function statementPeriodKey(s: StatementListRow): string {
+  return statementOfficialDateIso({
+    document_date: s.document_date,
+    extracted_pdf_dates: s.extracted_pdf_dates,
+  }) ?? ''
 }
 
 function pickNewer(a: StatementListRow, b: StatementListRow): StatementListRow {
@@ -80,7 +97,9 @@ export function dedupeStatementsForList<T extends StatementListRow>(statements: 
     periodBest.set(key, prev ? pickNewer(prev, s) : s)
   }
 
-  return [...subjectBest.values(), ...periodBest.values(), ...noPeriod].sort((a, b) =>
-    String(b.received_at ?? '').localeCompare(String(a.received_at ?? '')),
-  )
+  return sortStatementsByDocumentDateDesc([
+    ...subjectBest.values(),
+    ...periodBest.values(),
+    ...noPeriod,
+  ])
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { dedupeStatementsForList, normalizeStatementFileUrl } from '@/lib/statement-list-dedup'
+import {
+  dedupeStatementsForList,
+  normalizeStatementFileUrl,
+  sortStatementsByDocumentDateDesc,
+} from '@/lib/statement-list-dedup'
 
 describe('normalizeStatementFileUrl', () => {
   it('rimuove newline nell’URL', () => {
@@ -55,5 +59,14 @@ describe('dedupeStatementsForList', () => {
     ])
     expect(rows).toHaveLength(1)
     expect(rows[0]!.id).toBe('b')
+  })
+
+  it('ordina per data documento decrescente', () => {
+    const sorted = sortStatementsByDocumentDateDesc([
+      { id: 'a', document_date: '2026-04-01', received_at: '2026-05-27' },
+      { id: 'b', document_date: '2026-05-08', received_at: '2026-05-01' },
+      { id: 'c', document_date: '2026-03-15', received_at: '2026-05-27' },
+    ])
+    expect(sorted.map((s) => s.id)).toEqual(['b', 'a', 'c'])
   })
 })
