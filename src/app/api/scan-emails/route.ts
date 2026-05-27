@@ -43,6 +43,10 @@ import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-d
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
 import {
+  buildPdfSegmentQueueMetadata,
+  extraPdfSegmentsForQueue,
+} from '@/lib/ocr-pdf-multi-queue'
+import {
   tryBootstrapFornitoreFromOcrRagione,
   fetchFullFornitoreForScan,
   linkScanSenderToFornitore,
@@ -160,6 +164,7 @@ function buildMetadata(
     ...(ocr.ocr_cliente_estratto_come_fornitore
       ? { ocr_cliente_estratto_come_fornitore: true as const }
       : {}),
+    ...(ocr.segmenti_pdf?.length ? { segmenti_pdf: ocr.segmenti_pdf } : {}),
   }
 }
 
@@ -191,8 +196,13 @@ async function insertDocumento(
   const fornitoreId = typeof payload.fornitore_id === 'string' ? payload.fornitore_id : null
   const oggettoMail = typeof payload.oggetto_mail === 'string' ? payload.oggetto_mail : null
   const dataDoc = typeof payload.data_documento === 'string' ? payload.data_documento : null
+  const metaPayload = (payload as Record<string, unknown>).metadata as
+    | Record<string, unknown>
+    | undefined
+  const segmentoIdx = (metaPayload?.pdf_segmento as { indice?: number } | undefined)?.indice
+  const isPdfSegmentRow = typeof segmentoIdx === 'number'
 
-  if (fileUrl) {
+  if (fileUrl && !isPdfSegmentRow) {
     const { data: exact } = await supabase
       .from('documenti_da_processare')
       .select('id')
@@ -201,6 +211,23 @@ async function insertDocumento(
       .maybeSingle()
     if (exact?.id) {
       return null
+    }
+  }
+
+  if (fileUrl && isPdfSegmentRow && fornitoreId) {
+    const segNum =
+      typeof metaPayload?.numero_fattura === 'string' ? metaPayload.numero_fattura.trim() : ''
+    const { data: sameFileRows } = await supabase
+      .from('documenti_da_processare')
+      .select('id, metadata')
+      .eq('file_url', fileUrl)
+      .eq('fornitore_id', fornitoreId)
+    for (const row of sameFileRows ?? []) {
+      const m = row.metadata as Record<string, unknown> | null
+      const existingIdx = (m?.pdf_segmento as { indice?: number } | undefined)?.indice
+      const existingNum = typeof m?.numero_fattura === 'string' ? m.numero_fattura.trim() : ''
+      if (existingIdx === segmentoIdx) return null
+      if (segNum && existingNum === segNum) return null
     }
   }
   if (fornitoreId && oggettoMail && dataDoc) {
@@ -2520,6 +2547,41 @@ async function processEmails(
       }
 
       const insertError = await insertDocumento(supabase, knownPayload)
+
+      if (!insertError) {
+        const extraSegs = extraPdfSegmentsForQueue(ocr)
+        for (let si = 0; si < extraSegs.length; si++) {
+          const seg = extraSegs[si]!
+          const segMeta = buildPdfSegmentQueueMetadata(seg, si + 1)
+          const segPayload = {
+            fornitore_id: fornitore.id,
+            sede_id: documentSedeId,
+            mittente: email.from || 'sconosciuto',
+            oggetto_mail: email.subject ?? null,
+            file_url,
+            file_name: storedFileName,
+            content_type: storedContentType,
+            data_documento: seg.data_fattura ?? documentDateYmdFromOcr(ocr),
+            stato: 'da_revisionare' as const,
+            is_statement: false,
+            metadata: {
+              ...buildMetadata(ocr, matchedBy),
+              ...segMeta,
+              matched_by: matchedBy,
+            },
+            note:
+              seg.pagina_inizio != null
+                ? `PDF multiplo — segmento pag. ${seg.pagina_inizio}${seg.pagina_fine != null ? `–${seg.pagina_fine}` : ''}`
+                : 'PDF multiplo — documento aggiuntivo nello stesso allegato',
+          }
+          await insertDocumento(supabase, segPayload)
+        }
+        if (extraSegs.length) {
+          mailDebugLog(
+            `[PROCESS] PDF multiplo "${fornitore.nome}": +${extraSegs.length} righe coda (segmenti fiscali)`,
+          )
+        }
+      }
 
       if (insertError) {
         const detail = `[${insertError.code ?? 'ERR'}] ${insertError.message}${insertError.details ? ' | ' + insertError.details : ''}`

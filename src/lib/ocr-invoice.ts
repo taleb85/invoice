@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { parseAnyAmount } from '@/lib/ocr-amount'
 import { safeDate } from '@/lib/safe-date'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import type { OcrPdfSegment } from '@/lib/ocr-pdf-multi'
 import { normalizeNumeroBolla } from '@/lib/fix-ocr-dates-helpers'
 import {
   geminiGenerateText,
@@ -71,6 +72,11 @@ export interface OcrResult {
    * downstream should set document state to da_revisionare and flag metadata.
    */
   ocr_cliente_estratto_come_fornitore?: boolean
+
+  /**
+   * Quando un PDF contiene più documenti fiscali distinti (passata `detectPdfMultiSegments`).
+   */
+  segmenti_pdf?: OcrPdfSegment[] | null
 
   // ── Alias backward-compatible ─────────────────────────────
   nome: string | null
@@ -337,6 +343,7 @@ ${DOCUMENT_EXTRACTION_PROMPT}
 - p_iva: accept VAT No., P.IVA, NIF/CIF, N° TVA, USt-IdNr., SIRET — strip all non-digit characters. Prefer the **supplier/issuer** VAT in the same block as ragione_sociale, not the customer's VAT.
 - indirizzo: only the supplier/seller address, not the customer.
 - numero_fattura: for ANY document type, extract the main document reference number if visible — not only "Invoice No.". For delivery notes / DDT / dispatch documents, map English labels such as "Note Number", "Notes Number", "Notes No.", "Delivery Note No.", "DN", "D.N.", "Document No.", "Your document number", "Shipment number", "Despatch note"; Italian "Numero DDT", "Numero documento di trasporto"; German "Lieferschein-Nr."; French "N° bon de livraison"; Spanish "Nº albarán". Return ONLY the alphanumeric reference (e.g. "11851464"), never the label text. If both an invoice number and a separate delivery-note number appear on the same page, prefer the one matching tipo_documento.
+- **Account No. vs Invoice No. (UK suppliers, e.g. Eden Springs):** NEVER put "Account No.", "A/C No.", "Customer account", or "Account number" values in numero_fattura — those are customer account references (often 8–10 digits), not tax invoice numbers. Use the reference from the **Tax invoice / Self-billing invoice / Credit note** section only. If the PDF is mainly an account statement and only Account No. is visible in the header, set numero_fattura to null and tipo_documento to estratto_conto unless a separate invoice number appears in the statement lines or on another page.
 - For tipo_documento, also keep consistency with: Rechnung *as invoice*, Lieferschein, Albarán, Bon de livraison (map to ddt/bolla via the same keyword rules; never return fattura for a document whose primary title is only a transport/delivery docket, unless a full tax invoice is clearly the main document type).
 - totale_iva_inclusa: return the raw amount string EXACTLY as printed (including any currency symbol and separators). Do NOT convert to a number.
 ${estrazioneRule}- note_corpo_mail: never copy long generic email signatures or legal disclaimers; keep it concise.
@@ -505,11 +512,98 @@ async function finalizeParseOutcomeAndSanitize(
   return applyIgnoredCustomerSanitize(r, ignoredCustomerNames)
 }
 
+async function finalizePdfOcrResult(
+  outcome: ParseOcrOutcome,
+  pdfBuffer: Buffer,
+  pageCount: number | null,
+  logContext: OcrInvoiceLogContext | undefined,
+  ignoredCustomerNames: readonly string[],
+  options?: OcrInvoiceOptions,
+): Promise<OcrResult> {
+  const base = await finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
+  const enhanced = await enhancePdfOcrWithMultiSegments(base, pdfBuffer, pageCount, options)
+  return sanitizeUkAccountNoAsInvoiceNumber(enhanced)
+}
+
 /* ─────────────────────────────────────────────────────────────
    PDF text extraction
 ───────────────────────────────────────────────────────────── */
 import { extractPdfText, extractPdfTextDetailed } from '@/lib/pdf-parse-utils'
 import { prepareImageBufferForVision } from '@/lib/ocr-invoice-vision-prepare'
+import {
+  detectPdfMultiSegments,
+  mergePrimaryOcrWithPdfSegments,
+  numeroLooksLikeUkAccountReference,
+} from '@/lib/ocr-pdf-multi'
+
+async function enhancePdfOcrWithMultiSegments(
+  result: OcrResult,
+  pdfBuffer: Buffer,
+  pageCount: number | null,
+  options?: OcrInvoiceOptions,
+): Promise<OcrResult> {
+  if (pageCount == null || pageCount < 3) return result
+  if (!result.ragione_sociale && !result.numero_fattura && result.tipo_documento == null) {
+    return result
+  }
+  const ctxLabel = options?.logContext?.file_name ?? 'pdf'
+  try {
+    const multi = await detectPdfMultiSegments(pdfBuffer, {
+      pageCount,
+      languageHint: undefined,
+      emailBodyText: options?.emailBodyText,
+      fileLabel: ctxLabel,
+      onUsage: options?.onUsage,
+    })
+    if (!multi.pdf_multiplo) return result
+
+    const merged = mergePrimaryOcrWithPdfSegments(
+      {
+        tipo_documento: result.tipo_documento,
+        numero_fattura: result.numero_fattura,
+        data_fattura: result.data_fattura,
+        totale_iva_inclusa: result.totale_iva_inclusa,
+        ragione_sociale: result.ragione_sociale,
+      },
+      multi,
+    )
+
+    logger.info(`[OCR] ${ctxLabel}: PDF multiplo — ${merged.segmenti_pdf.length} segmenti`, {
+      tipi: merged.segmenti_pdf.map((s) => s.tipo_documento),
+      numeri: merged.segmenti_pdf.map((s) => s.numero_fattura ?? (s.numero_e_account_no ? 'account' : '—')),
+    })
+
+    return {
+      ...result,
+      tipo_documento: merged.tipo_documento,
+      numero_fattura: merged.numero_fattura,
+      data_fattura: merged.data_fattura,
+      data: merged.data_fattura,
+      totale_iva_inclusa: merged.totale_iva_inclusa,
+      ragione_sociale: merged.ragione_sociale ?? result.ragione_sociale,
+      nome: merged.ragione_sociale ?? result.nome,
+      segmenti_pdf: merged.segmenti_pdf,
+    }
+  } catch (e) {
+    logger.warn(
+      `[OCR] ${ctxLabel}: rilevamento PDF multiplo fallito (non bloccante):`,
+      e instanceof Error ? e.message : e,
+    )
+    return result
+  }
+}
+
+/** Dopo OCR: se numero sembra Account No. UK e tipo fattura, azzera per evitare duplicati Eden Springs. */
+export function sanitizeUkAccountNoAsInvoiceNumber(result: OcrResult): OcrResult {
+  if (
+    normalizeTipoDocumento(result.tipo_documento) === 'fattura' &&
+    numeroLooksLikeUkAccountReference(result.numero_fattura) &&
+    !result.segmenti_pdf?.some((s) => s.tipo_documento === 'fattura' && s.numero_fattura)
+  ) {
+    return { ...result, numero_fattura: null }
+  }
+  return result
+}
 
 /* ─────────────────────────────────────────────────────────────
    Main OCR function
@@ -606,7 +700,7 @@ export async function ocrInvoice(
         const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 900, { responseSchema: OCR_INVOICE_SCHEMA })
         onUsage?.(res.usage)
         const outcome = parseOcrJson(res.text)
-        return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
+        return finalizePdfOcrResult(outcome, buf, pdfResult.pageCount, logContext, ignoredCustomerNames, options)
       } catch (err) {
         if (err instanceof GeminiTransientError) {
           throw new OcrTransientError(`PDF testo: ${err.message}`, err)
@@ -633,7 +727,7 @@ export async function ocrInvoice(
       )
       onUsage?.(res.usage)
       const outcome = parseOcrJson(res.text)
-      return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
+      return finalizePdfOcrResult(outcome, buf, pdfResult.pageCount, logContext, ignoredCustomerNames, options)
     } catch (err) {
       if (err instanceof GeminiTransientError) {
         throw new OcrTransientError(`PDF vision: ${err.message}`, err)
