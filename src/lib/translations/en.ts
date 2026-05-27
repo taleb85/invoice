@@ -1393,6 +1393,10 @@ const translations: Translations = {
     stmtAnomalyPreviewMore: '+{n} more',
     stmtAnomalyPreviewAria: 'Issue counts by type',
     stmtBackToList: 'Back to list',
+    stmtNavPrev: 'Previous statement (newer)',
+    stmtNavNext: 'Next statement (older)',
+    stmtNavPosition: 'Statement {current} of {total}',
+    stmtNavGroupAria: 'Navigate between statements',
     needsMigrationTitle: 'Database tables not created yet',
     needsMigrationBody:
       'To enable automatic statement reception, run the SQL migration. Instructions are in the How to enable section below.',

@@ -1339,6 +1339,10 @@ const translations: Translations = {
     stmtAnomalyPreviewMore: '+{n} de plus',
     stmtAnomalyPreviewAria: 'Documents avec anomalies',
     stmtBackToList: 'Retour à la liste',
+    stmtNavPrev: 'Relevé précédent (plus récent)',
+    stmtNavNext: 'Relevé suivant (plus ancien)',
+    stmtNavPosition: 'Relevé {current} sur {total}',
+    stmtNavGroupAria: 'Naviguer entre les relevés',
     needsMigrationTitle: 'Tables pas encore créées',
     needsMigrationBody:
       'Pour activer la réception automatique des relevés, exécutez la migration SQL. Les instructions figurent dans la section Comment activer ci-dessous.',

@@ -1684,6 +1684,10 @@ export type Translations = {
     stmtAnomalyPreviewMore: string
     stmtAnomalyPreviewAria: string
     stmtBackToList: string
+    stmtNavPrev: string
+    stmtNavNext: string
+    stmtNavPosition: string
+    stmtNavGroupAria: string
     needsMigrationTitle: string
     needsMigrationBody: string
     stmtInboxEmailScanning: string

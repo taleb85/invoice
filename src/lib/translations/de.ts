@@ -1338,6 +1338,10 @@ const translations: Translations = {
     stmtAnomalyPreviewMore: '+{n} weitere',
     stmtAnomalyPreviewAria: 'Dokumente mit Auffälligkeiten',
     stmtBackToList: 'Zurück zur Liste',
+    stmtNavPrev: 'Vorheriger Kontoauszug (neuer)',
+    stmtNavNext: 'Nächster Kontoauszug (älter)',
+    stmtNavPosition: 'Kontoauszug {current} von {total}',
+    stmtNavGroupAria: 'Zwischen Kontoauszügen navigieren',
     needsMigrationTitle: 'Tabellen noch nicht angelegt',
     needsMigrationBody:
       'Führen Sie die SQL-Migration aus, um den automatischen Empfang von Kontoauszügen zu aktivieren. Anweisungen finden Sie unten im Abschnitt zur Aktivierung.',

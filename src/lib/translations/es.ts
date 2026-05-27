@@ -1339,6 +1339,10 @@ const translations: Translations = {
     stmtAnomalyPreviewMore: '+{n} más',
     stmtAnomalyPreviewAria: 'Documentos con anomalías',
     stmtBackToList: 'Volver a la lista',
+    stmtNavPrev: 'Extracto anterior (más reciente)',
+    stmtNavNext: 'Extracto siguiente (más antiguo)',
+    stmtNavPosition: 'Extracto {current} de {total}',
+    stmtNavGroupAria: 'Navegar entre extractos',
     needsMigrationTitle: 'Tablas aún no creadas',
     needsMigrationBody:
       'Para activar la recepción automática de extractos, ejecuta la migración SQL. Las instrucciones están en la sección Cómo activar más abajo.',

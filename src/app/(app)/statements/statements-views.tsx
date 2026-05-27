@@ -4818,6 +4818,45 @@ export function VerificationStatusTab({
   const hideEmbeddedPeriodSelects =
     Boolean(vsEmbeddedSupplier && ledgerDateFrom && ledgerDateToExclusive)
 
+  /** Stesso ordine della lista (più recenti in alto); esclude solo parsing fallito. */
+  const navigableStmts = useMemo(
+    () => stmts.filter((s) => s.status !== 'error'),
+    [stmts],
+  )
+  const selectedStmtNavIndex = selectedStmt
+    ? navigableStmts.findIndex((s) => s.id === selectedStmt.id)
+    : -1
+  const prevNavStmt =
+    selectedStmtNavIndex > 0 ? navigableStmts[selectedStmtNavIndex - 1]! : null
+  const nextNavStmt =
+    selectedStmtNavIndex >= 0 && selectedStmtNavIndex < navigableStmts.length - 1
+      ? navigableStmts[selectedStmtNavIndex + 1]!
+      : null
+  const stmtNavBusy = checkLoading || stmtRecheckBusy
+
+  useEffect(() => {
+    if (!selectedStmt || alsoFatturaOpen || stmtNavBusy) return
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key === 'ArrowLeft' && prevNavStmt) {
+        e.preventDefault()
+        void loadStatementRows(prevNavStmt)
+      } else if (e.key === 'ArrowRight' && nextNavStmt) {
+        e.preventDefault()
+        void loadStatementRows(nextNavStmt)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectedStmt, alsoFatturaOpen, stmtNavBusy, prevNavStmt, nextNavStmt])
+
+  const stmtNavBtnCls = vsEmbeddedSupplier
+    ? vsCompactS1
+      ? 'inline-flex h-7 w-7 items-center justify-center rounded-md border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40'
+      : 'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-app-line-28 bg-white/[0.04] text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40'
+    : 'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-app-line-28 bg-white/[0.04] text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40'
+
   const periodSelects = hideEmbeddedPeriodSelects ? null : (
     <>
       <select value={mese} onChange={(e) => setMese(Number(e.target.value))} className={periodSelectCls}>
@@ -4896,6 +4935,50 @@ export function VerificationStatusTab({
                 </svg>
                 {t.statements.stmtBackToList}
               </button>
+            )}
+            {selectedStmt && navigableStmts.length > 1 && (
+              <div
+                className="flex items-center gap-0.5"
+                role="group"
+                aria-label={t.statements.stmtNavGroupAria}
+              >
+                <button
+                  type="button"
+                  disabled={!prevNavStmt || stmtNavBusy}
+                  title={t.statements.stmtNavPrev}
+                  aria-label={t.statements.stmtNavPrev}
+                  onClick={() => {
+                    if (prevNavStmt) void loadStatementRows(prevNavStmt)
+                  }}
+                  className={stmtNavBtnCls}
+                >
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span
+                  className={`min-w-[2.75rem] text-center font-semibold tabular-nums text-app-fg-muted ${vsCompactS1 ? 'text-[10px]' : 'text-xs'}`}
+                  title={t.statements.stmtNavPosition
+                    .replace('{current}', String(selectedStmtNavIndex + 1))
+                    .replace('{total}', String(navigableStmts.length))}
+                >
+                  {selectedStmtNavIndex + 1}/{navigableStmts.length}
+                </span>
+                <button
+                  type="button"
+                  disabled={!nextNavStmt || stmtNavBusy}
+                  title={t.statements.stmtNavNext}
+                  aria-label={t.statements.stmtNavNext}
+                  onClick={() => {
+                    if (nextNavStmt) void loadStatementRows(nextNavStmt)
+                  }}
+                  className={stmtNavBtnCls}
+                >
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             )}
             <button
               type="button"

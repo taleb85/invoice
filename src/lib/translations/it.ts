@@ -2393,6 +2393,10 @@ const translations: Translations = {
     stmtAnomalyPreviewMore: '+{n} altre',
     stmtAnomalyPreviewAria: 'Conteggio anomalie per tipologia',
     stmtBackToList: 'Torna alla lista',
+    stmtNavPrev: 'Estratto precedente (più recente)',
+    stmtNavNext: 'Estratto successivo (più vecchio)',
+    stmtNavPosition: 'Estratto {current} di {total}',
+    stmtNavGroupAria: 'Naviga tra gli estratti',
     needsMigrationTitle: 'Tabelle non ancora create',
     needsMigrationBody:
       'Per attivare la ricezione automatica degli statement, esegui la migrazione SQL. Le istruzioni sono nella sezione Come attivare qui sotto.',
