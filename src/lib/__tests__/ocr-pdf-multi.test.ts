@@ -40,7 +40,21 @@ describe('mergePrimaryOcrWithPdfSegments', () => {
     numero_e_account_no: false,
   }
 
-  it('replaces account number with real invoice number from segment', () => {
+  it('replaces account number with real invoice when only invoice segment (no stmt)', () => {
+    const merged = mergePrimaryOcrWithPdfSegments(
+      {
+        tipo_documento: 'fattura',
+        numero_fattura: '316074277',
+        data_fattura: '2026-03-31',
+        totale_iva_inclusa: null,
+        ragione_sociale: 'Eden Springs UK Ltd',
+      },
+      { pdf_multiplo: true, segmenti: [invSeg] },
+    )
+    expect(merged.numero_fattura).toBe('SI120832')
+  })
+
+  it('uses estratto as primary when statement and invoice segments both present', () => {
     const merged = mergePrimaryOcrWithPdfSegments(
       {
         tipo_documento: 'fattura',
@@ -51,12 +65,12 @@ describe('mergePrimaryOcrWithPdfSegments', () => {
       },
       { pdf_multiplo: true, segmenti: [stmtOnly, invSeg] },
     )
-    expect(merged.numero_fattura).toBe('SI120832')
-    expect(merged.totale_iva_inclusa).toBe(274.1)
+    expect(merged.tipo_documento).toBe('estratto_conto')
+    expect(merged.numero_fattura).toBeNull()
     expect(merged.segmenti_pdf).toHaveLength(2)
   })
 
-  it('leaves primary unchanged when only one segment is returned', () => {
+  it('returns single statement segment without changing primary fattura fields', () => {
     const merged = mergePrimaryOcrWithPdfSegments(
       {
         tipo_documento: 'fattura',
@@ -69,7 +83,7 @@ describe('mergePrimaryOcrWithPdfSegments', () => {
     )
     expect(merged.tipo_documento).toBe('fattura')
     expect(merged.numero_fattura).toBe('316074277')
-    expect(merged.segmenti_pdf).toHaveLength(0)
+    expect(merged.segmenti_pdf).toHaveLength(1)
   })
 })
 

@@ -46,6 +46,7 @@ import {
   buildPdfSegmentQueueMetadata,
   extraPdfSegmentsForQueue,
 } from '@/lib/ocr-pdf-multi-queue'
+import { shouldSkipEmailAutoFattura } from '@/lib/uk-account-invoice-guard'
 import {
   tryBootstrapFornitoreFromOcrRagione,
   fetchFullFornitoreForScan,
@@ -2390,7 +2391,12 @@ async function processEmails(
 
         if (targetKind === 'fattura') {
           const bypassOcrTipoGuard = docKind === 'fattura'
-          if (!dataDocLocal) {
+          if (shouldSkipEmailAutoFattura(ocr)) {
+            needsDocRevision = true
+            mailDebugLog(
+              `[PROCESS] Skip auto-fattura: numero sembra Account No. UK (${ocr.numero_fattura ?? '—'}) — revisione manuale o segmento PDF`,
+            )
+          } else if (!dataDocLocal) {
             needsDocRevision = true
           } else if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
             needsDocRevision = true

@@ -534,6 +534,7 @@ import {
   detectPdfMultiSegments,
   mergePrimaryOcrWithPdfSegments,
   numeroLooksLikeUkAccountReference,
+  PDF_MULTI_DETECT_MIN_PAGES,
 } from '@/lib/ocr-pdf-multi'
 
 async function enhancePdfOcrWithMultiSegments(
@@ -542,7 +543,7 @@ async function enhancePdfOcrWithMultiSegments(
   pageCount: number | null,
   options?: OcrInvoiceOptions,
 ): Promise<OcrResult> {
-  if (pageCount == null || pageCount < 3) return result
+  if (pageCount == null || pageCount < PDF_MULTI_DETECT_MIN_PAGES) return result
   if (!result.ragione_sociale && !result.numero_fattura && result.tipo_documento == null) {
     return result
   }

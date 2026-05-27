@@ -13,8 +13,8 @@ import { normalizeTipoDocumento, type NormalizedTipoDocumento } from '@/lib/ocr-
 import { safeDate } from '@/lib/safe-date'
 import { logger } from '@/lib/logger'
 
-/** Minimo pagine per attivare la passata multi-documento (evita fatture lunghe 2 pagine). */
-export const PDF_MULTI_DETECT_MIN_PAGES = 3
+/** Minimo pagine per attivare la passata multi-documento (2 = estratto+fattura su 2 pagine, es. Eden Springs). */
+export const PDF_MULTI_DETECT_MIN_PAGES = 2
 
 const TIPO_ENUM = [
   'fattura',
@@ -233,7 +233,7 @@ export function mergePrimaryOcrWithPdfSegments(
   ragione_sociale: string | null
   segmenti_pdf: OcrPdfSegment[]
 } {
-  if (!multi.pdf_multiplo || multi.segmenti.length < 2) {
+  if (!multi.pdf_multiplo || multi.segmenti.length < 1) {
     return { ...primary, segmenti_pdf: [] }
   }
 
@@ -255,26 +255,37 @@ export function mergePrimaryOcrWithPdfSegments(
     numeroLooksLikeUkAccountReference(numero_fattura) ||
     (stmtSeg != null && invSeg != null && tipo_documento === 'fattura')
 
-  if (invSeg?.numero_fattura && (primaryNumIsAccount || !numero_fattura)) {
-    if (!numero_fattura || primaryNumIsAccount) {
-      numero_fattura = invSeg.numero_fattura
+  if (segmenti_pdf.length === 1 && invSeg?.numero_fattura && primaryNumIsAccount) {
+    return {
+      tipo_documento: invSeg.tipo_documento === 'fattura' ? 'fattura' : tipo_documento,
+      numero_fattura: invSeg.numero_fattura,
+      data_fattura: invSeg.data_fattura ?? data_fattura,
+      totale_iva_inclusa: invSeg.totale_iva_inclusa ?? totale_iva_inclusa,
+      ragione_sociale: invSeg.ragione_sociale ?? ragione_sociale,
+      segmenti_pdf,
     }
+  }
+
+  if (segmenti_pdf.length < 2) {
+    return { ...primary, segmenti_pdf }
+  }
+
+  if (stmtSeg && invSeg) {
+    tipo_documento = 'estratto_conto'
+    numero_fattura = null
+    if (stmtSeg.data_fattura) data_fattura = stmtSeg.data_fattura
+    if (stmtSeg.ragione_sociale && !ragione_sociale) ragione_sociale = stmtSeg.ragione_sociale
+  } else if (invSeg?.numero_fattura && (primaryNumIsAccount || !numero_fattura)) {
+    numero_fattura = invSeg.numero_fattura
+    if (invSeg.tipo_documento === 'fattura') tipo_documento = 'fattura'
     if (invSeg.data_fattura && !data_fattura) data_fattura = invSeg.data_fattura
     if (invSeg.totale_iva_inclusa != null && totale_iva_inclusa == null) {
       totale_iva_inclusa = invSeg.totale_iva_inclusa
     }
     if (invSeg.ragione_sociale && !ragione_sociale) ragione_sociale = invSeg.ragione_sociale
-  }
-
-  if (stmtSeg && tipo_documento === 'fattura' && !invSeg && primaryNumIsAccount) {
+  } else if (stmtSeg && tipo_documento === 'fattura' && primaryNumIsAccount) {
     tipo_documento = 'estratto_conto'
     numero_fattura = null
-  }
-
-  if (stmtSeg && tipo_documento === 'estratto_conto' && invSeg) {
-    /* primary resta estratto; la fattura vive nei segmenti per insert aggiuntivo */
-  } else if (invSeg && tipo_documento === 'estratto_conto' && invSeg.tipo_documento === 'fattura') {
-    /* lascia tipo estratto per pipeline statement; segmenti_pdf include la fattura */
   }
 
   return {

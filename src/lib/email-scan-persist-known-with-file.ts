@@ -17,6 +17,11 @@ import {
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
 import { normalizeTipoDocumento, ocrClassifiedAsFatturaButContentMissing, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
+import { shouldSkipEmailAutoFattura } from '@/lib/uk-account-invoice-guard'
+import {
+  buildPdfSegmentQueueMetadata,
+  extraPdfSegmentsForQueue,
+} from '@/lib/ocr-pdf-multi-queue'
 import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts, type RekkiLine } from '@/lib/rekki-parser'
 import type { FornitoreScanFullRow } from '@/lib/scan-email-ocr-bootstrap-fornitore'
@@ -50,6 +55,7 @@ function buildMetadata(
     estrazione_utile: ocr.estrazione_utile ?? undefined,
     matched_by: matchedBy,
     ...(ocr.ocr_cliente_estratto_come_fornitore ? { ocr_cliente_estratto_come_fornitore: true as const } : {}),
+    ...(ocr.segmenti_pdf?.length ? { segmenti_pdf: ocr.segmenti_pdf } : {}),
   }
 }
 
@@ -328,35 +334,38 @@ export async function persistKnownFornitoreEmailScanWithFile(
 
     if (targetKind === 'fattura') {
       const bypassOcrTipoGuard = args.docKind === 'fattura'
-      if (hasDocDateFallback) {
+      if (shouldSkipEmailAutoFattura(ocr)) {
+        needsDocRevision = true
+      } else if (hasDocDateFallback) {
         needsDocRevision = true
       } else if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
       } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
       }
-      // Crea sempre la fattura con la data disponibile (fallback = oggi)
-      const res = await insertEmailAutoFattura(supabase, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc,
-        fileUrl: file_url,
-        meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
-      })
-      if ('id' in res) {
-        registratoAutoFatturaId = res.id
-        counters.bozzaCreate++
-        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
-        fetch(`${baseUrl}/api/price-anomalies/check`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
-          },
-          body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
-        }).catch(() => {})
-      } else if ('duplicateId' in res) {
-        duplicateSkippedFatturaId = res.duplicateId
+      if (!shouldSkipEmailAutoFattura(ocr)) {
+        const res = await insertEmailAutoFattura(supabase, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc,
+          fileUrl: file_url,
+          meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+        })
+        if ('id' in res) {
+          registratoAutoFatturaId = res.id
+          counters.bozzaCreate++
+          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+          fetch(`${baseUrl}/api/price-anomalies/check`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+            },
+            body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+          }).catch(() => {})
+        } else if ('duplicateId' in res) {
+          duplicateSkippedFatturaId = res.duplicateId
+        }
       }
     } else if (targetKind === 'bolla') {
       if (hasDocDateFallback) needsDocRevision = true
@@ -466,6 +475,31 @@ export async function persistKnownFornitoreEmailScanWithFile(
   }
 
   const insertError = await insertDocumentoQueue(supabase, knownPayload)
+  if (!insertError) {
+    const extraSegs = extraPdfSegmentsForQueue(ocr)
+    for (let si = 0; si < extraSegs.length; si++) {
+      const seg = extraSegs[si]!
+      const segMeta = buildPdfSegmentQueueMetadata(seg, si + 1)
+      await insertDocumentoQueue(supabase, {
+        fornitore_id: fornitore.id,
+        sede_id: documentSedeId,
+        mittente: email.from || 'sconosciuto',
+        oggetto_mail: email.subject ?? null,
+        file_url,
+        file_name: storedFileName,
+        content_type: storedContentType,
+        data_documento: seg.data_fattura ?? documentDateYmdFromOcr(ocr),
+        stato: 'da_revisionare',
+        is_statement: false,
+        metadata: { ...metadata, ...segMeta },
+        note:
+          seg.pagina_inizio != null
+            ? `PDF multiplo — segmento pag. ${seg.pagina_inizio}${seg.pagina_fine != null ? `–${seg.pagina_fine}` : ''}`
+            : 'PDF multiplo — documento aggiuntivo nello stesso allegato',
+      })
+    }
+  }
+
   if (insertError) {
     const detail = `[${insertError.code ?? 'ERR'}] ${insertError.message}${insertError.details ? ' | ' + insertError.details : ''}`
     await insertSyncLog(supabase, email, 'fornitore_non_trovato', {

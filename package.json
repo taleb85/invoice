@@ -40,6 +40,8 @@
     "audit:cleanup:co:apply": "node scripts/audit-and-fix-all.mjs --phase=cleanup_conferme_ordine --cleanup-apply",
     "fix:audit": "node scripts/fix-audit-anomalies.mjs",
     "fix:audit:dry": "node scripts/fix-audit-anomalies.mjs --dry-run",
+    "fix:eden-springs": "node scripts/fix-eden-springs-duplicates.mjs",
+    "fix:eden-springs:dry": "node scripts/fix-eden-springs-duplicates.mjs --dry-run",
     "audit:listino-qty": "node scripts/audit-listino-qty-prices.mjs",
     "audit:listino-qty:apply": "node scripts/audit-listino-qty-prices.mjs --apply"
   },
