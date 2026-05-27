@@ -36,6 +36,7 @@ import {
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
 } from '@/lib/listino-display'
+import { isLikelyQtyOcrPrice } from '@/lib/listino-price-sanity'
 import {
   calendarDaysBetweenIso,
   isDocumentDateAtLeastLatestListino,
@@ -5057,11 +5058,6 @@ function ListinoTab({
                   : dynamicStaleThresholdDays(sorted.map((r) => r.data_prezzo.slice(0, 10)))
                 const listinoPriceStale =
                   calendarDaysBetweenIso(displayRow.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
-                const plausibleHistoryIds =
-                  sorted.length >= 4
-                    ? new Set(filterOutliersForTrend(sorted).map((r) => r.id))
-                    : new Set(sorted.map((r) => r.id))
-
                 return (
                   <div
                     key={prodotto}
@@ -5383,7 +5379,12 @@ function ListinoTab({
                             </thead>
                             <tbody className="divide-y divide-app-line-18/60">
                               {[...sorted].reverse().map((entry, idx, historyDesc) => {
-                                const likelyOcrQty = !plausibleHistoryIds.has(entry.id)
+                                const likelyOcrQty =
+                                  sorted.length >= 2 &&
+                                  isLikelyQtyOcrPrice(
+                                    entry.prezzo,
+                                    sorted.filter((g) => g.id !== entry.id).map((g) => g.prezzo),
+                                  )
                                 const older = historyDesc[idx + 1]
                                 const deltaPct =
                                   older && Math.abs(older.prezzo) > 1e-9

@@ -49,3 +49,4 @@ next-env.d.ts
 # Script di test/debug locali — non committare
 _*.mjs
 _*.ts
+audit-listino-qty-report.json

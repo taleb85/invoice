@@ -54,3 +54,45 @@ export function rejectReasonForListinoPrice(
 ): ListinoPriceRejectReason | null {
   return isPlausibleListinoPrice(candidate, existingPrices) ? null : 'price_outlier_likely_qty'
 }
+
+/** Prezzo più frequente nello storico (approssimato al centesimo). */
+function dominantListinoPrice(hist: number[]): number {
+  const buckets = new Map<number, number>()
+  for (const p of hist) {
+    const b = Math.round(p * 100) / 100
+    buckets.set(b, (buckets.get(b) ?? 0) + 1)
+  }
+  let best = median(hist)
+  let maxCount = 0
+  for (const [price, count] of buckets) {
+    if (count > maxCount) {
+      maxCount = count
+      best = price
+    }
+  }
+  return best
+}
+
+/**
+ * Più restrittivo di `isPlausibleListinoPrice`: solo pattern tipici qty OCR
+ * (0.75, 7 casse, …), non prezzi unitari bottiglia legittimi (£1.48, £8.36).
+ */
+export function isLikelyQtyOcrPrice(candidate: number, existingPrices: number[]): boolean {
+  const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length < 2) return false
+
+  const med = median(hist)
+  if (med <= 0) return false
+
+  // Quantità frazionaria (0.75 casse / kg) scambiata per prezzo
+  if (med >= 10 && candidate < 1) return true
+
+  const wholeQty = Math.abs(candidate - Math.round(candidate)) < 0.001
+  if (!wholeQty || candidate < 1 || candidate > 24) return false
+
+  const dominant = dominantListinoPrice(hist)
+  // Intero 1–24 ben sotto il prezzo listino ricorrente (es. 7 casse vs £8.53/cassa)
+  if (dominant >= 5 && candidate < dominant * 0.85) return true
+
+  return false
+}

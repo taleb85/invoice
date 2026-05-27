@@ -4,7 +4,7 @@ import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabas
 import type { Profile } from '@/types'
 import { isMasterAdminRole } from '@/lib/roles'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
-import { rejectReasonForListinoPrice } from '@/lib/listino-price-sanity'
+import { isLikelyQtyOcrPrice } from '@/lib/listino-price-sanity'
 
 function canManageListino(
   profile: Profile,
@@ -151,9 +151,8 @@ export async function POST(req: NextRequest) {
 
   for (const r of parsed) {
     const hist = pricesByProduct.get(r.prodotto) ?? []
-    const priceReject = rejectReasonForListinoPrice(r.prezzo, hist)
-    if (priceReject) {
-      skipped.push({ prodotto: r.prodotto, reason: priceReject, prezzo: r.prezzo })
+    if (isLikelyQtyOcrPrice(r.prezzo, hist)) {
+      skipped.push({ prodotto: r.prodotto, reason: 'price_outlier_likely_qty', prezzo: r.prezzo })
       continue
     }
 
