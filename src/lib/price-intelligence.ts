@@ -82,8 +82,22 @@ type PriceRow = {
 function calcVolatility(prices: number[]): number {
   if (prices.length < 3) return 0
   const mean = prices.reduce((a, b) => a + b, 0) / prices.length
+  if (!Number.isFinite(mean) || Math.abs(mean) < 1e-9) return 0
   const variance = prices.reduce((a, b) => a + (b - mean) ** 2, 0) / prices.length
-  return Math.sqrt(variance) / mean
+  const cv = Math.sqrt(variance) / mean
+  return Number.isFinite(cv) ? cv : 0
+}
+
+/**
+ * Variazione percentuale sicura: ritorna null se il riferimento è 0 o non
+ * finito (evita Infinity/NaN che inquinano il punteggio salute e fanno cadere
+ * il fornitore fuori dai bucket KPI).
+ */
+function safePctChange(current: number, previous: number): number | null {
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return null
+  if (Math.abs(previous) < 1e-9) return null
+  const pct = (current - previous) / previous
+  return Number.isFinite(pct) ? pct : null
 }
 
 function detectDirection(variazioni: number[]): 'up' | 'down' | 'stable' | null {
@@ -98,10 +112,24 @@ export async function analyzeSupplierPriceTrends(
   supabase: SupabaseClient,
   fornitoreId: string,
 ): Promise<PriceIntelligenceReport> {
+  /*
+   * Filtri difensivi sul listino: ignora prezzi non positivi (omaggi, sconti
+   * di "deal" come `Menabrea 6+1 = -35.66`, articoli `FREE OF CHARGE`,
+   * `tomorrow morning` letti dall'OCR sul corpo email) e date nel futuro
+   * (errori OCR sulla data). Tutti questi inquinano il calcolo di
+   * variazione percentuale e volatilità — basta una riga con prezzo 0 perché
+   * `(p[i] - 0) / 0 = Infinity`, e il punteggio salute diventa NaN
+   * facendo cadere il fornitore fuori dai bucket KPI Critici/Attenzione/OK.
+   * NB: cleanup retroattivo già eseguito in DB (vedi `listino_prezzi`),
+   * questi filtri sono la seconda linea di difesa per nuove righe.
+   */
+  const todayIso = new Date().toISOString().slice(0, 10)
   const { data: rows, error } = await supabase
     .from('listino_prezzi')
     .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name)')
     .eq('fornitore_id', fornitoreId)
+    .gt('prezzo', 0)
+    .lte('data_prezzo', todayIso)
     .order('data_prezzo', { ascending: true })
 
   if (error || !rows?.length) {
@@ -165,11 +193,12 @@ export async function analyzeSupplierPriceTrends(
 
     const variazioni: number[] = []
     for (let i = 1; i < prices.length; i++) {
-      variazioni.push((prices[i]! - prices[i - 1]!) / prices[i - 1]!)
+      const v = safePctChange(prices[i]!, prices[i - 1]!)
+      if (v != null) variazioni.push(v)
     }
 
     const ultimaVariazione = precedente
-      ? (ultimo.prezzo - precedente.prezzo) / precedente.prezzo
+      ? safePctChange(ultimo.prezzo, precedente.prezzo)
       : null
 
     const direzione = detectDirection(variazioni)
@@ -222,12 +251,13 @@ export async function analyzeSupplierPriceTrends(
     }
 
     if (volatilita > 0.15 && prices.length >= 4) {
+      const deltaInflPct = safePctChange(ultimo.prezzo, prices[0]!)
       anomalie.push({
         prodotto, fornitore_id: fornitoreId, fornitore_nome: fornitoreNome,
         tipo: 'inflazione', gravita: volatilita > 0.25 ? 'alta' : 'media',
         prezzo_attuale: ultimo.prezzo,
         prezzo_riferimento: prices[0]!,
-        delta_percent: Math.round(((ultimo.prezzo - prices[0]!) / prices[0]!) * 10000) / 100,
+        delta_percent: deltaInflPct != null ? Math.round(deltaInflPct * 10000) / 100 : 0,
         data: ultimo.data_prezzo,
         descrizione: `Alta volatilità sui prezzi (${(volatilita * 100).toFixed(1)}%) — il costo oscilla frequentemente`,
       })
@@ -263,16 +293,23 @@ export async function analyzeSupplierPriceTrends(
     .filter((r) => r.impatto_stimato != null && r.priorita === 'alta')
     .reduce((a, r) => a + (r.impatto_stimato ?? 0), 0)
 
-  const trendComplessivo = countTrend > 0 ? Math.round((totaleTrend / countTrend) * 10000) / 100 : 0
-  const volatilitaMedia = trends.length > 0
-    ? Math.round((trends.reduce((a, t) => a + t.volatilita, 0) / trends.length) * 100) / 100
-    : 0
+  const trendComplessivoRaw =
+    countTrend > 0 ? Math.round((totaleTrend / countTrend) * 10000) / 100 : 0
+  const trendComplessivo = Number.isFinite(trendComplessivoRaw) ? trendComplessivoRaw : 0
+  const volatilitaMediaRaw =
+    trends.length > 0
+      ? Math.round((trends.reduce((a, t) => a + (Number.isFinite(t.volatilita) ? t.volatilita : 0), 0) / trends.length) * 100) / 100
+      : 0
+  const volatilitaMedia = Number.isFinite(volatilitaMediaRaw) ? volatilitaMediaRaw : 0
 
   const punteggioBase = 70
   const penalitaTrend = trendComplessivo > 0 ? Math.min(trendComplessivo * 50, 20) : 0
   const penalitaVolatilita = Math.min(volatilitaMedia * 100, 15)
   const penalitaAnomalie = Math.min(anomalieCritiche * 15, 30)
-  const punteggioSalute = Math.max(0, Math.min(100, punteggioBase - penalitaTrend - penalitaVolatilita - penalitaAnomalie))
+  const punteggioSaluteRaw = punteggioBase - penalitaTrend - penalitaVolatilita - penalitaAnomalie
+  const punteggioSalute = Number.isFinite(punteggioSaluteRaw)
+    ? Math.max(0, Math.min(100, punteggioSaluteRaw))
+    : 50
 
   const salute: SupplierPriceHealth = {
     fornitore_id: fornitoreId,
@@ -318,8 +355,12 @@ export async function analyzeAllSuppliers(
     try {
       const report = await analyzeSupplierPriceTrends(supabase, id)
       results.push(report.salute)
-    } catch {
-      continue
+    } catch (err) {
+      // Loggato: prima i fornitori sparivano silenziosamente dai conteggi
+      // (visto: 41 fornitori in DB → 28 nei KPI per via di un catch silente
+      // su divisioni-per-zero NaN). Ora il punteggio è sempre finito ma se
+      // qualcosa esplode comunque vogliamo saperlo.
+      console.warn('[price-intelligence] analyzeSupplierPriceTrends failed', { fornitoreId: id, error: err instanceof Error ? err.message : String(err) })
     }
   }
   return results.sort((a, b) => a.punteggio_salute - b.punteggio_salute)

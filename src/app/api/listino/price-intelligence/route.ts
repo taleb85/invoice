@@ -30,7 +30,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ suppliers: [], totali: 0 })
   }
 
-  const fornitoreIds = [...new Set(fornitori.map((r: { fornitore_id: string }) => r.fornitore_id))].slice(0, 50)
+  const allFornitoreIds = [
+    ...new Set(fornitori.map((r: { fornitore_id: string }) => r.fornitore_id)),
+  ]
+
+  /*
+   * Escludi fornitori marcati come "non comparabili": canoni, manutenzioni,
+   * lavanderie, servizi a chiamata. I loro "prodotti" sono interventi e i
+   * prezzi non rappresentano un listino che evolve nel tempo — generano
+   * falsa volatilità e gonfiano i bucket "critici". Lista gestita in
+   * `fornitori.escluso_da_analisi_prezzi`.
+   */
+  const { data: esclusiRows } = await service
+    .from('fornitori')
+    .select('id')
+    .eq('escluso_da_analisi_prezzi', true)
+  const esclusiIds = new Set((esclusiRows ?? []).map((r) => r.id as string))
+  const fornitoreIds = allFornitoreIds.filter((id) => !esclusiIds.has(id)).slice(0, 50)
   const results = await analyzeAllSuppliers(service, fornitoreIds)
 
   return NextResponse.json({
