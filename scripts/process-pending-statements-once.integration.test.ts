@@ -11,6 +11,7 @@ import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
+import { autoRegisterCombinedPdfInvoiceAfterStatement } from '@/lib/statement-combined-pdf-invoice'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -130,6 +131,38 @@ describe.skipIf(!enabled)('process-pending-statements-once', () => {
           .from('statements')
           .update({ status: 'done', missing_rows: missing, total_rows: rows.length })
           .eq('id', stmt.id)
+
+        if (process.env.GEMINI_API_KEY?.trim() && doc.fornitore_id) {
+          let rowsSum: number | null = null
+          {
+            let sum = 0
+            let n = 0
+            for (const r of rows) {
+              const v = r.importo != null ? Number(r.importo) : null
+              if (v != null && Number.isFinite(v)) {
+                sum += v
+                n++
+              }
+            }
+            if (n > 0) rowsSum = Math.round(sum * 100) / 100
+          }
+          try {
+            await autoRegisterCombinedPdfInvoiceAfterStatement(supabase, {
+              statementId: stmt.id,
+              fornitoreId: doc.fornitore_id,
+              sedeId: doc.sede_id,
+              fileUrl: doc.file_url,
+              documentDate: documentDate,
+              pdfBuffer: dl.data,
+              contentType,
+              statementRowsSum: rowsSum,
+              emailBodyText: doc.oggetto_mail,
+              fileLabel: doc.file_name,
+            })
+          } catch {
+            /* optional */
+          }
+        }
 
         await supabase
           .from('documenti_da_processare')

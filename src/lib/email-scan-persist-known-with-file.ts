@@ -3,6 +3,7 @@ import type { ScannedEmail } from '@/lib/mail-scanner'
 import type { OcrResult } from '@/lib/ocr-invoice'
 import { normalizeNumeroBolla } from '@/lib/fix-ocr-dates-helpers'
 import { ocrStatement, extractedPdfDatesToJson } from '@/lib/ocr-statement'
+import { autoRegisterCombinedPdfInvoiceAfterStatement } from '@/lib/statement-combined-pdf-invoice'
 import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
@@ -201,6 +202,47 @@ async function processStatementInBackground(
     extracted_pdf_dates: extractedPdfDates,
     document_date: resolveStatementDocumentDate(extractedPdfDates),
   }).eq('id', statementId)
+
+  if (process.env.GEMINI_API_KEY?.trim()) {
+    let rowsSum: number | null = null
+    {
+      let sum = 0
+      let n = 0
+      for (const r of results) {
+        if (Number.isFinite(r.importoStatement)) {
+          sum += r.importoStatement
+          n++
+        }
+      }
+      if (n > 0) rowsSum = Math.round(sum * 100) / 100
+    }
+    const docDate = resolveStatementDocumentDate(extractedPdfDates)
+    const { data: fnRow } = await supabase
+      .from('fornitori')
+      .select('nome, display_name')
+      .eq('id', fornitoreId)
+      .maybeSingle()
+    const fornitoreNome =
+      (fnRow as { display_name?: string | null; nome?: string } | null)?.display_name ||
+      (fnRow as { nome?: string } | null)?.nome ||
+      null
+    try {
+      await autoRegisterCombinedPdfInvoiceAfterStatement(supabase, {
+        statementId,
+        fornitoreId,
+        sedeId,
+        fileUrl,
+        documentDate: docDate,
+        pdfBuffer: Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer),
+        contentType,
+        statementRowsSum: rowsSum,
+        emailBodyText: subject,
+        fornitoreNome,
+      })
+    } catch {
+      /* non-blocking */
+    }
+  }
 }
 
 export type PersistKnownScanCounters = {

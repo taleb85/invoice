@@ -6,6 +6,10 @@ import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 import { logger } from '@/lib/logger'
+import {
+  autoRegisterCombinedPdfInvoiceAfterStatement,
+  backfillCombinedInvoicesForStatements,
+} from '@/lib/statement-combined-pdf-invoice'
 
 export async function POST(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -298,6 +302,57 @@ export async function POST(req: NextRequest) {
       missing_rows: missingRows,
     }).eq('id', statementId)
 
+    if (process.env.GEMINI_API_KEY?.trim() && fornitoreId) {
+      let rowsSum: number | null = null
+      {
+        let sum = 0
+        let n = 0
+        for (const r of checkResults) {
+          if (Number.isFinite(r.importoStatement)) {
+            sum += r.importoStatement
+            n++
+          }
+        }
+        if (n > 0) rowsSum = Math.round(sum * 100) / 100
+      }
+      const docMeta =
+        doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+          ? (doc.metadata as Record<string, unknown>)
+          : null
+      const { data: fnRow } = await supabase
+        .from('fornitori')
+        .select('nome, display_name')
+        .eq('id', fornitoreId)
+        .maybeSingle()
+      const fornitoreNome =
+        (fnRow as { display_name?: string | null; nome?: string } | null)?.display_name ||
+        (fnRow as { nome?: string } | null)?.nome ||
+        null
+      try {
+        const autoInv = await autoRegisterCombinedPdfInvoiceAfterStatement(supabase, {
+          statementId,
+          fornitoreId,
+          sedeId,
+          fileUrl: doc.file_url,
+          documentDate: docDate,
+          pdfBuffer: buffer,
+          contentType,
+          statementRowsSum: rowsSum,
+          docMetadata: docMeta,
+          emailBodyText: doc.oggetto_mail,
+          fileLabel: doc.file_name,
+          fornitoreNome,
+        })
+        if (autoInv.ok) {
+          logger.info(`[PENDING-STMT] Fattura combinata auto-registrata per statement ${statementId}`)
+        }
+      } catch (autoErr) {
+        logger.warn(
+          `[PENDING-STMT] Auto fattura combinata fallita per ${statementId}: ${autoErr instanceof Error ? autoErr.message : autoErr}`,
+        )
+      }
+    }
+
     await markDocRowsAsProcessed(doc.file_url)
 
     results.push({ id: statementId, total: checkResults.length, missing: missingRows })
@@ -326,6 +381,21 @@ export async function POST(req: NextRequest) {
 
   const realSkipped = allDocs.length - pending.length
 
+  let backfillCombined = { attempted: 0, created: 0 }
+  if (process.env.GEMINI_API_KEY?.trim()) {
+    try {
+      backfillCombined = await backfillCombinedInvoicesForStatements(supabase, {
+        sedeId: sede_id,
+        fornitoreId: fornitore_id ?? null,
+        limit: fornitore_id ? 5 : 3,
+      })
+    } catch (backfillErr) {
+      logger.warn(
+        `[PENDING-STMT] Backfill fatture combinate fallito: ${backfillErr instanceof Error ? backfillErr.message : backfillErr}`,
+      )
+    }
+  }
+
   await logActivity(supabase, {
     userId: user.id,
     sedeId: null,
@@ -345,6 +415,7 @@ export async function POST(req: NextRequest) {
     skipped:    realSkipped,
     errors,
     statements: results,
+    backfill_combined_invoices: backfillCombined,
     message: results.length
       ? `Elaborati ${results.length} statement — clicca per vedere i risultati.`
       : 'Nessun nuovo statement da elaborare.',
