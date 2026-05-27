@@ -1668,6 +1668,10 @@ export type Translations = {
     stmtPdfMetaLastPaymentDate: string
     openPdf: string
     reanalyze: string
+    recheckTripleCheck: string
+    recheckTripleCheckTitle: string
+    recheckTripleCheckSelectStmt: string
+    recheckTripleCheckDone: string
     stmtListProcessing: string
     stmtListParseError: string
     stmtRowsCount: string
