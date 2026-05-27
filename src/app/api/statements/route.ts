@@ -14,6 +14,7 @@ import {
   attachStatementAnomalyPreviews,
   fetchAnomalyByStatusMap,
 } from '@/lib/statement-anomaly-preview'
+import { dedupeStatementsForList } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
 
 export async function GET(req: NextRequest) {
@@ -249,47 +250,19 @@ export async function GET(req: NextRequest) {
     fornitore_nome: nomeMap[(s.fornitore_id as string) ?? ''] ?? null,
   }))
 
-  // Deduplica per file_url: stesso documento fisico non deve apparire piu' volte
-  const seen = new Set<string>()
-  const dedupedByFile = statements.filter((s: Record<string, unknown>) => {
-    const key = (s.file_url as string) ?? (s.id as string)
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-
-  // Stesso oggetto email + fornitore + periodo → tieni solo l'ultima ricezione (reinvii)
   type StmtListRow = Record<string, unknown> & {
     id: string
+    sede_id?: string | null
     fornitore_id?: string | null
     email_subject?: string | null
     received_at?: string | null
     document_date?: string | null
     extracted_pdf_dates?: unknown
     missing_rows?: number | null
+    file_url?: string | null
   }
-  const subjectBest = new Map<string, StmtListRow>()
-  const noSubject: StmtListRow[] = []
-  for (const s of dedupedByFile as StmtListRow[]) {
-    const subject = (s.email_subject ?? '').trim().toLowerCase()
-    const period =
-      statementOfficialDateIso({
-        document_date: s.document_date as string | null | undefined,
-        extracted_pdf_dates: s.extracted_pdf_dates as { issued_date?: string | null } | null | undefined,
-      }) ?? ''
-    if (!subject) {
-      noSubject.push(s)
-      continue
-    }
-    const key = `${String(s.fornitore_id ?? '')}:${subject}:${period}`
-    const prev = subjectBest.get(key)
-    if (!prev || String(s.received_at ?? '') > String(prev.received_at ?? '')) {
-      subjectBest.set(key, s)
-    }
-  }
-  const deduped = [...subjectBest.values(), ...noSubject].sort(
-    (a, b) => String(b.received_at ?? '').localeCompare(String(a.received_at ?? '')),
-  )
+
+  const deduped = dedupeStatementsForList(statements as StmtListRow[])
 
   const hasMissing = deduped.some((s) => ((s.missing_rows as number | null) ?? 0) > 0)
 
@@ -302,6 +275,7 @@ export async function GET(req: NextRequest) {
 
   // Pulizia automatica: fire-and-forget, non blocca la risposta.
   cleanupBadStatements(service).catch(() => {})
+  cleanupDuplicateStatementsByPeriod(service, sedeId ?? undefined).catch(() => {})
   autoConvertInvoiceStatements(service).catch(() => {})
   autoCleanupDuplicateFatture(service).catch(() => {})
 
@@ -453,6 +427,47 @@ async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createSe
     // Rimuove le righe e lo statement (la fattura esiste già o è appena stata creata)
     await supabase.from('statement_rows').delete().eq('statement_id', stmt.id)
     await supabase.from('statements').delete().eq('id', stmt.id)
+  }
+}
+
+/**
+ * Elimina statement duplicati (stesso fornitore + stessa data documento), mantiene
+ * l’ultima ricezione. Tipico quando email_subject è null e ogni scan crea un file_url nuovo.
+ */
+async function cleanupDuplicateStatementsByPeriod(
+  supabase: ReturnType<typeof createServiceClient>,
+  sedeId?: string,
+) {
+  let q = supabase
+    .from('statements')
+    .select('id, sede_id, fornitore_id, document_date, received_at, created_at')
+    .neq('status', 'error')
+    .not('fornitore_id', 'is', null)
+    .not('document_date', 'is', null)
+    .order('received_at', { ascending: false })
+    .limit(800)
+  if (sedeId) q = q.eq('sede_id', sedeId)
+
+  const { data: rows } = await q
+  if (!rows?.length) return
+
+  const bestByKey = new Map<string, string>()
+  const toDelete: string[] = []
+
+  for (const row of rows) {
+    const key = `${row.sede_id ?? ''}:${row.fornitore_id ?? ''}:${row.document_date ?? ''}`
+    if (!bestByKey.has(key)) {
+      bestByKey.set(key, row.id)
+      continue
+    }
+    toDelete.push(row.id)
+  }
+
+  if (!toDelete.length) return
+
+  for (const id of toDelete) {
+    await supabase.from('statement_rows').delete().eq('statement_id', id)
+    await supabase.from('statements').delete().eq('id', id)
   }
 }
 
