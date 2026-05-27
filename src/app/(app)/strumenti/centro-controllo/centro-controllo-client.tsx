@@ -249,7 +249,11 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [dupOpen, setDupOpen] = useState(false)
 
   type DialogType = 'associa' | 'categoria' | 'rifiuta_fattura' | 'assegna_fattura'
-  const [dialogAperto, setDialogAperto] = useState<{ tipo: DialogType; item: CodaItem } | null>(null)
+  const [dialogAperto, setDialogAperto] = useState<{
+    tipo: DialogType
+    item: CodaItem
+    commandId: CommandId
+  } | null>(null)
 
   // ── Caricamento coda ─────────────────────────────────────────────────────
   const caricaCoda = useCallback(async (pageOverride?: number) => {
@@ -838,7 +842,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
     }
     const dialogTipo = dialogCommands[commandId]
     if (dialogTipo) {
-      setDialogAperto({ tipo: dialogTipo, item })
+      setDialogAperto({ tipo: dialogTipo, item, commandId })
       return
     }
 
@@ -880,11 +884,24 @@ export default function CentroControlloClient({ sedeId }: Props) {
     })
   }
 
-  const handleDialogSuccess = (message: string, itemId?: string) => {
+  const handleDialogSuccess = async (message: string, itemId?: string) => {
+    const pending = dialogAperto
+    const isError = message.toLowerCase().startsWith('errore')
+    setDialogAperto(null)
+
+    if (isError) {
+      showToast(message, 'error')
+      return
+    }
+
+    if (pending) {
+      await registraEsecuzioneDiretta(pending.item, pending.commandId)
+    }
     showToast(message, 'success')
     if (itemId) {
-      setItems(prev => prev.filter(i => i.id !== itemId))
+      setItems((prev) => prev.filter((i) => i.id !== itemId))
     }
+    caricaCoda()
   }
 
   function formatAgo(iso: string | null): string {
