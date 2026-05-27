@@ -71,3 +71,35 @@ export async function attachStatementAnomalyPreviews<T extends StmtRow>(
     anomaly_by_status: countsMapToSortedArray(byStmt.get(s.id) ?? new Map()),
   }))
 }
+
+/** Conteggi per tipologia per un insieme di statement (batch API / fallback client). */
+export async function fetchAnomalyByStatusMap(
+  supabase: SupabaseClient,
+  statementIds: string[],
+): Promise<Record<string, StatementAnomalyCountByStatus[]>> {
+  const ids = [...new Set(statementIds.filter(Boolean))].slice(0, 500)
+  if (ids.length === 0) return {}
+
+  const { data: rows } = await supabase
+    .from('statement_rows')
+    .select('statement_id, check_status')
+    .in('statement_id', ids)
+    .in('check_status', [...STATEMENT_ANOMALY_STATUSES])
+
+  const byStmt = new Map<string, Map<StatementAnomalyStatus, number>>()
+  for (const row of rows ?? []) {
+    const sid = row.statement_id as string
+    const status = row.check_status as string
+    if (!STATEMENT_ANOMALY_STATUSES.includes(status as StatementAnomalyStatus)) continue
+    const counts = byStmt.get(sid) ?? new Map<StatementAnomalyStatus, number>()
+    const key = status as StatementAnomalyStatus
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+    byStmt.set(sid, counts)
+  }
+
+  const out: Record<string, StatementAnomalyCountByStatus[]> = {}
+  for (const id of ids) {
+    out[id] = countsMapToSortedArray(byStmt.get(id) ?? new Map())
+  }
+  return out
+}

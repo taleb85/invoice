@@ -1683,6 +1683,11 @@ export type Translations = {
     stmtAnomalies_other: string
     stmtAnomalyPreviewMore: string
     stmtAnomalyPreviewAria: string
+    anomalyShortFattura: string
+    anomalyShortBolle: string
+    anomalyShortImporto: string
+    anomalyShortRekki: string
+    stmtAnomalyBolleHint: string
     stmtBackToList: string
     stmtNavPrev: string
     stmtNavNext: string

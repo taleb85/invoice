@@ -27,6 +27,7 @@ import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routin
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
+import type { StatementAnomalyCountByStatus } from '@/lib/statement-anomaly-preview'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
@@ -3705,6 +3706,14 @@ export function VerificationStatusTab({
   const formatStmtDate = useFmt()
   const MONTHS = t.statements.months
   const STATUS_CONFIG = useStatusConfig()
+  const anomalyShortLabels: Record<CheckStatus, string> = {
+    pending: t.statements.statusCheckPending,
+    ok: t.statements.statusOk,
+    fattura_mancante: t.statements.anomalyShortFattura,
+    bolle_mancanti: t.statements.anomalyShortBolle,
+    errore_importo: t.statements.anomalyShortImporto,
+    rekki_prezzo_discordanza: t.statements.anomalyShortRekki,
+  }
   const shell = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
   const vsEmbeddedSupplier = Boolean(fornitoreId)
   const vsTabHi = vsEmbeddedSupplier ? SUPPLIER_DETAIL_TAB_HIGHLIGHT.verifica : null
@@ -4446,7 +4455,27 @@ export function VerificationStatusTab({
       const res = await fetch(`/api/statements${qs}`)
       if (res.ok) {
         const json = await res.json() as { statements: StmtRecord[]; needsMigration?: boolean }
-        const list = json.statements ?? []
+        let list = json.statements ?? []
+        const needSummaryIds = list
+          .filter((s) => s.missing_rows > 0 && !(s.anomaly_by_status?.length))
+          .map((s) => s.id)
+        if (needSummaryIds.length > 0) {
+          try {
+            const sumRes = await fetch(
+              `/api/statements?action=anomaly_summary&ids=${encodeURIComponent(needSummaryIds.join(','))}`,
+            )
+            if (sumRes.ok) {
+              const sumJson = await sumRes.json() as {
+                by_statement_id?: Record<string, StatementAnomalyCountByStatus[]>
+              }
+              const map = sumJson.by_statement_id ?? {}
+              list = list.map((s) => ({
+                ...s,
+                anomaly_by_status: map[s.id] ?? s.anomaly_by_status ?? [],
+              }))
+            }
+          } catch { /* non-critical */ }
+        }
         setStmts(list)
         setNeedsMigration(json.needsMigration ?? false)
 
@@ -5162,27 +5191,41 @@ export function VerificationStatusTab({
                         {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
                       </p>
                       {s.missing_rows > 0 ? (
-                        <div className="mt-0.5 flex flex-col items-end gap-0.5">
-                          <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
-                            {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
-                          </span>
+                        <div
+                          className="mt-0.5 flex max-w-full flex-col items-end gap-0.5"
+                          aria-label={t.statements.stmtAnomalyPreviewAria}
+                        >
                           {(s.anomaly_by_status?.length ?? 0) > 0 ? (
-                            <ul
-                              className="w-full space-y-0.5 text-[10px] leading-tight text-red-100/90"
-                              aria-label={t.statements.stmtAnomalyPreviewAria}
-                            >
-                              {s.anomaly_by_status!.map((item) => {
-                                const cfg = STATUS_CONFIG[item.check_status]
-                                return (
-                                  <li key={item.check_status} className="truncate" title={cfg.label}>
-                                    <span className="font-bold tabular-nums text-red-100">{item.count}</span>
-                                    <span className="text-red-200/50"> · </span>
-                                    <span className="text-red-200/80">{cfg.label}</span>
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          ) : null}
+                            <>
+                              <p
+                                className={`text-right leading-snug text-red-100/95 ${vsCompactS1 ? 'text-[10px]' : 'text-[11px]'}`}
+                                title={s.anomaly_by_status!
+                                  .map((item) => `${item.count} ${STATUS_CONFIG[item.check_status].label}`)
+                                  .join(' · ')}
+                              >
+                                {s.anomaly_by_status!.map((item, idx) => (
+                                  <Fragment key={item.check_status}>
+                                    {idx > 0 && (
+                                      <span className="text-red-200/35"> · </span>
+                                    )}
+                                    <span className="font-bold tabular-nums">{item.count}</span>
+                                    {' '}
+                                    <span>{anomalyShortLabels[item.check_status]}</span>
+                                  </Fragment>
+                                ))}
+                              </p>
+                              {s.anomaly_by_status!.some((x) => x.check_status === 'bolle_mancanti') &&
+                                s.anomaly_by_status!.some((x) => x.check_status === 'fattura_mancante') && (
+                                <p className="text-[9px] leading-tight text-app-fg-muted/80">
+                                  {t.statements.stmtAnomalyBolleHint}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
+                              {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
