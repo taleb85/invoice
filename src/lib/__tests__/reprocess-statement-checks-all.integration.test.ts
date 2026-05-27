@@ -5,6 +5,7 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { describe, expect, it } from 'vitest'
+import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
 import { runTripleCheck } from '@/lib/triple-check'
 
 const enabled = process.env.REPROCESS_STMT_ALL === '1'
@@ -55,7 +56,7 @@ describe.skipIf(!enabled)('reprocess-statement-checks-all', () => {
         const { results } = await runTripleCheck(sb, lines, stmt.sede_id, stmt.fornitore_id)
 
         for (const r of results) {
-          const existing = rows.find((row) => row.numero_doc === r.numero)
+          const existing = findStatementRowByNumeroDoc(rows, r.numero)
           if (!existing) continue
           if (existing.check_status !== r.status) fixedRows++
 

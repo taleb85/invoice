@@ -8,6 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
+import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
 import { runTripleCheck } from '@/lib/triple-check' // bolle obbligatorie v2
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
 
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest) {
 
     const { data: existingRows } = await supabase
       .from('statement_rows')
-      .select('numero_doc, importo')
+      .select('id, numero_doc, importo, data_doc')
       .eq('statement_id', statementId)
 
     if (!existingRows?.length) {
@@ -101,7 +102,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const lines = existingRows.map(r => ({ numero: r.numero_doc, importo: Number(r.importo) }))
+    const lines = existingRows.map(r => ({
+      numero: r.numero_doc ?? '',
+      importo: Number(r.importo),
+      data: r.data_doc ?? null,
+    }))
     const { results: rawResults } = await runTripleCheck(supabase, lines, stmt.sede_id, stmt.fornitore_id)
 
     // Per fornitori che emettono DDT, manteniamo lo storico: una 'ok' senza
@@ -113,21 +118,32 @@ export async function GET(req: NextRequest) {
         )
       : rawResults
 
-    // Single upsert replaces R sequential UPDATE calls (N+1 pattern).
-    // Conflict target: the (statement_id, numero_doc) unique constraint on statement_rows.
-    await service.from('statement_rows').upsert(
-      results.map((r) => ({
-        statement_id:   statementId,
-        numero_doc:     r.numero,
-        check_status:   r.status,
-        delta_importo:  r.deltaImporto,
-        fattura_id:     r.fattura?.id ?? null,
-        fattura_numero: r.fattura?.numero_fattura ?? null,
-        fornitore_id:   r.fornitore?.id ?? null,
-        bolle_json:     r.bolle.length ? r.bolle : null,
-      })),
-      { onConflict: 'statement_id,numero_doc' },
-    )
+    for (const r of results) {
+      const existingRow = findStatementRowByNumeroDoc(existingRows, r.numero)
+      if (!existingRow) continue
+
+      const bolle_json =
+        r.bolle.length > 0
+          ? r.bolle.map((b) => ({
+              id: b.id,
+              numero_bolla: b.numero_bolla,
+              importo: b.importo,
+              data: b.data,
+            }))
+          : null
+
+      await service
+        .from('statement_rows')
+        .update({
+          check_status: r.status,
+          delta_importo: r.deltaImporto,
+          fattura_id: r.fattura?.id ?? null,
+          fattura_numero: r.fattura?.numero_fattura ?? null,
+          fornitore_id: r.fornitore?.id ?? stmt.fornitore_id ?? null,
+          bolle_json,
+        })
+        .eq('id', existingRow.id)
+    }
 
     const missingRows = results.filter(r => r.status !== 'ok').length
     await service.from('statements').update({
