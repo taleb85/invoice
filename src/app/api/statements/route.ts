@@ -15,8 +15,11 @@ import {
   fetchAnomalyByStatusMap,
 } from '@/lib/statement-anomaly-preview'
 import { hideSupersededStatementsForList } from '@/lib/statement-content-dedup'
-import { dedupeStatementsForList } from '@/lib/statement-list-dedup'
-import { statementOfficialDateIso } from '@/lib/statement-official-date'
+import { dedupeStatementsForList, type StatementListRow } from '@/lib/statement-list-dedup'
+import {
+  statementOfficialDateIso,
+  type StatementExtractedPdfDates,
+} from '@/lib/statement-official-date'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -247,24 +250,19 @@ export async function GET(req: NextRequest) {
     for (const f of (fRows ?? []) as { id: string; nome: string }[]) nomeMap[f.id] = f.nome
   }
 
-  const statements = (data ?? []).map((s: Record<string, unknown>) => ({
-    ...s,
-    fornitore_nome: nomeMap[(s.fornitore_id as string) ?? ''] ?? null,
-  }))
-
-  type StmtListRow = Record<string, unknown> & {
-    id: string
-    sede_id?: string | null
-    fornitore_id?: string | null
-    email_subject?: string | null
-    received_at?: string | null
-    document_date?: string | null
-    extracted_pdf_dates?: unknown
+  type StmtListRow = StatementListRow & {
+    fornitore_nome?: string | null
     missing_rows?: number | null
-    file_url?: string | null
   }
 
-  let deduped = dedupeStatementsForList(statements as StmtListRow[])
+  const statements: StmtListRow[] = (data ?? []).map((s: Record<string, unknown>) => ({
+    ...s,
+    id: s.id as string,
+    fornitore_nome: nomeMap[(s.fornitore_id as string) ?? ''] ?? null,
+    extracted_pdf_dates: (s.extracted_pdf_dates ?? null) as StatementExtractedPdfDates | null,
+  }))
+
+  let deduped = dedupeStatementsForList(statements)
   if (deduped.length > 1) {
     deduped = await hideSupersededStatementsForList(supabase, deduped)
   }

@@ -99,10 +99,14 @@ export function statementAnomalyShortBolle(
   )
 }
 
+type StatementBolleAnomalyT = {
+  statements: { anomalyShortBolleNo: string; stmtAnomalyBolleHint: string }
+}
+
 /** Hint sotto la riga quando coesistono fattura_mancante e bolle_mancanti. */
 export function statementAnomalyBolleHint(
   countryCode: string | null | undefined,
-  t: { statements: { stmtAnomalyBolleHint: string } },
+  t: StatementBolleAnomalyT,
 ): string {
   const short = statementAnomalyShortBolle(countryCode, t)
   const term = deliveryNoteTermForList(countryCode)

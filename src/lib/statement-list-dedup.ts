@@ -43,7 +43,7 @@ function statementPeriodKey(s: StatementListRow): string {
   }) ?? ''
 }
 
-function pickNewer(a: StatementListRow, b: StatementListRow): StatementListRow {
+function pickNewer<T extends StatementListRow>(a: T, b: T): T {
   const at = String(a.received_at ?? '')
   const bt = String(b.received_at ?? '')
   return bt > at ? b : a
