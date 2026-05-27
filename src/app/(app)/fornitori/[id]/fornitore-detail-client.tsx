@@ -5192,22 +5192,30 @@ function ListinoTab({
 
                         {originLine ? (
                           /*
-                           * Link alla fattura d'origine quando disponibile.
+                           * Apre la fattura d'origine nel `FornitoreDocDetailLayer`
+                           * già montato (sezione modale): basta settare `?fattura=<id>`
+                           * mantenendo i parametri correnti (tab Listino, filtri, ecc.)
+                           * così l'utente resta nel contesto.
                            * `fid` arriva dal suffisso macchina `|listino_src_fattura:<uuid>|`
-                           * salvato da `/api/listino/importa-da-fattura`. Anche se
-                           * `originRow` è null (fattura senza importo, fuori dal set
-                           * `rows`), il link funziona perché /fatture/[id] accetta l'id.
+                           * salvato da `/api/listino/importa-da-fattura`.
                            */
-                          fid ? (
-                            <p className="text-xs leading-snug font-medium text-violet-300">
-                              <Link
-                                href={`/fatture/${fid}`}
-                                className="underline decoration-violet-500/40 underline-offset-2 transition-colors hover:text-violet-200 hover:decoration-violet-300"
-                              >
-                                {originLine}
-                              </Link>
-                            </p>
-                          ) : (
+                          fid ? (() => {
+                            const openInvoiceQ = new URLSearchParams(searchParams.toString())
+                            openInvoiceQ.set('fattura', fid)
+                            openInvoiceQ.delete('bolla')
+                            const openInvoiceHref = `${pathname}?${openInvoiceQ.toString()}`
+                            return (
+                              <p className="text-xs leading-snug font-medium text-violet-300">
+                                <Link
+                                  href={openInvoiceHref}
+                                  scroll={false}
+                                  className="underline decoration-violet-500/40 underline-offset-2 transition-colors hover:text-violet-200 hover:decoration-violet-300"
+                                >
+                                  {originLine}
+                                </Link>
+                              </p>
+                            )
+                          })() : (
                             <p className="text-xs leading-snug font-medium text-violet-300">{originLine}</p>
                           )
                         ) : null}
