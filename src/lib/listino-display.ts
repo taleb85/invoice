@@ -67,6 +67,71 @@ export function parseListinoNoteParts(note: string | null | undefined): ParsedLi
   return { codice, unita, humanTail }
 }
 
+/** Nome prodotto senza suffissi OCR tipo RETURNS (stesso articolo, descrizione diversa). */
+export function normalizeListinoProductName(name: string): string {
+  return name
+    .trim()
+    .replace(/\s+returns?\s*$/i, '')
+    .replace(/[\s.,;:\-]+$/g, '')
+}
+
+/**
+ * Chiave di raggruppamento listino: preferisce `codice` dalla nota (es. MWB500),
+ * altrimenti nome normalizzato. Evita doppie voci per lo stesso SKU.
+ */
+export function listinoGroupKey(row: { prodotto: string; note?: string | null }): string {
+  const parsed = parseListinoNoteParts(row.note)
+  const codice = parsed.codice?.trim()
+  if (codice) return `cod:${codice.toUpperCase()}`
+  return `name:${normalizeListinoProductName(row.prodotto).toLowerCase()}`
+}
+
+/** Etichetta UI per un gruppo di righe (nome più completo, senza RETURNS se possibile). */
+export function listinoDisplayLabel(rows: { prodotto: string }[]): string {
+  const names = rows.map((r) => r.prodotto.trim()).filter(Boolean)
+  if (names.length === 0) return ''
+  const withoutReturns = names.filter((n) => !/\breturns?\b/i.test(n))
+  const pool = withoutReturns.length ? withoutReturns : names
+  return pool.reduce((best, n) => (n.length > best.length ? n : best))
+}
+
+/** Nomi prodotto alternativi nel gruppo (OCR / righe RETURNS), esclusa l'etichetta principale. */
+export function listinoGroupAliasNames(
+  rows: { prodotto: string }[],
+  displayLabel: string,
+): string[] {
+  const norm = displayLabel.trim().toLowerCase()
+  return [...new Set(rows.map((r) => r.prodotto.trim()).filter((n) => n && n.toLowerCase() !== norm))]
+}
+
+export function groupListinoRowsByProduct<T extends { prodotto: string; note?: string | null }>(
+  rows: T[],
+): Map<string, T[]> {
+  const map = new Map<string, T[]>()
+  for (const row of rows) {
+    const key = listinoGroupKey(row)
+    const arr = map.get(key) ?? []
+    arr.push(row)
+    map.set(key, arr)
+  }
+  return map
+}
+
+/** Record UI: chiave = etichetta display, valore = tutte le rilevazioni del gruppo. */
+export function buildListinoByProduct<T extends { prodotto: string; note?: string | null; data_prezzo: string }>(
+  rows: T[],
+): Record<string, T[]> {
+  const grouped = groupListinoRowsByProduct(rows)
+  const out: Record<string, T[]> = {}
+  for (const groupRows of grouped.values()) {
+    const label = listinoDisplayLabel(groupRows)
+    if (!out[label]) out[label] = []
+    out[label].push(...groupRows)
+    out[label].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+  }
+  return out
+}
+
 type PriceRow = { id: string; data_prezzo: string; prezzo: number }
 
 /** Latest row in calendar month of `dataYmd` (YYYY-MM-DD), excluding `excludeId` if set. */

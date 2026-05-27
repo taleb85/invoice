@@ -31,6 +31,9 @@ import {
   filterOutliersForTrend,
   isPromoListinoRow,
   LISTINO_SRC_FATTURA_MARK,
+  buildListinoByProduct,
+  listinoGroupAliasNames,
+  listinoGroupKey,
   parseListinoNoteParts,
   pickDisplayListinoRow,
   referencePriceForListinoRow,
@@ -3547,12 +3550,27 @@ function ListinoTab({
   const findBestListinoMatch = (
     prodotto: string,
     listinoData: ListinoProdotto[],
-    rekkiProductId?: string | null
+    opts?: { rekkiProductId?: string | null; codiceProdotto?: string | null },
   ): { prezzoAttuale: number; matchedProdotto: string; matchedByRekkiId?: boolean } | null => {
     if (listinoData.length === 0) return null
-    
-    // First try exact Rekki product ID match (highest priority)
-    if (rekkiProductId) {
+
+    if (opts?.codiceProdotto?.trim()) {
+      const code = opts.codiceProdotto.trim().toUpperCase()
+      const byCode = listinoData
+        .filter((row) => parseListinoNoteParts(row.note).codice?.trim().toUpperCase() === code)
+        .sort((a, b) => b.data_prezzo.localeCompare(a.data_prezzo))
+      const latestCode = byCode[0]
+      if (latestCode) {
+        return {
+          prezzoAttuale: latestCode.prezzo,
+          matchedProdotto: latestCode.prodotto,
+          matchedByRekkiId: false,
+        }
+      }
+    }
+
+    if (opts?.rekkiProductId?.trim()) {
+      const rekkiProductId = opts.rekkiProductId.trim()
       const exactRekkiMatch = listinoData.find(row => 
         row.rekki_product_id && row.rekki_product_id.trim() === rekkiProductId.trim()
       )
@@ -3573,14 +3591,12 @@ function ListinoTab({
       }
     }
     
-    // Fallback to product name fuzzy matching
-    // listinoData is ordered by data_prezzo ASC — last write per product = most recent price
-    const latestByProduct: Record<string, { prezzo: number; prodotto: string }> = {}
+    // Fallback: fuzzy match su etichette raggruppate per codice/nome
+    const latestByGroup: Record<string, { prezzo: number; prodotto: string }> = {}
     for (const row of listinoData) {
-      latestByProduct[row.prodotto] = { prezzo: row.prezzo, prodotto: row.prodotto }
+      latestByGroup[listinoGroupKey(row)] = { prezzo: row.prezzo, prodotto: row.prodotto }
     }
-    // Collect latest price for each product (last entry since ordered by data_prezzo)
-    const products = Object.values(latestByProduct)
+    const products = Object.values(latestByGroup)
 
     let bestMatch: { prezzoAttuale: number; matchedProdotto: string; matchedByRekkiId?: boolean } | null = null
     let bestScore = 0.3 // minimum threshold
@@ -3599,17 +3615,12 @@ function ListinoTab({
     items: Omit<ImportItem, 'prezzoAttuale' | 'matchedProdotto' | 'matchedByRekkiId' | 'delta' | 'isNew' | 'forceOutdated'>[],
     listinoData: ListinoProdotto[]
   ): ImportItem[] => {
-    const latestByProduct: Record<string, { prezzo: number; data: string }> = {}
-    for (const row of listinoData) {
-      const cur = latestByProduct[row.prodotto]
-      if (!cur || row.data_prezzo > cur.data) {
-        latestByProduct[row.prodotto] = { prezzo: row.prezzo, data: row.data_prezzo }
-      }
-    }
-
     return items.map(item => {
-      const match = findBestListinoMatch(item.prodotto, listinoData, item.rekki_product_id)
-      const prezzoAttuale = match ? latestByProduct[match.matchedProdotto]?.prezzo ?? null : null
+      const match = findBestListinoMatch(item.prodotto, listinoData, {
+        rekkiProductId: item.rekki_product_id,
+        codiceProdotto: item.codice_prodotto,
+      })
+      const prezzoAttuale = match?.prezzoAttuale ?? null
       const delta = prezzoAttuale != null && prezzoAttuale > 0
         ? ((item.prezzo - prezzoAttuale) / prezzoAttuale) * 100
         : null
@@ -4108,12 +4119,8 @@ function ListinoTab({
     }))
   }
 
-  /* Group listino by product and detect price changes */
-  const listinoByProduct = listino.reduce<Record<string, ListinoProdotto[]>>((acc, r) => {
-    if (!acc[r.prodotto]) acc[r.prodotto] = []
-    acc[r.prodotto].push(r)
-    return acc
-  }, {})
+  /* Group listino by codice articolo (o nome); unisce varianti OCR tipo "… RETURNS". */
+  const listinoByProduct = useMemo(() => buildListinoByProduct(listino), [listino])
 
   const fatturaIdsInRows = useMemo(
     () => new Set(rows.filter((r) => r.tipo === 'fattura').map((r) => r.id)),
@@ -5026,7 +5033,14 @@ function ListinoTab({
                             .replace('{delta}', fmtMoney(Math.abs(priceDelta)))
                             .replace('{pct}', pctLabel)
                         : t.fornitori.listinoLastFlat.replace('{pct}', pctLabel)
-                const parsed = parseListinoNoteParts(displayRow.note)
+                const parsed = (() => {
+                  for (const r of prezzi) {
+                    const p = parseListinoNoteParts(r.note)
+                    if (p.codice || p.unita) return p
+                  }
+                  return parseListinoNoteParts(displayRow.note)
+                })()
+                const aliasNames = listinoGroupAliasNames(prezzi, prodotto)
                 const fid = extractListinoSrcFatturaId(displayRow.note)
                 const originRow = fid ? rows.find((r) => r.tipo === 'fattura' && r.id === fid) : null
                 const originLine = originRow
@@ -5075,6 +5089,11 @@ function ListinoTab({
                         <h3 className="font-bold leading-tight tracking-tight text-white md:text-xl" style={{ fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)' }}>
                           {prodotto}
                         </h3>
+                        {aliasNames.length > 0 ? (
+                          <p className="mt-1 text-[11px] leading-snug text-app-fg-muted">
+                            {aliasNames.join(' · ')}
+                          </p>
+                        ) : null}
                         {parsed.codice || parsed.unita ? (
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             {parsed.codice ? (

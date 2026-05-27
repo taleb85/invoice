@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildListinoByProduct,
+  listinoGroupAliasNames,
+  listinoGroupKey,
   parseListinoNoteParts,
   isPromoListinoRow,
   filterOutliersForTrend,
@@ -54,6 +57,30 @@ describe('parseListinoNoteParts', () => {
     const r = parseListinoNoteParts('codice: · unita:24x33cl')
     expect(r.codice).toBeNull()
     expect(r.unita).toBe('24x33cl')
+  })
+})
+
+describe('listino product grouping', () => {
+  it('merges rows with same codice but different OCR product names', () => {
+    const rows = [
+      {
+        prodotto: '500cc BLACK MICROWAVE CONTAINER & LIDS',
+        note: 'Codice: MWB500 — per 250',
+        data_prezzo: '2026-02-20',
+      },
+      {
+        prodotto: '500cc BLACK MICROWAVE CONTAINER & LIDS RETURNS',
+        note: 'Codice: MWB500 — Unità: each',
+        data_prezzo: '2026-02-23',
+      },
+    ]
+    expect(listinoGroupKey(rows[0]!)).toBe(listinoGroupKey(rows[1]!))
+    const grouped = buildListinoByProduct(rows)
+    expect(Object.keys(grouped)).toHaveLength(1)
+    expect(grouped['500cc BLACK MICROWAVE CONTAINER & LIDS']).toHaveLength(2)
+    expect(listinoGroupAliasNames(rows, '500cc BLACK MICROWAVE CONTAINER & LIDS')).toEqual([
+      '500cc BLACK MICROWAVE CONTAINER & LIDS RETURNS',
+    ])
   })
 })
 

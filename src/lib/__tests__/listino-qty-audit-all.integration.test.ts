@@ -36,13 +36,14 @@ describe.skipIf(!enabled)('listino-qty-audit-all', () => {
         prodotto: string
         prezzo: number
         data_prezzo: string
+        note: string | null
       }[] = []
       const pageSize = 1000
       let from = 0
       while (true) {
         const { data: page, error } = await sb
           .from('listino_prezzi')
-          .select('id, fornitore_id, prodotto, prezzo, data_prezzo')
+          .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note')
           .order('id')
           .range(from, from + pageSize - 1)
         expect(error).toBeNull()

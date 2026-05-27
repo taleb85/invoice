@@ -1,3 +1,4 @@
+import { listinoGroupKey } from '@/lib/listino-display'
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 
 export type ListinoPriceAuditRow = {
@@ -6,10 +7,11 @@ export type ListinoPriceAuditRow = {
   prodotto: string
   prezzo: number
   data_prezzo: string
+  note?: string | null
 }
 
-function groupKey(fornitoreId: string, prodotto: string): string {
-  return `${fornitoreId}\0${prodotto.trim()}`
+function groupKey(fornitoreId: string, row: { prodotto: string; note?: string | null }): string {
+  return `${fornitoreId}\0${listinoGroupKey(row)}`
 }
 
 /**
@@ -39,7 +41,7 @@ export function findSuspiciousListinoRows(all: ListinoPriceAuditRow[]): ListinoP
       prezzo,
       data_prezzo: row.data_prezzo.slice(0, 10),
     }
-    const key = groupKey(row.fornitore_id, normalized.prodotto)
+    const key = groupKey(row.fornitore_id, normalized)
     const arr = byGroup.get(key) ?? []
     arr.push(normalized)
     byGroup.set(key, arr)
