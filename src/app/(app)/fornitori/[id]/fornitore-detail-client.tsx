@@ -5191,7 +5191,25 @@ function ListinoTab({
                         </div>
 
                         {originLine ? (
-                          <p className="text-xs leading-snug font-medium text-violet-300">{originLine}</p>
+                          /*
+                           * Link alla fattura d'origine quando disponibile.
+                           * `fid` arriva dal suffisso macchina `|listino_src_fattura:<uuid>|`
+                           * salvato da `/api/listino/importa-da-fattura`. Anche se
+                           * `originRow` è null (fattura senza importo, fuori dal set
+                           * `rows`), il link funziona perché /fatture/[id] accetta l'id.
+                           */
+                          fid ? (
+                            <p className="text-xs leading-snug font-medium text-violet-300">
+                              <Link
+                                href={`/fatture/${fid}`}
+                                className="underline decoration-violet-500/40 underline-offset-2 transition-colors hover:text-violet-200 hover:decoration-violet-300"
+                              >
+                                {originLine}
+                              </Link>
+                            </p>
+                          ) : (
+                            <p className="text-xs leading-snug font-medium text-violet-300">{originLine}</p>
+                          )
                         ) : null}
 
                         {/* Codice Rekki inline */}
