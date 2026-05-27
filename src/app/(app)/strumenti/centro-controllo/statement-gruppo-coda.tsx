@@ -17,6 +17,7 @@ import { formattaPriorita } from '@/lib/command-system/utils'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate } from '@/lib/locale'
+import { interpolateTemplate } from '@/lib/interpolate-template'
 
 type RigaDocumentoProps = {
   item: CodaItem
@@ -155,17 +156,17 @@ export default function StatementGruppoCoda({
     const rest = summary.numeriDoc.length - shown.length
     const list = shown.join(', ')
     if (rest > 0) {
-      return `${list} ${tc.queueStatementGroupRefsMore.replace('{n}', String(rest))}`
+      return `${list} ${interpolateTemplate(tc.queueStatementGroupRefsMore, { n: rest }, `+${rest}`)}`
     }
     return list
   }, [summary.numeriDoc, tc.queueStatementGroupRefsMore])
 
   const metaParts = useMemo(() => {
     const parts: string[] = [
-      tc.queueStatementGroupRows.replace('{n}', String(items.length)),
+      interpolateTemplate(tc.queueStatementGroupRows, { n: items.length }, `${items.length} rows`),
     ]
     if (totalFormatted) {
-      parts.push(tc.queueStatementGroupTotal.replace('{amount}', totalFormatted))
+      parts.push(interpolateTemplate(tc.queueStatementGroupTotal, { amount: totalFormatted }, totalFormatted))
     }
     return parts.join(' · ')
   }, [items.length, totalFormatted, tc])
@@ -198,12 +199,16 @@ export default function StatementGruppoCoda({
             <p className="text-xs text-app-fg-muted">{metaParts}</p>
             {docDateLabel && (
               <p className="text-[11px] text-app-fg-muted/80">
-                {tc.queueStatementGroupDocDates.replace('{range}', docDateLabel)}
+                {interpolateTemplate(
+                  tc.queueStatementGroupDocDates,
+                  { range: docDateLabel },
+                  docDateLabel,
+                )}
               </p>
             )}
             {refsLabel && (
               <p className="text-[11px] font-mono text-app-fg-muted/70 truncate" title={summary.numeriDoc.join(', ')}>
-                {tc.queueStatementGroupRefs.replace('{list}', refsLabel)}
+                {interpolateTemplate(tc.queueStatementGroupRefs, { list: refsLabel }, refsLabel)}
               </p>
             )}
             {statusChips.length > 0 && (

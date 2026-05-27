@@ -45,6 +45,7 @@ import RifiutaFatturaDialog from './_dialogs/rifiuta-fattura-dialog'
 import AssegnaFatturaDialog from './_dialogs/assegna-fattura-dialog'
 import StatementGruppoCoda from './statement-gruppo-coda'
 import { buildCodaDisplayEntries } from '@/lib/centro-controllo-coda-grouping'
+import { interpolateTemplate } from '@/lib/interpolate-template'
 
 INITIALIZE_COMMANDS()
 
@@ -867,21 +868,32 @@ export default function CentroControlloClient({ sedeId }: Props) {
         const remaining = data.assoc?.remaining ?? 0
         const imported = data.ricerca?.imported ?? 0
 
+        const tc = t.strumentiCentroControllo
         if (remaining === 0 && resolved > 0) {
           showToast(
-            t.strumentiCentroControllo.queueStatementGroupResolveAllDone.replace('{n}', String(resolved)),
+            interpolateTemplate(
+              tc.queueStatementGroupResolveAllDone,
+              { n: resolved },
+              `${resolved} rows resolved`,
+            ),
             'success',
           )
         } else if (remaining > 0) {
-          let msg = t.strumentiCentroControllo.queueStatementGroupResolvePartial
-            .replace('{resolved}', String(resolved))
-            .replace('{remaining}', String(remaining))
+          let msg = interpolateTemplate(
+            tc.queueStatementGroupResolvePartial,
+            { resolved, remaining },
+            `Done: ${resolved} resolved, ${remaining} still in queue`,
+          )
           if (imported > 0) {
-            msg += ` ${t.strumentiCentroControllo.queueStatementGroupResolveImported.replace('{n}', String(imported))}`
+            msg += ` ${interpolateTemplate(
+              tc.queueStatementGroupResolveImported,
+              { n: imported },
+              `Imported ${imported} from email`,
+            )}`
           }
           showToast(msg, 'info')
         } else if (resolved === 0 && remaining === 0) {
-          showToast(t.strumentiCentroControllo.statementPipelineNoResolvable, 'info')
+          showToast(tc.statementPipelineNoResolvable ?? 'No rows to resolve', 'info')
         }
 
         if (data.ricerca?.error) {

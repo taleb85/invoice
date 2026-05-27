@@ -117,8 +117,10 @@ export function formatStatementStatusCount(
   key: StatementCheckStatusKey,
   labels: StatementStatusCountLabels,
 ): string {
-  const tpl = n === 1 ? labels[key].one : labels[key].many
-  return tpl.replace('{n}', String(n))
+  const entry = labels[key]
+  const tpl = n === 1 ? entry?.one : entry?.many
+  if (!tpl) return `${n} ${key.replace(/_/g, ' ')}`
+  return tpl.replaceAll('{n}', String(n))
 }
 
 const STATUS_CHIP_CLASS: Record<StatementCheckStatusKey, string> = {
