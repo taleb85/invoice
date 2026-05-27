@@ -1062,6 +1062,12 @@ export type Translations = {
     listinoKpiAriaFatture: string
     listinoKpiAriaBolle: string
     listinoHistoryDepth: string
+    listinoShowHistory: string
+    listinoHistoryColDate: string
+    listinoHistoryColPrice: string
+    listinoHistoryColChange: string
+    listinoHistoryColOrigin: string
+    listinoHistoryCurrent: string
     listinoPriceStaleBadge: string
     listinoPriceStaleHint: string
     preferredLanguageEmail: string
