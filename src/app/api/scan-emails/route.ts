@@ -260,6 +260,54 @@ async function insertDocumento(
     }
   }
 
+  /*
+   * Dedup specifico FATTURA / BOLLA: se l'OCR ha già identificato il numero del
+   * documento (presente in `metadata.numero_fattura`), controlla se esiste già
+   * un record corrispondente in `fatture` o `bolle` per la terna
+   * (fornitore_id, numero, data). Questo evita che lo stesso PDF, ricaricato
+   * sotto un `file_url` UUID diverso a ogni ricezione email, generi un nuovo
+   * doc-coda → nuovo record in fatture/bolle. Caso storico osservato: Eden
+   * Springs `316074277` salvata 21 volte, Eden Springs `316103267` 18 volte,
+   * Enotria `SN8103261` 10 volte — tutte stesse terne, file_url diversi.
+   */
+  if (!isStatementInsert && fornitoreId) {
+    const meta = (payload as Record<string, unknown>).metadata as
+      | Record<string, unknown>
+      | undefined
+    const ocrNumero = typeof meta?.numero_fattura === 'string' ? meta.numero_fattura.trim() : ''
+    const ocrData = typeof meta?.data_fattura === 'string' ? meta.data_fattura.trim() : ''
+    const ocrTipo = typeof meta?.tipo_documento === 'string' ? meta.tipo_documento.trim().toLowerCase() : ''
+    const lookupDate = ocrData || dataDoc
+    if (ocrNumero && lookupDate) {
+      const looksLikeBolla = /bolla|ddt|delivery|nota.*consegna/i.test(ocrTipo)
+      if (looksLikeBolla) {
+        const { data: bollaExists } = await supabase
+          .from('bolle')
+          .select('id')
+          .eq('fornitore_id', fornitoreId)
+          .eq('numero_bolla', ocrNumero)
+          .eq('data', lookupDate)
+          .limit(1)
+          .maybeSingle()
+        if (bollaExists?.id) {
+          return null
+        }
+      } else {
+        const { data: fatturaExists } = await supabase
+          .from('fatture')
+          .select('id')
+          .eq('fornitore_id', fornitoreId)
+          .eq('numero_fattura', ocrNumero)
+          .eq('data', lookupDate)
+          .limit(1)
+          .maybeSingle()
+        if (fatturaExists?.id) {
+          return null
+        }
+      }
+    }
+  }
+
   const { error } = await supabase.from('documenti_da_processare').insert([payloadNorm])
 
   if (error) {
