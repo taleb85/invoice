@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
-import { logActivity } from '@/lib/activity-logger'
+import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 import {
   buildEdenSpringsFixPlan,
   findEdenSpringsFornitoreIds,
@@ -214,8 +214,10 @@ export async function POST(req: NextRequest) {
     await logActivity(service, {
       userId: profile.id,
       sedeId,
-      action: 'eden_springs.fix',
-      details: {
+      action: ACTIVITY_ACTIONS.FATTURA_DUPLICATE_CLEANUP,
+      entityType: 'fatture',
+      metadata: {
+        source: 'eden_springs.fix',
         cleared,
         deleted,
         reocr_updated: reocrUpdates.length,
