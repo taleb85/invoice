@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sparkles, Trash2, Zap } from 'lucide-react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
@@ -21,7 +21,15 @@ import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
  * Idempotente: i documenti già auditati vengono skippati ai cicli successivi.
  */
 
-type Phase = 'deterministic' | 'ai' | 'cleanup_misclassified'
+type Phase = 'deterministic' | 'ai' | 'completo' | 'cleanup_misclassified'
+
+type AuditPendingCounts = {
+  total: number
+  pass1_remaining: number
+  pass2_remaining: number
+  completo_remaining: number
+  completo_done: number
+}
 
 type AuditChange = {
   doc_id: string
@@ -113,6 +121,32 @@ export default function AuditAndFixAllCard() {
     errors: number
   } | null>(null)
   const [cleanupError, setCleanupError] = useState<string | null>(null)
+  const [pendingCounts, setPendingCounts] = useState<AuditPendingCounts | null>(null)
+
+  const refreshPendingCounts = useCallback(async () => {
+    try {
+      const qs = sedeCtx.effectiveSedeId
+        ? `?sede_id=${encodeURIComponent(sedeCtx.effectiveSedeId)}`
+        : ''
+      const res = await fetch(`/api/admin/audit-and-fix-all${qs}`, { credentials: 'include' })
+      const json = (await res.json()) as AuditPendingCounts & { ok?: boolean }
+      if (res.ok && json.ok !== false) {
+        setPendingCounts({
+          total: json.total,
+          pass1_remaining: json.pass1_remaining,
+          pass2_remaining: json.pass2_remaining,
+          completo_remaining: json.completo_remaining,
+          completo_done: json.completo_done,
+        })
+      }
+    } catch {
+      // non bloccare la card se lo status fallisce
+    }
+  }, [sedeCtx.effectiveSedeId])
+
+  useEffect(() => {
+    void refreshPendingCounts()
+  }, [refreshPendingCounts])
 
   const runOneBatch = useCallback(
     async (
@@ -147,7 +181,7 @@ export default function AuditAndFixAllCard() {
       setTotals(runningTotals)
       setRecentChanges([])
 
-      const HARD_LIMIT = 200
+      const HARD_LIMIT = currentPhase === 'deterministic' ? 200 : 700
       let consecutiveErrors = 0
       let afterId: string | null | undefined
 
@@ -207,8 +241,8 @@ export default function AuditAndFixAllCard() {
           : mode === 'deterministic'
             ? 'Avvia ricontrollo veloce sui documenti in coda non ancora auditati? Corregge fornitore + tipo dove la catena di qualità è certa (2/3 segnali). Non rilegge i PDF.'
             : mode === 'ai_only'
-              ? 'Avvia SOLO la passata AI Gemini? Scarica e riclassifica ogni file: può essere lento e consumare quota Gemini.'
-              : 'Avvia ricontrollo COMPLETO (passata veloce + passata AI Gemini)? L\'AI rallenta significativamente e consuma quota.'
+              ? 'Avvia SOLO la passata AI Gemini sui documenti con file non ancora analizzati dall\'AI? Scarica e riclassifica ogni PDF: lento e consuma quota Gemini.'
+              : 'Avvia «Completo + AI» su tutti i documenti in coda (fatture, bolle, ordini, estratti, ecc.) non ancora completati? Per ogni documento: passata veloce sui metadata + Gemini Vision sul PDF se presente. Salva un checkpoint: ai richiami successivi analizza solo i documenti nuovi.'
       if (!confirm(confirmMsg)) return
 
       abortRef.current = false
@@ -220,10 +254,12 @@ export default function AuditAndFixAllCard() {
       setTotals(EMPTY_TOTALS)
 
       try {
-        if (mode === 'deterministic' || mode === 'deterministic_force' || mode === 'with_ai') {
+        if (mode === 'deterministic' || mode === 'deterministic_force') {
           await runPhase('deterministic', { force })
+        } else if (mode === 'with_ai') {
+          await runPhase('completo')
         }
-        if (!abortRef.current && (mode === 'with_ai' || mode === 'ai_only')) {
+        if (!abortRef.current && mode === 'ai_only') {
           await runPhase('ai')
         }
       } catch (e) {
@@ -232,9 +268,10 @@ export default function AuditAndFixAllCard() {
         setBusy(false)
         setDone(true)
         setPhase(null)
+        void refreshPendingCounts()
       }
     },
-    [runPhase],
+    [runPhase, refreshPendingCounts],
   )
 
   const handleStop = useCallback(() => {
@@ -339,11 +376,21 @@ export default function AuditAndFixAllCard() {
             </span>
           </h3>
           <p className="mt-1 text-xs text-app-fg-muted">
-            Solo righe in <strong className="font-medium text-app-fg">documenti da processare</strong>:
-            ricalcola fornitore/tipo/data dai <strong className="font-medium text-app-fg">metadata OCR già salvati</strong>{' '}
-            (email, nome file) — <strong className="font-medium text-app-fg">non apre i PDF</strong>.
-            I documenti già auditati vengono saltati; usa «Riesegui (forza)» o «Completo + AI» per un secondo giro.
-            Per date/importi sulle fatture archiviate: Fix date OCR o «Rileggi documento».
+            Solo righe in <strong className="font-medium text-app-fg">documenti da processare</strong>{' '}
+            (qualsiasi tipo: fattura, bolla, ordine, estratto, listino, …).
+            <strong className="font-medium text-app-fg"> Veloce</strong> usa solo metadata OCR salvati — non
+            apre i PDF. <strong className="font-medium text-app-fg">Completo + AI</strong> fa passata veloce +
+            Gemini Vision sul file e salva <code className="text-[10px]">audit_completo_at</code>: al richiamo
+            salta i documenti già controllati.
+            {pendingCounts ? (
+              <>
+                {' '}
+                Checkpoint:{' '}
+                <strong className="font-medium text-app-fg">{pendingCounts.completo_done}</strong> completati,{' '}
+                <strong className="font-medium text-app-fg">{pendingCounts.completo_remaining}</strong> in
+                attesa «Completo + AI».
+              </>
+            ) : null}
           </p>
         </div>
         {busy ? (
@@ -380,10 +427,20 @@ export default function AuditAndFixAllCard() {
           type="button"
           disabled={busy || cleanupBusy}
           onClick={() => handleStart('with_ai')}
+          title={
+            pendingCounts
+              ? `${pendingCounts.completo_remaining} documenti in attesa di Completo + AI`
+              : 'Passata veloce + Gemini Vision, con checkpoint incrementale'
+          }
           className="touch-manipulation rounded-lg border border-purple-500/40 bg-purple-500/8 px-3 py-1.5 text-xs font-semibold text-purple-200/95 transition-colors hover:bg-purple-500/15 disabled:opacity-50"
         >
           <Sparkles className="-mt-0.5 mr-1 inline-block h-3.5 w-3.5" />
           Completo + AI (lento)
+          {pendingCounts && pendingCounts.completo_remaining > 0 ? (
+            <span className="ml-1 rounded-full bg-purple-500/25 px-1.5 py-0.5 text-[9px] font-bold">
+              {pendingCounts.completo_remaining}
+            </span>
+          ) : null}
         </button>
         <button
           type="button"
@@ -494,9 +551,11 @@ export default function AuditAndFixAllCard() {
             <span>
               {phase === 'deterministic'
                 ? 'Passata veloce in corso…'
-                : phase === 'ai'
-                  ? 'Passata AI Gemini in corso…'
-                  : 'Avvio…'}
+                : phase === 'completo'
+                  ? 'Completo + AI in corso (metadata + Gemini)…'
+                  : phase === 'ai'
+                    ? 'Passata AI Gemini in corso…'
+                    : 'Avvio…'}
             </span>
             {totals.initialRemaining ? (
               <span className="text-app-fg-muted">

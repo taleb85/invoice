@@ -4,10 +4,13 @@ import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import {
   auditAndFixDeterministic,
   auditAndFixWithAi,
+  auditAndFixCompleto,
   auditAndCleanupMisclassified,
   auditAndCleanupOrphanConfermeOrdine,
+  getAuditPendingCounts,
   type AuditBatchResult,
   type AuditPhase,
+  type AuditPendingCounts,
 } from '@/lib/audit-and-fix-all'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 
@@ -33,6 +36,8 @@ type Body = {
     | 'ai'
     | 'pass1'
     | 'pass2'
+    | 'completo'
+    | 'with_ai'
     | 'cleanup_misclassified'
     | 'cleanup'
     | 'cleanup_conferme_ordine'
@@ -52,6 +57,82 @@ type ApiResponse =
   | (AuditBatchResult & { ok: true })
   | { ok: false; error: string }
 
+type StatusResponse =
+  | ({ ok: true } & AuditPendingCounts)
+  | { ok: false; error: string }
+
+async function resolveAuditAuth(req: NextRequest): Promise<
+  | { ok: true; userId: string | null; scopedSedeId: string | null }
+  | { ok: false; response: NextResponse<ApiResponse | StatusResponse> }
+> {
+  const cronSecret = process.env.CRON_SECRET?.trim()
+  const authHeader = req.headers.get('authorization')?.trim() ?? ''
+  const cronAuthorized = !!cronSecret && authHeader === `Bearer ${cronSecret}`
+
+  if (cronAuthorized) {
+    return { ok: true, userId: null, scopedSedeId: null }
+  }
+
+  const profile = await getProfile()
+  if (!profile) {
+    return { ok: false, response: jsonError('Non autenticato', 401) }
+  }
+  const role = String(profile.role ?? '').toLowerCase()
+  if (role === 'operatore') {
+    return { ok: false, response: jsonError('Operatore: non autorizzato', 403) }
+  }
+  if (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role)) {
+    return { ok: false, response: jsonError('Solo amministratore o responsabile sede', 403) }
+  }
+
+  return {
+    ok: true,
+    userId: profile.id,
+    scopedSedeId: isSedePrivilegedRole(profile.role)
+      ? profile.sede_id?.trim() ?? null
+      : null,
+  }
+}
+
+function resolveSedeFilter(
+  scopedSedeId: string | null,
+  requestedSede: string,
+): { sedeFilter: string | null; error?: NextResponse<ApiResponse | StatusResponse> } {
+  const sedeFilter =
+    scopedSedeId !== null ? scopedSedeId : requestedSede || null
+
+  if (scopedSedeId !== null && requestedSede && requestedSede !== scopedSedeId) {
+    return { sedeFilter, error: jsonError('Sede non consentita', 403) }
+  }
+
+  return { sedeFilter }
+}
+
+/**
+ * GET `/api/admin/audit-and-fix-all?sede_id=…`
+ *
+ * Conteggi checkpoint per passata veloce, AI e «Completo + AI».
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const auth = await resolveAuditAuth(req)
+    if (!auth.ok) return auth.response
+
+    const requestedSede = req.nextUrl.searchParams.get('sede_id')?.trim() ?? ''
+    const { sedeFilter, error } = resolveSedeFilter(auth.scopedSedeId, requestedSede)
+    if (error) return error
+
+    const service = createServiceClient()
+    const counts = await getAuditPendingCounts(service, sedeFilter)
+
+    return NextResponse.json<StatusResponse>({ ok: true, ...counts })
+  } catch (e) {
+    console.error('[audit-and-fix-all:status]', e)
+    const msg = e instanceof Error ? e.message : 'Errore sconosciuto'
+    return jsonError(msg, 500)
+  }
+}
+
 /**
  * POST `/api/admin/audit-and-fix-all`
  *
@@ -70,6 +151,9 @@ type ApiResponse =
  *   con Gemini, prova match fornitore per nome. Applica solo se confidenza ≥ 0.85.
  *   Batch di 5, marca `metadata.audit_pass2_at`.
  *
+ * - **completo** / **with_ai** — pass1 + pass2 per documento, poi checkpoint
+ *   `metadata.audit_completo_at` (incrementale: solo documenti nuovi al richiamo).
+ *
  * Auth:
  * - Se header `Authorization: Bearer <CRON_SECRET>` → autorizzato come admin (per CLI)
  * - Altrimenti richiede session admin / sede_privileged
@@ -78,32 +162,10 @@ type ApiResponse =
  */
 export async function POST(req: NextRequest) {
   try {
-    // ── 1. Auth: Bearer CRON_SECRET o sessione admin ──────────────────────────
-    const cronSecret = process.env.CRON_SECRET?.trim()
-    const authHeader = req.headers.get('authorization')?.trim() ?? ''
-    const cronAuthorized = !!cronSecret && authHeader === `Bearer ${cronSecret}`
+    const auth = await resolveAuditAuth(req)
+    if (!auth.ok) return auth.response
 
-    let userId: string | null = null
-    let scopedSedeId: string | null = null
-
-    if (!cronAuthorized) {
-      const profile = await getProfile()
-      if (!profile) {
-        return jsonError('Non autenticato', 401)
-      }
-      const role = String(profile.role ?? '').toLowerCase()
-      if (role === 'operatore') {
-        return jsonError('Operatore: non autorizzato', 403)
-      }
-      if (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role)) {
-        return jsonError('Solo amministratore o responsabile sede', 403)
-      }
-      userId = profile.id
-      // sede_privileged è limitato alla propria sede
-      if (isSedePrivilegedRole(profile.role)) {
-        scopedSedeId = profile.sede_id?.trim() ?? null
-      }
-    }
+    const { userId, scopedSedeId } = auth
 
     // ── 2. Body & params ─────────────────────────────────────────────────────
     let body: Body = {}
@@ -116,6 +178,7 @@ export async function POST(req: NextRequest) {
     const rawPhase = String(body.phase ?? 'deterministic').toLowerCase().trim()
     let phase: AuditPhase
     if (rawPhase === 'ai' || rawPhase === 'pass2') phase = 'ai'
+    else if (rawPhase === 'completo' || rawPhase === 'with_ai') phase = 'completo'
     else if (rawPhase === 'cleanup' || rawPhase === 'cleanup_misclassified')
       phase = 'cleanup_misclassified'
     else if (rawPhase === 'cleanup_conferme_ordine' || rawPhase === 'cleanup_co')
@@ -125,15 +188,8 @@ export async function POST(req: NextRequest) {
     const requestedSede =
       typeof body.sede_id === 'string' ? body.sede_id.trim() : ''
 
-    // sede_privileged: forza la propria sede; admin/master/CRON: usa quella richiesta
-    const sedeFilter =
-      scopedSedeId !== null
-        ? scopedSedeId
-        : requestedSede || null
-
-    if (scopedSedeId !== null && requestedSede && requestedSede !== scopedSedeId) {
-      return jsonError('Sede non consentita', 403)
-    }
+    const { sedeFilter, error: sedeError } = resolveSedeFilter(scopedSedeId, requestedSede)
+    if (sedeError) return sedeError
 
     const batchSize =
       typeof body.batch_size === 'number' && Number.isFinite(body.batch_size)
@@ -146,16 +202,31 @@ export async function POST(req: NextRequest) {
         ? body.after_id.trim()
         : null
 
-    // ── 3. Pre-check Gemini key per pass2 ────────────────────────────────────
-    if (phase === 'ai' && !process.env.GEMINI_API_KEY?.trim()) {
-      return jsonError('GEMINI_API_KEY non configurata: pass2 (AI) non disponibile', 503)
+    // ── 3. Pre-check Gemini key per pass2 / completo ─────────────────────────
+    if (
+      (phase === 'ai' || phase === 'completo') &&
+      !process.env.GEMINI_API_KEY?.trim()
+    ) {
+      return jsonError(
+        phase === 'completo'
+          ? 'GEMINI_API_KEY non configurata: Completo + AI non disponibile'
+          : 'GEMINI_API_KEY non configurata: pass2 (AI) non disponibile',
+        503,
+      )
     }
 
     const service = createServiceClient()
 
     // ── 4. Esegui passata richiesta ──────────────────────────────────────────
     let result: AuditBatchResult
-    if (phase === 'ai') {
+    if (phase === 'completo') {
+      result = await auditAndFixCompleto(service, {
+        sedeId: sedeFilter,
+        batchSize,
+        force,
+        afterId,
+      })
+    } else if (phase === 'ai') {
       result = await auditAndFixWithAi(service, {
         sedeId: sedeFilter,
         batchSize,
@@ -211,6 +282,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function jsonError(message: string, status: number): NextResponse<ApiResponse> {
+function jsonError(
+  message: string,
+  status: number,
+): NextResponse<ApiResponse | StatusResponse> {
   return NextResponse.json<ApiResponse>({ ok: false, error: message }, { status })
 }

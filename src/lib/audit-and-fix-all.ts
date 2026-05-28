@@ -13,9 +13,10 @@ import { logger } from '@/lib/logger'
  * Chiamato in loop dall'endpoint `/api/admin/audit-and-fix-all`. Ogni invocazione
  * processa un piccolo batch e ritorna `has_more` finché restano documenti idonei.
  *
- * Idempotente: marca `metadata.audit_pass1_at` (passata deterministica) e
- * `metadata.audit_pass2_at` (passata AI) sui documenti già revisionati così
- * non vengono ritoccati ai cicli successivi.
+ * Idempotente: marca `metadata.audit_pass1_at` (passata deterministica),
+ * `metadata.audit_pass2_at` (passata AI) e `metadata.audit_completo_at`
+ * (passata «Completo + AI») sui documenti già revisionati così non vengono
+ * ritoccati ai cicli successivi.
  */
 
 // ── Soglie ────────────────────────────────────────────────────────────────────
@@ -32,8 +33,19 @@ const ORDER_CONFIRMATION_PATTERN =
 export type AuditPhase =
   | 'deterministic'
   | 'ai'
+  | 'completo'
   | 'cleanup_misclassified'
   | 'cleanup_conferme_ordine'
+
+export type AuditPendingCounts = {
+  total: number
+  pass1_remaining: number
+  pass2_remaining: number
+  /** Documenti in coda non ancora completati con «Completo + AI». */
+  completo_remaining: number
+  /** Documenti con checkpoint `audit_completo_at` (incrementale). */
+  completo_done: number
+}
 
 export type AuditDocChange = {
   doc_id: string
@@ -200,6 +212,123 @@ export async function auditAndFixDeterministic(
     } catch (e) {
       result.errors++
       logger.error('[audit-and-fix:pass1] doc', doc.id, e)
+    }
+  }
+
+  result.next_after_id = docs[docs.length - 1]?.id ?? null
+  result.has_more = docs.length === batchSize
+  return result
+}
+
+type PassCompletoOpts = {
+  sedeId?: string | null
+  /** Default 5 (include Gemini Vision per ogni file). */
+  batchSize?: number
+  force?: boolean
+  afterId?: string | null
+}
+
+/**
+ * Passata «Completo + AI»: per ogni documento in coda (qualsiasi tipo) esegue
+ * pass1 deterministica + pass2 Gemini (se c'è un file), poi marca
+ * `metadata.audit_completo_at` come checkpoint. Ai richiami successivi vengono
+ * processati solo i documenti nuovi o mai completati.
+ */
+export async function auditAndFixCompleto(
+  service: SupabaseClient,
+  opts: PassCompletoOpts = {},
+): Promise<AuditBatchResult> {
+  const batchSize = Math.min(Math.max(opts.batchSize ?? 5, 1), 10)
+  const result: AuditBatchResult = {
+    phase: 'completo',
+    checked: 0,
+    fornitore_fixed: 0,
+    tipo_fixed: 0,
+    flagged_for_review: 0,
+    unchanged: 0,
+    errors: 0,
+    has_more: false,
+    changes: [],
+    remaining_estimate: 0,
+  }
+
+  if (!process.env.GEMINI_API_KEY?.trim()) {
+    throw new Error('GEMINI_API_KEY non configurata')
+  }
+
+  let q = service
+    .from('documenti_da_processare')
+    .select(DOC_SELECT)
+    .order('id', { ascending: true })
+
+  if (!opts.force) {
+    q = q.is('metadata->>audit_completo_at', null) as typeof q
+  }
+  if (opts.sedeId) {
+    q = q.eq('sede_id', opts.sedeId) as typeof q
+  }
+  q = applyDocBatchCursor(q, opts.afterId)
+
+  const { data, error } = await q.limit(batchSize).returns<DocRow[]>()
+
+  if (error) {
+    logger.error('[audit-and-fix:completo] fetch error:', error.message)
+    result.errors = 1
+    return result
+  }
+
+  const remaining = await countRemaining(service, opts.sedeId ?? null, 'completo', !!opts.force)
+  result.remaining_estimate = remaining
+
+  const docs = data ?? []
+  if (!docs.length) return result
+
+  for (const doc of docs) {
+    result.checked++
+    try {
+      const change1 = await applyDeterministicFix(service, doc)
+      if (change1) {
+        result.changes.push(change1)
+        if (change1.fornitore_id_before !== change1.fornitore_id_after) result.fornitore_fixed++
+        if (change1.tipo_before !== change1.tipo_after) result.tipo_fixed++
+      }
+
+      const { data: refreshed, error: refErr } = await service
+        .from('documenti_da_processare')
+        .select(DOC_SELECT)
+        .eq('id', doc.id)
+        .maybeSingle()
+
+      if (refErr) {
+        logger.error('[audit-and-fix:completo] refresh err', doc.id, refErr.message)
+      }
+
+      const current = (refreshed ?? doc) as DocRow
+
+      if (current.file_url?.trim()) {
+        const change2 = await applyAiFix(service, current)
+        if (change2 === 'flagged') {
+          result.flagged_for_review++
+        } else if (change2) {
+          result.changes.push(change2)
+          if (change2.fornitore_id_before !== change2.fornitore_id_after) result.fornitore_fixed++
+          if (change2.tipo_before !== change2.tipo_after) result.tipo_fixed++
+        } else if (!change1) {
+          result.unchanged++
+        }
+      } else if (!change1) {
+        result.unchanged++
+      }
+
+      await stampCompletoCheckpoint(service, doc.id)
+    } catch (e) {
+      result.errors++
+      logger.error('[audit-and-fix:completo] doc', doc.id, e)
+      try {
+        await stampCompletoCheckpoint(service, doc.id)
+      } catch (stampErr) {
+        logger.error('[audit-and-fix:completo] checkpoint err', doc.id, stampErr)
+      }
     }
   }
 
@@ -679,6 +808,30 @@ async function stampPass2(
     .update({ metadata: meta })
     .eq('id', docId)
   if (error) logger.error('[audit-and-fix:pass2] stamp err', docId, error.message)
+}
+
+/** Checkpoint unico per «Completo + AI»: merge su metadata esistente. */
+async function stampCompletoCheckpoint(service: SupabaseClient, docId: string): Promise<void> {
+  const { data, error: fetchErr } = await service
+    .from('documenti_da_processare')
+    .select('metadata')
+    .eq('id', docId)
+    .maybeSingle()
+
+  if (fetchErr) {
+    logger.error('[audit-and-fix:completo] checkpoint fetch err', docId, fetchErr.message)
+    return
+  }
+
+  const meta = sanitizeMetadata(data?.metadata)
+  meta.audit_completo_at = new Date().toISOString()
+
+  const { error } = await service
+    .from('documenti_da_processare')
+    .update({ metadata: meta })
+    .eq('id', docId)
+
+  if (error) logger.error('[audit-and-fix:completo] checkpoint stamp err', docId, error.message)
 }
 
 // ── Pass 3: cleanup misclassified ─────────────────────────────────────────────
@@ -1610,10 +1763,33 @@ export async function auditAndCleanupOrphanConfermeOrdine(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+export async function getAuditPendingCounts(
+  service: SupabaseClient,
+  sedeId?: string | null,
+): Promise<AuditPendingCounts> {
+  let totalQ = service
+    .from('documenti_da_processare')
+    .select('id', { count: 'exact', head: true })
+  if (sedeId) {
+    totalQ = totalQ.eq('sede_id', sedeId) as typeof totalQ
+  }
+  const { count: total } = await totalQ
+  const totalN = total ?? 0
+  const completoRemaining = await countRemaining(service, sedeId ?? null, 'completo', false)
+
+  return {
+    total: totalN,
+    pass1_remaining: await countRemaining(service, sedeId ?? null, 'pass1', false),
+    pass2_remaining: await countRemaining(service, sedeId ?? null, 'pass2', false),
+    completo_remaining: completoRemaining,
+    completo_done: Math.max(0, totalN - completoRemaining),
+  }
+}
+
 async function countRemaining(
   service: SupabaseClient,
   sedeId: string | null,
-  pass: 'pass1' | 'pass2' | 'cleanup',
+  pass: 'pass1' | 'pass2' | 'completo' | 'cleanup',
   force: boolean,
 ): Promise<number> {
   let q = service
@@ -1634,7 +1810,9 @@ async function countRemaining(
         ? 'metadata->>audit_pass1_at'
         : pass === 'pass2'
           ? 'metadata->>audit_pass2_at'
-          : 'metadata->>audit_cleanup_at'
+          : pass === 'completo'
+            ? 'metadata->>audit_completo_at'
+            : 'metadata->>audit_cleanup_at'
     q = q.is(key, null) as typeof q
   }
   if (sedeId) {
