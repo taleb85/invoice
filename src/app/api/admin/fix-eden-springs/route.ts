@@ -210,17 +210,19 @@ export async function POST(req: NextRequest) {
     deleted += count ?? slice.length
   }
 
-  await logActivity(service, {
-    userId: profile?.id ?? null,
-    sedeId,
-    action: 'eden_springs.fix',
-    details: {
-      cleared,
-      deleted,
-      reocr_updated: reocrUpdates.length,
-      fornitore_ids: fornitoreIds,
-    },
-  })
+  if (profile?.id) {
+    await logActivity(service, {
+      userId: profile.id,
+      sedeId,
+      action: 'eden_springs.fix',
+      details: {
+        cleared,
+        deleted,
+        reocr_updated: reocrUpdates.length,
+        fornitore_ids: fornitoreIds,
+      },
+    })
+  }
 
   return NextResponse.json({
     ok: true,
