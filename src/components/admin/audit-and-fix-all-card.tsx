@@ -60,6 +60,7 @@ type BatchResult = {
   cleanup_actions?: CleanupAction[]
   dry_run?: boolean
   remaining_estimate: number
+  next_after_id?: string | null
   error?: string
 }
 
@@ -114,7 +115,10 @@ export default function AuditAndFixAllCard() {
   const [cleanupError, setCleanupError] = useState<string | null>(null)
 
   const runOneBatch = useCallback(
-    async (currentPhase: Phase, opts?: { dryRun?: boolean; force?: boolean }): Promise<BatchResult> => {
+    async (
+      currentPhase: Phase,
+      opts?: { dryRun?: boolean; force?: boolean; afterId?: string | null },
+    ): Promise<BatchResult> => {
       const res = await fetch('/api/admin/audit-and-fix-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -124,6 +128,7 @@ export default function AuditAndFixAllCard() {
           ...(sedeCtx.effectiveSedeId ? { sede_id: sedeCtx.effectiveSedeId } : {}),
           ...(opts?.dryRun ? { dry_run: true } : {}),
           ...(opts?.force ? { force: true } : {}),
+          ...(opts?.afterId ? { after_id: opts.afterId } : {}),
         }),
       })
       const json = (await res.json()) as BatchResult
@@ -144,12 +149,13 @@ export default function AuditAndFixAllCard() {
 
       const HARD_LIMIT = 200
       let consecutiveErrors = 0
+      let afterId: string | null | undefined
 
       for (let i = 0; i < HARD_LIMIT; i++) {
         if (abortRef.current) break
         let result: BatchResult
         try {
-          result = await runOneBatch(currentPhase, { force: opts?.force })
+          result = await runOneBatch(currentPhase, { force: opts?.force, afterId })
           consecutiveErrors = 0
         } catch (e) {
           consecutiveErrors++
@@ -183,7 +189,8 @@ export default function AuditAndFixAllCard() {
           setRecentChanges((prev) => [...result.changes.slice(0, 3), ...prev].slice(0, 8))
         }
 
-        if (!result.has_more) break
+        afterId = result.next_after_id ?? undefined
+        if (!result.has_more || result.checked === 0) break
       }
 
       return runningTotals
@@ -526,6 +533,19 @@ export default function AuditAndFixAllCard() {
               Per OCR sul file usa <strong>Completo + AI</strong>, <strong>Fix date OCR</strong> (sotto) o
               <strong> Rileggi documento</strong> sulla riga fattura. Per ricalcolare solo da metadata:{' '}
               <strong>Riesegui (forza)</strong>.
+            </p>
+          ) : null}
+          {done &&
+          lastRunForced &&
+          totals.checked > 0 &&
+          totals.fornitore_fixed === 0 &&
+          totals.tipo_fixed === 0 ? (
+            <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
+              Passata completata su {totals.checked} documenti: fornitore e tipo erano già coerenti con i
+              metadata OCR salvati. Questa modalità <strong>non rilegge i PDF</strong> — non corregge date
+              fattura errate, numeri OCR sbagliati o duplicati. Per quelli usa{' '}
+              <strong>Completo + AI</strong>, <strong>Fix date OCR</strong> o{' '}
+              <strong>Rileggi documento</strong> sulla singola fattura.
             </p>
           ) : null}
           <div className="rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-3 text-xs">

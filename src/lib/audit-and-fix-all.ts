@@ -85,6 +85,8 @@ export type AuditBatchResult = {
   changes: AuditDocChange[]
   /** Conteggio totale candidati ancora idonei alla fase corrente (al momento della query). */
   remaining_estimate: number
+  /** Ultimo `id` processato nel batch — passarlo come `after_id` alla chiamata successiva. */
+  next_after_id?: string | null
   /** Solo per phase='cleanup_misclassified'. */
   cleanup_actions?: AuditCleanupAction[]
   /** True quando in modalità dry-run (cleanup non applicato). */
@@ -121,6 +123,16 @@ type Pass1Opts = {
   batchSize?: number
   /** Se true: tocca anche le righe già marcate `audit_pass1_at` (per re-run). */
   force?: boolean
+  /** Paginazione stabile (obbligatoria in `force`): processa solo righe con `id` maggiore. */
+  afterId?: string | null
+}
+
+function applyDocBatchCursor<T extends { gt: (col: string, val: string) => T }>(
+  q: T,
+  afterId?: string | null,
+): T {
+  if (afterId) return q.gt('id', afterId) as T
+  return q
 }
 
 /**
@@ -148,7 +160,7 @@ export async function auditAndFixDeterministic(
   let q = service
     .from('documenti_da_processare')
     .select(DOC_SELECT)
-    .order('created_at', { ascending: false })
+    .order('id', { ascending: true })
 
   if (!opts.force) {
     q = q.is('metadata->>audit_pass1_at', null) as typeof q
@@ -156,6 +168,7 @@ export async function auditAndFixDeterministic(
   if (opts.sedeId) {
     q = q.eq('sede_id', opts.sedeId) as typeof q
   }
+  q = applyDocBatchCursor(q, opts.afterId)
 
   const { data, error } = await q
     .limit(batchSize)
@@ -190,7 +203,8 @@ export async function auditAndFixDeterministic(
     }
   }
 
-  result.has_more = remaining > docs.length
+  result.next_after_id = docs[docs.length - 1]?.id ?? null
+  result.has_more = docs.length === batchSize
   return result
 }
 
@@ -403,6 +417,7 @@ type Pass2Opts = {
   sedeId?: string | null
   batchSize?: number
   force?: boolean
+  afterId?: string | null
 }
 
 /**
@@ -438,7 +453,7 @@ export async function auditAndFixWithAi(
     .select(DOC_SELECT)
     .not('file_url', 'is', null)
     .not('file_url', 'eq', '')
-    .order('created_at', { ascending: false })
+    .order('id', { ascending: true })
 
   if (!opts.force) {
     q = q.is('metadata->>audit_pass2_at', null) as typeof q
@@ -446,6 +461,7 @@ export async function auditAndFixWithAi(
   if (opts.sedeId) {
     q = q.eq('sede_id', opts.sedeId) as typeof q
   }
+  q = applyDocBatchCursor(q, opts.afterId)
 
   const { data, error } = await q.limit(batchSize).returns<DocRow[]>()
 
@@ -479,7 +495,8 @@ export async function auditAndFixWithAi(
     }
   }
 
-  result.has_more = remaining > docs.length
+  result.next_after_id = docs[docs.length - 1]?.id ?? null
+  result.has_more = docs.length === batchSize
   return result
 }
 

@@ -42,6 +42,8 @@ type Body = {
   batch_size?: number
   /** Riprocessa anche documenti già marcati `audit_passN_at`. Default false. */
   force?: boolean
+  /** Cursor paginazione: processa solo documenti con `id` maggiore (loop client). */
+  after_id?: string | null
   /** Per cleanup_*: ritorna l'elenco senza modificare. Default false. */
   dry_run?: boolean
 }
@@ -139,6 +141,10 @@ export async function POST(req: NextRequest) {
         : undefined
 
     const force = body.force === true
+    const afterId =
+      typeof body.after_id === 'string' && body.after_id.trim()
+        ? body.after_id.trim()
+        : null
 
     // ── 3. Pre-check Gemini key per pass2 ────────────────────────────────────
     if (phase === 'ai' && !process.env.GEMINI_API_KEY?.trim()) {
@@ -154,6 +160,7 @@ export async function POST(req: NextRequest) {
         sedeId: sedeFilter,
         batchSize,
         force,
+        afterId,
       })
     } else if (phase === 'cleanup_misclassified') {
       result = await auditAndCleanupMisclassified(service, {
@@ -173,6 +180,7 @@ export async function POST(req: NextRequest) {
         sedeId: sedeFilter,
         batchSize,
         force,
+        afterId,
       })
     }
 
