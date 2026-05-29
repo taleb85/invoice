@@ -33,7 +33,6 @@ import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { sortStatementsByDocumentDateDesc } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
-import { statementEmailSubjectMatchesFornitore } from '@/lib/statement-supplier-subject'
 import type { StatementAnomalyCountByStatus } from '@/lib/statement-anomaly-preview'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -3630,8 +3629,6 @@ function ConvertStmtToInvoiceButton({
 export function VerificationStatusTab({
   sedeId,
   fornitoreId,
-  fornitoreNome,
-  fornitoreDisplayName,
   countryCode,
   currency,
   year,
@@ -3643,9 +3640,6 @@ export function VerificationStatusTab({
 }: {
   sedeId?: string
   fornitoreId?: string
-  /** Scheda fornitore: filtra inbox da oggetto «Statement from …» se non coincide con anagrafica. */
-  fornitoreNome?: string
-  fornitoreDisplayName?: string | null
   countryCode?: string
   currency?: string
   year?: number
@@ -3815,21 +3809,6 @@ export function VerificationStatusTab({
     anomaly_by_status?: StmtAnomalyCountByStatus[]
   }
 
-  /** Inbox scheda fornitore: esclude solo estratti «Statement from Altro» chiaramente altrui (API già filtra `fornitore_id`). */
-  const filterStmtsForSupplierInbox = useCallback(
-    (list: StmtRecord[]): StmtRecord[] => {
-      if (!fornitoreId || !fornitoreNome?.trim()) return list
-      return list.filter((s) =>
-        statementEmailSubjectMatchesFornitore(
-          s.email_subject,
-          fornitoreNome,
-          fornitoreDisplayName,
-          s.fornitore_nome,
-        ),
-      )
-    },
-    [fornitoreId, fornitoreNome, fornitoreDisplayName],
-  )
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
   const [needsMigration, setNeedsMigration] = useState(false)
@@ -4522,7 +4501,7 @@ export function VerificationStatusTab({
       const res = await fetch(`/api/statements${qs}`)
       if (res.ok) {
         const json = await res.json() as { statements: StmtRecord[]; needsMigration?: boolean }
-        let list = filterStmtsForSupplierInbox(json.statements ?? [])
+        let list = json.statements ?? []
         const needSummaryIds = list
           .filter((s) => s.missing_rows > 0 && !(s.anomaly_by_status?.length))
           .map((s) => s.id)
@@ -4560,14 +4539,7 @@ export function VerificationStatusTab({
     setStmtsLoading(false)
   // loadStatementRows is stable (defined below) — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sedeId, fornitoreId, verificaMode, filterStmtsForSupplierInbox])
-
-  useEffect(() => {
-    if (!fornitoreId) return
-    setStmts([])
-    setSelectedStmt(null)
-    setCheckResults(null)
-  }, [fornitoreId])
+  }, [sedeId, fornitoreId, verificaMode])
 
   useEffect(() => {
     if (verificaMode === 'classicToolbar') return

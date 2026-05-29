@@ -6274,8 +6274,6 @@ function FornitoreDetailClient({
           <VerificationStatusTab
             sedeId={effectiveSedeId}
             fornitoreId={fornitore.id}
-            fornitoreNome={fornitore.nome ?? ''}
-            fornitoreDisplayName={fornitore.display_name}
             countryCode={countryCode}
             currency={currency}
             year={filterYear}
@@ -6289,8 +6287,6 @@ function FornitoreDetailClient({
           <VerificationStatusTab
             sedeId={effectiveSedeId}
             fornitoreId={fornitore.id}
-            fornitoreNome={fornitore.nome ?? ''}
-            fornitoreDisplayName={fornitore.display_name}
             countryCode={countryCode}
             currency={currency}
             year={filterYear}
@@ -6786,11 +6782,8 @@ function FornitoreDetailClient({
             aria-hidden
             className="w-full shrink-0"
             style={{
-              height:
-                supplierDesktopHeaderDock.height > 0
-                  ? supplierDesktopHeaderDock.height
-                  : undefined,
-              minHeight: supplierDesktopHeaderDock.height > 0 ? undefined : '5.5rem',
+              /* Header fisso include tab + periodo: min 7.5rem se misura ancora 0 (evita KPI sotto l’overlay). */
+              height: Math.max(supplierDesktopHeaderDock.height, 120),
             }}
           />
         ) : null}
@@ -6892,8 +6885,6 @@ function FornitoreDetailClient({
                     <VerificationStatusTab
                       sedeId={effectiveSedeId}
                       fornitoreId={fornitore.id}
-                      fornitoreNome={fornitore.nome ?? ''}
-                      fornitoreDisplayName={fornitore.display_name}
                       countryCode={countryCode}
                       currency={currency}
                       year={filterYear}
