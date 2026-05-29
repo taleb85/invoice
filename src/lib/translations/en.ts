@@ -210,6 +210,7 @@ const translations: Translations = {
     queuePerPage: 'Per page',
     queuePrev: 'Previous',
     queueNext: 'Next',
+    queueDrawerHint: 'Expand to view and manage',
     rigaDataDocLabel: 'Document date',
     rigaRicevutoLabel: 'Queued',
     rigaGiorniInStato: '{n}d in state',

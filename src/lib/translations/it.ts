@@ -213,6 +213,7 @@ const translations: Translations = {
     queuePerPage: 'Per pagina',
     queuePrev: 'Precedente',
     queueNext: 'Successiva',
+    queueDrawerHint: 'Espandi per vedere e gestire',
     rigaDataDocLabel: 'Data documento',
     rigaRicevutoLabel: 'Ricevuto in coda',
     rigaGiorniInStato: '{n}g in stato',

@@ -1178,7 +1178,21 @@ export default function CentroControlloClient({ sedeId }: Props) {
           )}
 
           {!loading && !error && codaTotal > 0 && (
-            <SectionCard title={t.strumentiCentroControllo.queueTitle} badge={codaTotal}>
+            <details className="group app-card overflow-hidden">
+              <summary className="flex cursor-pointer list-none select-none items-center justify-between gap-2 border-b border-app-line-15 px-4 py-2.5 transition-colors hover:bg-app-line-10/50 [&::-webkit-details-marker]:hidden">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-app-fg-muted transition-transform duration-200 group-open:rotate-90" />
+                  <span className="truncate text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
+                    {t.strumentiCentroControllo.queueTitle}
+                  </span>
+                  <span className="inline-flex shrink-0 items-center rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+                    {codaTotal}
+                  </span>
+                </div>
+                <span className="hidden shrink-0 text-[11px] text-app-fg-muted group-open:hidden sm:inline">
+                  {t.strumentiCentroControllo.queueDrawerHint}
+                </span>
+              </summary>
               <div className="max-h-[min(78vh,52rem)] overflow-y-auto overscroll-contain divide-y divide-app-line-10">
                 {codaDisplayEntries.map((entry) =>
                   entry.type === 'statement_group' ? (
@@ -1256,7 +1270,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                   </button>
                 </div>
               </div>
-            </SectionCard>
+            </details>
           )}
       </div>
 
