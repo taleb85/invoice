@@ -6250,115 +6250,164 @@ export function VerificationStatusTab({
               const sollecitoState = sollEntry.status
               const hasEmail   = !!(r.fornitore?.email)
 
+              const mobileCardBg =
+                r.status === 'rekki_prezzo_discordanza'
+                  ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
+                  : r.status === 'errore_importo'
+                    ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15'
+                    : r.status === 'pending'
+                      ? vsEmbeddedSupplier
+                        ? 'bg-slate-700/40'
+                        : 'bg-transparent'
+                      : r.status !== 'ok'
+                        ? vsEmbeddedSupplier
+                          ? 'bg-slate-700/50'
+                          : 'bg-transparent'
+                        : ''
+              const dbImporto =
+                r.fattura?.importo !== null && r.fattura?.importo !== undefined
+                  ? formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)
+                  : null
+              const sollecitoBtnCls = !hasEmail
+                ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
+                : r.status === 'fattura_mancante'
+                  ? 'border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
+                  : 'border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'
+
               return (
                 <div
                   key={r.id}
-                  className={`flex items-start gap-3 border-b border-app-line-15 px-4 py-3 last:border-0 ${
-                    r.status === 'rekki_prezzo_discordanza'
-                      ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
-                      : r.status === 'errore_importo'
-                        ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15'
-                        : r.status === 'pending'
-                          ? vsEmbeddedSupplier
-                            ? 'bg-slate-700/40'
-                            : 'bg-transparent'
-                          : r.status !== 'ok'
-                            ? vsEmbeddedSupplier
-                              ? 'bg-slate-700/50'
-                              : 'bg-transparent'
-                            : ''
-                  }`}
+                  className={`flex flex-col gap-2.5 border-b border-app-line-15 py-3 last:border-0 ${vsCompactS1 ? 'px-3' : 'px-4'} ${mobileCardBg}`}
                 >
-                  <div className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <div className="flex items-start gap-2">
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${cfg.dot}`} aria-hidden />
+                    <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
                       <span
-                        className={`text-sm font-semibold font-mono ${
+                        className={`font-mono text-sm font-semibold leading-tight ${
                           r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
                         }`}
                       >
                         {r.numero}
                       </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${cfg.cls}`}>
-                        <StmtCheckGlyph kind={cfg.glyph} className="h-3 w-3" />
-                        {cfg.label}
+                      <span
+                        className={`inline-flex max-w-[55%] shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold leading-tight ${cfg.cls}`}
+                      >
+                        <StmtCheckGlyph kind={cfg.glyph} className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{cfg.label}</span>
                       </span>
-                      {r.status === 'ok' && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
-                          {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
-                          <GlyphCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        </span>
-                      )}
                     </div>
-                    <div className="space-y-0.5 text-xs text-app-fg-muted">
-                      <p>
-                        {t.statements.reconcileStatement}{' '}
-                        <span className="font-semibold text-app-fg">
-                          {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
-                        </span>
-                        {r.fattura?.importo !== null && r.fattura?.importo !== undefined && (
-                          <> · {t.statements.reconcileDB}{' '}
-                            <span className={`font-semibold ${
+                  </div>
+
+                  {r.status === 'ok' ? (
+                    <p className="flex items-center gap-1.5 pl-4 text-sm font-medium text-emerald-400">
+                      {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
+                      <GlyphCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    </p>
+                  ) : (
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 pl-4 text-[11px] leading-snug">
+                      <dt className="text-app-fg-muted">{t.statements.reconcileStatement}</dt>
+                      <dd className="text-right font-semibold tabular-nums text-app-fg">
+                        {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
+                      </dd>
+                      {dbImporto ? (
+                        <>
+                          <dt className="text-app-fg-muted">{t.statements.reconcileDB}</dt>
+                          <dd
+                            className={`text-right font-semibold tabular-nums ${
                               r.status === 'errore_importo'
                                 ? 'text-red-300'
                                 : r.status === 'rekki_prezzo_discordanza'
                                   ? 'text-amber-400'
                                   : 'text-app-fg'
-                            }`}>{formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)}</span>
-                            {r.status === 'rekki_prezzo_discordanza' && (
-                              <span className="ml-1 block text-[10px] font-medium text-amber-100">{t.bolle.verificaPrezzoFornitore} · {t.bolle.prezzoDaApp}</span>
-                            )}
-                            {(r.status === 'errore_importo' || r.status === 'rekki_prezzo_discordanza') && r.deltaImporto !== null && (
-                              <span className={`ml-1 font-bold ${r.status === 'rekki_prezzo_discordanza' ? 'text-amber-400' : 'text-red-300'}`}>
-                                (Δ {r.deltaImporto > 0 ? '+' : ''}{formatCurrency(Math.abs(r.deltaImporto), countryCode, resolvedCurrency)})
+                            }`}
+                          >
+                            {dbImporto}
+                            {(r.status === 'errore_importo' || r.status === 'rekki_prezzo_discordanza') &&
+                            r.deltaImporto !== null ? (
+                              <span
+                                className={`ml-1 font-bold ${r.status === 'rekki_prezzo_discordanza' ? 'text-amber-400' : 'text-red-300'}`}
+                              >
+                                Δ {r.deltaImporto > 0 ? '+' : ''}
+                                {formatCurrency(Math.abs(r.deltaImporto), countryCode, resolvedCurrency)}
                               </span>
-                            )}
-                          </>
-                        )}
+                            ) : null}
+                          </dd>
+                        </>
+                      ) : null}
+                    </dl>
+                  )}
+
+                  {r.status === 'rekki_prezzo_discordanza' ? (
+                    <p className="pl-4 text-[11px] font-medium leading-snug text-amber-100/90">
+                      {t.bolle.verificaPrezzoFornitore} · {t.bolle.prezzoDaApp}
+                    </p>
+                  ) : null}
+
+                  {r.status === 'bolle_mancanti' ? (
+                    <p className="pl-4 text-xs font-medium leading-snug text-orange-300">
+                      {t.statements.noBolleDelivery}
+                    </p>
+                  ) : null}
+
+                  {r.fattura ? (
+                    <div className="flex items-center justify-between gap-2 pl-4">
+                      <p className="min-w-0 truncate text-xs text-app-fg-muted">
+                        {t.fatture.invoice}:{' '}
+                        <span className="font-medium text-app-fg">{r.fattura.numero_fattura ?? '—'}</span>
                       </p>
-                      {r.fattura && (
-                        <p>
-                          {t.fatture.invoice}:{' '}
-                          <span className="font-medium text-app-fg">{r.fattura.numero_fattura ?? '—'}</span>
-                          {r.fattura.file_url && (
-                            <OpenDocumentInAppButton
-                              fatturaId={r.fattura.id}
-                              fileUrl={r.fattura.file_url}
-                              className="ml-1 inline border-0 bg-transparent p-0 font-inherit text-cyan-400 transition-colors hover:text-cyan-300 hover:underline"
-                            >
-                              PDF →
-                            </OpenDocumentInAppButton>
-                          )}
-                        </p>
-                      )}
-                      {r.bolle.length > 0 && (
-                        <p>{t.nav.bolle}: {r.bolle.map(b => (
-                          <span key={b.id} className="inline-flex items-center gap-1 mr-1.5">
-                            <span className="font-mono text-app-fg">{b.numero_bolla ?? '—'}</span>
-                            {b.importo !== null && (
-                              <span className="text-app-fg">({formatCurrency(b.importo, countryCode, resolvedCurrency)})</span>
-                            )}
-                          </span>
-                        ))}</p>
-                      )}
-                      {r.status === 'bolle_mancanti' && <p className="text-orange-300 font-medium">{t.statements.noBolleDelivery}</p>}
-                      {r.fornitore && (
-                        <p className="text-app-fg-muted">
-                          {fornitoreNomeMaiuscolo(r.fornitore.nome)}
-                          {r.fornitore.email && <span> · {r.fornitore.email}</span>}
-                        </p>
-                      )}
+                      {r.fattura.file_url ? (
+                        <OpenDocumentInAppButton
+                          fatturaId={r.fattura.id}
+                          fileUrl={r.fattura.file_url}
+                          className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 text-xs font-semibold text-app-cyan-200 touch-manipulation"
+                        >
+                          PDF
+                        </OpenDocumentInAppButton>
+                      ) : null}
                     </div>
-                  </div>
-                  {needAction && (
+                  ) : null}
+
+                  {r.bolle.length > 0 ? (
+                    <div className="pl-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                        {t.nav.bolle}
+                      </p>
+                      <ul className="mt-1 space-y-1">
+                        {r.bolle.map((b) => (
+                          <li
+                            key={b.id}
+                            className="flex items-baseline justify-between gap-2 text-xs"
+                          >
+                            <span className="font-mono text-app-fg">{b.numero_bolla ?? '—'}</span>
+                            {b.importo !== null ? (
+                              <span className="shrink-0 tabular-nums text-app-fg-muted">
+                                {formatCurrency(b.importo, countryCode, resolvedCurrency)}
+                              </span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {r.fornitore && !fornitoreId ? (
+                    <p className="truncate pl-4 text-xs text-app-fg-muted">
+                      {fornitoreNomeMaiuscolo(r.fornitore.nome)}
+                      {r.fornitore.email ? <span> · {r.fornitore.email}</span> : null}
+                    </p>
+                  ) : null}
+
+                  {needAction ? (
                     sollecitoState === 'sent' ? (
-                      <div className="shrink-0 flex flex-col items-center gap-0.5 text-center">
-                        <span className="flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-200">
-                          <svg className={`w-3.5 h-3.5 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                      <div className="flex flex-col gap-1.5 pl-4">
+                        <span className="inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-200">
+                          <svg className={`h-3.5 w-3.5 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
                           {t.statements.btnSent}
                         </span>
-                        {sollEntry.sentAt && (
-                          <span className="text-[10px] text-app-fg-muted">
+                        {sollEntry.sentAt ? (
+                          <span className="text-center text-[10px] text-app-fg-muted">
                             {new Intl.DateTimeFormat(loc.currencyLocale, {
                               day: '2-digit',
                               month: 'short',
@@ -6366,31 +6415,37 @@ export function VerificationStatusTab({
                               minute: '2-digit',
                             }).format(new Date(sollEntry.sentAt))}
                           </span>
-                        )}
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => inviaSollecito(r)}
-                          className="mt-0.5 text-[10px] font-medium text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
+                          className="min-h-9 w-full text-center text-xs font-medium text-app-fg-muted underline underline-offset-2 touch-manipulation hover:text-app-fg"
                         >
                           {t.statements.btnSendReminder}
                         </button>
                       </div>
                     ) : (
-                      <button onClick={() => inviaSollecito(r)} disabled={!hasEmail || sollecitoState === 'loading'} title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
-                        className={`shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors min-h-[38px] touch-manipulation ${
-                          !hasEmail
-                            ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
-                          : r.status === 'fattura_mancante' ? 'border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
-                          : 'border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'}`}>
+                      <button
+                        type="button"
+                        onClick={() => inviaSollecito(r)}
+                        disabled={!hasEmail || sollecitoState === 'loading'}
+                        title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
+                        className={`ml-4 inline-flex min-h-11 w-[calc(100%-1rem)] max-w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors touch-manipulation ${sollecitoBtnCls}`}
+                      >
                         {sollecitoState === 'loading' ? (
-                          <svg className={`w-3.5 h-3.5 animate-spin ${icon.emailSync}`} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                          <svg className={`h-3.5 w-3.5 animate-spin ${icon.emailSync}`} fill="none" viewBox="0 0 24 24" aria-hidden>
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                          </svg>
                         ) : (
-                          <svg className={`w-3.5 h-3.5 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                          <svg className={`h-3.5 w-3.5 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
                         )}
                         {sollecitoState === 'loading' ? t.statements.btnSending : t.statements.btnSendReminder}
                       </button>
                     )
-                  )}
+                  ) : null}
                 </div>
               )
             })}
