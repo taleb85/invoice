@@ -31,8 +31,9 @@ import {
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
-import { sortStatementsByDocumentDateDesc } from '@/lib/statement-list-dedup'
+import { sortStatementsByDocumentDateDesc, statementListDocumentDateKey } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
+import { statementEmailSubjectMatchesFornitore } from '@/lib/statement-supplier-subject'
 import type { StatementAnomalyCountByStatus } from '@/lib/statement-anomaly-preview'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -3629,6 +3630,8 @@ function ConvertStmtToInvoiceButton({
 export function VerificationStatusTab({
   sedeId,
   fornitoreId,
+  fornitoreNome,
+  fornitoreDisplayName,
   countryCode,
   currency,
   year,
@@ -3640,6 +3643,9 @@ export function VerificationStatusTab({
 }: {
   sedeId?: string
   fornitoreId?: string
+  /** Scheda fornitore: filtra inbox da oggetto «Statement from …» se non coincide con anagrafica. */
+  fornitoreNome?: string
+  fornitoreDisplayName?: string | null
   countryCode?: string
   currency?: string
   year?: number
@@ -3795,6 +3801,7 @@ export function VerificationStatusTab({
   }
   type StmtRecord = {
     id: string
+    fornitore_id?: string | null
     email_subject: string | null
     received_at: string
     document_date: string | null
@@ -3807,6 +3814,28 @@ export function VerificationStatusTab({
     linked_fattura_id?: string | null
     anomaly_by_status?: StmtAnomalyCountByStatus[]
   }
+
+  const filterStmtsForSupplierInbox = useCallback(
+    (list: StmtRecord[]): StmtRecord[] => {
+      let out = list
+      if (fornitoreId) {
+        out = out.filter((s) => s.fornitore_id === fornitoreId)
+      }
+      if (fornitoreId && fornitoreNome?.trim()) {
+        out = out.filter((s) =>
+          statementEmailSubjectMatchesFornitore(s.email_subject, fornitoreNome, fornitoreDisplayName),
+        )
+      }
+      if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+        out = out.filter((s) => {
+          const d = statementListDocumentDateKey(s).slice(0, 10)
+          return Boolean(d && d >= ledgerDateFrom && d < ledgerDateToExclusive)
+        })
+      }
+      return out
+    },
+    [fornitoreId, fornitoreNome, fornitoreDisplayName, ledgerDateFrom, ledgerDateToExclusive],
+  )
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
   const [needsMigration, setNeedsMigration] = useState(false)
@@ -4494,12 +4523,16 @@ export function VerificationStatusTab({
     const params = new URLSearchParams()
     if (sedeId)      params.set('sede_id',      sedeId)
     if (fornitoreId) params.set('fornitore_id', fornitoreId)
+    if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+      params.set('from', ledgerDateFrom)
+      params.set('to', ledgerDateToExclusive)
+    }
     const qs  = params.toString() ? `?${params.toString()}` : ''
     try {
       const res = await fetch(`/api/statements${qs}`)
       if (res.ok) {
         const json = await res.json() as { statements: StmtRecord[]; needsMigration?: boolean }
-        let list = json.statements ?? []
+        let list = filterStmtsForSupplierInbox(json.statements ?? [])
         const needSummaryIds = list
           .filter((s) => s.missing_rows > 0 && !(s.anomaly_by_status?.length))
           .map((s) => s.id)
@@ -4537,7 +4570,14 @@ export function VerificationStatusTab({
     setStmtsLoading(false)
   // loadStatementRows is stable (defined below) — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sedeId, fornitoreId, verificaMode])
+  }, [sedeId, fornitoreId, verificaMode, ledgerDateFrom, ledgerDateToExclusive, filterStmtsForSupplierInbox])
+
+  useEffect(() => {
+    if (!fornitoreId) return
+    setStmts([])
+    setSelectedStmt(null)
+    setCheckResults(null)
+  }, [fornitoreId])
 
   useEffect(() => {
     if (verificaMode === 'classicToolbar') return

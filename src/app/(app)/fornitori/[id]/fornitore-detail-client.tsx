@@ -6274,6 +6274,8 @@ function FornitoreDetailClient({
           <VerificationStatusTab
             sedeId={effectiveSedeId}
             fornitoreId={fornitore.id}
+            fornitoreNome={fornitoreNomeVisual}
+            fornitoreDisplayName={fornitore.display_name}
             countryCode={countryCode}
             currency={currency}
             year={filterYear}
@@ -6287,6 +6289,8 @@ function FornitoreDetailClient({
           <VerificationStatusTab
             sedeId={effectiveSedeId}
             fornitoreId={fornitore.id}
+            fornitoreNome={fornitoreNomeVisual}
+            fornitoreDisplayName={fornitore.display_name}
             countryCode={countryCode}
             currency={currency}
             year={filterYear}
@@ -6888,6 +6892,8 @@ function FornitoreDetailClient({
                     <VerificationStatusTab
                       sedeId={effectiveSedeId}
                       fornitoreId={fornitore.id}
+                      fornitoreNome={fornitoreNomeVisual}
+                      fornitoreDisplayName={fornitore.display_name}
                       countryCode={countryCode}
                       currency={currency}
                       year={filterYear}

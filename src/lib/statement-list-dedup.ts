@@ -60,8 +60,9 @@ export function dedupeStatementsForList<T extends StatementListRow>(statements: 
   for (const s of statements) {
     const fileKey = normalizeStatementFileUrl(s.file_url)
     if (fileKey) {
-      const prev = byFile.get(fileKey)
-      byFile.set(fileKey, prev ? pickNewer(prev, s) : s)
+      const dedupeKey = `${String(s.sede_id ?? '')}:${String(s.fornitore_id ?? '')}:${fileKey}`
+      const prev = byFile.get(dedupeKey)
+      byFile.set(dedupeKey, prev ? pickNewer(prev, s) : s)
       continue
     }
     byFile.set(`__no_file__:${s.id}`, s)

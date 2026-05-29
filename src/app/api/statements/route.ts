@@ -32,6 +32,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sedeId      = searchParams.get('sede_id')
   const fornitoreId = searchParams.get('fornitore_id')
+  const periodFrom  = searchParams.get('from')
+  const periodTo    = searchParams.get('to')
   const statementId = searchParams.get('id')
   const action      = searchParams.get('action')
   const listLimit   = fornitoreId ? 500 : 200
@@ -265,6 +267,19 @@ export async function GET(req: NextRequest) {
   let deduped = dedupeStatementsForList(statements)
   if (deduped.length > 1) {
     deduped = await hideSupersededStatementsForList(supabase, deduped)
+  }
+
+  if (periodFrom && periodTo) {
+    deduped = deduped.filter((s) => {
+      const d =
+        statementOfficialDateIso({
+          document_date: s.document_date as string | null,
+          extracted_pdf_dates: s.extracted_pdf_dates as StatementExtractedPdfDates | null,
+        }) ??
+        (typeof s.document_date === 'string' ? s.document_date.slice(0, 10) : null) ??
+        (typeof s.received_at === 'string' ? s.received_at.slice(0, 10) : null)
+      return Boolean(d && d >= periodFrom && d < periodTo)
+    })
   }
 
   const hasMissing = deduped.some((s) => ((s.missing_rows as number | null) ?? 0) > 0)
