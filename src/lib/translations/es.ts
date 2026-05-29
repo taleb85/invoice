@@ -1371,6 +1371,16 @@ const translations: Translations = {
       'Prueba a quitar el filtro de estado o abre otro extracto de la lista.',
     verificaSelectStmtHint:
       'Selecciona un extracto de la lista para ver las filas de verificación.',
+    verificaRelaxedProduct:
+      'Sin filas para el estado elegido: todas las líneas de este producto en el extracto.',
+    verificaRelaxedStmtAnomalies:
+      'El producto «{prodotto}» no está en este extracto: otras anomalías del documento.',
+    verificaRelaxedStatus:
+      'Sin filas para el producto filtrado: filas con el estado seleccionado.',
+    verificaRelaxedAll:
+      'El producto «{prodotto}» no está en este extracto: todas las líneas del documento.',
+    verificaProductNotInStmt:
+      'Sin filas para «{prodotto}» en este extracto. El cambio de precio está en el listino.',
     rekkiCheckSegmentTooltip: 'El importe facturado no coincide con el pedido Rekki',
     tripleColStmtDate: 'Fecha extracto',
     tripleColSysDate: 'Fecha sistema',

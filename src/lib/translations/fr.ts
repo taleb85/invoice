@@ -1371,6 +1371,16 @@ const translations: Translations = {
       'Essayez d’élargir le filtre d’état ou ouvrez un autre relevé dans la liste.',
     verificaSelectStmtHint:
       'Sélectionnez un relevé dans la liste pour afficher les lignes de vérification.',
+    verificaRelaxedProduct:
+      'Aucune ligne pour l’état choisi : toutes les lignes de ce produit sur le relevé.',
+    verificaRelaxedStmtAnomalies:
+      'Le produit «{prodotto}» n’est pas sur ce relevé : autres anomalies du document.',
+    verificaRelaxedStatus:
+      'Aucune ligne pour le produit filtré : lignes avec l’état sélectionné.',
+    verificaRelaxedAll:
+      'Le produit «{prodotto}» n’est pas sur ce relevé : toutes les lignes du document.',
+    verificaProductNotInStmt:
+      'Aucune ligne pour «{prodotto}» sur ce relevé. La hausse de prix est dans le listino.',
     rekkiCheckSegmentTooltip: 'Le montant facturé ne correspond pas à la commande Rekki',
     tripleColStmtDate: 'Date relevé',
     tripleColSysDate: 'Date système',

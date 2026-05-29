@@ -2424,6 +2424,16 @@ const translations: Translations = {
     verificaFilterEmptyHint:
       'Prova ad allargare il filtro stato o apri un altro estratto conto dalla lista.',
     verificaSelectStmtHint: 'Seleziona un estratto conto dalla lista per vedere le righe di verifica.',
+    verificaRelaxedProduct:
+      'Nessuna riga con il filtro stato scelto: mostrate tutte le righe di questo prodotto nell’estratto.',
+    verificaRelaxedStmtAnomalies:
+      'Il prodotto «{prodotto}» non compare in questo estratto: mostrate le altre anomalie del documento.',
+    verificaRelaxedStatus:
+      'Nessuna riga per il prodotto filtrato: mostrate le righe con lo stato selezionato.',
+    verificaRelaxedAll:
+      'Il prodotto «{prodotto}» non compare in questo estratto: mostrate tutte le righe del documento.',
+    verificaProductNotInStmt:
+      'Nessuna riga per «{prodotto}» in questo estratto. L’aumento prezzo è nel listino: torna al tab Listino o apri un altro estratto.',
     rekkiCheckSegmentTooltip: 'Il prezzo fatturato non coincide con l\'ordine Rekki',
     tripleColStmtDate: 'Data estratto',
     tripleColSysDate: 'Data sistema',

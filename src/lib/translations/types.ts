@@ -1704,6 +1704,11 @@ export type Translations = {
     verificaFilterEmpty: string
     verificaFilterEmptyHint: string
     verificaSelectStmtHint: string
+    verificaRelaxedProduct: string
+    verificaRelaxedStmtAnomalies: string
+    verificaRelaxedStatus: string
+    verificaRelaxedAll: string
+    verificaProductNotInStmt: string
     rekkiCheckSegmentTooltip: string
     tripleColStmtDate: string
     tripleColSysDate: string

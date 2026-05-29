@@ -1423,6 +1423,16 @@ const translations: Translations = {
     verificaFilterEmpty: 'No rows match the active filters.',
     verificaFilterEmptyHint: 'Try clearing the status filter or open another statement from the list.',
     verificaSelectStmtHint: 'Select a statement from the list to see verification rows.',
+    verificaRelaxedProduct:
+      'No rows for the selected status: showing all lines for this product on the statement.',
+    verificaRelaxedStmtAnomalies:
+      'Product «{prodotto}» is not on this statement: showing other issues on this document.',
+    verificaRelaxedStatus:
+      'No rows for the filtered product: showing rows with the selected status.',
+    verificaRelaxedAll:
+      'Product «{prodotto}» is not on this statement: showing all lines on this document.',
+    verificaProductNotInStmt:
+      'No rows for «{prodotto}» on this statement. The price change is in the price list — open the Listino tab or another statement.',
     rekkiCheckSegmentTooltip: 'The invoiced amount does not match the Rekki order',
     tripleColStmtDate: 'Stmt date',
     tripleColSysDate: 'System date',

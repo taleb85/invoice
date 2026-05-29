@@ -3502,11 +3502,18 @@ function ListinoTab({
   }, [fornitoreId])
 
   const listinoFocus = searchParams.get('listino_focus')?.trim() ?? ''
+  const listinoScroll = searchParams.get('listino_scroll')?.trim() ?? ''
   useEffect(() => {
     if (!listinoFocus || anomaliesLoading) return
     const el = document.getElementById('listino-price-anomalies')
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [listinoFocus, anomaliesLoading, priceAnomalies.length])
+
+  useEffect(() => {
+    if (!listinoScroll || loading) return
+    const el = document.getElementById(`listino-prod-${listinoScroll}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [listinoScroll, loading, listino.length])
 
   // ── Price comparison helpers ────────────────────────────────────────
   const normalize = (s: string) =>
@@ -5034,32 +5041,46 @@ function ListinoTab({
                 const originLineMobile = originLine?.includes(' · ')
                   ? originLine.replace(/\s*·\s*[^·]+$/, '')
                   : originLine
+                const noteDisplay = stripListinoSrcMachineSuffix(displayRow.note)
+                const hasAnomaly = Boolean(ref && up && pct > 0)
                 const hasPriceAnomalyRecord = unresolvedAnomalies.some((a) =>
                   productNamesMatchForVerifica(a.prodotto, prodotto),
                 )
+                const listinoScrollKey = listinoGroupKey({ prodotto, note: displayRow.note })
                 const verificaQ = new URLSearchParams(searchParams.toString())
                 fornitoreSupplierClearDocParams(verificaQ)
                 let verificaHref: string
                 if (hasPriceAnomalyRecord) {
                   verificaQ.set('tab', 'listino')
                   verificaQ.set('listino_focus', prodotto)
+                  verificaQ.delete('listino_scroll')
                   verificaQ.delete('stato')
                   verificaQ.delete('verifica_prodotto')
+                  verificaQ.delete('verifica_codice')
+                  verificaQ.delete('apri_estratto')
+                  verificaHref = `${pathname}?${verificaQ.toString()}`
+                } else if (hasAnomaly) {
+                  verificaQ.set('tab', 'listino')
+                  verificaQ.set('listino_scroll', listinoScrollKey)
+                  verificaQ.delete('listino_focus')
+                  verificaQ.delete('stato')
+                  verificaQ.delete('verifica_prodotto')
+                  verificaQ.delete('verifica_codice')
                   verificaQ.delete('apri_estratto')
                   verificaHref = `${pathname}?${verificaQ.toString()}`
                 } else {
                   verificaQ.set('tab', 'verifica')
                   verificaQ.set('verifica_prodotto', prodotto)
                   verificaQ.set('apri_estratto', '1')
-                  if (rekkiLinked && !hasAnomaly) {
+                  if (parsed.codice) verificaQ.set('verifica_codice', parsed.codice)
+                  else verificaQ.delete('verifica_codice')
+                  if (rekkiLinked) {
                     verificaQ.set('stato', 'rekki_prezzo_discordanza')
                   } else {
                     verificaQ.delete('stato')
                   }
                   verificaHref = `${pathname}?${verificaQ.toString()}`
                 }
-                const noteDisplay = stripListinoSrcMachineSuffix(displayRow.note)
-                const hasAnomaly = Boolean(ref && up && pct > 0)
                 const rowAccentBorder = hasAnomaly
                   ? 'border-l-[#FF3131]'
                   : ref
@@ -5082,7 +5103,8 @@ function ListinoTab({
                 return (
                   <div
                     key={prodotto}
-                    className={`group border-l-4 ${APP_SECTION_TABLE_ROW_HOVER} ${rowAccentBorder}`}
+                    id={`listino-prod-${listinoScrollKey}`}
+                    className={`group scroll-mt-24 border-l-4 ${APP_SECTION_TABLE_ROW_HOVER} ${rowAccentBorder}`}
                   >
                     <div className="flex flex-col gap-2.5 px-3 py-3 sm:px-4 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(8rem,auto)] md:items-start md:gap-5 md:py-2.5 md:pl-4 md:pr-5">
                       {/* ── COLONNA 1: Nome Prodotto + Codice/Unità ── */}

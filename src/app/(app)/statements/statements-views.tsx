@@ -47,7 +47,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
-import { checkResultMatchesVerificaProdotto } from '@/lib/listino-display'
+import { resolveVerificaDisplayRows } from '@/lib/listino-display'
 import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fattura'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
@@ -4365,12 +4365,18 @@ export function VerificationStatusTab({
     const raw = searchParams.get('stato')?.trim().toLowerCase()
     if (raw === 'anomalia' || raw === 'rekki_prezzo_discordanza') {
       setCheckFilter('rekki_prezzo_discordanza')
+    } else if (
+      searchParams.get('apri_estratto') === '1' ||
+      searchParams.get('verifica_prodotto')?.trim()
+    ) {
+      setCheckFilter('all')
     }
   }, [searchParams])
 
   // Auto-run disabled: pipeline starts only on explicit user action.
 
   const verificaProdottoRaw = searchParams.get('verifica_prodotto')?.trim() ?? ''
+  const verificaCodiceRaw = searchParams.get('verifica_codice')?.trim() ?? ''
   const apriEstratto = searchParams.get('apri_estratto') === '1'
   const verificaDeepLinkOpenedRef = useRef<string | null>(null)
 
@@ -4955,19 +4961,24 @@ export function VerificationStatusTab({
     checkResults,
   ])
 
-  const filteredCheckResults = useMemo(() => {
+  const verificaDisplay = useMemo(() => {
     if (!checkResults) return null
-    return checkResults.filter(
-      (r) =>
-        (checkFilter === 'all' || r.status === checkFilter) &&
-        checkResultMatchesVerificaProdotto(r, verificaProdottoRaw),
-    )
-  }, [checkResults, checkFilter, verificaProdottoRaw])
+    return resolveVerificaDisplayRows(checkResults, {
+      checkFilter,
+      verificaProdotto: verificaProdottoRaw,
+      verificaCodice: verificaCodiceRaw,
+      deepLink: apriEstratto || verificaProdottoRaw.length > 0,
+    })
+  }, [checkResults, checkFilter, verificaProdottoRaw, verificaCodiceRaw, apriEstratto])
+
+  const filteredCheckResults = verificaDisplay?.rows ?? null
+  const verificaDisplayMode = verificaDisplay?.mode ?? 'empty'
 
   const clearVerificaDeepLinkFilters = useCallback(() => {
     setCheckFilter('all')
     const q = new URLSearchParams(searchParams.toString())
     q.delete('verifica_prodotto')
+    q.delete('verifica_codice')
     q.delete('apri_estratto')
     q.delete('stato')
     const qs = q.toString()
@@ -6314,7 +6325,28 @@ export function VerificationStatusTab({
               )
             })()}
 
-            {filteredCheckResults && filteredCheckResults.length === 0 ? (
+            {verificaDisplayMode !== 'strict' && verificaDisplayMode !== 'empty' ? (
+              <div
+                className={`border-b border-amber-500/25 bg-amber-950/30 px-4 py-3 ${
+                  vsCompactS1 ? 'md:px-3' : ''
+                }`}
+              >
+                <p className="text-xs font-semibold leading-snug text-amber-100">
+                  {verificaDisplayMode === 'product_relaxed'
+                    ? t.statements.verificaRelaxedProduct
+                    : verificaDisplayMode === 'stmt_anomalies'
+                      ? t.statements.verificaRelaxedStmtAnomalies.replace(
+                          '{prodotto}',
+                          verificaProdottoRaw,
+                        )
+                      : verificaDisplayMode === 'status_relaxed'
+                        ? t.statements.verificaRelaxedStatus
+                        : t.statements.verificaRelaxedAll.replace('{prodotto}', verificaProdottoRaw)}
+                </p>
+              </div>
+            ) : null}
+
+            {verificaDisplayMode === 'empty' ? (
               <div
                 className={`border-b border-app-soft-border px-4 py-8 text-center ${
                   vsCompactS1 ? 'md:px-3' : ''
@@ -6322,7 +6354,9 @@ export function VerificationStatusTab({
               >
                 <p className="text-sm font-semibold text-app-fg">{t.statements.verificaFilterEmpty}</p>
                 <p className="mt-1.5 text-xs leading-snug text-app-fg-muted">
-                  {t.statements.verificaFilterEmptyHint}
+                  {verificaProdottoRaw
+                    ? t.statements.verificaProductNotInStmt.replace('{prodotto}', verificaProdottoRaw)
+                    : t.statements.verificaFilterEmptyHint}
                 </p>
                 {verificaProdottoRaw || checkFilter !== 'all' ? (
                   <button

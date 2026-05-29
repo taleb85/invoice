@@ -11,6 +11,7 @@ import {
   dynamicStaleThresholdDays,
   productNamesMatchForVerifica,
   checkResultMatchesVerificaProdotto,
+  resolveVerificaDisplayRows,
 } from '@/lib/listino-display'
 
 describe('parseListinoNoteParts', () => {
@@ -254,6 +255,22 @@ describe('productNamesMatchForVerifica', () => {
 })
 
 describe('checkResultMatchesVerificaProdotto', () => {
+  it('matches by listino codice on rekki line', () => {
+    const row = {
+      numero: 'INV-1',
+      bolle: [
+        {
+          id: '1',
+          numero_bolla: 'DN-1',
+          importo: 10,
+          data: '2026-01-01',
+          rekki_meta: { prodotto: 'Container black 500cc', codice: 'MWB500' },
+        },
+      ],
+    }
+    expect(checkResultMatchesVerificaProdotto(row, 'unrelated name', 'MWB500')).toBe(true)
+  })
+
   it('matches rekki_meta.prodotto on bolla lines', () => {
     const row = {
       numero: 'INV-99',
@@ -268,5 +285,38 @@ describe('checkResultMatchesVerificaProdotto', () => {
       ],
     }
     expect(checkResultMatchesVerificaProdotto(row, '500cc BLACK MICROWAVE CONTAINER & LIDS')).toBe(true)
+  })
+})
+
+describe('resolveVerificaDisplayRows', () => {
+  const rows = [
+    { numero: 'A', status: 'ok', bolle: [] },
+    { numero: 'B', status: 'fattura_mancante', bolle: [] },
+    {
+      numero: 'C',
+      status: 'rekki_prezzo_discordanza',
+      bolle: [{ id: '1', numero_bolla: 'x', importo: 1, data: '2026-01-01', rekki_meta: { prodotto: 'Beer X' } }],
+    },
+  ]
+
+  it('shows statement anomalies when product filter misses but anomalies exist', () => {
+    const r = resolveVerificaDisplayRows(rows, {
+      checkFilter: 'all',
+      verificaProdotto: 'ZZZ_NO_MATCH_XYZ',
+      deepLink: true,
+    })
+    expect(r.mode).toBe('stmt_anomalies')
+    expect(r.rows.some((x) => x.status === 'fattura_mancante')).toBe(true)
+  })
+
+  it('falls back to all statement rows when product missing and only ok lines', () => {
+    const onlyOk = [{ numero: 'A', status: 'ok', bolle: [] }]
+    const r = resolveVerificaDisplayRows(onlyOk, {
+      checkFilter: 'all',
+      verificaProdotto: 'ZZZ_NO_MATCH_XYZ',
+      deepLink: true,
+    })
+    expect(r.mode).toBe('all_fallback')
+    expect(r.rows).toHaveLength(1)
   })
 })

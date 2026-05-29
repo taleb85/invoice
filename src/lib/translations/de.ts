@@ -1370,6 +1370,16 @@ const translations: Translations = {
       'Statusfilter aufheben oder einen anderen Kontoauszug aus der Liste öffnen.',
     verificaSelectStmtHint:
       'Wählen Sie einen Kontoauszug aus der Liste, um die Prüfzeilen zu sehen.',
+    verificaRelaxedProduct:
+      'Keine Zeilen für den gewählten Status: alle Zeilen dieses Produkts im Auszug.',
+    verificaRelaxedStmtAnomalies:
+      'Produkt «{prodotto}» fehlt in diesem Auszug: andere Auffälligkeiten des Dokuments.',
+    verificaRelaxedStatus:
+      'Keine Zeilen für das gefilterte Produkt: Zeilen mit dem gewählten Status.',
+    verificaRelaxedAll:
+      'Produkt «{prodotto}» fehlt in diesem Auszug: alle Zeilen des Dokuments.',
+    verificaProductNotInStmt:
+      'Keine Zeilen für «{prodotto}» in diesem Auszug. Preisänderung im Listino — Listino-Tab oder anderen Auszug öffnen.',
     rekkiCheckSegmentTooltip: 'Der Rechnungsbetrag stimmt nicht mit der Rekki-Bestellung überein',
     tripleColStmtDate: 'Auszugsdatum',
     tripleColSysDate: 'Systemdatum',

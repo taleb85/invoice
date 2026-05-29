@@ -333,7 +333,12 @@ export function productNamesMatchForVerifica(a: string, b: string): boolean {
   const na = normalizeListinoProductName(a).toLowerCase()
   const nb = normalizeListinoProductName(b).toLowerCase()
   if (!na || !nb) return false
-  if (na === nb || na.includes(nb) || nb.includes(na)) return true
+  if (na === nb) return true
+  // Evita falsi positivi (es. numero fattura "A" ⊆ "…xyz…" per la lettera «a»).
+  const minSub = 4
+  if (na.length >= minSub && nb.length >= minSub) {
+    if (na.includes(nb) || nb.includes(na)) return true
+  }
   const ta = verificaProductTokens(a)
   const tb = verificaProductTokens(b)
   if (ta.length === 0 || tb.length === 0) return false
@@ -344,26 +349,109 @@ export function productNamesMatchForVerifica(a: string, b: string): boolean {
   return shared.length >= Math.max(2, Math.ceil(minLen * 0.5))
 }
 
+function codiceMatchesVerificaNeedle(codice: string, ...haystacks: string[]): boolean {
+  const c = codice.trim().toLowerCase()
+  if (!c || c.length < 3) return false
+  for (const h of haystacks) {
+    const t = h.trim().toLowerCase()
+    if (!t) continue
+    if (t === c) return true
+    if (c.length >= 4 && t.includes(c)) return true
+    if (t.length >= 4 && c.includes(t)) return true
+  }
+  return false
+}
+
 export function checkResultMatchesVerificaProdotto(
   r: {
     numero: string
     bolle: { id: string; numero_bolla: string | null; importo: number | null; data: string }[]
   },
   needle: string,
+  codice?: string | null,
 ): boolean {
   const n = needle.trim()
-  if (!n) return true
-  if (productNamesMatchForVerifica(n, r.numero)) return true
+  const code = codice?.trim() ?? ''
+  if (!n && !code) return true
+
+  if (n) {
+    if (productNamesMatchForVerifica(n, r.numero)) return true
+  }
+  if (code && codiceMatchesVerificaNeedle(code, r.numero)) return true
+
   for (const b of r.bolle as unknown[]) {
     if (!b || typeof b !== 'object') continue
     const o = b as Record<string, unknown>
     const meta = o.rekki_meta
     if (meta && typeof meta === 'object') {
-      const prod = String((meta as Record<string, unknown>).prodotto ?? '')
-      if (prod && productNamesMatchForVerifica(n, prod)) return true
+      const m = meta as Record<string, unknown>
+      const prod = String(m.prodotto ?? '')
+      const sku = String(m.codice ?? m.sku ?? m.product_code ?? '')
+      if (n && prod && productNamesMatchForVerifica(n, prod)) return true
+      if (code && codiceMatchesVerificaNeedle(code, prod, sku)) return true
     }
     const nb = String(o.numero_bolla ?? '')
-    if (nb && productNamesMatchForVerifica(n, nb)) return true
+    if (n && nb && productNamesMatchForVerifica(n, nb)) return true
+    if (code && codiceMatchesVerificaNeedle(code, nb)) return true
   }
   return false
+}
+
+export type VerificaDisplayMode =
+  | 'strict'
+  | 'product_relaxed'
+  | 'stmt_anomalies'
+  | 'status_relaxed'
+  | 'all_fallback'
+  | 'empty'
+
+/** Righe da mostrare in Verifica con fallback se il filtro prodotto/stato non trova nulla. */
+export function resolveVerificaDisplayRows<T extends {
+  numero: string
+  status: string
+  bolle: { id: string; numero_bolla: string | null; importo: number | null; data: string }[]
+}>(
+  checkResults: T[],
+  opts: {
+    checkFilter: string
+    verificaProdotto: string
+    verificaCodice?: string | null
+    deepLink?: boolean
+  },
+): { rows: T[]; mode: VerificaDisplayMode } {
+  const { checkFilter, verificaProdotto, verificaCodice, deepLink } = opts
+  const byProduct = (rows: T[]) =>
+    !verificaProdotto.trim() && !verificaCodice?.trim()
+      ? rows
+      : rows.filter((r) => checkResultMatchesVerificaProdotto(r, verificaProdotto, verificaCodice))
+  const byStatus = (rows: T[]) =>
+    checkFilter === 'all' ? rows : rows.filter((r) => r.status === checkFilter)
+
+  const strict = byStatus(byProduct(checkResults))
+  if (strict.length > 0) return { rows: strict, mode: 'strict' }
+
+  const productOnly = byProduct(checkResults)
+  if (verificaProdotto.trim() && productOnly.length > 0) {
+    return { rows: productOnly, mode: 'product_relaxed' }
+  }
+
+  const anomalies = checkResults.filter((r) => r.status !== 'ok' && r.status !== 'pending')
+  if (verificaProdotto.trim() && anomalies.length > 0) {
+    const anomalyFiltered = byStatus(anomalies)
+    return {
+      rows: anomalyFiltered.length > 0 ? anomalyFiltered : anomalies,
+      mode: 'stmt_anomalies',
+    }
+  }
+
+  if (checkFilter !== 'all') {
+    const statusOnly = byStatus(checkResults)
+    if (statusOnly.length > 0) return { rows: statusOnly, mode: 'status_relaxed' }
+  }
+
+  if (deepLink && checkResults.length > 0) {
+    return { rows: checkResults, mode: 'all_fallback' }
+  }
+
+  return { rows: [], mode: 'empty' }
 }
