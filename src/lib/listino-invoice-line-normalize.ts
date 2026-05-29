@@ -23,9 +23,24 @@ function parseMoneyToken(raw: string): number | null {
   return Math.round(n * 100) / 100
 }
 
+const PACK_SIZE_TOKEN = /^(\d{1,3}[xX×]\d{1,4}|X\d{1,4}|ROLL|CASE|CTN|CARTON)$/i
+
+function pushParsedInvoiceLine(
+  out: ListinoImportLineInput[],
+  seen: Set<string>,
+  row: ListinoImportLineInput,
+) {
+  const codice = row.codice_prodotto?.toUpperCase() ?? ''
+  const key = `${codice}|${row.prodotto.toLowerCase()}|${row.prezzo}`
+  if (seen.has(key)) return
+  seen.add(key)
+  out.push(row)
+}
+
 /**
- * Estrae righe da testo PDF tabellare: … DESCRIZIONE  qty  prezzo_unit  totale_riga
- * (pattern ricorrente su fatture wholesale UK).
+ * Estrae righe da testo PDF.
+ * Formato catering UK (es. Del Italia): CODICE DESCRIZIONE  qty  pack  value
+ * dove **value = totale riga** (non prezzo unitario) e pack = X6 / X400 / ROLL / 12x45.
  */
 export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineInput[] {
   const out: ListinoImportLineInput[] = []
@@ -34,7 +49,38 @@ export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineI
   for (const line of text.split('\n')) {
     const t = line.trim().replace(/\s+/g, ' ')
     if (t.length < 10) continue
-    if (/^(total|subtotal|sub\s*total|vat|iva|invoice|page|amount\s+due)\b/i.test(t)) continue
+    if (/^(total|subtotal|sub\s*total|vat|iva|invoice|page|amount\s+due|product\s+code|description|quantity|pack|value)\b/i.test(t)) {
+      continue
+    }
+
+    const packStyle = t.match(
+      /^(\S+)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(\d+(?:[.,]\d+)?)\s*$/i,
+    )
+    if (packStyle) {
+      const qty = parseFloat(packStyle[3]!.replace(',', '.'))
+      const pack = packStyle[4]!
+      const lineTotal = parseMoneyToken(packStyle[5]!)
+      if (!lineTotal || qty < 0.01 || qty > 999) continue
+      if (!PACK_SIZE_TOKEN.test(pack) && !/^\d/.test(pack)) continue
+
+      const unit = Math.round((lineTotal / qty) * 100) / 100
+      const codiceCol = packStyle[1]!.toUpperCase()
+      const desc = packStyle[2]!.trim()
+      const codiceDesc = inferCodiceFromProductName(desc)
+      const codice = codiceDesc && codiceDesc !== codiceCol ? codiceDesc : codiceCol
+      const prodotto = sanitizeListinoProductName(desc, codice)
+
+      pushParsedInvoiceLine(out, seen, {
+        prodotto,
+        codice_prodotto: codiceCol,
+        prezzo: unit,
+        quantita: qty,
+        importo_linea: lineTotal,
+        unita: pack,
+        note: 'lettura tabella PDF (Value÷Qty)',
+      })
+      continue
+    }
 
     const triple = t.match(
       /^(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\d{1,7}[.,]\d{2})\s+(\d{1,7}[.,]\d{2})\s*$/,
@@ -53,11 +99,7 @@ export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineI
     const prodotto = codeMatch ? codeMatch[2]!.trim() : head
     if (!prodotto) continue
 
-    const key = `${codice ?? ''}|${prodotto.toLowerCase()}|${unit}`
-    if (seen.has(key)) continue
-    seen.add(key)
-
-    out.push({
+    pushParsedInvoiceLine(out, seen, {
       prodotto,
       codice_prodotto: codice,
       prezzo: unit,
@@ -70,6 +112,38 @@ export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineI
   return out
 }
 
+/** Value column = extended line amount → unit price. */
+export function resolveUnitPriceFromInvoiceValue(
+  prezzo: number,
+  quantita: number | null | undefined,
+  importo_linea: number | null | undefined,
+): { unit: number; lineTotal: number | null; quantita: number | null } {
+  const qty =
+    quantita != null && Number.isFinite(quantita) && quantita > 0
+      ? Math.round(quantita * 1000) / 1000
+      : null
+  if (!qty || !Number.isFinite(prezzo) || prezzo <= 0) {
+    return { unit: prezzo, lineTotal: importo_linea ?? null, quantita: qty }
+  }
+
+  const line =
+    importo_linea != null && Number.isFinite(importo_linea) && importo_linea > 0
+      ? importo_linea
+      : prezzo
+  const unitFromLine = Math.round((line / qty) * 100) / 100
+
+  const prezzoAlreadyUnit =
+    importo_linea != null &&
+    amountsClose(prezzo * qty, importo_linea, 0.03) &&
+    !amountsClose(prezzo, importo_linea, 0.02)
+
+  if (prezzoAlreadyUnit) {
+    return { unit: prezzo, lineTotal: importo_linea, quantita: qty }
+  }
+
+  return { unit: unitFromLine, lineTotal: line, quantita: qty }
+}
+
 /** Integra quantità / prezzo unitario dal testo PDF quando Gemini sbaglia o omette campi. */
 export function mergeImportLinesWithPdfText(
   geminiItems: ListinoImportLineInput[],
@@ -79,13 +153,26 @@ export function mergeImportLinesWithPdfText(
 
   const byCode = new Map<string, ListinoImportLineInput>()
   for (const row of textLines) {
-    const code = (row.codice_prodotto ?? inferCodiceFromProductName(row.prodotto))?.toUpperCase()
-    if (code) byCode.set(code, row)
+    const keys = new Set<string>()
+    const c1 = row.codice_prodotto?.toUpperCase()
+    const c2 = inferCodiceFromProductName(row.prodotto)?.toUpperCase()
+    if (c1) keys.add(c1)
+    if (c2) keys.add(c2)
+    for (const k of keys) byCode.set(k, row)
+  }
+
+  const findTextRow = (code: string | null, prodotto: string) => {
+    if (!code) return null
+    const direct = byCode.get(code)
+    if (direct) return direct
+    const fromName = inferCodiceFromProductName(prodotto)?.toUpperCase()
+    if (fromName) return byCode.get(fromName) ?? null
+    return null
   }
 
   return geminiItems.map((g) => {
     const code = (g.codice_prodotto ?? inferCodiceFromProductName(g.prodotto))?.toUpperCase() ?? null
-    const fromText = code ? byCode.get(code) : null
+    const fromText = findTextRow(code, g.prodotto)
     const codice_prodotto = g.codice_prodotto ?? fromText?.codice_prodotto ?? (code || null)
 
     if (!fromText) {
@@ -103,7 +190,7 @@ export function mergeImportLinesWithPdfText(
           ? fromText.prezzo
           : g.prezzo,
     }
-    return merged
+    return normalizeListinoImportLineItem(merged, [])
   })
 }
 
@@ -182,43 +269,17 @@ export function normalizeListinoImportLineItem(
   let prezzo = item.prezzo
 
   if (!Number.isFinite(prezzo) || prezzo <= 0) {
-    return { ...item, prodotto, prezzo }
+    return { ...item, prodotto, prezzo, codice_prodotto }
   }
 
-  const lineTotal =
-    item.importo_linea != null && Number.isFinite(item.importo_linea) && item.importo_linea > 0
-      ? item.importo_linea
-      : null
-
-  if (qty != null && qty >= 1) {
-    const unitFromLine =
-      lineTotal != null
-        ? Math.round((lineTotal / qty) * 100) / 100
-        : Math.round((prezzo / qty) * 100) / 100
-
-    const prezzoLooksLikeLineTotal =
-      lineTotal != null
-        ? amountsClose(prezzo, lineTotal, 0.02)
-        : amountsClose(prezzo, unitFromLine * qty, 0.02) && qty >= 2
-
-    if (prezzoLooksLikeLineTotal && unitFromLine > 0 && unitFromLine < prezzo * 0.99) {
-      prezzo = unitFromLine
-    } else if (
-      qty >= 2 &&
-      qty <= 24 &&
-      Number.isInteger(qty) &&
-      unitFromLine > 0 &&
-      unitFromLine < prezzo * 0.99 &&
-      amountsClose(prezzo, unitFromLine * qty, 0.025)
-    ) {
-      prezzo = unitFromLine
-    }
-  } else if (lineTotal != null && lineTotal > prezzo * 1.5) {
-    const inferredQty = Math.round(lineTotal / prezzo)
-    if (inferredQty >= 2 && inferredQty <= 24 && amountsClose(lineTotal, prezzo * inferredQty, 0.03)) {
-      prezzo = Math.round((lineTotal / inferredQty) * 100) / 100
-    }
-  }
+  const resolved = resolveUnitPriceFromInvoiceValue(
+    prezzo,
+    qty ?? item.quantita,
+    item.importo_linea,
+  )
+  prezzo = resolved.unit
+  const lineTotal = resolved.lineTotal
+  const qtyOut = resolved.quantita
 
   const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
   if (hist.length >= 2) {
@@ -249,7 +310,8 @@ export function normalizeListinoImportLineItem(
     codice_prodotto,
     prodotto,
     prezzo,
-    quantita: qty ?? item.quantita,
+    quantita: qtyOut ?? qty ?? item.quantita,
+    importo_linea: lineTotal ?? item.importo_linea,
   }
 }
 

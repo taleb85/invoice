@@ -32,9 +32,11 @@ Return ONLY valid JSON — no markdown, no explanation:
 }
 
 Rules:
-- Extract the UNIT PRICE (prezzo unitario / unit price / prix unitaire / Einzelpreis), NOT the line total.
-- NEVER use the quantity column (Qty, Qtà, Qty., Cases, Casse, etc.) as prezzo — quantity is not a price.
-- NEVER use the line total / amount / importo riga column as prezzo — if only line totals exist, set prezzo = line_total ÷ quantity.
+- Extract the UNIT PRICE (prezzo unitario), NOT the line total.
+- On many UK catering invoices the rightmost money column is **Value** = **line total** (qty × unit). Example: Qty 2, Value 17.98 → quantita=2, importo_linea=17.98, prezzo=8.99 (17.98÷2). NOT prezzo=17.98.
+- NEVER use the quantity column (Qty, Qtà) as prezzo.
+- NEVER put the Value/Amount column into prezzo without dividing by Quantity.
+- Pack Size (X6, X400, ROLL, 12x45) is `unita` only — it is NOT order quantity.
 - If only line totals are available and there's a quantity, calculate: line_total / quantity.
 - Always fill quantita (ordered cases/units on the invoice line) and importo_linea (line total / amount column) when visible.
 - Example: 2 cases at £12.50 each → quantita = 2, importo_linea = 25.00, prezzo = 12.50 — NOT prezzo = 25.00.

@@ -4806,12 +4806,10 @@ function ListinoTab({
                                       onChange={e => setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, prezzo: parseFloat(e.target.value) || 0 } : it))}
                                       className={`w-20 rounded bg-transparent px-1 text-right font-bold focus:bg-black/15 focus:outline-none ${isRincaro ? 'text-red-300' : isRibasso ? 'text-emerald-300' : 'text-app-fg'}`}
                                     />
-                                    {item.quantita != null && item.quantita > 1 ? (
+                                    {item.importo_linea != null && item.quantita != null && item.quantita >= 1 ? (
                                       <p className="mt-0.5 text-[9px] leading-snug text-amber-200/90">
-                                        {item.quantita} × {fmtMoney(item.prezzo)}
-                                        {item.importo_linea != null
-                                          ? ` = ${fmtMoney(item.importo_linea)}`
-                                          : ''}
+                                        {item.quantita > 1 ? `${item.quantita} × ` : ''}
+                                        {fmtMoney(item.prezzo)} = {fmtMoney(item.importo_linea)}
                                       </p>
                                     ) : null}
                                   </td>
