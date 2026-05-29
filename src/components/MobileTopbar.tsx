@@ -96,7 +96,7 @@ export default function MobileTopbar() {
       <div
         aria-hidden
         className={`pointer-events-none absolute left-2 right-2 top-0 transition-[background,box-shadow,backdrop-filter] duration-200 sm:left-2.5 ${
-          barOpaque ? 'app-desktop-header-glass rounded-t-[10px]' : 'bg-transparent'
+          barOpaque ? 'app-mobile-topbar-glass rounded-t-[10px]' : 'bg-transparent'
         }`}
         style={{ height: 'env(safe-area-inset-top, 0px)' }}
       />
@@ -104,7 +104,7 @@ export default function MobileTopbar() {
         data-mobile-topbar-bar
         data-scrolled={barOpaque ? '' : undefined}
         className={`relative flex h-[52px] min-h-[52px] items-center gap-1.5 rounded-[10px] px-2.5 ps-[max(0.625rem,env(safe-area-inset-left,0px))] pe-[max(0.625rem,env(safe-area-inset-right,0px))] transition-[background,box-shadow,backdrop-filter,border-color] duration-200 sm:gap-2 sm:px-3 ${
-          barOpaque ? 'app-desktop-header-glass border border-app-line-25' : 'app-card-unified'
+          barOpaque ? 'app-mobile-topbar-glass border border-app-line-25' : 'app-card-unified'
         }`}
       >
         <div

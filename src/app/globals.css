@@ -428,6 +428,26 @@
     }
   }
 
+  /** Topbar mobile in scroll: blur più marcato del desktop header glass. */
+  .app-mobile-topbar-glass {
+    background: rgb(255 255 255 / 0.07);
+    background-image: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 6px 28px -12px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(40px) saturate(1.25);
+    -webkit-backdrop-filter: blur(40px) saturate(1.25);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .app-mobile-topbar-glass {
+      background: rgb(255 255 255 / 0.1);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 6px 28px -12px rgba(0, 0, 0, 0.35);
+    }
+  }
+
   .app-shell-page-padding-x {
     @apply px-4 md:px-6 lg:px-8 xl:px-10;
   }
@@ -1653,6 +1673,25 @@ body:has([data-deep-aurora-integration]) .app-desktop-header-glass {
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.08),
       0 4px 20px -10px rgb(0 0 0 / 0.28) !important;
+  }
+}
+
+body:has([data-deep-aurora-integration]) .app-mobile-topbar-glass {
+  background: rgb(255 255 255 / 0.07) !important;
+  background-image: none !important;
+  backdrop-filter: blur(40px) saturate(1.25) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.25) !important;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    0 6px 28px -12px rgb(0 0 0 / 0.38) !important;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body:has([data-deep-aurora-integration]) .app-mobile-topbar-glass {
+    background: rgb(255 255 255 / 0.1) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
 
