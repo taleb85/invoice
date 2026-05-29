@@ -11,6 +11,102 @@ export type ListinoImportLineInput = {
   note?: string | null
 }
 
+/** Codice articolo in testa al nome (es. M8000B, M8000TR3). */
+export function inferCodiceFromProductName(prodotto: string): string | null {
+  const m = prodotto.trim().match(/^([A-Z]{1,6}\d{2,6}[A-Z0-9]{0,6})\b/i)
+  return m?.[1]?.toUpperCase() ?? null
+}
+
+function parseMoneyToken(raw: string): number | null {
+  const n = parseFloat(raw.replace(/[£€$]/g, '').replace(/\s/g, '').replace(',', '.'))
+  if (!Number.isFinite(n) || n <= 0) return null
+  return Math.round(n * 100) / 100
+}
+
+/**
+ * Estrae righe da testo PDF tabellare: … DESCRIZIONE  qty  prezzo_unit  totale_riga
+ * (pattern ricorrente su fatture wholesale UK).
+ */
+export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineInput[] {
+  const out: ListinoImportLineInput[] = []
+  const seen = new Set<string>()
+
+  for (const line of text.split('\n')) {
+    const t = line.trim().replace(/\s+/g, ' ')
+    if (t.length < 10) continue
+    if (/^(total|subtotal|sub\s*total|vat|iva|invoice|page|amount\s+due)\b/i.test(t)) continue
+
+    const triple = t.match(
+      /^(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\d{1,7}[.,]\d{2})\s+(\d{1,7}[.,]\d{2})\s*$/,
+    )
+    if (!triple) continue
+
+    const qty = parseFloat(triple[2]!.replace(',', '.'))
+    const unit = parseMoneyToken(triple[3]!)
+    const lineTotal = parseMoneyToken(triple[4]!)
+    if (!unit || !lineTotal || qty < 1 || qty > 999) continue
+    if (!amountsClose(unit * qty, lineTotal, 0.04)) continue
+
+    const head = triple[1]!.trim()
+    const codeMatch = head.match(/^([A-Z]{1,6}\d{2,6}[A-Z0-9]{0,6})\s+(.+)$/i)
+    const codice = codeMatch ? codeMatch[1]!.toUpperCase() : inferCodiceFromProductName(head)
+    const prodotto = codeMatch ? codeMatch[2]!.trim() : head
+    if (!prodotto) continue
+
+    const key = `${codice ?? ''}|${prodotto.toLowerCase()}|${unit}`
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    out.push({
+      prodotto,
+      codice_prodotto: codice,
+      prezzo: unit,
+      quantita: qty,
+      importo_linea: lineTotal,
+      unita: null,
+      note: 'lettura tabella PDF',
+    })
+  }
+  return out
+}
+
+/** Integra quantità / prezzo unitario dal testo PDF quando Gemini sbaglia o omette campi. */
+export function mergeImportLinesWithPdfText(
+  geminiItems: ListinoImportLineInput[],
+  textLines: ListinoImportLineInput[],
+): ListinoImportLineInput[] {
+  if (textLines.length === 0) return geminiItems
+
+  const byCode = new Map<string, ListinoImportLineInput>()
+  for (const row of textLines) {
+    const code = (row.codice_prodotto ?? inferCodiceFromProductName(row.prodotto))?.toUpperCase()
+    if (code) byCode.set(code, row)
+  }
+
+  return geminiItems.map((g) => {
+    const code = (g.codice_prodotto ?? inferCodiceFromProductName(g.prodotto))?.toUpperCase() ?? null
+    const fromText = code ? byCode.get(code) : null
+    const codice_prodotto = g.codice_prodotto ?? fromText?.codice_prodotto ?? (code || null)
+
+    if (!fromText) {
+      return normalizeListinoImportLineItem({ ...g, codice_prodotto }, [])
+    }
+
+    const merged: ListinoImportLineInput = {
+      ...g,
+      codice_prodotto,
+      prodotto: g.prodotto.trim() || fromText.prodotto,
+      quantita: fromText.quantita ?? g.quantita,
+      importo_linea: fromText.importo_linea ?? g.importo_linea,
+      prezzo:
+        fromText.quantita != null && fromText.quantita >= 1
+          ? fromText.prezzo
+          : g.prezzo,
+    }
+    return merged
+  })
+}
+
 /** Quantità ordinata sulla fattura (casse/confezioni), non il formato confezione (es. X6 = 6 pezzi per cartone). */
 export function parseInvoiceOrderQuantity(
   quantita: number | null | undefined,
@@ -79,7 +175,9 @@ export function normalizeListinoImportLineItem(
   item: ListinoImportLineInput,
   existingPrices: number[] = [],
 ): ListinoImportLineInput {
-  const prodotto = sanitizeListinoProductName(item.prodotto, item.codice_prodotto)
+  const codice_prodotto =
+    item.codice_prodotto?.trim() || inferCodiceFromProductName(item.prodotto) || null
+  const prodotto = sanitizeListinoProductName(item.prodotto, codice_prodotto)
   const qty = parseInvoiceOrderQuantity(item.quantita, item.unita)
   let prezzo = item.prezzo
 
@@ -126,9 +224,33 @@ export function normalizeListinoImportLineItem(
   if (hist.length >= 2) {
     const fromLine = inferUnitPriceFromLineTotal(prezzo, hist)
     if (fromLine != null) prezzo = fromLine
+  } else if (hist.length === 1) {
+    const ref = hist[0]!
+    if (prezzo >= ref * 1.85 && prezzo <= ref * 2.15) {
+      prezzo = Math.round((prezzo / 2) * 100) / 100
+    }
   }
 
-  return { ...item, prodotto, prezzo, quantita: qty ?? item.quantita }
+  if (qty == null && hist.length >= 1) {
+    const ref = Math.max(...hist)
+    if (ref > 0 && prezzo > ref * 1.5) {
+      for (const q of [2, 3, 4, 5, 6, 8, 10, 12]) {
+        const unit = Math.round((prezzo / q) * 100) / 100
+        if (unit >= ref * 0.88 && unit <= ref * 1.12) {
+          prezzo = unit
+          break
+        }
+      }
+    }
+  }
+
+  return {
+    ...item,
+    codice_prodotto,
+    prodotto,
+    prezzo,
+    quantita: qty ?? item.quantita,
+  }
 }
 
 /** Prezzi storici per prodotto / codice (note listino). */

@@ -50,7 +50,13 @@ Rules:
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
 import { extractPdfText } from '@/lib/pdf-parse-utils'
-import { normalizeListinoImportLineItem } from '@/lib/listino-invoice-line-normalize'
+import {
+  existingListinoPricesForImport,
+  inferCodiceFromProductName,
+  mergeImportLinesWithPdfText,
+  normalizeListinoImportLineItem,
+  parseInvoiceTableLinesFromText,
+} from '@/lib/listino-invoice-line-normalize'
 
 function parseOptionalPositiveNumber(v: unknown): number | null {
   if (v == null || v === '') return null
@@ -83,25 +89,17 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
         const importoLineaRaw = parseOptionalPositiveNumber(
           i.importo_linea ?? i.line_total ?? i.totale_riga,
         )
+        const codiceResolved = codice ?? inferCodiceFromProductName(prodottoNorm)
         const raw: LineItem = {
           prodotto: prodottoNorm,
-          codice_prodotto: codice,
+          codice_prodotto: codiceResolved,
           prezzo: prezzoRaw,
           quantita: quantitaRaw,
           importo_linea: importoLineaRaw,
           unita: i.unita ? String(i.unita) : null,
           note: i.note ? String(i.note) : null,
         }
-        const normalized = normalizeListinoImportLineItem(raw)
-        return {
-          prodotto: normalized.prodotto,
-          codice_prodotto: normalized.codice_prodotto ?? codice,
-          prezzo: normalized.prezzo,
-          quantita: normalized.quantita ?? null,
-          importo_linea: importoLineaRaw,
-          unita: normalized.unita,
-          note: normalized.note,
-        }
+        return raw
       })
     return { items, data_fattura: parsed.data_fattura ?? null }
   } catch {
@@ -126,7 +124,7 @@ export async function POST(req: NextRequest) {
   // Load the fattura record
   const { data: fattura, error: fatturaErr } = await service
     .from('fatture')
-    .select('id, file_url, data, numero_fattura')
+    .select('id, file_url, data, numero_fattura, fornitore_id')
     .eq('id', fattura_id)
     .single()
 
@@ -152,9 +150,11 @@ export async function POST(req: NextRequest) {
   }
 
   let rawResponse: string
+  let pdfText: string | null = null
 
   if (contentType.includes('pdf')) {
     const text = await extractPdfText(fileBuffer)
+    pdfText = text || null
     if (text) {
       try {
         const res = await geminiGenerateText(SYSTEM_PROMPT, text.slice(0, 6000), 1500)
@@ -197,7 +197,34 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { items, data_fattura } = parseLineItems(rawResponse)
+  let { items, data_fattura } = parseLineItems(rawResponse)
+
+  if (pdfText) {
+    const textLines = parseInvoiceTableLinesFromText(pdfText)
+    items = mergeImportLinesWithPdfText(items, textLines)
+  }
+
+  const { data: listinoRows } = await service
+    .from('listino_prezzi')
+    .select('prodotto, prezzo, note')
+    .eq('fornitore_id', fattura.fornitore_id)
+
+  const listinoForHist = (listinoRows ?? []) as Array<{
+    prodotto: string
+    prezzo: number
+    note?: string | null
+  }>
+
+  items = items.map((item) =>
+    normalizeListinoImportLineItem(
+      item,
+      existingListinoPricesForImport(
+        listinoForHist,
+        item.prodotto,
+        item.codice_prodotto,
+      ),
+    ),
+  )
 
   return NextResponse.json({
     items,

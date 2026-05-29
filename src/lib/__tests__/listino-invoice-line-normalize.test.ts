@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  inferCodiceFromProductName,
+  mergeImportLinesWithPdfText,
   normalizeListinoImportLineItem,
   parseInvoiceOrderQuantity,
+  parseInvoiceTableLinesFromText,
   sanitizeListinoProductName,
 } from '@/lib/listino-invoice-line-normalize'
 
@@ -24,6 +27,44 @@ describe('parseInvoiceOrderQuantity', () => {
   it('reads explicit invoice quantity', () => {
     expect(parseInvoiceOrderQuantity(2, 'X6')).toBe(2)
     expect(parseInvoiceOrderQuantity(null, '2 casse')).toBe(2)
+  })
+})
+
+describe('parseInvoiceTableLinesFromText', () => {
+  it('parses qty, unit price and line total from PDF row', () => {
+    const lines = parseInvoiceTableLinesFromText(
+      'M8000B BLACK M WAVEABLE CONT 880cc  2  40.81  81.62\n',
+    )
+    expect(lines).toHaveLength(1)
+    expect(lines[0]!.codice_prodotto).toBe('M8000B')
+    expect(lines[0]!.quantita).toBe(2)
+    expect(lines[0]!.prezzo).toBe(40.81)
+    expect(lines[0]!.importo_linea).toBe(81.62)
+  })
+})
+
+describe('mergeImportLinesWithPdfText', () => {
+  it('replaces gemini line total with unit price from PDF table', () => {
+    const merged = mergeImportLinesWithPdfText(
+      [
+        {
+          prodotto: 'BLACK M WAVEABLE CONT 880cc',
+          codice_prodotto: 'M8000B',
+          prezzo: 81.62,
+          unita: null,
+          note: null,
+        },
+      ],
+      parseInvoiceTableLinesFromText('M8000B BLACK M WAVEABLE CONT 880cc  2  40.81  81.62'),
+    )
+    expect(merged[0]!.prezzo).toBe(40.81)
+    expect(merged[0]!.quantita).toBe(2)
+  })
+})
+
+describe('inferCodiceFromProductName', () => {
+  it('reads M8000TR3 prefix', () => {
+    expect(inferCodiceFromProductName('M8000TR3 CLEAR FLAT LID')).toBe('M8000TR3')
   })
 })
 

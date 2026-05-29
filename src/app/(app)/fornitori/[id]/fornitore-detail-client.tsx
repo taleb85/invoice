@@ -42,6 +42,11 @@ import {
   productNamesMatchForVerifica,
 } from '@/lib/listino-display'
 import {
+  existingListinoPricesForImport,
+  normalizeListinoImportLineItem,
+  resolveListinoUnitPriceForDisplay,
+} from '@/lib/listino-invoice-line-normalize'
+import {
   listinoHistoryDeltaPercent,
   previousPlausiblePriceByRowId,
 } from '@/lib/listino-history-delta'
@@ -3357,6 +3362,8 @@ function ListinoTab({
     prodotto: string
     codice_prodotto: string | null
     prezzo: number
+    quantita?: number | null
+    importo_linea?: number | null
     unita: string | null
     note: string | null
     selected: boolean
@@ -3540,8 +3547,17 @@ function ListinoTab({
         .sort((a, b) => b.data_prezzo.localeCompare(a.data_prezzo))
       const latestCode = byCode[0]
       if (latestCode) {
+        const group = listinoData.filter(
+          (row) => parseListinoNoteParts(row.note).codice?.trim().toUpperCase() === code,
+        )
+        const sorted = [...group].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+        const others = sorted.filter((r) => r.id !== latestCode.id).map((r) => r.prezzo)
         return {
-          prezzoAttuale: latestCode.prezzo,
+          prezzoAttuale: resolveListinoUnitPriceForDisplay(
+            latestCode.prezzo,
+            latestCode.note,
+            others,
+          ),
           matchedProdotto: latestCode.prodotto,
           matchedByRekkiId: false,
         }
@@ -3561,21 +3577,44 @@ function ListinoTab({
         
         const latest = allMatchesForRekkiId[0]
         if (latest) {
-          return { 
-            prezzoAttuale: latest.prezzo, 
+          const group = listinoData.filter(
+            (row) =>
+              row.rekki_product_id &&
+              row.rekki_product_id.trim() === rekkiProductId.trim(),
+          )
+          const sorted = [...group].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+          const others = sorted.filter((r) => r.id !== latest.id).map((r) => r.prezzo)
+          return {
+            prezzoAttuale: resolveListinoUnitPriceForDisplay(
+              latest.prezzo,
+              latest.note,
+              others,
+            ),
             matchedProdotto: latest.prodotto,
-            matchedByRekkiId: true
+            matchedByRekkiId: true,
           }
         }
       }
     }
     
     // Fallback: fuzzy match su etichette raggruppate per codice/nome
-    const latestByGroup: Record<string, { prezzo: number; prodotto: string }> = {}
+    const latestByGroup: Record<string, { row: ListinoProdotto }> = {}
     for (const row of listinoData) {
-      latestByGroup[listinoGroupKey(row)] = { prezzo: row.prezzo, prodotto: row.prodotto }
+      const key = listinoGroupKey(row)
+      const cur = latestByGroup[key]
+      if (!cur || row.data_prezzo > cur.row.data_prezzo) {
+        latestByGroup[key] = { row }
+      }
     }
-    const products = Object.values(latestByGroup)
+    const products = Object.values(latestByGroup).map(({ row }) => {
+      const group = listinoData.filter((r) => listinoGroupKey(r) === listinoGroupKey(row))
+      const sorted = [...group].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+      const others = sorted.filter((r) => r.id !== row.id).map((r) => r.prezzo)
+      return {
+        prodotto: row.prodotto,
+        prezzo: resolveListinoUnitPriceForDisplay(row.prezzo, row.note, others),
+      }
+    })
 
     let bestMatch: { prezzoAttuale: number; matchedProdotto: string; matchedByRekkiId?: boolean } | null = null
     let bestScore = 0.3 // minimum threshold
@@ -3701,16 +3740,38 @@ function ListinoTab({
               prodotto: string
               prezzo: number
               codice_prodotto?: string | null
+              quantita?: number | null
+              importo_linea?: number | null
               unita: string | null
               note: string | null
-            }) => ({
-              ...item,
-              codice_prodotto:
-                item.codice_prodotto != null && String(item.codice_prodotto).trim() !== ''
-                  ? String(item.codice_prodotto).trim()
-                  : null,
-              selected: true,
-            })
+            }) => {
+              const normalized = normalizeListinoImportLineItem(
+                {
+                  prodotto: item.prodotto,
+                  codice_prodotto:
+                    item.codice_prodotto != null && String(item.codice_prodotto).trim() !== ''
+                      ? String(item.codice_prodotto).trim()
+                      : null,
+                  prezzo: item.prezzo,
+                  quantita: item.quantita ?? null,
+                  importo_linea: item.importo_linea ?? null,
+                  unita: item.unita,
+                  note: item.note,
+                },
+                existingListinoPricesForImport(
+                  listino,
+                  item.prodotto,
+                  item.codice_prodotto,
+                ),
+              )
+              return {
+                ...normalized,
+                codice_prodotto: normalized.codice_prodotto ?? null,
+                quantita: normalized.quantita ?? null,
+                importo_linea: item.importo_linea ?? null,
+                selected: true,
+              }
+            },
           ),
           listino
         )
@@ -3757,6 +3818,7 @@ function ListinoTab({
         [
           i.codice_prodotto?.trim() ? `Codice: ${i.codice_prodotto.trim()}` : null,
           i.unita ? `Unità: ${i.unita}` : null,
+          i.quantita != null && i.quantita > 1 ? `Qtà fattura: ${i.quantita}` : null,
           i.note,
         ]
           .filter(Boolean)
@@ -4744,6 +4806,14 @@ function ListinoTab({
                                       onChange={e => setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, prezzo: parseFloat(e.target.value) || 0 } : it))}
                                       className={`w-20 rounded bg-transparent px-1 text-right font-bold focus:bg-black/15 focus:outline-none ${isRincaro ? 'text-red-300' : isRibasso ? 'text-emerald-300' : 'text-app-fg'}`}
                                     />
+                                    {item.quantita != null && item.quantita > 1 ? (
+                                      <p className="mt-0.5 text-[9px] leading-snug text-amber-200/90">
+                                        {item.quantita} × {fmtMoney(item.prezzo)}
+                                        {item.importo_linea != null
+                                          ? ` = ${fmtMoney(item.importo_linea)}`
+                                          : ''}
+                                      </p>
+                                    ) : null}
                                   </td>
                                   <td className="px-3 py-2.5 text-center">
                                     {item.delta !== null ? (
