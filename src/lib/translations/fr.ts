@@ -999,6 +999,12 @@ const translations: Translations = {
     emptyNoData: 'Aucune donnée disponible.',
     emptyNoDataHint: 'Importez des listes de prix ou synchronisez les prix depuis les factures pour activer l\'analyse intelligente.',
     loadError: 'Échec du chargement',
+    syncButton: 'Mettre à jour produits et prix',
+    syncDiscovering: 'Recherche de factures à importer…',
+    syncProgress: 'Fournisseur {current}/{total} : {name}',
+    syncNothingPending: 'Aucune facture à importer — les tarifs sont à jour.',
+    syncDone: 'Tarifs mis à jour : {righe} lignes de prix depuis {fatture} factures.',
+    syncError: 'Échec de la mise à jour des tarifs',
   },
   strumentiCentroOperazioni: {
     pageTitle: 'Centre des opérations',

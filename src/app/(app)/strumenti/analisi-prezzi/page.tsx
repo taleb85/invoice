@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { Loader2, RefreshCw } from 'lucide-react'
 import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -45,17 +45,11 @@ function StatusIcon({ score }: { score: number }) {
 
 export default function AnalisiPrezziPage() {
   const t = useT()
-  const router = useRouter()
   const { showToast } = useToast()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedReport, setSelectedReport] = useState<{
-    fornitore_nome: string
-    trends: number
-    anomalie: number
-    raccomandazioni: number
-    punteggio_salute: number
-  } | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -73,6 +67,68 @@ export default function AnalisiPrezziPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
+  const handleSyncListino = useCallback(async () => {
+    if (syncing) return
+    setSyncing(true)
+    setSyncProgress(t.strumentiAnalisiPrezzi.syncDiscovering)
+    try {
+      const discRes = await fetch('/api/listino/sync-from-fatture', { cache: 'no-store' })
+      if (!discRes.ok) {
+        throw new Error(t.common.httpError.replace('{code}', String(discRes.status)))
+      }
+      const disc = (await discRes.json()) as {
+        fornitori?: Array<{ id: string; nome: string; pending_fatture: number }>
+        total_pending_fatture?: number
+      }
+      const fornitori = disc.fornitori ?? []
+      if (fornitori.length === 0 || (disc.total_pending_fatture ?? 0) === 0) {
+        showToast(t.strumentiAnalisiPrezzi.syncNothingPending, 'info')
+        await loadData()
+        return
+      }
+
+      let righeInserite = 0
+      let fattureScanned = 0
+      for (let i = 0; i < fornitori.length; i++) {
+        const f = fornitori[i]
+        setSyncProgress(
+          t.strumentiAnalisiPrezzi.syncProgress
+            .replace('{current}', String(i + 1))
+            .replace('{total}', String(fornitori.length))
+            .replace('{name}', f.nome),
+        )
+        const res = await fetch('/api/listino/sync-from-fatture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fornitore_id: f.id }),
+        })
+        const json = (await res.json().catch(() => ({}))) as {
+          error?: string
+          righe_inserite?: number
+          fatture_scanned?: number
+        }
+        if (!res.ok) {
+          throw new Error(json.error ?? t.strumentiAnalisiPrezzi.syncError)
+        }
+        righeInserite += json.righe_inserite ?? 0
+        fattureScanned += json.fatture_scanned ?? 0
+      }
+
+      showToast(
+        t.strumentiAnalisiPrezzi.syncDone
+          .replace('{righe}', String(righeInserite))
+          .replace('{fatture}', String(fattureScanned)),
+        'success',
+      )
+      await loadData()
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : t.strumentiAnalisiPrezzi.syncError, 'error')
+    } finally {
+      setSyncing(false)
+      setSyncProgress(null)
+    }
+  }, [loadData, showToast, syncing, t])
+
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
@@ -86,7 +142,26 @@ export default function AnalisiPrezziPage() {
         }
       >
         <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.strumentiAnalisiPrezzi.pageTitle}</h1>
+        <button
+          type="button"
+          onClick={() => void handleSyncListino()}
+          disabled={syncing || loading}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-50"
+        >
+          {syncing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3.5 w-3.5" />
+          )}
+          <span className="hidden sm:inline">{t.strumentiAnalisiPrezzi.syncButton}</span>
+        </button>
       </AppPageHeaderStrip>
+
+      {syncProgress ? (
+        <p className="text-center text-xs text-white/50" role="status">
+          {syncProgress}
+        </p>
+      ) : null}
 
       {loading ? (
         <div className="space-y-3">

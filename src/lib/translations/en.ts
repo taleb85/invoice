@@ -1052,6 +1052,12 @@ const translations: Translations = {
     emptyNoData: 'No data available.',
     emptyNoDataHint: 'Import price lists or sync prices from invoices to enable smart analysis.',
     loadError: 'Failed to load',
+    syncButton: 'Update products & prices',
+    syncDiscovering: 'Finding invoices to import…',
+    syncProgress: 'Supplier {current}/{total}: {name}',
+    syncNothingPending: 'No invoices to import — price lists are already up to date.',
+    syncDone: 'Price list updated: {righe} price rows from {fatture} invoices.',
+    syncError: 'Price list update failed',
   },
   strumentiCentroOperazioni: {
     pageTitle: 'Operations hub',

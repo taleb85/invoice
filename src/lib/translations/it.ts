@@ -1055,6 +1055,12 @@ const translations: Translations = {
     emptyNoData: 'Nessun dato disponibile.',
     emptyNoDataHint: 'Importa listini o sincronizza prezzi dalle fatture per attivare l\'analisi intelligente.',
     loadError: 'Errore caricamento',
+    syncButton: 'Aggiorna prodotti e prezzi',
+    syncDiscovering: 'Ricerca fatture da importare…',
+    syncProgress: 'Fornitore {current}/{total}: {name}',
+    syncNothingPending: 'Nessuna fattura da importare: i listini sono già aggiornati.',
+    syncDone: 'Listino aggiornato: {righe} righe prezzo da {fatture} fatture.',
+    syncError: 'Aggiornamento listino non riuscito',
   },
   strumentiCentroOperazioni: {
     pageTitle: 'Centro operazioni',

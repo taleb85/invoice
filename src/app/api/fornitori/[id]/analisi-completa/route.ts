@@ -2,26 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { detectAllDuplicates, type AllDuplicatesReport } from '@/lib/duplicate-detector'
-import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
-import { LISTINO_SRC_FATTURA_MARK } from '@/lib/listino-display'
+import { syncListinoFromFattureForFornitore } from '@/lib/sync-listino-from-fatture'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
-
-function maxDateForProducts(
-  rows: Array<{ prodotto: string; data_prezzo: string }>,
-  products: Set<string>,
-): Map<string, string> {
-  const m = new Map<string, string>()
-  for (const row of rows) {
-    const p = String(row.prodotto).trim()
-    if (!products.has(p)) continue
-    const d = String(row.data_prezzo).slice(0, 10)
-    const cur = m.get(p)
-    if (!cur || compareIsoDateStrings(d, cur) > 0) m.set(p, d)
-  }
-  return m
-}
 
 function duplicateHitsForFornitore(report: AllDuplicatesReport, fornitoreId: string): number {
   let n = 0
@@ -109,123 +93,22 @@ export async function POST(req: NextRequest, segmentCtx: { params: Promise<{ id:
     ;(report.errors as string[]).push(`Duplicati: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  // 4–5 Listino: importa da fatture non analizzate (stessa logica della scheda fornitore)
-  let listinoInserted = 0
-  let listinoFattureScanned = 0
+  // 4–5 Listino: importa da fatture non analizzate
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      report.listino = { skipped: true, reason: 'GEMINI_API_KEY non configurata' }
+    const listino = await syncListinoFromFattureForFornitore(service, {
+      fornitoreId,
+      baseUrl: base,
+      cookie,
+    })
+    if (listino.skipped) {
+      report.listino = { skipped: true, reason: listino.reason }
     } else {
-      const { data: fattureData } = await service
-        .from('fatture')
-        .select('id, data, numero_fattura, file_url, analizzata')
-        .eq('fornitore_id', fornitoreId)
-        .not('file_url', 'is', null)
-        .order('data', { ascending: false })
-
-      const fattureToProcess = (fattureData ?? []).filter(
-        (f: { analizzata?: boolean | null }) => !f.analizzata,
-      ) as { id: string; data: string; numero_fattura: string | null; file_url: string | null }[]
-
-      const { data: listinoFresh } = await service
-        .from('listino_prezzi')
-        .select('prodotto, data_prezzo')
-        .eq('fornitore_id', fornitoreId)
-
-      const listinoRows = (listinoFresh ?? []) as Array<{ prodotto: string; data_prezzo: string }>
-
-      for (const fattura of fattureToProcess) {
-        const imp = await fetch(`${base}/api/listino/importa-da-fattura`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: cookie },
-          body: JSON.stringify({ fattura_id: fattura.id }),
-        })
-        const json = (await imp.json().catch(() => ({}))) as {
-          items?: Array<{
-            prodotto: string
-            prezzo: number
-            codice_prodotto?: string | null
-            unita: string | null
-            note: string | null
-          }>
-          data_fattura?: string | null
-        }
-        if (!imp.ok || !Array.isArray(json.items) || json.items.length === 0) {
-          await service.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
-          listinoFattureScanned++
-          continue
-        }
-
-        const docDate =
-          String(json.data_fattura ?? fattura.data ?? '').slice(0, 10) ||
-          new Date().toISOString().split('T')[0]
-
-        const products = new Set(json.items.map((i) => String(i.prodotto).trim()).filter(Boolean))
-        const maxByProduct = maxDateForProducts(listinoRows, products)
-
-        const rowsOut: Array<{
-          prodotto: string
-          prezzo: number
-          data_prezzo: string
-          note: string | null
-        }> = []
-
-        const fatturaLabel = fattura.numero_fattura
-          ? `Fattura ${fattura.numero_fattura} — ${fattura.data}`
-          : `Fattura · ${fattura.data}`
-
-        for (const item of json.items) {
-          const prodotto = String(item.prodotto ?? '').trim()
-          if (!prodotto || typeof item.prezzo !== 'number' || item.prezzo <= 0) continue
-          const latest = maxByProduct.get(prodotto) ?? null
-          if (latest != null && !isDocumentDateAtLeastLatestListino(docDate, latest)) continue
-
-          const baseNote = [
-            item.codice_prodotto ? `Codice: ${item.codice_prodotto}` : null,
-            item.unita ? `Unità: ${item.unita}` : null,
-            item.note,
-          ]
-            .filter(Boolean)
-            .join(' — ') || null
-          const note = baseNote
-            ? `${baseNote} — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
-            : `Origine listino — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
-
-          rowsOut.push({ prodotto, prezzo: item.prezzo, data_prezzo: docDate, note })
-        }
-
-        if (rowsOut.length === 0) {
-          await service.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
-          listinoFattureScanned++
-          continue
-        }
-
-        const save = await fetch(`${base}/api/listino/prezzi`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Cookie: cookie },
-          body: JSON.stringify({ fornitore_id: fornitoreId, rows: rowsOut }),
-        })
-        const saveJson = (await save.json().catch(() => ({}))) as { inserted?: number; error?: string }
-        if (save.ok) {
-          listinoInserted += saveJson.inserted ?? rowsOut.length
-          await service.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
-          for (const r of rowsOut) {
-            const p = r.prodotto.trim()
-            const d = r.data_prezzo.slice(0, 10)
-            const cur = maxByProduct.get(p)
-            if (!cur || compareIsoDateStrings(d, cur) > 0) maxByProduct.set(p, d)
-            listinoRows.push({ prodotto: p, data_prezzo: d })
-          }
-        } else {
-          ;(report.errors as string[]).push(
-            `Listino salvataggio fattura ${fattura.id}: ${saveJson.error ?? save.status}`,
-          )
-        }
-        listinoFattureScanned++
+      report.listino = {
+        fattureScanned: listino.fattureScanned,
+        righeInserite: listino.righeInserite,
       }
-
-      report.listino = { fattureScanned: listinoFattureScanned, righeInserite: listinoInserted }
     }
+    ;(report.errors as string[]).push(...listino.errors)
   } catch (e) {
     ;(report.errors as string[]).push(`Listino: ${e instanceof Error ? e.message : String(e)}`)
   }

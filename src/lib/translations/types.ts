@@ -2727,6 +2727,12 @@ export type Translations = {
     emptyNoData: string
     emptyNoDataHint: string
     loadError: string
+    syncButton: string
+    syncDiscovering: string
+    syncProgress: string
+    syncNothingPending: string
+    syncDone: string
+    syncError: string
   }
   strumentiCentroOperazioni: {
     pageTitle: string

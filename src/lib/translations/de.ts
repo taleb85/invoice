@@ -999,6 +999,12 @@ const translations: Translations = {
     emptyNoData: 'Keine Daten verfügbar.',
     emptyNoDataHint: 'Importieren Sie Preislisten oder synchronisieren Sie Preise aus Rechnungen, um die intelligente Analyse zu aktivieren.',
     loadError: 'Laden fehlgeschlagen',
+    syncButton: 'Produkte & Preise aktualisieren',
+    syncDiscovering: 'Suche Rechnungen zum Import…',
+    syncProgress: 'Lieferant {current}/{total}: {name}',
+    syncNothingPending: 'Keine Rechnungen zum Import — Preislisten sind aktuell.',
+    syncDone: 'Preisliste aktualisiert: {righe} Preiszeilen aus {fatture} Rechnungen.',
+    syncError: 'Preislisten-Update fehlgeschlagen',
   },
   strumentiCentroOperazioni: {
     pageTitle: 'Operationszentrale',
