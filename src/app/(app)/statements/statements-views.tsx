@@ -6111,38 +6111,104 @@ export function VerificationStatusTab({
                 { id: 'errore_importo',   dot: 'bg-red-500',    label: t.statements.statusErrImporto,     count: countEI  },
                 { id: 'rekki_prezzo_discordanza', dot: 'bg-amber-300', label: t.statements.statusRekkiPrezzo, count: countRK  },
               ]
+              const chipCompactLabel = (chip: (typeof chips)[number]) =>
+                chip.id === 'ok'
+                  ? t.statements.kpiVerifiedOk
+                  : (anomalyShortLabels[chip.id as CheckStatus] ?? chip.label)
+              const chipActiveCls =
+                'border-app-cyan-400/45 bg-cyan-500/15 text-app-fg'
+              const chipIdleCls =
+                'border-app-line-28 bg-transparent text-app-fg-muted hover:border-app-line-40 hover:bg-white/[0.04]'
               return (
-                <div className="flex min-h-10 flex-wrap items-center gap-2 border-b border-app-soft-border bg-transparent px-4 py-2.5">
-                  <span className="shrink-0 text-sm font-bold text-app-fg">
-                    {t.statements.tabVerifica}
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                    {chips.map(chip => (
-                      <button key={chip.id} onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
-                        className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
-                          checkFilter === chip.id
-                            ? 'border-app-cyan-400/45 bg-cyan-500/15 text-app-fg'
-                            : 'border-app-line-28 bg-transparent text-app-fg-muted hover:border-app-line-40 hover:bg-white/[0.04]'
-                        }`}>
-                        <span className={`w-2 h-2 rounded-full ${chip.dot} ${checkFilter === chip.id ? 'opacity-80' : ''}`} />
-                        {chip.label}
-                        <span className="font-bold">· {chip.count}</span>
+                <>
+                  {vsCompactS1 ? (
+                    <div className="space-y-2 border-b border-app-soft-border bg-transparent px-3 py-2.5 md:hidden">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {chips.map((chip) => (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
+                            className={`flex min-h-11 touch-manipulation items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all ${
+                              checkFilter === chip.id ? chipActiveCls : chipIdleCls
+                            }`}
+                          >
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <span
+                                className={`h-2 w-2 shrink-0 rounded-full ${chip.dot} ${checkFilter === chip.id ? 'opacity-80' : ''}`}
+                              />
+                              <span className="text-[11px] font-semibold leading-tight">
+                                {chipCompactLabel(chip)}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-sm font-bold tabular-nums">{chip.count}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {checkFilter !== 'all' ? (
+                        <button
+                          type="button"
+                          onClick={() => setCheckFilter('all')}
+                          className={`${vsS1HeaderActionBtn} w-full border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40`}
+                        >
+                          <svg
+                            className={`h-4 w-4 shrink-0 opacity-90 ${icon.settingsTools}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          {t.statements.clearFilter}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <div
+                    className={`min-h-10 items-center gap-2 border-b border-app-soft-border bg-transparent px-4 py-2.5 ${
+                      vsCompactS1 ? 'hidden md:flex' : 'flex flex-wrap'
+                    }`}
+                  >
+                    <span className="shrink-0 text-sm font-bold text-app-fg">{t.statements.tabVerifica}</span>
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                      {chips.map((chip) => (
+                        <button
+                          key={chip.id}
+                          type="button"
+                          onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
+                          className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-xs font-semibold transition-all ${
+                            checkFilter === chip.id ? chipActiveCls : chipIdleCls
+                          }`}
+                        >
+                          <span
+                            className={`h-2 w-2 rounded-full ${chip.dot} ${checkFilter === chip.id ? 'opacity-80' : ''}`}
+                          />
+                          {chip.label}
+                          <span className="font-bold">· {chip.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {checkFilter !== 'all' ? (
+                      <button
+                        type="button"
+                        onClick={() => setCheckFilter('all')}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                      >
+                        <svg
+                          className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.settingsTools}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        {t.statements.clearFilter}
                       </button>
-                    ))}
+                    ) : null}
                   </div>
-                  {checkFilter !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => setCheckFilter('all')}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
-                    >
-                      <svg className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      {t.statements.clearFilter}
-                    </button>
-                  )}
-                </div>
+                </>
               )
             })()}
 
