@@ -5503,14 +5503,35 @@ export function VerificationStatusTab({
               />
             ) : null}
             <div className="flex flex-col gap-2 text-xs text-app-fg-muted">
-              <p>
-                <span>
-                  {statementOfficialDateIso(selectedStmt) ? t.statements.labelDocDate : t.statements.receivedOn}
-                </span>{' '}
-                <span className="font-medium tabular-nums text-app-fg">
-                  {formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}
-                </span>
-              </p>
+              {(() => {
+                const officialIso = statementOfficialDateIso(selectedStmt)
+                const displayFormatted = formatStmtDate(officialIso ?? selectedStmt.received_at)
+                const primaryIsDisplayDate =
+                  !selectedStmt.email_subject?.trim() &&
+                  selectedStmtPrimaryLabel === displayFormatted
+                if (primaryIsDisplayDate) {
+                  const receivedYmd = selectedStmt.received_at?.slice(0, 10)
+                  if (officialIso && receivedYmd && officialIso !== receivedYmd) {
+                    return (
+                      <p>
+                        {t.statements.labelReceived}{' '}
+                        <span className="font-medium tabular-nums text-app-fg">
+                          {formatStmtDate(selectedStmt.received_at)}
+                        </span>
+                      </p>
+                    )
+                  }
+                  return null
+                }
+                return (
+                  <p>
+                    <span>
+                      {officialIso ? t.statements.labelDocDate : t.statements.receivedOn}
+                    </span>{' '}
+                    <span className="font-medium tabular-nums text-app-fg">{displayFormatted}</span>
+                  </p>
+                )
+              })()}
               {selectedStmt.file_url ? (
                 <OpenDocumentInAppButton
                   statementId={selectedStmt.id}
