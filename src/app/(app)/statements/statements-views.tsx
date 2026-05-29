@@ -343,11 +343,13 @@ function StmtPdfSummaryGrid({
   t,
   formatStmtDate,
   countryCode,
+  className,
 }: {
   pdf: StmtExtractedPdfDates
   t: ReturnType<typeof useT>
   formatStmtDate: (d: string | null) => string
   countryCode?: string
+  className?: string
 }) {
   const cc = countryCode ?? 'UK'
   const fmtMoney = (n: number) => formatCurrency(n, cc)
@@ -392,7 +394,9 @@ function StmtPdfSummaryGrid({
   if (!rows.length) return null
 
   return (
-    <div className="mt-2 rounded-lg border border-slate-600/45 bg-slate-900/35 px-3 py-2.5 ring-1 ring-inset ring-slate-500/10">
+    <div
+      className={`mt-2 rounded-lg border border-slate-600/45 bg-slate-900/35 px-3 py-2.5 ring-1 ring-inset ring-slate-500/10 ${className ?? ''}`}
+    >
       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{t.statements.stmtPdfSummaryTitle}</p>
       <dl className="mt-2 grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6">
         {rows.map(r => (
@@ -4916,6 +4920,14 @@ export function VerificationStatusTab({
     </>
   )
 
+  const vsS1StmtDetailOpen = vsCompactS1 && Boolean(selectedStmt)
+  const selectedStmtPrimaryLabel = selectedStmt
+    ? fornitoreId
+      ? (selectedStmt.email_subject?.trim() ||
+          formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at))
+      : (selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement')
+    : ''
+
   return (
     <>
       {/* ── Migration guide (shown only when tables are missing) ── */}
@@ -4938,7 +4950,9 @@ export function VerificationStatusTab({
               : 'flex min-h-10 items-center justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5'
           }
         >
-          <div className={`flex min-w-0 flex-1 items-center ${vsCompactS1 ? 'gap-1.5' : 'gap-2'}`}>
+          <div
+            className={`flex min-w-0 flex-1 items-center ${vsCompactS1 ? 'gap-1.5' : 'gap-2'} ${vsS1StmtDetailOpen ? 'max-md:hidden' : ''}`}
+          >
             <svg
               className={`${vsCompactS1 ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 text-cyan-400/90`}
               fill="none"
@@ -4962,10 +4976,111 @@ export function VerificationStatusTab({
               )}
             </div>
           </div>
+          {vsS1StmtDetailOpen ? (
+            <div className="flex w-full flex-col gap-2 md:hidden">
+              <div className="flex items-stretch gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStmt(null)
+                    setCheckResults(null)
+                    setCheckError(null)
+                  }}
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-3 text-xs font-semibold text-app-fg touch-manipulation transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                >
+                  <svg
+                    className={`${vsS1HeaderActionIcon} shrink-0 opacity-90 ${icon.statements}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  {t.statements.stmtBackToList}
+                </button>
+                {navigableStmts.length > 1 ? (
+                  <div
+                    className="flex shrink-0 items-center gap-0.5 rounded-lg border border-app-line-28 bg-transparent p-0.5"
+                    role="group"
+                    aria-label={t.statements.stmtNavGroupAria}
+                  >
+                    <button
+                      type="button"
+                      disabled={!prevNavStmt || stmtNavBusy}
+                      title={t.statements.stmtNavPrev}
+                      aria-label={t.statements.stmtNavPrev}
+                      onClick={() => {
+                        if (prevNavStmt) void loadStatementRows(prevNavStmt)
+                      }}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-md text-app-fg transition-colors hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation"
+                    >
+                      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span
+                      className="min-w-[2.75rem] px-1 text-center text-xs font-semibold tabular-nums text-app-fg-muted"
+                      title={t.statements.stmtNavPosition
+                        .replace('{current}', String(selectedStmtNavIndex + 1))
+                        .replace('{total}', String(navigableStmts.length))}
+                    >
+                      {selectedStmtNavIndex + 1}/{navigableStmts.length}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!nextNavStmt || stmtNavBusy}
+                      title={t.statements.stmtNavNext}
+                      aria-label={t.statements.stmtNavNext}
+                      onClick={() => {
+                        if (nextNavStmt) void loadStatementRows(nextNavStmt)
+                      }}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-md text-app-fg transition-colors hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation"
+                    >
+                      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                disabled={stmtHeaderRefreshPending}
+                aria-busy={stmtHeaderRefreshPending}
+                onClick={() =>
+                  startStmtHeaderRefresh(() => {
+                    window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+                    router.refresh()
+                    void fetchStmts(false)
+                  })
+                }
+                className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-3 text-xs font-semibold text-app-fg touch-manipulation transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50"
+              >
+                <svg
+                  className={`${vsS1HeaderActionIcon} shrink-0 opacity-90 ${icon.emailSync} ${stmtHeaderRefreshPending ? 'animate-spin' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {t.statements.btnRefresh}
+              </button>
+            </div>
+          ) : null}
           <div
             className={
               vsCompactS1
-                ? 'flex w-full shrink-0 flex-wrap items-stretch justify-end gap-2 md:w-auto md:gap-1.5'
+                ? vsS1StmtDetailOpen
+                  ? 'hidden md:flex md:w-auto md:flex-wrap md:items-center md:justify-end md:gap-1.5'
+                  : 'flex w-full shrink-0 flex-wrap items-stretch justify-end gap-2 md:w-auto md:gap-1.5'
                 : 'flex shrink-0 flex-wrap items-center justify-end gap-1.5'
             }
           >
@@ -5345,15 +5460,105 @@ export function VerificationStatusTab({
         {/* errors are shown as toasts — no inline error block needed */}
 
         {/* Intestazione estratto + riepilogo campi letti dal PDF (account, plafond, ultimo pagamento, …) */}
-        {selectedStmt && (
+        {selectedStmt && vsS1StmtDetailOpen ? (
+          <div className="space-y-3 border-b border-app-soft-border px-3 py-3 md:hidden">
+            <p className="text-sm font-semibold leading-snug text-app-fg line-clamp-3">{selectedStmtPrimaryLabel}</p>
+            {hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? (
+              <StmtPdfSummaryGrid
+                pdf={selectedStmt.extracted_pdf_dates as StmtExtractedPdfDates}
+                t={t}
+                formatStmtDate={formatStmtDate}
+                countryCode={countryCode}
+                className="mt-0"
+              />
+            ) : null}
+            <div className="flex flex-col gap-2 text-xs text-app-fg-muted">
+              <p>
+                <span>
+                  {statementOfficialDateIso(selectedStmt) ? t.statements.labelDocDate : t.statements.receivedOn}
+                </span>{' '}
+                <span className="font-medium tabular-nums text-app-fg">
+                  {formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}
+                </span>
+              </p>
+              {selectedStmt.file_url ? (
+                <OpenDocumentInAppButton
+                  statementId={selectedStmt.id}
+                  fileUrl={selectedStmt.file_url}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-app-cyan-400/40 bg-transparent px-3 text-xs font-semibold text-app-cyan-200 touch-manipulation transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                  categoria={t.statements.tabVerifica}
+                >
+                  {t.statements.openPdf}
+                </OpenDocumentInAppButton>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome ? (
+                selectedStmt.linked_fattura_id ? (
+                  <span
+                    className={`${vsS1HeaderActionBtn} col-span-2 border border-emerald-500/35 bg-emerald-500/10 text-emerald-200`}
+                    title={t.statements.alsoFatturaCreataTitle}
+                  >
+                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {t.statements.alsoFatturaCreata}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAlsoFatturaOpen(true)}
+                    className={`${vsS1HeaderActionBtn} border border-emerald-500/35 bg-emerald-500/8 text-emerald-200/95 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40`}
+                    title={t.statements.alsoFatturaBtnTitle}
+                  >
+                    <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    {t.statements.alsoFatturaBtn}
+                  </button>
+                )
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void runStmtRecheck(selectedStmt)}
+                disabled={stmtRecheckBusy}
+                aria-busy={stmtRecheckBusy}
+                title={t.statements.recheckTripleCheckTitle}
+                className={`${vsS1HeaderActionBtn} ${
+                  (me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && !selectedStmt.linked_fattura_id
+                    ? ''
+                    : 'col-span-2'
+                } border border-amber-500/40 bg-amber-500/10 text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:opacity-50`}
+              >
+                <svg
+                  className={`${vsS1HeaderActionIcon} shrink-0 opacity-90 ${icon.emailSync} ${stmtRecheckBusy ? 'animate-spin' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {selectedStmt ? (
           <div
             className={`flex flex-wrap items-start justify-between gap-3 border-b border-app-soft-border bg-transparent py-2.5 ${
-              vsCompactS1 ? 'flex-col px-3 max-md:gap-2.5 md:flex-row md:px-4' : 'px-4'
+              vsS1StmtDetailOpen ? 'hidden px-4 md:flex' : vsCompactS1 ? 'flex-col px-3 md:flex-row md:px-4' : 'px-4'
             }`}
           >
             <div className="min-w-0 w-full flex-1 pr-0 md:pr-2">
               <p className="truncate text-sm font-semibold text-app-fg">
-                {selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement'}
+                {selectedStmtPrimaryLabel ||
+                  (selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement')}
               </p>
               {hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) && (
                 <StmtPdfSummaryGrid
@@ -5385,17 +5590,11 @@ export function VerificationStatusTab({
                 )}
               </div>
             </div>
-            <div
-              className={
-                vsCompactS1
-                  ? 'flex w-full shrink-0 flex-wrap items-stretch gap-2 self-start md:w-auto md:gap-1.5'
-                  : 'flex shrink-0 flex-wrap items-center gap-1.5 self-start'
-              }
-            >
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5 self-start">
               {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && (
                 selectedStmt.linked_fattura_id ? (
                   <span
-                    className={`inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200 ${vsCompactS1 ? 'min-h-11 max-md:w-full max-md:justify-center' : ''}`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200"
                     title={t.statements.alsoFatturaCreataTitle}
                   >
                     <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -5407,7 +5606,7 @@ export function VerificationStatusTab({
                   <button
                     type="button"
                     onClick={() => setAlsoFatturaOpen(true)}
-                    className={`inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2.5 py-1.5 text-xs font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${vsCompactS1 ? `${vsS1HeaderActionBtn} max-md:basis-full border-emerald-500/35 bg-emerald-500/8 text-emerald-200/95` : ''}`}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2.5 py-1.5 text-xs font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     title={t.statements.alsoFatturaBtnTitle}
                   >
                     <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -5423,13 +5622,9 @@ export function VerificationStatusTab({
                 disabled={stmtRecheckBusy}
                 aria-busy={stmtRecheckBusy}
                 title={t.statements.recheckTripleCheckTitle}
-                className={
-                  vsCompactS1
-                    ? `${vsS1HeaderActionBtn} border border-amber-500/40 bg-amber-500/10 text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:opacity-50`
-                    : 'inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:opacity-50'
-                }
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:opacity-50"
               >
-                <svg className={`${vsCompactS1 ? vsS1HeaderActionIcon : 'h-3.5 w-3.5'} shrink-0 opacity-90 ${icon.emailSync} ${stmtRecheckBusy ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.emailSync} ${stmtRecheckBusy ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -5441,7 +5636,7 @@ export function VerificationStatusTab({
               </button>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Modal: registra come fattura mantenendo lo statement */}
         {alsoFatturaOpen && selectedStmt && (
