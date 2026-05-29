@@ -648,18 +648,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </Link>
               <Link href="/strumenti/centro-controllo/apprendimento" onClick={onClose} className={`${navLink(pathname.startsWith('/strumenti/centro-controllo/apprendimento'))} pl-8`}>
                  <Brain
-                   className={`h-4 w-4 shrink-0 ${pathname.startsWith('/strumenti/centro-controllo/apprendimento') ? 'text-teal-400' : 'text-app-fg-muted'}`}
+                   className={`h-4 w-4 shrink-0 ${pathname.startsWith('/instrumenti/centro-controllo/apprendimento') ? 'text-teal-400' : 'text-app-fg-muted'}`}
                    strokeWidth={2}
                    aria-hidden
                  />
                  <span className="truncate">{t.nav.learning}</span>
                </Link>
-              <Link href="/strumenti/centro-operazioni" onClick={onClose} className={navLink(pathname?.startsWith('/strumenti/centro-operazioni'))}>
-                <svg className={`w-4 h-4 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-                </svg>
-                <span className="truncate">{t.strumentiCentroOperazioni.pageTitle}</span>
-              </Link>
             </>
           )}
 
