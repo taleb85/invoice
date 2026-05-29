@@ -5322,7 +5322,7 @@ export function VerificationStatusTab({
                   <div
                     className={
                       vsCompactS1 && vsEmbeddedSupplier
-                        ? 'flex min-w-0 w-full items-start gap-2'
+                        ? 'flex min-w-0 w-full items-start gap-2 md:contents'
                         : 'contents'
                     }
                   >
@@ -5410,7 +5410,7 @@ export function VerificationStatusTab({
                     <span className="text-xs text-red-500 font-medium">{t.statements.stmtListParseError}</span>
                   ) : (
                     <>
-                    <div className={`min-w-0 shrink-0 text-right ${vsCompactS1 && vsEmbeddedSupplier ? 'max-w-none flex-1' : 'max-w-[10.5rem] sm:max-w-[12rem]'}`}>
+                    <div className={`min-w-0 shrink-0 text-right ${vsCompactS1 && vsEmbeddedSupplier ? 'max-w-none max-md:flex-1' : 'max-w-[10.5rem] sm:max-w-[12rem]'}`}>
                       <p className="text-xs font-semibold text-app-fg-muted">
                         {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
                       </p>
