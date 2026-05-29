@@ -44,6 +44,8 @@ export function statementEmailSubjectMatchesFornitore(
   subject: string | null | undefined,
   fornitoreNome: string,
   fornitoreDisplayName?: string | null,
+  /** Nome anagrafica dal record statement (se diverso da alias in scheda). */
+  statementFornitoreNome?: string | null,
 ): boolean {
   const fromName = extractStatementFromSupplierName(subject)
   if (!fromName) return true
@@ -51,7 +53,7 @@ export function statementEmailSubjectMatchesFornitore(
   const fromKey = canonicalSupplierNameKey(fromName)
   if (!fromKey) return true
 
-  const candidates = [fornitoreNome, fornitoreDisplayName]
+  const candidates = [fornitoreNome, fornitoreDisplayName, statementFornitoreNome]
     .map((n) => (n ?? '').trim())
     .filter(Boolean)
 
