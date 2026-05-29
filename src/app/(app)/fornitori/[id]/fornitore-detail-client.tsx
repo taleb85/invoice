@@ -5052,11 +5052,31 @@ function ListinoTab({
                     <div className="flex flex-col gap-2.5 px-3 py-3 sm:px-4 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(8rem,auto)] md:items-start md:gap-5 md:py-2.5 md:pl-4 md:pr-5">
                       {/* ── COLONNA 1: Nome Prodotto + Codice/Unità ── */}
                       <div className="min-w-0 md:pr-2">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <h3 className="min-w-0 flex-1 text-base font-bold leading-tight tracking-tight text-white md:text-xl">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <h3 className="min-w-0 shrink text-base font-bold leading-tight tracking-tight text-white md:shrink md:flex-1 md:text-xl">
                             {prodotto}
                           </h3>
-                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 md:hidden">
+                          {parsed.codice || parsed.unita ? (
+                            <div className="flex shrink-0 flex-wrap items-center gap-1 md:hidden">
+                              {parsed.codice ? (
+                                <StatusBadge
+                                  tone="orange"
+                                  className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none font-mono"
+                                >
+                                  {parsed.codice}
+                                </StatusBadge>
+                              ) : null}
+                              {parsed.unita ? (
+                                <StatusBadge
+                                  tone="orange"
+                                  className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none"
+                                >
+                                  {parsed.unita}
+                                </StatusBadge>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1 md:hidden">
                             {isPromo ? (
                               <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
                             ) : hasAnomaly ? (
@@ -5072,7 +5092,7 @@ function ListinoTab({
                           </p>
                         ) : null}
                         {parsed.codice || parsed.unita ? (
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <div className="mt-2 hidden flex-wrap items-center gap-1.5 md:flex">
                             {parsed.codice ? (
                               <StatusBadge
                                 tone="orange"
@@ -5111,15 +5131,12 @@ function ListinoTab({
                             >
                               {fmtMoney(displayRow.prezzo)}
                             </p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-app-fg-muted md:hidden">
-                              <span className="font-medium">
-                                {formatDateLib(displayRow.data_prezzo, locale, timezone, {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })}
-                              </span>
-                              {parsed.unita ? <span>{parsed.unita}</span> : null}
+                            <div className="mt-1 text-[11px] font-medium text-app-fg-muted md:hidden">
+                              {formatDateLib(displayRow.data_prezzo, locale, timezone, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
                             </div>
                           </div>
                           <div className="flex shrink-0 flex-col items-end gap-1">
