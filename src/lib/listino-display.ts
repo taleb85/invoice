@@ -320,6 +320,30 @@ export function dynamicStaleThresholdDays(sortedDataPrezzoAsc: string[]): number
   return proposed
 }
 
+function verificaProductTokens(name: string): string[] {
+  return normalizeListinoProductName(name)
+    .toLowerCase()
+    .replace(/[+&/]/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length >= 3)
+}
+
+/** Confronto fuzzy tra nomi listino e righe estratto (OCR / Rekki). */
+export function productNamesMatchForVerifica(a: string, b: string): boolean {
+  const na = normalizeListinoProductName(a).toLowerCase()
+  const nb = normalizeListinoProductName(b).toLowerCase()
+  if (!na || !nb) return false
+  if (na === nb || na.includes(nb) || nb.includes(na)) return true
+  const ta = verificaProductTokens(a)
+  const tb = verificaProductTokens(b)
+  if (ta.length === 0 || tb.length === 0) return false
+  const shared = ta.filter((t) =>
+    tb.some((u) => u === t || u.includes(t) || t.includes(u)),
+  )
+  const minLen = Math.min(ta.length, tb.length)
+  return shared.length >= Math.max(2, Math.ceil(minLen * 0.5))
+}
+
 export function checkResultMatchesVerificaProdotto(
   r: {
     numero: string
@@ -327,19 +351,19 @@ export function checkResultMatchesVerificaProdotto(
   },
   needle: string,
 ): boolean {
-  const n = needle.trim().toLowerCase()
+  const n = needle.trim()
   if (!n) return true
-  if (r.numero.toLowerCase().includes(n)) return true
+  if (productNamesMatchForVerifica(n, r.numero)) return true
   for (const b of r.bolle as unknown[]) {
     if (!b || typeof b !== 'object') continue
     const o = b as Record<string, unknown>
     const meta = o.rekki_meta
     if (meta && typeof meta === 'object') {
-      const prod = String((meta as Record<string, unknown>).prodotto ?? '').toLowerCase()
-      if (prod && (prod.includes(n) || n.includes(prod))) return true
+      const prod = String((meta as Record<string, unknown>).prodotto ?? '')
+      if (prod && productNamesMatchForVerifica(n, prod)) return true
     }
-    const nb = String(o.numero_bolla ?? '').toLowerCase()
-    if (nb.includes(n)) return true
+    const nb = String(o.numero_bolla ?? '')
+    if (nb && productNamesMatchForVerifica(n, nb)) return true
   }
   return false
 }

@@ -2420,6 +2420,10 @@ const translations: Translations = {
     bolleSummaryByPeriod: 'Riepilogo bolle per periodo',
     bollePeriodEmpty: 'Nessuna bolla nel periodo',
     clearFilter: 'Rimuovi filtro',
+    verificaFilterEmpty: 'Nessuna riga corrisponde ai filtri attivi.',
+    verificaFilterEmptyHint:
+      'Prova ad allargare il filtro stato o apri un altro estratto conto dalla lista.',
+    verificaSelectStmtHint: 'Seleziona un estratto conto dalla lista per vedere le righe di verifica.',
     rekkiCheckSegmentTooltip: 'Il prezzo fatturato non coincide con l\'ordine Rekki',
     tripleColStmtDate: 'Data estratto',
     tripleColSysDate: 'Data sistema',

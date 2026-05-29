@@ -39,6 +39,7 @@ import {
   displayListinoUnitPrice,
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
+  productNamesMatchForVerifica,
 } from '@/lib/listino-display'
 import {
   listinoHistoryDeltaPercent,
@@ -3500,6 +3501,13 @@ function ListinoTab({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fornitoreId])
 
+  const listinoFocus = searchParams.get('listino_focus')?.trim() ?? ''
+  useEffect(() => {
+    if (!listinoFocus || anomaliesLoading) return
+    const el = document.getElementById('listino-price-anomalies')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [listinoFocus, anomaliesLoading, priceAnomalies.length])
+
   // ── Price comparison helpers ────────────────────────────────────────
   const normalize = (s: string) =>
     s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
@@ -4194,7 +4202,10 @@ function ListinoTab({
 
       {/* ── Anomalie Prezzi (fattura vs listino) ── */}
       {!anomaliesLoading && priceAnomalies.length > 0 && (
-        <div className="supplier-detail-tab-shell overflow-hidden border-[rgba(34,211,238,0.15)]">
+        <div
+          id="listino-price-anomalies"
+          className="supplier-detail-tab-shell overflow-hidden border-[rgba(34,211,238,0.15)]"
+        >
           <div className="app-card-bar-accent bg-rose-500/70" aria-hidden />
           <div className="flex items-center justify-between border-b border-app-line-22 px-5 py-3">
             <div className="flex items-center gap-2">
@@ -5023,12 +5034,30 @@ function ListinoTab({
                 const originLineMobile = originLine?.includes(' · ')
                   ? originLine.replace(/\s*·\s*[^·]+$/, '')
                   : originLine
+                const hasPriceAnomalyRecord = unresolvedAnomalies.some((a) =>
+                  productNamesMatchForVerifica(a.prodotto, prodotto),
+                )
                 const verificaQ = new URLSearchParams(searchParams.toString())
                 fornitoreSupplierClearDocParams(verificaQ)
-                verificaQ.set('tab', 'verifica')
-                verificaQ.set('stato', 'rekki_prezzo_discordanza')
-                verificaQ.set('verifica_prodotto', prodotto)
-                const verificaHref = `${pathname}?${verificaQ.toString()}`
+                let verificaHref: string
+                if (hasPriceAnomalyRecord) {
+                  verificaQ.set('tab', 'listino')
+                  verificaQ.set('listino_focus', prodotto)
+                  verificaQ.delete('stato')
+                  verificaQ.delete('verifica_prodotto')
+                  verificaQ.delete('apri_estratto')
+                  verificaHref = `${pathname}?${verificaQ.toString()}`
+                } else {
+                  verificaQ.set('tab', 'verifica')
+                  verificaQ.set('verifica_prodotto', prodotto)
+                  verificaQ.set('apri_estratto', '1')
+                  if (rekkiLinked && !hasAnomaly) {
+                    verificaQ.set('stato', 'rekki_prezzo_discordanza')
+                  } else {
+                    verificaQ.delete('stato')
+                  }
+                  verificaHref = `${pathname}?${verificaQ.toString()}`
+                }
                 const noteDisplay = stripListinoSrcMachineSuffix(displayRow.note)
                 const hasAnomaly = Boolean(ref && up && pct > 0)
                 const rowAccentBorder = hasAnomaly

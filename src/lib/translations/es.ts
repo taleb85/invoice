@@ -1366,6 +1366,11 @@ const translations: Translations = {
     bolleSummaryByPeriod: 'Resumen de albaranes por periodo',
     bollePeriodEmpty: 'No hay albaranes en este periodo',
     clearFilter: 'Quitar filtro',
+    verificaFilterEmpty: 'Ninguna fila coincide con los filtros activos.',
+    verificaFilterEmptyHint:
+      'Prueba a quitar el filtro de estado o abre otro extracto de la lista.',
+    verificaSelectStmtHint:
+      'Selecciona un extracto de la lista para ver las filas de verificación.',
     rekkiCheckSegmentTooltip: 'El importe facturado no coincide con el pedido Rekki',
     tripleColStmtDate: 'Fecha extracto',
     tripleColSysDate: 'Fecha sistema',

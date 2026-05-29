@@ -1701,6 +1701,9 @@ export type Translations = {
     bolleSummaryByPeriod: string
     bollePeriodEmpty: string
     clearFilter: string
+    verificaFilterEmpty: string
+    verificaFilterEmptyHint: string
+    verificaSelectStmtHint: string
     rekkiCheckSegmentTooltip: string
     tripleColStmtDate: string
     tripleColSysDate: string

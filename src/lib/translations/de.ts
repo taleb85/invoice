@@ -1365,6 +1365,11 @@ const translations: Translations = {
     bolleSummaryByPeriod: 'Lieferscheinübersicht nach Zeitraum',
     bollePeriodEmpty: 'Keine Lieferscheine in diesem Zeitraum',
     clearFilter: 'Filter zurücksetzen',
+    verificaFilterEmpty: 'Keine Zeilen entsprechen den aktiven Filtern.',
+    verificaFilterEmptyHint:
+      'Statusfilter aufheben oder einen anderen Kontoauszug aus der Liste öffnen.',
+    verificaSelectStmtHint:
+      'Wählen Sie einen Kontoauszug aus der Liste, um die Prüfzeilen zu sehen.',
     rekkiCheckSegmentTooltip: 'Der Rechnungsbetrag stimmt nicht mit der Rekki-Bestellung überein',
     tripleColStmtDate: 'Auszugsdatum',
     tripleColSysDate: 'Systemdatum',

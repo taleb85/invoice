@@ -9,6 +9,8 @@ import {
   displayListinoUnitPrice,
   pickDisplayListinoRow,
   dynamicStaleThresholdDays,
+  productNamesMatchForVerifica,
+  checkResultMatchesVerificaProdotto,
 } from '@/lib/listino-display'
 
 describe('parseListinoNoteParts', () => {
@@ -233,5 +235,38 @@ describe('dynamicStaleThresholdDays', () => {
   it('floors very short intervals at 30 days', () => {
     const dates = ['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04']
     expect(dynamicStaleThresholdDays(dates)).toBe(30)
+  })
+})
+
+describe('productNamesMatchForVerifica', () => {
+  it('matches OCR variants of the same product name', () => {
+    expect(
+      productNamesMatchForVerifica(
+        'M8000B BLACK M WAVEABLE CONT 880cc X400',
+        'BLACK M WAVEABLE CONTAINER 880cc x400 M8000B',
+      ),
+    ).toBe(true)
+  })
+
+  it('does not match unrelated products', () => {
+    expect(productNamesMatchForVerifica('Beer Menabrea 61025', 'Olive oil 5L')).toBe(false)
+  })
+})
+
+describe('checkResultMatchesVerificaProdotto', () => {
+  it('matches rekki_meta.prodotto on bolla lines', () => {
+    const row = {
+      numero: 'INV-99',
+      bolle: [
+        {
+          id: '1',
+          numero_bolla: 'DN-1',
+          importo: 10,
+          data: '2026-01-01',
+          rekki_meta: { prodotto: 'MWB500 BLACK MICROWAVE CONTAINER' },
+        },
+      ],
+    }
+    expect(checkResultMatchesVerificaProdotto(row, '500cc BLACK MICROWAVE CONTAINER & LIDS')).toBe(true)
   })
 })

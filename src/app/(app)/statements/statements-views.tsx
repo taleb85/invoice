@@ -3656,6 +3656,7 @@ export function VerificationStatusTab({
   supplierDesktopVerificaMode?: SupplierDesktopVerificaMode
 }) {
   const router = useRouter()
+  const pathname = usePathname() ?? ''
   const [stmtHeaderRefreshPending, startStmtHeaderRefresh] = useTransition()
   const [stmtRecheckBusy, setStmtRecheckBusy] = useState(false)
   const [alsoFatturaOpen, setAlsoFatturaOpen] = useState(false)
@@ -4370,6 +4371,8 @@ export function VerificationStatusTab({
   // Auto-run disabled: pipeline starts only on explicit user action.
 
   const verificaProdottoRaw = searchParams.get('verifica_prodotto')?.trim() ?? ''
+  const apriEstratto = searchParams.get('apri_estratto') === '1'
+  const verificaDeepLinkOpenedRef = useRef<string | null>(null)
 
   /* ── Classic bolla/fattura overview state ─────────── */
   // Use external year/month when provided (controlled by parent), otherwise local state
@@ -4560,6 +4563,7 @@ export function VerificationStatusTab({
     setCheckResults(null)
     checkResultsRef.current = null
     setCheckError(null)
+    verificaDeepLinkOpenedRef.current = null
   }, [sedeId, fornitoreId])
 
   /**
@@ -4899,6 +4903,77 @@ export function VerificationStatusTab({
     () => stmts.filter((s) => s.status !== 'error'),
     [stmts],
   )
+
+  /** Deep link da listino (Anomalie): apri l'estratto più pertinente anche nel pannello fornitore. */
+  useEffect(() => {
+    if (verificaMode !== 'statementsPanel') return
+    if (!fornitoreId) return
+    if (stmtsLoading || stmts.length === 0) return
+    if (selectedStmt && checkResults) return
+
+    const wantsOpen = apriEstratto || verificaProdottoRaw.length > 0
+    if (!wantsOpen) return
+
+    const key = `${fornitoreId}|${verificaProdottoRaw}|${checkFilter}|${apriEstratto}`
+    if (verificaDeepLinkOpenedRef.current === key) return
+
+    const pool = navigableStmts.filter((s) => s.status === 'done' || s.status === 'processing')
+    const fallbackPool = pool.length > 0 ? pool : navigableStmts
+
+    let target: StmtRecord | undefined
+    if (checkFilter === 'rekki_prezzo_discordanza') {
+      target = fallbackPool.find((s) =>
+        (s.anomaly_by_status ?? []).some(
+          (a) => a.check_status === 'rekki_prezzo_discordanza' && a.count > 0,
+        ),
+      )
+    }
+    if (!target) {
+      target = fallbackPool.find((s) => (s.missing_rows ?? 0) > 0)
+    }
+    if (!target) {
+      target =
+        sortStatementsByDocumentDateDesc(fallbackPool.filter((s) => s.status === 'done'))[0] ??
+        fallbackPool[0]
+    }
+    if (!target) return
+    if (selectedStmt?.id === target.id && checkResults) return
+
+    verificaDeepLinkOpenedRef.current = key
+    void loadStatementRows(target)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    verificaMode,
+    fornitoreId,
+    stmtsLoading,
+    stmts.length,
+    navigableStmts,
+    verificaProdottoRaw,
+    checkFilter,
+    apriEstratto,
+    selectedStmt?.id,
+    checkResults,
+  ])
+
+  const filteredCheckResults = useMemo(() => {
+    if (!checkResults) return null
+    return checkResults.filter(
+      (r) =>
+        (checkFilter === 'all' || r.status === checkFilter) &&
+        checkResultMatchesVerificaProdotto(r, verificaProdottoRaw),
+    )
+  }, [checkResults, checkFilter, verificaProdottoRaw])
+
+  const clearVerificaDeepLinkFilters = useCallback(() => {
+    setCheckFilter('all')
+    const q = new URLSearchParams(searchParams.toString())
+    q.delete('verifica_prodotto')
+    q.delete('apri_estratto')
+    q.delete('stato')
+    const qs = q.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [searchParams, pathname, router])
+
   const selectedStmtNavIndex = selectedStmt
     ? navigableStmts.findIndex((s) => s.id === selectedStmt.id)
     : -1
@@ -6168,10 +6243,12 @@ export function VerificationStatusTab({
                           </button>
                         ))}
                       </div>
-                      {checkFilter !== 'all' ? (
+                      {checkFilter !== 'all' || verificaProdottoRaw ? (
                         <button
                           type="button"
-                          onClick={() => setCheckFilter('all')}
+                          onClick={() =>
+                            verificaProdottoRaw ? clearVerificaDeepLinkFilters() : setCheckFilter('all')
+                          }
                           className={`${vsS1HeaderActionBtn} w-full border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40`}
                         >
                           <svg
@@ -6212,10 +6289,12 @@ export function VerificationStatusTab({
                         </button>
                       ))}
                     </div>
-                    {checkFilter !== 'all' ? (
+                    {checkFilter !== 'all' || verificaProdottoRaw ? (
                       <button
                         type="button"
-                        onClick={() => setCheckFilter('all')}
+                        onClick={() =>
+                          verificaProdottoRaw ? clearVerificaDeepLinkFilters() : setCheckFilter('all')
+                        }
                         className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
                       >
                         <svg
@@ -6235,13 +6314,31 @@ export function VerificationStatusTab({
               )
             })()}
 
+            {filteredCheckResults && filteredCheckResults.length === 0 ? (
+              <div
+                className={`border-b border-app-soft-border px-4 py-8 text-center ${
+                  vsCompactS1 ? 'md:px-3' : ''
+                }`}
+              >
+                <p className="text-sm font-semibold text-app-fg">{t.statements.verificaFilterEmpty}</p>
+                <p className="mt-1.5 text-xs leading-snug text-app-fg-muted">
+                  {t.statements.verificaFilterEmptyHint}
+                </p>
+                {verificaProdottoRaw || checkFilter !== 'all' ? (
+                  <button
+                    type="button"
+                    onClick={() => clearVerificaDeepLinkFilters()}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1]"
+                  >
+                    {t.statements.clearFilter}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
             {/* Per-line results — mobile cards */}
             <div className="md:hidden divide-y divide-app-soft-border">
-            {checkResults.filter(
-              r =>
-                (checkFilter === 'all' || r.status === checkFilter) &&
-                checkResultMatchesVerificaProdotto(r, verificaProdottoRaw),
-            ).map(r => {
+            {(filteredCheckResults ?? []).map(r => {
               const cfg        = STATUS_CONFIG[r.status]
               const needAction =
                 r.status === 'fattura_mancante' ||
@@ -6493,11 +6590,7 @@ export function VerificationStatusTab({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-app-line-15">
-                  {checkResults.filter(
-                    r =>
-                      (checkFilter === 'all' || r.status === checkFilter) &&
-                      checkResultMatchesVerificaProdotto(r, verificaProdottoRaw),
-                  ).map(r => {
+                  {(filteredCheckResults ?? []).map(r => {
                     const cfg        = STATUS_CONFIG[r.status]
                     const needAction =
                       r.status === 'fattura_mancante' ||

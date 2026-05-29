@@ -1366,6 +1366,11 @@ const translations: Translations = {
     bolleSummaryByPeriod: 'Synthèse des bons par période',
     bollePeriodEmpty: 'Aucun bon pour cette période',
     clearFilter: 'Effacer le filtre',
+    verificaFilterEmpty: 'Aucune ligne ne correspond aux filtres actifs.',
+    verificaFilterEmptyHint:
+      'Essayez d’élargir le filtre d’état ou ouvrez un autre relevé dans la liste.',
+    verificaSelectStmtHint:
+      'Sélectionnez un relevé dans la liste pour afficher les lignes de vérification.',
     rekkiCheckSegmentTooltip: 'Le montant facturé ne correspond pas à la commande Rekki',
     tripleColStmtDate: 'Date relevé',
     tripleColSysDate: 'Date système',
