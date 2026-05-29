@@ -428,23 +428,28 @@
     }
   }
 
-  /** Topbar mobile in scroll: blur più marcato del desktop header glass. */
+  /**
+   * Vetro satinato mobile (topbar + dock): stesso blur/superficie del dock inferiore.
+   * Ombre esterne aggiunte dai componenti (Tailwind) verso alto/basso.
+   */
+  .app-glass-satin,
+  .app-glass-dock.app-glass-dock-opaque,
   .app-mobile-topbar-glass {
-    background: rgb(255 255 255 / 0.07);
+    background: var(--app-surface-fill);
     background-image: none;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.1),
-      0 6px 28px -12px rgba(0, 0, 0, 0.38);
-    backdrop-filter: blur(40px) saturate(1.25);
-    -webkit-backdrop-filter: blur(40px) saturate(1.25);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px) saturate(1.15);
+    -webkit-backdrop-filter: blur(24px) saturate(1.15);
   }
 
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .app-glass-satin,
+    .app-glass-dock.app-glass-dock-opaque,
     .app-mobile-topbar-glass {
-      background: rgb(255 255 255 / 0.1);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        0 6px 28px -12px rgba(0, 0, 0, 0.35);
+      background: rgb(255 255 255 / 0.08);
+      background-image: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
     }
   }
 
@@ -508,27 +513,11 @@
     background-color: transparent;
   }
 
-  .app-glass-dock.app-glass-dock-opaque {
-    background: var(--app-surface-fill);
-    background-image: none;
-    box-shadow:
-      0 -8px 28px -10px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px) saturate(1.15);
-    -webkit-backdrop-filter: blur(24px) saturate(1.15);
-  }
-
   /**
    * Safari iOS e browser senza backdrop-filter: stesso peso visivo delle card (velatura chiara).
    * Con blur attivo restano valide le classi Tailwind sui componenti.
    */
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    .app-glass-dock.app-glass-dock-opaque {
-      background: rgb(255 255 255 / 0.08);
-      background-image: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-    }
     .app-sidebar-aside {
       background: linear-gradient(
         to bottom,
@@ -1443,15 +1432,15 @@ body:has([data-deep-aurora-integration]) input[type='datetime-local'] {
   color-scheme: dark;
 }
 
-/** Dock mobile: allineato a `app-card-unified` (superficie + blur, non slate opaco). */
-body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
+/** Vetro satinato mobile (dock + topbar): superficie Aurora + blur 24px. */
+body:has([data-deep-aurora-integration]) .app-glass-satin,
+body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque,
+body:has([data-deep-aurora-integration]) .app-mobile-topbar-glass {
   background: var(--app-surface-fill) !important;
   background-image: none !important;
   backdrop-filter: blur(24px) saturate(1.15) !important;
   -webkit-backdrop-filter: blur(24px) saturate(1.15) !important;
-  box-shadow:
-    0 -8px 32px -10px rgb(0 0 0 / 0.32),
-    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
 }
 
 body:has([data-deep-aurora-integration]) nav.app-glass-dock.border-t-2 {
@@ -1676,19 +1665,11 @@ body:has([data-deep-aurora-integration]) .app-desktop-header-glass {
   }
 }
 
-body:has([data-deep-aurora-integration]) .app-mobile-topbar-glass {
-  background: rgb(255 255 255 / 0.07) !important;
-  background-image: none !important;
-  backdrop-filter: blur(40px) saturate(1.25) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(1.25) !important;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
-    0 6px 28px -12px rgb(0 0 0 / 0.38) !important;
-}
-
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body:has([data-deep-aurora-integration]) .app-glass-satin,
+  body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque,
   body:has([data-deep-aurora-integration]) .app-mobile-topbar-glass {
-    background: rgb(255 255 255 / 0.1) !important;
+    background: rgb(255 255 255 / 0.09) !important;
     background-image: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -1739,16 +1720,6 @@ body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
-    background: rgb(255 255 255 / 0.09) !important;
-    background-image: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow:
-      0 -8px 32px -10px rgb(0 0 0 / 0.32),
-      inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
-  }
-
   [data-deep-aurora-public-shell] .app-card-login,
   [data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent,
   [data-deep-aurora-public-shell] .aurora-public-panel-soft {
