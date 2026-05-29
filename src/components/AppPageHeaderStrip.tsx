@@ -11,19 +11,19 @@ import {
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS } from '@/lib/app-shell-layout'
 
-/** Riga interna standard: `py`/`gap` contenuti per strip più basse (meno “blocco” in altezza). */
+/** Riga interna standard: titolo e azioni sulla stessa riga anche su mobile. */
 const innerClsBase =
-  'flex w-full min-w-0 flex-col gap-2 py-2 pl-4 pr-2 sm:flex-row sm:flex-nowrap sm:gap-x-6 sm:py-2.5 sm:pl-5 sm:pr-2 md:gap-x-8 md:py-3 md:pl-6 md:pr-2.5 lg:gap-x-10 lg:pl-8 lg:pr-3 xl:pl-10 xl:pr-3'
+  'flex w-full min-w-0 flex-row flex-nowrap items-center gap-x-3 py-2 pl-4 pr-2 sm:gap-x-6 sm:py-2.5 sm:pl-5 sm:pr-2 md:gap-x-8 md:py-3 md:pl-6 md:pr-2.5 lg:gap-x-10 lg:pl-8 lg:pr-3 xl:pl-10 xl:pr-3'
 
 /**
  * Con pulsante «indietro»: `pl-0` su tutta la riga così il back è il più a sinistra possibile (senza margini negativi:
  * il guscio card ha `overflow-hidden` e taglierebbe il bottone).
  */
 const innerClsBaseLeading =
-  'flex w-full min-w-0 flex-col gap-2 py-2 pl-0 pr-2 sm:flex-row sm:flex-nowrap sm:gap-x-4 sm:py-2.5 sm:pl-0 sm:pr-2 md:gap-x-7 md:py-3 md:pl-0 md:pr-2.5 lg:gap-x-8 lg:pl-0 lg:pr-3 xl:pl-0 xl:pr-3'
+  'flex w-full min-w-0 flex-row flex-nowrap items-center gap-x-2 py-2 pl-0 pr-2 sm:gap-x-4 sm:py-2.5 sm:pl-0 sm:pr-2 md:gap-x-7 md:py-3 md:pl-0 md:pr-2.5 lg:gap-x-8 lg:pl-0 lg:pr-3 xl:pl-0 xl:pr-3'
 
 const innerClsDenseBase =
-  `flex w-full min-w-0 flex-col gap-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:flex-row sm:flex-nowrap sm:gap-x-3`
+  `flex w-full min-w-0 flex-row flex-nowrap items-center gap-x-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:gap-x-3`
 
 /** Destra strip: wrap + shrink; `justify-end` allinea label + FY + tray verso il bordo destro (padding ridotto in `innerClsBase`). */
 const innerRightClsBase =
@@ -96,8 +96,8 @@ export default function AppPageHeaderStrip({
   const alignStart = rowAlign === 'start'
   const innerPad = dense ? innerClsDenseBase : leadingAccessory != null ? innerClsBaseLeading : innerClsBase
   const innerRowCls = `${innerPad} ${
-    alignStart ? 'sm:items-start' : 'sm:items-center'
-  } ${dense && alignStart ? 'md:items-start' : dense ? 'md:items-center' : ''}`
+    alignStart ? 'items-start' : ''
+  } ${dense && alignStart ? 'md:items-start' : dense && !alignStart ? 'md:items-center' : ''}`
   const leftClusterCls = `flex min-w-0 min-h-0 flex-1 ${leadingAccessory ? 'gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3' : 'gap-3 lg:gap-4'} ${alignStart ? 'items-start' : 'items-center'}`
   const titleCls = `min-w-0 flex-1 ${alignStart ? 'self-start' : 'self-center'}`
   const rightCls = `${dense ? innerRightClsDenseBase : innerRightClsBase} ${
