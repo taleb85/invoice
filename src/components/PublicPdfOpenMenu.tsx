@@ -131,7 +131,7 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
           role="presentation"
         >
           <div
-            className="app-aurora-doc-modal-shell relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-lg border border-app-line-28 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
+            className="app-aurora-doc-modal-shell relative flex h-[min(68dvh,calc(100dvh-7.5rem))] max-h-[min(68dvh,calc(100dvh-7.5rem))] w-full max-w-[min(92vw,1440px)] flex-col overflow-hidden rounded-xl border border-app-line-28 shadow-2xl md:h-[calc(100dvh-1.5rem)] md:max-h-[calc(100dvh-1.5rem)] md:max-w-[min(96vw,1440px)] md:rounded-lg backdrop-blur-xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -144,7 +144,7 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
             >
               {t.statements.btnClose}
             </button>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-12">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-10 md:pt-12">
               <iframe
                 title={t.common.document}
                 src={previewSrc}

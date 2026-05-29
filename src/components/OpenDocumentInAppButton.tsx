@@ -321,7 +321,7 @@ export function OpenDocumentInAppButton({
         role="presentation"
       >
         <div
-          className="app-aurora-doc-modal-shell relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-lg border border-app-line-28 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
+          className="app-aurora-doc-modal-shell relative flex h-[min(68dvh,calc(100dvh-7.5rem))] max-h-[min(68dvh,calc(100dvh-7.5rem))] w-full max-w-[min(92vw,1440px)] flex-col overflow-hidden rounded-xl border border-app-line-28 shadow-2xl md:h-[calc(100dvh-1.5rem)] md:max-h-[calc(100dvh-1.5rem)] md:max-w-[min(96vw,1440px)] md:rounded-lg backdrop-blur-xl"
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
@@ -420,7 +420,7 @@ export function OpenDocumentInAppButton({
               ))}
             </div>
           )}
-          <div className="app-aurora-viewer-fill flex min-h-0 flex-1 flex-col overflow-hidden pt-12 bg-slate-950/35">
+          <div className="app-aurora-viewer-fill flex min-h-0 flex-1 flex-col overflow-hidden pt-10 md:pt-12 bg-slate-950/35">
             {loading ? (
               <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
                 <svg className="h-8 w-8 animate-spin text-app-cyan-500/70" fill="none" viewBox="0 0 24 24" aria-hidden>
