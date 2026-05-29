@@ -20,6 +20,9 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 const LANG_DIALOG_ID = 'mobile-topbar-lang-dialog'
 
+/** Soglia scroll su `#app-main` prima di rendere opaca la barra (px). */
+const MOBILE_TOPBAR_OPAQUE_SCROLL_Y = 8
+
 export default function MobileTopbar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -27,8 +30,22 @@ export default function MobileTopbar() {
   const t = useT()
   const { locale, setLocale } = useLocale()
   const [langOpen, setLangOpen] = useState(false)
+  const [barOpaque, setBarOpaque] = useState(false)
   const langTitleId = useId()
   const langCloseBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const main = document.getElementById('app-main')
+    if (!main) return
+
+    const sync = () => {
+      setBarOpaque(main.scrollTop > MOBILE_TOPBAR_OPAQUE_SCROLL_Y)
+    }
+
+    sync()
+    main.addEventListener('scroll', sync, { passive: true })
+    return () => main.removeEventListener('scroll', sync)
+  }, [pathname])
 
   useEffect(() => {
     if (!langOpen) return
@@ -78,10 +95,18 @@ export default function MobileTopbar() {
     <header className="fixed top-0 left-1/2 z-30 w-[min(100vw-1rem,var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 pt-[env(safe-area-inset-top,0px)] md:hidden px-2 pb-1.5 sm:px-2.5 sm:pb-2">
       <div
         aria-hidden
-        className="pointer-events-none absolute left-0 right-0 top-0 app-desktop-header-glass"
+        className={`pointer-events-none absolute left-2 right-2 top-0 transition-[background,box-shadow,backdrop-filter] duration-200 sm:left-2.5 ${
+          barOpaque ? 'app-desktop-header-glass rounded-t-[10px]' : 'bg-transparent'
+        }`}
         style={{ height: 'env(safe-area-inset-top, 0px)' }}
       />
-      <div className="app-card-unified relative flex h-[52px] min-h-[52px] items-center gap-1.5 px-2.5 ps-[max(0.625rem,env(safe-area-inset-left,0px))] pe-[max(0.625rem,env(safe-area-inset-right,0px))] sm:gap-2 sm:px-3">
+      <div
+        data-mobile-topbar-bar
+        data-scrolled={barOpaque ? '' : undefined}
+        className={`relative flex h-[52px] min-h-[52px] items-center gap-1.5 rounded-[10px] px-2.5 ps-[max(0.625rem,env(safe-area-inset-left,0px))] pe-[max(0.625rem,env(safe-area-inset-right,0px))] transition-[background,box-shadow,backdrop-filter,border-color] duration-200 sm:gap-2 sm:px-3 ${
+          barOpaque ? 'app-desktop-header-glass border border-app-line-25' : 'app-card-unified'
+        }`}
+      >
         <div
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 sm:gap-2.5 pl-0.5 touch-manipulation"
           onClick={goLogoHome}
