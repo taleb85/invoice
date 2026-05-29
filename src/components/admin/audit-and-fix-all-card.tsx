@@ -21,7 +21,7 @@ import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
  * Idempotente: i documenti già auditati vengono skippati ai cicli successivi.
  */
 
-type Phase = 'deterministic' | 'ai' | 'completo' | 'cleanup_misclassified'
+type Phase = 'deterministic' | 'ai' | 'completo' | 'full_rescan' | 'cleanup_misclassified'
 
 type AuditPendingCounts = {
   total: number
@@ -57,6 +57,7 @@ type CleanupAction = {
 type BatchResult = {
   ok: boolean
   phase: Phase
+  rescan_stage?: 'documents' | 'statements'
   checked: number
   fornitore_fixed: number
   tipo_fixed: number
@@ -111,6 +112,7 @@ export default function AuditAndFixAllCard() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [lastRunForced, setLastRunForced] = useState(false)
+  const [rescanStage, setRescanStage] = useState<'documents' | 'statements' | null>(null)
   const abortRef = useRef(false)
 
   // Cleanup state separato — dry-run preview prima della cancellazione vera
@@ -151,7 +153,12 @@ export default function AuditAndFixAllCard() {
   const runOneBatch = useCallback(
     async (
       currentPhase: Phase,
-      opts?: { dryRun?: boolean; force?: boolean; afterId?: string | null },
+      opts?: {
+        dryRun?: boolean
+        force?: boolean
+        afterId?: string | null
+        statementAfterId?: string | null
+      },
     ): Promise<BatchResult> => {
       const res = await fetch('/api/admin/audit-and-fix-all', {
         method: 'POST',
@@ -163,6 +170,7 @@ export default function AuditAndFixAllCard() {
           ...(opts?.dryRun ? { dry_run: true } : {}),
           ...(opts?.force ? { force: true } : {}),
           ...(opts?.afterId ? { after_id: opts.afterId } : {}),
+          ...(opts?.statementAfterId ? { statement_after_id: opts.statementAfterId } : {}),
         }),
       })
       const json = (await res.json()) as BatchResult
@@ -180,16 +188,28 @@ export default function AuditAndFixAllCard() {
       let runningTotals: Totals = { ...EMPTY_TOTALS }
       setTotals(runningTotals)
       setRecentChanges([])
+      setRescanStage(null)
 
-      const HARD_LIMIT = currentPhase === 'deterministic' ? 200 : 700
+      const HARD_LIMIT =
+        currentPhase === 'deterministic' ? 200 : currentPhase === 'full_rescan' ? 2000 : 700
       let consecutiveErrors = 0
       let afterId: string | null | undefined
+      let statementAfterId: string | null | undefined
+      let scanStage: 'documents' | 'statements' = 'documents'
 
       for (let i = 0; i < HARD_LIMIT; i++) {
         if (abortRef.current) break
         let result: BatchResult
         try {
-          result = await runOneBatch(currentPhase, { force: opts?.force, afterId })
+          result = await runOneBatch(currentPhase, {
+            force: opts?.force ?? currentPhase === 'full_rescan',
+            afterId:
+              currentPhase === 'full_rescan' && scanStage === 'statements'
+                ? undefined
+                : afterId,
+            statementAfterId:
+              currentPhase === 'full_rescan' ? statementAfterId : undefined,
+          })
           consecutiveErrors = 0
         } catch (e) {
           consecutiveErrors++
@@ -223,8 +243,22 @@ export default function AuditAndFixAllCard() {
           setRecentChanges((prev) => [...result.changes.slice(0, 3), ...prev].slice(0, 8))
         }
 
-        afterId = result.next_after_id ?? undefined
-        if (!result.has_more || result.checked === 0) break
+        if (result.rescan_stage) {
+          scanStage = result.rescan_stage
+          setRescanStage(result.rescan_stage)
+        }
+
+        if (currentPhase === 'full_rescan') {
+          if (scanStage === 'documents') {
+            afterId = result.next_after_id ?? undefined
+          } else {
+            statementAfterId = result.next_after_id ?? undefined
+          }
+        } else {
+          afterId = result.next_after_id ?? undefined
+        }
+
+        if (!result.has_more) break
       }
 
       return runningTotals
@@ -233,23 +267,32 @@ export default function AuditAndFixAllCard() {
   )
 
   const handleStart = useCallback(
-    async (mode: 'deterministic' | 'deterministic_force' | 'with_ai' | 'ai_only') => {
+    async (
+      mode:
+        | 'deterministic'
+        | 'deterministic_force'
+        | 'with_ai'
+        | 'ai_only'
+        | 'full_rescan',
+    ) => {
       const force = mode === 'deterministic_force'
       const confirmMsg =
-        mode === 'deterministic_force'
-          ? 'Rieseguire la passata veloce su TUTTI i documenti in coda (anche già auditati)? Usa solo i metadata OCR salvati — non rilegge i PDF.'
-          : mode === 'deterministic'
-            ? 'Avvia ricontrollo veloce sui documenti in coda non ancora auditati? Corregge fornitore + tipo dove la catena di qualità è certa (2/3 segnali). Non rilegge i PDF.'
-            : mode === 'ai_only'
-              ? 'Avvia SOLO la passata AI Gemini sui documenti con file non ancora analizzati dall\'AI? Scarica e riclassifica ogni PDF: lento e consuma quota Gemini.'
-              : 'Avvia «Completo + AI» su tutti i documenti in coda (fatture, bolle, ordini, estratti, ecc.) non ancora completati? Per ogni documento: passata veloce sui metadata + Gemini Vision sul PDF se presente. Salva un checkpoint: ai richiami successivi analizza solo i documenti nuovi.'
+        mode === 'full_rescan'
+          ? 'Riesaminare TUTTI i documenti della sede dal primo all\'ultimo (ordine ID), rileggendo ogni PDF con Gemini e spostando al fornitore corretto? Operazione lunga e consuma quota AI.'
+          : mode === 'deterministic_force'
+            ? 'Rieseguire la passata veloce su TUTTI i documenti in coda (anche già auditati)? Usa solo i metadata OCR salvati — non rilegge i PDF.'
+            : mode === 'deterministic'
+              ? 'Avvia ricontrollo veloce sui documenti in coda non ancora auditati? Corregge fornitore + tipo dove la catena di qualità è certa (2/3 segnali). Non rilegge i PDF.'
+              : mode === 'ai_only'
+                ? 'Avvia SOLO la passata AI Gemini sui documenti con file non ancora analizzati dall\'AI? Scarica e riclassifica ogni PDF: lento e consuma quota Gemini.'
+                : 'Avvia «Completo + AI» sui documenti in coda non ancora completati? Per ogni documento: passata veloce sui metadata + Gemini Vision sul PDF. Salta i documenti già marcati completi.'
       if (!confirm(confirmMsg)) return
 
       abortRef.current = false
       setBusy(true)
       setErrorMsg(null)
       setDone(false)
-      setLastRunForced(force)
+      setLastRunForced(force || mode === 'full_rescan')
       setRecentChanges([])
       setTotals(EMPTY_TOTALS)
 
@@ -258,6 +301,8 @@ export default function AuditAndFixAllCard() {
           await runPhase('deterministic', { force })
         } else if (mode === 'with_ai') {
           await runPhase('completo')
+        } else if (mode === 'full_rescan') {
+          await runPhase('full_rescan')
         }
         if (!abortRef.current && mode === 'ai_only') {
           await runPhase('ai')
@@ -379,11 +424,10 @@ export default function AuditAndFixAllCard() {
             Solo righe in <strong className="font-medium text-app-fg">documenti da processare</strong>{' '}
             (qualsiasi tipo: fattura, bolla, ordine, estratto, listino, …).
             <strong className="font-medium text-app-fg"> Veloce</strong> usa solo metadata OCR salvati — non
-            apre i PDF.             <strong className="font-medium text-app-fg">Completo + AI</strong> fa passata veloce +
-            Gemini Vision sul file e salva <code className="text-[10px]">audit_completo_at</code>: al richiamo
-            salta i documenti già controllati. Rileva anche estratti inoltrati (
-            <em>Statement from …</em> con fornitore sbagliato) anche se il mittente email è il cliente.
-            Non sposta fatture/listino già archiviati senza legame a un documento in coda.
+            apre i PDF.             <strong className="font-medium text-app-fg">Riscan tutti (1→N)</strong> rilegge ogni documento
+            in ordine (dal primo all&apos;ultimo), riassegna il fornitore e propaga a fatture/bolle/estratti collegati.
+            <strong className="font-medium text-app-fg"> Completo + AI (nuovi)</strong> processa solo i documenti
+            non ancora marcati <code className="text-[10px]">audit_completo_at</code>.
             {pendingCounts ? (
               <>
                 {' '}
@@ -428,6 +472,21 @@ export default function AuditAndFixAllCard() {
         <button
           type="button"
           disabled={busy || cleanupBusy}
+          onClick={() => handleStart('full_rescan')}
+          title="Rilegge tutti i documenti in ordine e riassegna il fornitore corretto"
+          className="touch-manipulation rounded-lg border border-cyan-500/45 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition-colors hover:bg-cyan-500/18 disabled:opacity-50"
+        >
+          <Sparkles className="-mt-0.5 mr-1 inline-block h-3.5 w-3.5" />
+          Riscan tutti (1→N)
+          {pendingCounts && pendingCounts.total > 0 ? (
+            <span className="ml-1 rounded-full bg-cyan-500/25 px-1.5 py-0.5 text-[9px] font-bold">
+              {pendingCounts.total}
+            </span>
+          ) : null}
+        </button>
+        <button
+          type="button"
+          disabled={busy || cleanupBusy}
           onClick={() => handleStart('with_ai')}
           title={
             pendingCounts
@@ -437,7 +496,7 @@ export default function AuditAndFixAllCard() {
           className="touch-manipulation rounded-lg border border-purple-500/40 bg-purple-500/8 px-3 py-1.5 text-xs font-semibold text-purple-200/95 transition-colors hover:bg-purple-500/15 disabled:opacity-50"
         >
           <Sparkles className="-mt-0.5 mr-1 inline-block h-3.5 w-3.5" />
-          Completo + AI (lento)
+          Completo + AI (nuovi)
           {pendingCounts && pendingCounts.completo_remaining > 0 ? (
             <span className="ml-1 rounded-full bg-purple-500/25 px-1.5 py-0.5 text-[9px] font-bold">
               {pendingCounts.completo_remaining}
@@ -553,11 +612,15 @@ export default function AuditAndFixAllCard() {
             <span>
               {phase === 'deterministic'
                 ? 'Passata veloce in corso…'
-                : phase === 'completo'
-                  ? 'Completo + AI in corso (metadata + Gemini)…'
-                  : phase === 'ai'
-                    ? 'Passata AI Gemini in corso…'
-                    : 'Avvio…'}
+                : phase === 'full_rescan'
+                  ? rescanStage === 'statements'
+                    ? 'Riscan tutti: correzione estratti in archivio…'
+                    : 'Riscan tutti: documenti 1→N (metadata + Gemini)…'
+                  : phase === 'completo'
+                    ? 'Completo + AI in corso (metadata + Gemini)…'
+                    : phase === 'ai'
+                      ? 'Passata AI Gemini in corso…'
+                      : 'Avvio…'}
             </span>
             {totals.initialRemaining ? (
               <span className="text-app-fg-muted">

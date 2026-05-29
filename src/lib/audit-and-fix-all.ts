@@ -3,6 +3,7 @@ import { runQualityChain } from '@/lib/document-quality-chain'
 import { classifyDocumentWithGemini } from '@/lib/gemini-inbox-classify'
 import { resolveFornitoreByPartialNameEnhanced } from '@/lib/fornitore-infer-from-document'
 import { normalizeTipoDocumento, type NormalizedTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { findUniqueFornitoreForPendingDoc } from '@/lib/auto-resolve-pending-doc'
 import {
   fixStatementFornitoreDriftBatch,
   propagateFornitoreFromPendingDoc,
@@ -40,8 +41,17 @@ export type AuditPhase =
   | 'deterministic'
   | 'ai'
   | 'completo'
+  | 'full_rescan'
   | 'cleanup_misclassified'
   | 'cleanup_conferme_ordine'
+
+/** Fase interna di `full_rescan`: prima tutti i documenti, poi gli estratti in archivio. */
+export type AuditRescanStage = 'documents' | 'statements'
+
+type AuditFixOpts = {
+  /** Riesame totale: non bloccare il fornitore su email/P.IVA e riapplica tutti i segnali. */
+  fullRescan?: boolean
+}
 
 export type AuditPendingCounts = {
   total: number
@@ -93,6 +103,8 @@ export type AuditCleanupAction = {
 
 export type AuditBatchResult = {
   phase: AuditPhase
+  /** Solo `full_rescan`: documenti in coda vs estratti già salvati. */
+  rescan_stage?: AuditRescanStage
   checked: number
   fornitore_fixed: number
   tipo_fixed: number
@@ -262,6 +274,9 @@ type PassCompletoOpts = {
   batchSize?: number
   force?: boolean
   afterId?: string | null
+  fullRescan?: boolean
+  /** In `full_rescan` la correzione estratti avviene in un secondo passaggio. */
+  skipStatementDrift?: boolean
 }
 
 /**
@@ -297,7 +312,8 @@ export async function auditAndFixCompleto(
     .select(DOC_SELECT)
     .order('id', { ascending: true })
 
-  if (!opts.force) {
+  const skipCheckpoint = opts.force === true || opts.fullRescan === true
+  if (!skipCheckpoint) {
     q = q.is('metadata->>audit_completo_at', null) as typeof q
   }
   if (opts.sedeId) {
@@ -313,15 +329,18 @@ export async function auditAndFixCompleto(
     return result
   }
 
-  const remaining = await countRemaining(service, opts.sedeId ?? null, 'completo', !!opts.force)
+  const remaining = opts.fullRescan
+    ? await countAllDocuments(service, opts.sedeId ?? null)
+    : await countRemaining(service, opts.sedeId ?? null, 'completo', !!opts.force)
   result.remaining_estimate = remaining
 
   const docs = data ?? []
+  const fixOpts: AuditFixOpts = { fullRescan: opts.fullRescan === true }
 
   for (const doc of docs) {
     result.checked++
     try {
-      const change1 = await applyDeterministicFix(service, doc)
+      const change1 = await applyDeterministicFix(service, doc, fixOpts)
       if (change1) {
         result.changes.push(change1)
         if (change1.fornitore_id_before !== change1.fornitore_id_after) result.fornitore_fixed++
@@ -341,7 +360,7 @@ export async function auditAndFixCompleto(
       const current = (refreshed ?? doc) as DocRow
 
       if (current.file_url?.trim()) {
-        const change2 = await applyAiFix(service, current)
+        const change2 = await applyAiFix(service, current, fixOpts)
         if (change2 === 'flagged') {
           result.flagged_for_review++
         } else if (change2) {
@@ -367,45 +386,146 @@ export async function auditAndFixCompleto(
     }
   }
 
-  let driftHasMore = false
-  try {
-    const drift = await fixStatementFornitoreDriftBatch(service, {
-      sedeId: opts.sedeId ?? null,
-      batchSize: 15,
-      afterId: opts.afterId,
-    })
-    driftHasMore = drift.has_more
-    for (const fix of drift.fixes) {
-      result.fornitore_fixed++
-      result.changes.push({
-        doc_id: fix.statement_id,
-        fornitore_id_before: fix.fornitore_id_before,
-        fornitore_id_after: fix.fornitore_id_after,
-        tipo_before: null,
-        tipo_after: null,
-        fattura_id: null,
-        bolla_id: null,
-        reason: 'statement_subject_drift',
+  if (!opts.skipStatementDrift) {
+    let driftHasMore = false
+    try {
+      const drift = await fixStatementFornitoreDriftBatch(service, {
+        sedeId: opts.sedeId ?? null,
+        batchSize: 15,
+        afterId: opts.afterId,
       })
+      driftHasMore = drift.has_more
+      for (const fix of drift.fixes) {
+        result.fornitore_fixed++
+        result.changes.push({
+          doc_id: fix.statement_id,
+          fornitore_id_before: fix.fornitore_id_before,
+          fornitore_id_after: fix.fornitore_id_after,
+          tipo_before: null,
+          tipo_after: null,
+          fattura_id: null,
+          bolla_id: null,
+          reason: 'statement_subject_drift',
+        })
+      }
+      if (drift.fixes.length && drift.next_after_id) {
+        result.next_after_id = drift.next_after_id
+      }
+      result.has_more = docs.length === batchSize || driftHasMore
+    } catch (e) {
+      result.errors++
+      logger.error('[audit-and-fix:completo] statement drift', e)
+      result.has_more = docs.length === batchSize
     }
-    if (drift.fixes.length && drift.next_after_id) {
-      result.next_after_id = drift.next_after_id
-    }
-  } catch (e) {
-    result.errors++
-    logger.error('[audit-and-fix:completo] statement drift', e)
+  } else {
+    result.has_more = docs.length === batchSize
   }
 
   if (!result.next_after_id) {
     result.next_after_id = docs[docs.length - 1]?.id ?? null
   }
-  result.has_more = docs.length === batchSize || driftHasMore
   return result
+}
+
+/**
+ * Riesame completo sede: tutti i `documenti_da_processare` in ordine `id` (primo→ultimo),
+ * rilettura PDF con Gemini + riallineamento fornitore; poi passata sugli estratti in archivio.
+ */
+export async function auditAndFixFullRescan(
+  service: SupabaseClient,
+  opts: {
+    sedeId?: string | null
+    batchSize?: number
+    /** Cursor documenti; quando esauriti, usare `statementAfterId`. */
+    afterId?: string | null
+    statementAfterId?: string | null
+  } = {},
+): Promise<AuditBatchResult> {
+  const docBatch = await auditAndFixCompleto(service, {
+    sedeId: opts.sedeId,
+    batchSize: opts.batchSize ?? 5,
+    force: true,
+    fullRescan: true,
+    skipStatementDrift: true,
+    afterId: opts.afterId,
+  })
+
+  if (docBatch.has_more || docBatch.checked > 0) {
+    return {
+      ...docBatch,
+      phase: 'full_rescan',
+      rescan_stage: 'documents',
+    }
+  }
+
+  const drift = await fixStatementFornitoreDriftBatch(service, {
+    sedeId: opts.sedeId ?? null,
+    batchSize: 25,
+    afterId: opts.statementAfterId ?? null,
+  })
+
+  const changes: AuditDocChange[] = drift.fixes.map((fix) => ({
+    doc_id: fix.statement_id,
+    fornitore_id_before: fix.fornitore_id_before,
+    fornitore_id_after: fix.fornitore_id_after,
+    tipo_before: null,
+    tipo_after: null,
+    fattura_id: null,
+    bolla_id: null,
+    reason: 'statement_subject_drift',
+  }))
+
+  return {
+    phase: 'full_rescan',
+    rescan_stage: 'statements',
+    checked: drift.fixes.length,
+    fornitore_fixed: drift.fixes.length,
+    tipo_fixed: 0,
+    flagged_for_review: 0,
+    unchanged: 0,
+    errors: 0,
+    has_more: drift.has_more,
+    changes,
+    remaining_estimate: drift.has_more ? 1 : 0,
+    next_after_id: drift.next_after_id,
+  }
+}
+
+async function resolveFornitoreForAuditDoc(
+  service: SupabaseClient,
+  doc: DocRow,
+  meta: Record<string, unknown>,
+  fixOpts?: AuditFixOpts,
+): Promise<{ id: string; nome: string; source: string } | null> {
+  const fromSubject = await resolveFornitoreFromStatementSubject(service, {
+    sedeId: doc.sede_id,
+    oggetto_mail: doc.oggetto_mail,
+    metadata: meta,
+    mittente: doc.mittente,
+  })
+  if (fromSubject) return { ...fromSubject, source: 'statement_subject' }
+
+  const unique = await findUniqueFornitoreForPendingDoc(service, {
+    docSedeId: doc.sede_id,
+    metadata: {
+      ragione_sociale: stringOrNull(meta.ragione_sociale) ?? stringOrNull(meta.ai_fornitore_suggerito),
+      p_iva: stringOrNull(meta.p_iva),
+      indirizzo: stringOrNull(meta.indirizzo),
+    },
+    mittente: doc.mittente,
+    oggetto_mail: doc.oggetto_mail,
+  })
+  if (unique) return { ...unique, source: 'unique_match' }
+
+  if (fixOpts?.fullRescan) return null
+
+  return null
 }
 
 async function applyDeterministicFix(
   service: SupabaseClient,
   doc: DocRow,
+  fixOpts?: AuditFixOpts,
 ): Promise<AuditDocChange | null> {
   const meta = sanitizeMetadata(doc.metadata)
 
@@ -436,7 +556,9 @@ async function applyDeterministicFix(
   // In ogni caso, la quality chain rivaluta il fornitore se il segnale chain è più forte.
   const matchedBy = stringOrNull(meta.matched_by)
   const fornitoreLocked =
-    !!doc.fornitore_id && (matchedBy === 'email' || matchedBy === 'piva')
+    !fixOpts?.fullRescan &&
+    !!doc.fornitore_id &&
+    (matchedBy === 'email' || matchedBy === 'piva')
   const quality = await runQualityChain(service, {
     mittente: doc.mittente,
     sedeId: doc.sede_id,
@@ -476,6 +598,14 @@ async function applyDeterministicFix(
     updatedMeta.matched_by = quality.fornitoreSource
     fornitoreChanged = true
     fornitoreReason = quality.fornitoreSource ?? 'quality_chain'
+  } else if (!fornitoreChanged) {
+    const resolved = await resolveFornitoreForAuditDoc(service, doc, updatedMeta, fixOpts)
+    if (resolved?.id && resolved.id !== doc.fornitore_id) {
+      updates.fornitore_id = resolved.id
+      updatedMeta.matched_by = resolved.source
+      fornitoreChanged = true
+      fornitoreReason = resolved.source
+    }
   }
 
   if (
@@ -709,6 +839,7 @@ export async function auditAndFixWithAi(
 async function applyAiFix(
   service: SupabaseClient,
   doc: DocRow,
+  fixOpts?: AuditFixOpts,
 ): Promise<AuditDocChange | 'flagged' | null> {
   const meta = sanitizeMetadata(doc.metadata)
 
@@ -758,6 +889,9 @@ async function applyAiFix(
     ai_tipo_suggerito: suggestion.tipo_suggerito,
     ai_fornitore_suggerito: suggestion.fornitore_suggerito,
     ai_confidenza: conf,
+  }
+  if (suggestion.fornitore_suggerito?.trim()) {
+    updatedMeta.ragione_sociale = suggestion.fornitore_suggerito.trim()
   }
 
   const updates: Record<string, unknown> = { metadata: updatedMeta }
@@ -810,6 +944,14 @@ async function applyAiFix(
     updatedMeta.matched_by = 'statement_subject'
     suggestedFornitoreId = subjectFornitore.id
     fornitoreChanged = true
+  } else if (fixOpts?.fullRescan) {
+    const resolved = await resolveFornitoreForAuditDoc(service, doc, updatedMeta, fixOpts)
+    if (resolved?.id && resolved.id !== doc.fornitore_id) {
+      updates.fornitore_id = resolved.id
+      updatedMeta.matched_by = resolved.source
+      suggestedFornitoreId = resolved.id
+      fornitoreChanged = true
+    }
   } else {
     const currentFornitoreLocked =
       typeof meta.matched_by === 'string' &&
@@ -1875,6 +2017,20 @@ export async function getAuditPendingCounts(
     completo_remaining: completoRemaining,
     completo_done: Math.max(0, totalN - completoRemaining),
   }
+}
+
+async function countAllDocuments(
+  service: SupabaseClient,
+  sedeId: string | null,
+): Promise<number> {
+  let q = service
+    .from('documenti_da_processare')
+    .select('id', { count: 'exact', head: true })
+  if (sedeId) {
+    q = q.eq('sede_id', sedeId) as typeof q
+  }
+  const { count } = await q
+  return count ?? 0
 }
 
 async function countRemaining(

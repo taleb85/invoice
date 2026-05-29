@@ -162,6 +162,26 @@ export async function fixStatementFornitoreDriftBatch(
       .update({ fornitore_id: target.id })
       .eq('statement_id', row.id)
 
+    const { data: rowFatture } = await service
+      .from('statement_rows')
+      .select('fattura_id')
+      .eq('statement_id', row.id)
+      .not('fattura_id', 'is', null)
+    const fatturaIds = [
+      ...new Set(
+        (rowFatture ?? [])
+          .map((r) => (r as { fattura_id: string | null }).fattura_id)
+          .filter((id): id is string => !!id),
+      ),
+    ]
+    if (fatturaIds.length) {
+      await service
+        .from('fatture')
+        .update({ fornitore_id: target.id })
+        .in('id', fatturaIds)
+        .eq('fornitore_id', row.fornitore_id)
+    }
+
     if (row.file_url?.trim()) {
       await service
         .from('documenti_da_processare')

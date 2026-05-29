@@ -5,6 +5,7 @@ import {
   auditAndFixDeterministic,
   auditAndFixWithAi,
   auditAndFixCompleto,
+  auditAndFixFullRescan,
   auditAndCleanupMisclassified,
   auditAndCleanupOrphanConfermeOrdine,
   getAuditPendingCounts,
@@ -38,6 +39,8 @@ type Body = {
     | 'pass2'
     | 'completo'
     | 'with_ai'
+    | 'full_rescan'
+    | 'completo_tutti'
     | 'cleanup_misclassified'
     | 'cleanup'
     | 'cleanup_conferme_ordine'
@@ -49,6 +52,8 @@ type Body = {
   force?: boolean
   /** Cursor paginazione: processa solo documenti con `id` maggiore (loop client). */
   after_id?: string | null
+  /** Solo `full_rescan`: cursor estratti dopo fine coda documenti. */
+  statement_after_id?: string | null
   /** Per cleanup_*: ritorna l'elenco senza modificare. Default false. */
   dry_run?: boolean
 }
@@ -179,6 +184,7 @@ export async function POST(req: NextRequest) {
     let phase: AuditPhase
     if (rawPhase === 'ai' || rawPhase === 'pass2') phase = 'ai'
     else if (rawPhase === 'completo' || rawPhase === 'with_ai') phase = 'completo'
+    else if (rawPhase === 'full_rescan' || rawPhase === 'completo_tutti') phase = 'full_rescan'
     else if (rawPhase === 'cleanup' || rawPhase === 'cleanup_misclassified')
       phase = 'cleanup_misclassified'
     else if (rawPhase === 'cleanup_conferme_ordine' || rawPhase === 'cleanup_co')
@@ -201,15 +207,19 @@ export async function POST(req: NextRequest) {
       typeof body.after_id === 'string' && body.after_id.trim()
         ? body.after_id.trim()
         : null
+    const statementAfterId =
+      typeof body.statement_after_id === 'string' && body.statement_after_id.trim()
+        ? body.statement_after_id.trim()
+        : null
 
     // ── 3. Pre-check Gemini key per pass2 / completo ─────────────────────────
     if (
-      (phase === 'ai' || phase === 'completo') &&
+      (phase === 'ai' || phase === 'completo' || phase === 'full_rescan') &&
       !process.env.GEMINI_API_KEY?.trim()
     ) {
       return jsonError(
-        phase === 'completo'
-          ? 'GEMINI_API_KEY non configurata: Completo + AI non disponibile'
+        phase === 'completo' || phase === 'full_rescan'
+          ? 'GEMINI_API_KEY non configurata: passata con AI non disponibile'
           : 'GEMINI_API_KEY non configurata: pass2 (AI) non disponibile',
         503,
       )
@@ -219,7 +229,14 @@ export async function POST(req: NextRequest) {
 
     // ── 4. Esegui passata richiesta ──────────────────────────────────────────
     let result: AuditBatchResult
-    if (phase === 'completo') {
+    if (phase === 'full_rescan') {
+      result = await auditAndFixFullRescan(service, {
+        sedeId: sedeFilter,
+        batchSize,
+        afterId,
+        statementAfterId,
+      })
+    } else if (phase === 'completo') {
       result = await auditAndFixCompleto(service, {
         sedeId: sedeFilter,
         batchSize,
