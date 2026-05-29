@@ -1,7 +1,14 @@
 /**
  * Heuristics per scartare prezzi listino da OCR che confondono quantità / unitario
- * con prezzo cassa (es. Minestrone £0.75 = qty, Menabrea £7 = casse).
+ * con prezzo cassa (es. Minestrone £0.75 = qty, Menabrea £7 = casse) o il totale riga
+ * al posto del prezzo unitario (es. £45.68 = 6 × £7.61).
  */
+
+/** Confezioni tipiche wholesale (casse × unitario). */
+const CASE_PACK_SIZES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 20, 24] as const
+
+/** IVA UK standard — per normalizzare un listino storico es-IVA. */
+const UK_VAT_MULTIPLIER = 1.2
 
 function median(values: number[]): number {
   const cleaned = values.filter((v) => Number.isFinite(v) && v > 0)
@@ -58,8 +65,67 @@ export function rejectReasonForListinoPrice(
 /**
  * Prezzo da rimuovere o ignorare: qty OCR, unitario bottiglia, colonna sbagliata, ecc.
  */
+export function isLikelyLineTotalOcrPrice(candidate: number, existingPrices: number[]): boolean {
+  return inferUnitPriceFromLineTotal(candidate, existingPrices) != null
+}
+
+/**
+ * Totale riga OCR ≈ qty × prezzo unitario abituale (es. £45.68 = 6 × £7.61).
+ */
+export function inferUnitPriceFromLineTotal(
+  candidate: number,
+  existingPrices: number[],
+): number | null {
+  if (!Number.isFinite(candidate) || candidate <= 0) return null
+  const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length < 2) return null
+
+  const ref = dominantListinoPrice(hist)
+  if (ref <= 0 || candidate <= ref * 1.12) return null
+
+  for (const qty of CASE_PACK_SIZES) {
+    const unit = candidate / qty
+    if (unit >= ref * 0.82 && unit <= ref * 1.18) {
+      return Math.round(unit * 100) / 100
+    }
+  }
+  return null
+}
+
+/**
+ * Prezzo IVA inclusa letto al posto dell’esente (≈ ×1,2 rispetto allo storico).
+ */
+export function inferExVatUnitPrice(candidate: number, existingPrices: number[]): number | null {
+  if (!Number.isFinite(candidate) || candidate <= 0) return null
+  const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length < 2) return null
+
+  const ref = dominantListinoPrice(hist)
+  if (ref <= 0 || candidate <= ref * 1.05) return null
+
+  const exVat = candidate / UK_VAT_MULTIPLIER
+  if (exVat >= ref * 0.92 && exVat <= ref * 1.08) {
+    return Math.round(exVat * 100) / 100
+  }
+  return null
+}
+
+/** Prezzo unitario da mostrare / confrontare, corretto da OCR se possibile. */
+export function resolveEffectiveListinoUnitPrice(
+  prezzo: number,
+  otherPrices: number[],
+): number {
+  if (!Number.isFinite(prezzo) || prezzo <= 0) return prezzo
+  const lineUnit = inferUnitPriceFromLineTotal(prezzo, otherPrices)
+  if (lineUnit != null) return lineUnit
+  const exVat = inferExVatUnitPrice(prezzo, otherPrices)
+  if (exVat != null) return exVat
+  return prezzo
+}
+
 export function isBadListinoOcrPrice(candidate: number, existingPrices: number[]): boolean {
   if (isLikelyQtyOcrPrice(candidate, existingPrices)) return true
+  if (isLikelyLineTotalOcrPrice(candidate, existingPrices)) return true
   const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
   if (hist.length < 2) return false
   return !isPlausibleListinoPrice(candidate, hist)

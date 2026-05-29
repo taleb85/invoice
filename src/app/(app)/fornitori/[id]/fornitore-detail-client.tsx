@@ -36,6 +36,7 @@ import {
   listinoGroupKey,
   parseListinoNoteParts,
   pickDisplayListinoRow,
+  displayListinoUnitPrice,
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
 } from '@/lib/listino-display'
@@ -4979,8 +4980,13 @@ function ListinoTab({
                 const { ref } = isPromo
                   ? { ref: null }
                   : referencePriceForListinoRow(trendInput, displayForTrend)
-                const priceDelta = ref ? displayRow.prezzo - ref.prezzo : 0
-                const pct = ref && Math.abs(ref.prezzo) > 1e-9 ? (priceDelta / ref.prezzo) * 100 : 0
+                const displayUnitPrice = displayListinoUnitPrice(displayRow, sorted)
+                const refUnitPrice = ref ? displayListinoUnitPrice(ref, sorted) : null
+                const priceDelta = refUnitPrice != null ? displayUnitPrice - refUnitPrice : 0
+                const pct =
+                  refUnitPrice != null && Math.abs(refUnitPrice) > 1e-9
+                    ? (priceDelta / refUnitPrice) * 100
+                    : 0
                 const up = Boolean(ref && priceDelta > 0.0001)
                 const down = Boolean(ref && priceDelta < -0.0001)
                 const pctLabel = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`
@@ -5129,7 +5135,7 @@ function ListinoTab({
                                     : 'text-white'
                               }`}
                             >
-                              {fmtMoney(displayRow.prezzo)}
+                              {fmtMoney(displayUnitPrice)}
                             </p>
                             <div className="mt-1 text-[11px] font-medium text-app-fg-muted md:hidden">
                               {formatDateLib(displayRow.data_prezzo, locale, timezone, {

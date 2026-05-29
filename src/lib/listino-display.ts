@@ -1,3 +1,5 @@
+import { isBadListinoOcrPrice, resolveEffectiveListinoUnitPrice } from '@/lib/listino-price-sanity'
+
 /** Machine-parseable suffix on `listino_prezzi.note` when saving from invoice import. */
 export const LISTINO_SRC_FATTURA_MARK = '|listino_src_fattura:'
 
@@ -263,14 +265,27 @@ export function pickDisplayListinoRow<T extends PriceRow>(sortedByDateAsc: T[]):
   if (sortedByDateAsc.length === 0) {
     throw new Error('pickDisplayListinoRow: empty input')
   }
-  if (sortedByDateAsc.length === 1) return sortedByDateAsc[0]!
+  if (sortedByDateAsc.length === 1) {
+    const only = sortedByDateAsc[0]!
+    return only
+  }
   const latest = sortedByDateAsc[sortedByDateAsc.length - 1]!
+  const otherPrices = sortedByDateAsc.slice(0, -1).map((r) => r.prezzo)
+  if (otherPrices.length >= 2 && isBadListinoOcrPrice(latest.prezzo, otherPrices)) {
+    return pickDisplayListinoRow(sortedByDateAsc.slice(0, -1))
+  }
   const cluster = filterOutliersForTrend(sortedByDateAsc)
   if (cluster.length === 0) return latest
   if (!cluster.some((r) => r.id === latest.id)) {
     return cluster[cluster.length - 1]!
   }
   return latest
+}
+
+/** Prezzo unitario effettivo per UI (corregge totale riga / IVA inclusa OCR). */
+export function displayListinoUnitPrice(row: PriceRow, sortedByDateAsc: PriceRow[]): number {
+  const others = sortedByDateAsc.filter((r) => r.id !== row.id).map((r) => r.prezzo)
+  return resolveEffectiveListinoUnitPrice(row.prezzo, others)
 }
 
 /**

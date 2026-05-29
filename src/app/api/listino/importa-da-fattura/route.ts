@@ -30,7 +30,9 @@ Return ONLY valid JSON — no markdown, no explanation:
 Rules:
 - Extract the UNIT PRICE (prezzo unitario / unit price / prix unitaire / Einzelpreis), NOT the line total.
 - NEVER use the quantity column (Qty, Qtà, Qty., Cases, Casse, etc.) as prezzo — quantity is not a price.
+- NEVER use the line total / amount / importo riga column as prezzo — if only line totals exist, set prezzo = line_total ÷ quantity.
 - If only line totals are available and there's a quantity, calculate: line_total / quantity.
+- Example: 6 cases at £7.61 each → prezzo = 7.61, NOT 45.66 (line total).
 - For wholesale food/drink, case prices are often £10–£200; values under £1 on a line that also shows a much larger line total are usually quantity or per-kg, not the case price — prefer line_total/qty or the price in the dedicated price column.
 - Include ALL line items visible on the document.
 - Normalise prices to plain decimal numbers (e.g. "£12,50" → 12.50, "1.234,56" → 1234.56).

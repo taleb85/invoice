@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  inferUnitPriceFromLineTotal,
   isBadListinoOcrPrice,
+  isLikelyLineTotalOcrPrice,
   isLikelyQtyOcrPrice,
   isPlausibleListinoPrice,
   rejectReasonForListinoPrice,
+  resolveEffectiveListinoUnitPrice,
 } from '@/lib/listino-price-sanity'
 
 describe('isPlausibleListinoPrice', () => {
@@ -34,6 +37,22 @@ describe('isPlausibleListinoPrice', () => {
     const hist = [37.6, 37.6, 38.7]
     expect(isPlausibleListinoPrice(38.7, hist)).toBe(true)
     expect(isPlausibleListinoPrice(37.6, hist)).toBe(true)
+  })
+})
+
+describe('line total OCR', () => {
+  it('detects £45.68 as 6 × ~£7.61 unit price', () => {
+    const hist = [7.55, 7.61, 7.58, 7.6]
+    expect(inferUnitPriceFromLineTotal(45.68, hist)).toBeCloseTo(7.61, 2)
+    expect(isLikelyLineTotalOcrPrice(45.68, hist)).toBe(true)
+    expect(resolveEffectiveListinoUnitPrice(45.68, hist)).toBeCloseTo(7.61, 2)
+    expect(isBadListinoOcrPrice(45.68, hist)).toBe(true)
+  })
+
+  it('does not treat legitimate case price as line total', () => {
+    const hist = [35.66, 36.04, 35.66, 36.04]
+    expect(inferUnitPriceFromLineTotal(36.04, hist)).toBeNull()
+    expect(isBadListinoOcrPrice(36.04, hist)).toBe(false)
   })
 })
 

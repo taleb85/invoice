@@ -6,6 +6,7 @@ import {
   parseListinoNoteParts,
   isPromoListinoRow,
   filterOutliersForTrend,
+  displayListinoUnitPrice,
   pickDisplayListinoRow,
   dynamicStaleThresholdDays,
 } from '@/lib/listino-display'
@@ -171,6 +172,17 @@ describe('pickDisplayListinoRow', () => {
     const display = pickDisplayListinoRow(rows)
     expect(display.id).toBe('3')
     expect(display.prezzo).toBe(36.04)
+  })
+
+  it('skips latest row when it is a line-total OCR spike', () => {
+    const rows = [
+      { id: '1', data_prezzo: '2026-01-01', prezzo: 7.55 },
+      { id: '2', data_prezzo: '2026-02-01', prezzo: 7.61 },
+      { id: '3', data_prezzo: '2026-03-01', prezzo: 45.68 },
+    ]
+    const display = pickDisplayListinoRow(rows)
+    expect(display.id).toBe('2')
+    expect(displayListinoUnitPrice(display, rows)).toBeCloseTo(7.61, 2)
   })
 
   it('returns chronological latest when it is in the plausible cluster', () => {
