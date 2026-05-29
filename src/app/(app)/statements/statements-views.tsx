@@ -393,19 +393,49 @@ function StmtPdfSummaryGrid({
 
   if (!rows.length) return null
 
+  const inlinePrimaryKeys = new Set(['acc', 'iss'])
+  const inlinePrimaryRows = rows.filter((r) => inlinePrimaryKeys.has(r.k))
+  const stackedRows =
+    inlinePrimaryRows.length > 0 ? rows.filter((r) => !inlinePrimaryKeys.has(r.k)) : rows
+
   return (
     <div
       className={`mt-2 rounded-lg border border-slate-600/45 bg-slate-900/35 px-3 py-2.5 ring-1 ring-inset ring-slate-500/10 ${className ?? ''}`}
     >
       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{t.statements.stmtPdfSummaryTitle}</p>
-      <dl className="mt-2 grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6">
-        {rows.map(r => (
+      {inlinePrimaryRows.length > 0 ? (
+        <p className="mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-xs leading-snug md:hidden">
+          {inlinePrimaryRows.map((r, idx) => (
+            <Fragment key={r.k}>
+              {idx > 0 ? <span className="shrink-0 text-slate-500" aria-hidden>·</span> : null}
+              <span className="font-semibold text-slate-300">{r.label}</span>
+              <span className="font-medium tabular-nums text-slate-100">{r.value}</span>
+            </Fragment>
+          ))}
+        </p>
+      ) : null}
+      <dl
+        className={`mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 sm:gap-x-6 ${
+          inlinePrimaryRows.length > 0 ? 'max-md:hidden' : ''
+        }`}
+      >
+        {rows.map((r) => (
           <Fragment key={r.k}>
             <dt className="text-xs font-semibold text-slate-300">{r.label}</dt>
-            <dd className="text-xs font-medium tabular-nums text-slate-100 sm:text-right">{r.value}</dd>
+            <dd className="text-right text-xs font-medium tabular-nums text-slate-100">{r.value}</dd>
           </Fragment>
         ))}
       </dl>
+      {stackedRows.length > 0 && inlinePrimaryRows.length > 0 ? (
+        <dl className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 md:hidden">
+          {stackedRows.map((r) => (
+            <Fragment key={r.k}>
+              <dt className="text-xs font-semibold text-slate-300">{r.label}</dt>
+              <dd className="text-right text-xs font-medium tabular-nums text-slate-100">{r.value}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      ) : null}
     </div>
   )
 }
