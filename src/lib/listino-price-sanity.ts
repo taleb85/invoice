@@ -71,6 +71,8 @@ export function isLikelyLineTotalOcrPrice(candidate: number, existingPrices: num
 
 /**
  * Totale riga OCR ≈ qty × prezzo unitario abituale (es. £45.68 = 6 × £7.61).
+ * Usa il massimo storico come riferimento (non il prezzo dominante più basso)
+ * e sceglie la confezione con unitario più vicino a quel massimo.
  */
 export function inferUnitPriceFromLineTotal(
   candidate: number,
@@ -80,16 +82,22 @@ export function inferUnitPriceFromLineTotal(
   const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
   if (hist.length < 2) return null
 
-  const ref = dominantListinoPrice(hist)
+  const ref = Math.max(...hist)
   if (ref <= 0 || candidate <= ref * 1.12) return null
+  if (candidate / ref < 1.75) return null
 
+  let bestUnit: number | null = null
+  let bestDist = Infinity
   for (const qty of CASE_PACK_SIZES) {
     const unit = candidate / qty
-    if (unit >= ref * 0.82 && unit <= ref * 1.18) {
-      return Math.round(unit * 100) / 100
+    const dist = Math.abs(unit - ref)
+    if (dist < bestDist) {
+      bestDist = dist
+      bestUnit = unit
     }
   }
-  return null
+  if (bestUnit == null || bestDist / ref > 0.1) return null
+  return Math.round(bestUnit * 100) / 100
 }
 
 /**
@@ -116,10 +124,28 @@ export function resolveEffectiveListinoUnitPrice(
   otherPrices: number[],
 ): number {
   if (!Number.isFinite(prezzo) || prezzo <= 0) return prezzo
+  const hist = otherPrices.filter((p) => Number.isFinite(p) && p > 0)
+  const maxHist = hist.length > 0 ? Math.max(...hist) : 0
+
+  // Prezzo già allineato al listino recente (es. £22,84 dopo £15,23): non correggere al ribasso.
+  if (maxHist > 0 && prezzo >= maxHist * 0.88 && prezzo <= maxHist * 1.35) {
+    return prezzo
+  }
+
   const lineUnit = inferUnitPriceFromLineTotal(prezzo, otherPrices)
-  if (lineUnit != null) return lineUnit
+  if (lineUnit != null) {
+    if (maxHist > 0 && lineUnit < maxHist * 0.92 && prezzo >= maxHist * 0.88) {
+      return prezzo
+    }
+    return lineUnit
+  }
   const exVat = inferExVatUnitPrice(prezzo, otherPrices)
-  if (exVat != null) return exVat
+  if (exVat != null) {
+    if (maxHist > 0 && exVat < maxHist * 0.92 && prezzo >= maxHist * 0.88) {
+      return prezzo
+    }
+    return exVat
+  }
   return prezzo
 }
 

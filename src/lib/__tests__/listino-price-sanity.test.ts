@@ -49,6 +49,13 @@ describe('line total OCR', () => {
     expect(isBadListinoOcrPrice(45.68, hist)).toBe(true)
   })
 
+  it('infers £22.84 from line total when recent history is ~£22.84 not £15.23', () => {
+    const hist = [15.23, 15.23, 22.84]
+    expect(inferUnitPriceFromLineTotal(45.68, hist)).toBeCloseTo(22.84, 2)
+    expect(resolveEffectiveListinoUnitPrice(45.68, hist)).toBeCloseTo(22.84, 2)
+    expect(resolveEffectiveListinoUnitPrice(22.84, hist)).toBe(22.84)
+  })
+
   it('does not treat legitimate case price as line total', () => {
     const hist = [35.66, 36.04, 35.66, 36.04]
     expect(inferUnitPriceFromLineTotal(36.04, hist)).toBeNull()

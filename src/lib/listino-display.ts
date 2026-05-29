@@ -274,11 +274,11 @@ export function pickDisplayListinoRow<T extends PriceRow>(sortedByDateAsc: T[]):
   if (otherPrices.length >= 2 && isBadListinoOcrPrice(latest.prezzo, otherPrices)) {
     return pickDisplayListinoRow(sortedByDateAsc.slice(0, -1))
   }
-  const cluster = filterOutliersForTrend(sortedByDateAsc)
-  if (cluster.length === 0) return latest
-  if (!cluster.some((r) => r.id === latest.id)) {
-    return cluster[cluster.length - 1]!
-  }
+  /*
+   * Non scartare l’ultima riga solo perché filterOutliersForTrend la esclude:
+   * un aumento reale (es. £15,23 → £22,84) finirebbe altrimenti nel cluster
+   * basso. Il filtro resta per trend/riferimento, non per il prezzo in evidenza.
+   */
   return latest
 }
 

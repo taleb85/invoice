@@ -185,6 +185,17 @@ describe('pickDisplayListinoRow', () => {
     expect(displayListinoUnitPrice(display, rows)).toBeCloseTo(7.61, 2)
   })
 
+  it('keeps latest row after a legitimate price increase (~50%)', () => {
+    const rows = [
+      { id: '1', data_prezzo: '2026-01-01', prezzo: 15.23 },
+      { id: '2', data_prezzo: '2026-02-01', prezzo: 15.23 },
+      { id: '3', data_prezzo: '2026-03-01', prezzo: 22.84 },
+    ]
+    const display = pickDisplayListinoRow(rows)
+    expect(display.id).toBe('3')
+    expect(displayListinoUnitPrice(display, rows)).toBeCloseTo(22.84, 2)
+  })
+
   it('returns chronological latest when it is in the plausible cluster', () => {
     const rows = [
       { id: '1', data_prezzo: '2026-01-01', prezzo: 35.66 },
