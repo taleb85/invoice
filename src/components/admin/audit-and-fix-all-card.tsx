@@ -379,9 +379,11 @@ export default function AuditAndFixAllCard() {
             Solo righe in <strong className="font-medium text-app-fg">documenti da processare</strong>{' '}
             (qualsiasi tipo: fattura, bolla, ordine, estratto, listino, …).
             <strong className="font-medium text-app-fg"> Veloce</strong> usa solo metadata OCR salvati — non
-            apre i PDF. <strong className="font-medium text-app-fg">Completo + AI</strong> fa passata veloce +
+            apre i PDF.             <strong className="font-medium text-app-fg">Completo + AI</strong> fa passata veloce +
             Gemini Vision sul file e salva <code className="text-[10px]">audit_completo_at</code>: al richiamo
-            salta i documenti già controllati.
+            salta i documenti già controllati. Rileva anche estratti inoltrati (
+            <em>Statement from …</em> con fornitore sbagliato) anche se il mittente email è il cliente.
+            Non sposta fatture/listino già archiviati senza legame a un documento in coda.
             {pendingCounts ? (
               <>
                 {' '}
@@ -601,10 +603,11 @@ export default function AuditAndFixAllCard() {
           totals.tipo_fixed === 0 ? (
             <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
               Passata completata su {totals.checked} documenti: fornitore e tipo erano già coerenti con i
-              metadata OCR salvati. Questa modalità <strong>non rilegge i PDF</strong> — non corregge date
-              fattura errate, numeri OCR sbagliati o duplicati. Per quelli usa{' '}
-              <strong>Completo + AI</strong>, <strong>Fix date OCR</strong> o{' '}
-              <strong>Rileggi documento</strong> sulla singola fattura.
+              metadata OCR salvati (o il documento era già marcato <code className="text-[10px]">audit_completo_at</code>).
+              Questa modalità <strong>non rilegge i PDF</strong> e non corregge fatture/listino scollegati dalla coda.
+              Per inoltri «Statement from …» già associati usa <strong>Riesegui (forza)</strong> o un secondo giro
+              <strong> Completo + AI</strong>. Per date OCR o numeri sbagliati: <strong>Fix date OCR</strong> o{' '}
+              <strong>Rileggi documento</strong>.
             </p>
           ) : null}
           <div className="rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-3 text-xs">

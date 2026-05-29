@@ -3,6 +3,12 @@ import { runQualityChain } from '@/lib/document-quality-chain'
 import { classifyDocumentWithGemini } from '@/lib/gemini-inbox-classify'
 import { resolveFornitoreByPartialNameEnhanced } from '@/lib/fornitore-infer-from-document'
 import { normalizeTipoDocumento, type NormalizedTipoDocumento } from '@/lib/ocr-tipo-documento'
+import {
+  fixStatementFornitoreDriftBatch,
+  propagateFornitoreFromPendingDoc,
+  resolveFornitoreFromStatementSubject,
+} from '@/lib/audit-statement-fornitore-fix'
+import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 import { logger } from '@/lib/logger'
 
 /**
@@ -196,7 +202,6 @@ export async function auditAndFixDeterministic(
   result.remaining_estimate = remaining
 
   const docs = data ?? []
-  if (!docs.length) return result
 
   for (const doc of docs) {
     result.checked++
@@ -215,8 +220,39 @@ export async function auditAndFixDeterministic(
     }
   }
 
-  result.next_after_id = docs[docs.length - 1]?.id ?? null
-  result.has_more = docs.length === batchSize
+  let driftHasMore = false
+  try {
+    const drift = await fixStatementFornitoreDriftBatch(service, {
+      sedeId: opts.sedeId ?? null,
+      batchSize: 15,
+      afterId: opts.afterId,
+    })
+    driftHasMore = drift.has_more
+    for (const fix of drift.fixes) {
+      result.fornitore_fixed++
+      result.changes.push({
+        doc_id: fix.statement_id,
+        fornitore_id_before: fix.fornitore_id_before,
+        fornitore_id_after: fix.fornitore_id_after,
+        tipo_before: null,
+        tipo_after: null,
+        fattura_id: null,
+        bolla_id: null,
+        reason: 'statement_subject_drift',
+      })
+    }
+    if (drift.fixes.length && drift.next_after_id) {
+      result.next_after_id = drift.next_after_id
+    }
+  } catch (e) {
+    result.errors++
+    logger.error('[audit-and-fix:pass1] statement drift', e)
+  }
+
+  if (!result.next_after_id) {
+    result.next_after_id = docs[docs.length - 1]?.id ?? null
+  }
+  result.has_more = docs.length === batchSize || driftHasMore
   return result
 }
 
@@ -281,7 +317,6 @@ export async function auditAndFixCompleto(
   result.remaining_estimate = remaining
 
   const docs = data ?? []
-  if (!docs.length) return result
 
   for (const doc of docs) {
     result.checked++
@@ -332,8 +367,39 @@ export async function auditAndFixCompleto(
     }
   }
 
-  result.next_after_id = docs[docs.length - 1]?.id ?? null
-  result.has_more = docs.length === batchSize
+  let driftHasMore = false
+  try {
+    const drift = await fixStatementFornitoreDriftBatch(service, {
+      sedeId: opts.sedeId ?? null,
+      batchSize: 15,
+      afterId: opts.afterId,
+    })
+    driftHasMore = drift.has_more
+    for (const fix of drift.fixes) {
+      result.fornitore_fixed++
+      result.changes.push({
+        doc_id: fix.statement_id,
+        fornitore_id_before: fix.fornitore_id_before,
+        fornitore_id_after: fix.fornitore_id_after,
+        tipo_before: null,
+        tipo_after: null,
+        fattura_id: null,
+        bolla_id: null,
+        reason: 'statement_subject_drift',
+      })
+    }
+    if (drift.fixes.length && drift.next_after_id) {
+      result.next_after_id = drift.next_after_id
+    }
+  } catch (e) {
+    result.errors++
+    logger.error('[audit-and-fix:completo] statement drift', e)
+  }
+
+  if (!result.next_after_id) {
+    result.next_after_id = docs[docs.length - 1]?.id ?? null
+  }
+  result.has_more = docs.length === batchSize || driftHasMore
   return result
 }
 
@@ -349,8 +415,16 @@ async function applyDeterministicFix(
   const ocrDate = stringOrNull(meta.data_fattura)
 
   const hasOcr = !!(ragioneSociale || pIva || ocrTipo || ocrDate)
-  if (!hasOcr) {
-    // Nulla da ricalcolare in pass 1: solo marca per non riprovare al prossimo giro
+  const hasStatementSubject = !!extractStatementFromSupplierName(doc.oggetto_mail)
+
+  const subjectFornitore = await resolveFornitoreFromStatementSubject(service, {
+    sedeId: doc.sede_id,
+    oggetto_mail: doc.oggetto_mail,
+    metadata: meta,
+    mittente: doc.mittente,
+  })
+
+  if (!hasOcr && !hasStatementSubject) {
     await stampPass1(service, doc.id, meta, { skipped_reason: 'no_ocr_metadata' })
     return null
   }
@@ -381,11 +455,18 @@ async function applyDeterministicFix(
 
   let fornitoreChanged = false
   let tipoChanged = false
+  let fornitoreReason = ''
 
-  // Quando passiamo fornitoreId pre-lockato, la chain torna confidence=3 di default.
-  // Per evitare di "lockarci" sul fornitore sbagliato, NON applichiamo cambi al
-  // fornitore in questo branch: solo se il fornitore non era lockato.
+  // Inoltro estratto: «Statement from …» batte email mittente (matched_by email sul cliente).
   if (
+    subjectFornitore?.id &&
+    subjectFornitore.id !== doc.fornitore_id
+  ) {
+    updates.fornitore_id = subjectFornitore.id
+    updatedMeta.matched_by = 'statement_subject'
+    fornitoreChanged = true
+    fornitoreReason = 'statement_subject'
+  } else if (
     !fornitoreLocked &&
     quality.fornitoreConfidence >= 2 &&
     quality.fornitoreId &&
@@ -394,6 +475,7 @@ async function applyDeterministicFix(
     updates.fornitore_id = quality.fornitoreId
     updatedMeta.matched_by = quality.fornitoreSource
     fornitoreChanged = true
+    fornitoreReason = quality.fornitoreSource ?? 'quality_chain'
   }
 
   if (
@@ -490,35 +572,30 @@ async function applyDeterministicFix(
 
   if (updErr) throw new Error(updErr.message)
 
-  // Propaga a fatture/bolle se il fornitore è cambiato.
-  // Rispetta la sede di destinazione: l'API `audit-fornitore-match/reassign`
-  // fa lo stesso join, qui replichiamo la logica ma su un range di documenti.
-  if (fornitoreChanged && quality.fornitoreId) {
-    if (doc.fattura_id) {
-      const { error: e1 } = await service
-        .from('fatture')
-        .update({ fornitore_id: quality.fornitoreId })
-        .eq('id', doc.fattura_id)
-      if (e1) logger.error('[audit-and-fix:pass1] fattura update err', doc.fattura_id, e1.message)
-    }
-    if (doc.bolla_id) {
-      const { error: e2 } = await service
-        .from('bolle')
-        .update({ fornitore_id: quality.fornitoreId })
-        .eq('id', doc.bolla_id)
-      if (e2) logger.error('[audit-and-fix:pass1] bolla update err', doc.bolla_id, e2.message)
-    }
+  const newFornitoreId = fornitoreChanged
+    ? (updates.fornitore_id as string)
+    : doc.fornitore_id
+
+  if (fornitoreChanged && newFornitoreId) {
+    await propagateFornitoreFromPendingDoc(service, {
+      fornitoreId: newFornitoreId,
+      fattura_id: doc.fattura_id,
+      bolla_id: doc.bolla_id,
+      file_url: doc.file_url,
+    })
   }
 
   return {
     doc_id: doc.id,
     fornitore_id_before: doc.fornitore_id,
-    fornitore_id_after: fornitoreChanged ? quality.fornitoreId : doc.fornitore_id,
+    fornitore_id_after: fornitoreChanged ? newFornitoreId : doc.fornitore_id,
     tipo_before: currentKind,
     tipo_after: tipoChanged ? quality.documentType : currentKind,
     fattura_id: doc.fattura_id,
     bolla_id: doc.bolla_id,
-    reason: buildReason(fornitoreChanged, tipoChanged, 'data_documento' in updates),
+    reason: fornitoreReason
+      ? `${fornitoreReason}+${buildReason(false, tipoChanged, 'data_documento' in updates)}`.replace(/\+no-change$/, '')
+      : buildReason(fornitoreChanged, tipoChanged, 'data_documento' in updates),
   }
 }
 
@@ -721,21 +798,35 @@ async function applyAiFix(
   // Safeguard extra: se il match attuale è 'email' (mittente verificato), una
   // sovrascrittura via AI deve avere conf >= 0.9 (più stringente) perché l'email
   // è in genere il segnale più affidabile.
-  const currentFornitoreLocked =
-    typeof meta.matched_by === 'string' &&
-    (meta.matched_by === 'email' || meta.matched_by === 'piva')
-  const fornitoreThreshold = currentFornitoreLocked
-    ? Math.max(AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE, 0.95)
-    : AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE
+  const subjectFornitore = await resolveFornitoreFromStatementSubject(service, {
+    sedeId: doc.sede_id,
+    oggetto_mail: doc.oggetto_mail,
+    metadata: meta,
+    mittente: doc.mittente,
+  })
 
-  if (
-    suggestedFornitoreId &&
-    suggestedFornitoreId !== doc.fornitore_id &&
-    conf >= fornitoreThreshold
-  ) {
-    updates.fornitore_id = suggestedFornitoreId
-    updatedMeta.matched_by = suggestedFornitoreSource ?? 'ai'
+  if (subjectFornitore?.id && subjectFornitore.id !== doc.fornitore_id) {
+    updates.fornitore_id = subjectFornitore.id
+    updatedMeta.matched_by = 'statement_subject'
+    suggestedFornitoreId = subjectFornitore.id
     fornitoreChanged = true
+  } else {
+    const currentFornitoreLocked =
+      typeof meta.matched_by === 'string' &&
+      (meta.matched_by === 'email' || meta.matched_by === 'piva')
+    const fornitoreThreshold = currentFornitoreLocked
+      ? Math.max(AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE, 0.95)
+      : AUDIT_AI_AUTO_APPLY_MIN_CONFIDENCE
+
+    if (
+      suggestedFornitoreId &&
+      suggestedFornitoreId !== doc.fornitore_id &&
+      conf >= fornitoreThreshold
+    ) {
+      updates.fornitore_id = suggestedFornitoreId
+      updatedMeta.matched_by = suggestedFornitoreSource ?? 'ai'
+      fornitoreChanged = true
+    }
   }
 
   // Se l'AI suggerisce qualcosa di diverso ma con bassa confidenza, segna per revisione
@@ -768,12 +859,12 @@ async function applyAiFix(
   if (updErr) throw new Error(updErr.message)
 
   if (fornitoreChanged && suggestedFornitoreId) {
-    if (doc.fattura_id) {
-      await service.from('fatture').update({ fornitore_id: suggestedFornitoreId }).eq('id', doc.fattura_id)
-    }
-    if (doc.bolla_id) {
-      await service.from('bolle').update({ fornitore_id: suggestedFornitoreId }).eq('id', doc.bolla_id)
-    }
+    await propagateFornitoreFromPendingDoc(service, {
+      fornitoreId: suggestedFornitoreId,
+      fattura_id: doc.fattura_id,
+      bolla_id: doc.bolla_id,
+      file_url: doc.file_url,
+    })
   }
 
   if (!fornitoreChanged && !tipoChanged) {

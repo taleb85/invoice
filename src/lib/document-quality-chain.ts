@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { tokenOverlapRatio, normalizeRagioneSocialeForComparison } from '@/lib/fornitore-cross-check'
+import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 import { logger } from '@/lib/logger'
 
 /**
@@ -30,6 +31,7 @@ export async function qualitySupplierMatch(
   ocrRagioneSociale: string | null | undefined,
   ocrPiva: string | null | undefined,
   sedeId: string | null | undefined,
+  emailSubject?: string | null | undefined,
 ): Promise<{
   fornitoreId: string | null
   confidence: SignalStrength
@@ -37,6 +39,14 @@ export async function qualitySupplierMatch(
 }> {
   const signals: { id: string; source: string }[] = []
   const sedeFilter = sedeId?.trim() || null
+
+  // Segnale 0: oggetto «Statement from …» (inoltri — il mittente è spesso il cliente)
+  const statementFrom = extractStatementFromSupplierName(emailSubject)
+  if (statementFrom && sedeFilter) {
+    const { resolveFornitoreByPartialNameEnhanced } = await import('@/lib/fornitore-infer-from-document')
+    const bySubject = await resolveFornitoreByPartialNameEnhanced(supabase, statementFrom, sedeFilter)
+    if (bySubject?.id) signals.push({ id: bySubject.id, source: 'statement_subject' })
+  }
 
   // Segnale 1: Email mittente
   if (mittente?.includes('@')) {
@@ -445,7 +455,14 @@ export async function runQualityChain(
   const [supplierResult, dateResult, typeResult] = await Promise.all([
     opts.fornitoreId
       ? Promise.resolve({ fornitoreId: opts.fornitoreId, confidence: 3 as SignalStrength, source: 'esistente' })
-      : qualitySupplierMatch(supabase, opts.mittente, opts.ocrRagioneSociale, opts.ocrPiva, opts.sedeId),
+      : qualitySupplierMatch(
+          supabase,
+          opts.mittente,
+          opts.ocrRagioneSociale,
+          opts.ocrPiva,
+          opts.sedeId,
+          opts.emailSubject,
+        ),
     Promise.resolve(qualityValidateDate(opts.ocrDate, opts.receivedAt, opts.fileName, opts.emailSubject, opts.rowDates)),
     qualityDocumentType(supabase, opts.ocrTipo, opts.fileName, opts.emailSubject, opts.fornitoreId ?? null),
   ])
