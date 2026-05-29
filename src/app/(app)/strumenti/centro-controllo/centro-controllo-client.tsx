@@ -1049,86 +1049,110 @@ export default function CentroControlloClient({ sedeId }: Props) {
         />
       </div>
 
-      {/* ── Layout 2-colonne ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr] xl:gap-8">
+      {/* ── Monitoraggio (fascia compatta) ───────────────────────────────── */}
+      <div className="app-card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-app-line-10 px-4 py-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">
+              {t.strumentiCentroControllo.sectionMonitoring}
+            </h2>
+            {sysMonitor?.documentsAutoProcessedToday != null ? (
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                {sysMonitor.documentsAutoProcessedToday} {t.strumentiCentroControllo.badgeToday}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={caricaMonitoraggio}
+              disabled={sysMonitorLoading}
+              className="inline-flex items-center gap-1 rounded-lg bg-app-line-15 px-2 py-1 text-[11px] font-medium text-app-fg-muted transition-colors hover:bg-app-line-25 disabled:opacity-50"
+              title={t.strumentiCentroControllo.queueRetry}
+            >
+              <RefreshCw className={`w-3 h-3 ${sysMonitorLoading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              type="button"
+              onClick={handleForceCleanup}
+              disabled={forceCleanupLoading || !sysMonitor}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-50"
+            >
+              {forceCleanupLoading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Zap className="w-3 h-3" />
+              )}
+              {t.strumentiCentroControllo.monForceCleanup}
+            </button>
+          </div>
+        </div>
+        {sysMonitorLoading && !sysMonitor ? (
+          <div className="flex items-center justify-center py-5">
+            <Loader2 className="w-4 h-4 animate-spin text-app-fg-muted" />
+          </div>
+        ) : sysMonitor ? (
+          <div className="grid grid-cols-2 gap-px bg-app-line-10 sm:grid-cols-4">
+            <div className="bg-app-surface/80 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                {t.strumentiCentroControllo.monLastCleanup}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-app-fg">{formatAgo(sysMonitor.lastCleanupAt)}</p>
+              {sysMonitor.lastCleanupAt ? (
+                <p className="mt-0.5 text-[10px] text-app-fg-muted">
+                  {new Date(sysMonitor.lastCleanupAt).toLocaleString()}
+                </p>
+              ) : null}
+            </div>
+            <div className="bg-app-surface/80 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                {t.strumentiCentroControllo.monLastCycle}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-app-fg">
+                {sysMonitor.lastCleanupProcessed != null ? sysMonitor.lastCleanupProcessed : '—'}
+                <span className="text-app-fg-muted font-normal">
+                  {' '}
+                  / {sysMonitor.lastCleanupScanned != null ? sysMonitor.lastCleanupScanned : '—'}
+                </span>
+              </p>
+              <p className="mt-0.5 text-[10px] text-app-fg-muted">
+                {t.strumentiCentroControllo.monProcessed} / {t.strumentiCentroControllo.monScanned}
+              </p>
+            </div>
+            <div className="bg-app-surface/80 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                {t.strumentiCentroControllo.monAutoProcessedToday}
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-400">
+                {sysMonitor.documentsAutoProcessedToday}
+              </p>
+            </div>
+            <div className="bg-app-surface/80 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                {t.strumentiCentroControllo.monLastCycleErrors}
+              </p>
+              {sysMonitor.lastCycleErrors.length > 0 ? (
+                <ul className="mt-1 max-h-14 space-y-0.5 overflow-y-auto text-[11px] text-rose-300/90">
+                  {sysMonitor.lastCycleErrors.slice(0, 3).map((e, i) => (
+                    <li key={i} className="truncate">
+                      {e}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-sm text-emerald-300/90">—</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="px-4 py-4 text-center text-xs text-app-fg-muted">
+            {t.strumentiCentroControllo.monNoData}
+          </div>
+        )}
+      </div>
 
-        {/* ════════════════════════════════════════════════════════════════════
-            COLONNA 1: MONITORAGGIO & STATO
-           ════════════════════════════════════════════════════════════════════ */}
-        <div className="flex min-w-0 flex-col gap-6">
-          <SectionCard
-            title={t.strumentiCentroControllo.sectionMonitoring}
-            badge={sysMonitor?.documentsAutoProcessedToday != null ? `${sysMonitor.documentsAutoProcessedToday} ${t.strumentiCentroControllo.badgeToday}` : null}
-            action={
-              <button
-                type="button"
-                onClick={caricaMonitoraggio}
-                disabled={sysMonitorLoading}
-                className="inline-flex items-center gap-1 rounded-lg bg-app-line-15 px-2 py-1 text-[11px] font-medium text-app-fg-muted transition-colors hover:bg-app-line-25 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3 h-3 ${sysMonitorLoading ? 'animate-spin' : ''}`} />
-              </button>
-            }
-          >
-            {sysMonitorLoading && !sysMonitor ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="w-4 h-4 animate-spin text-app-fg-muted" />
-              </div>
-            ) : sysMonitor ? (
-              <div className="divide-y divide-app-line-10">
-                <div className="px-4 py-2.5 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-app-fg-muted">{t.strumentiCentroControllo.monLastCleanup}</span>
-                    <span className="font-medium text-app-fg text-right">{formatAgo(sysMonitor.lastCleanupAt)}</span>
-                  </div>
-                  {sysMonitor.lastCleanupAt && (
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-app-fg-muted">{t.strumentiCentroControllo.monExactDate}</span>
-                      <span className="text-app-fg-muted/70">{new Date(sysMonitor.lastCleanupAt).toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-app-fg-muted">{t.strumentiCentroControllo.monLastCycle}</span>
-                    <span className="font-medium text-app-fg">
-                      {sysMonitor.lastCleanupProcessed != null ? `${sysMonitor.lastCleanupProcessed} ${t.strumentiCentroControllo.monProcessed}` : '—'}
-                      {sysMonitor.lastCleanupScanned != null ? ` / ${sysMonitor.lastCleanupScanned} ${t.strumentiCentroControllo.monScanned}` : ''}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-app-fg-muted">{t.strumentiCentroControllo.monAutoProcessedToday}</span>
-                    <span className="font-medium text-emerald-400">{sysMonitor.documentsAutoProcessedToday}</span>
-                  </div>
-                </div>
-                {sysMonitor.lastCycleErrors.length > 0 && (
-                  <div className="px-4 py-2 text-[11px] text-rose-300/70 space-y-0.5 max-h-20 overflow-y-auto">
-                    <p className="font-medium text-rose-300 mb-1">{t.strumentiCentroControllo.monLastCycleErrors}</p>
-                    {sysMonitor.lastCycleErrors.map((e, i) => (
-                      <p key={i} className="truncate">{e}</p>
-                    ))}
-                  </div>
-                )}
-                <div className="px-4 py-2.5">
-                  <button
-                    type="button"
-                    onClick={handleForceCleanup}
-                    disabled={forceCleanupLoading}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-50"
-                  >
-                    {forceCleanupLoading ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Zap className="w-3 h-3" />
-                    )}
-                    {t.strumentiCentroControllo.monForceCleanup}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="px-4 py-4 text-xs text-app-fg-muted text-center">{t.strumentiCentroControllo.monNoData}</div>
-            )}
-          </SectionCard>
-
-          {/* ── Coda documenti ── */}
+      {/* ── Coda documenti (priorità, larghezza piena) ───────────────────── */}
+      <div className="min-w-0">
           {loading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin text-app-fg-muted" />
@@ -1155,7 +1179,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
 
           {!loading && !error && codaTotal > 0 && (
             <SectionCard title={t.strumentiCentroControllo.queueTitle} badge={codaTotal}>
-              <div className="max-h-[min(70vh,42rem)] overflow-y-auto overscroll-contain divide-y divide-app-line-10">
+              <div className="max-h-[min(78vh,52rem)] overflow-y-auto overscroll-contain divide-y divide-app-line-10">
                 {codaDisplayEntries.map((entry) =>
                   entry.type === 'statement_group' ? (
                     <StatementGruppoCoda
@@ -1234,11 +1258,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
               </div>
             </SectionCard>
           )}
-        </div>
+      </div>
 
-        {/* ════════════════════════════════════════════════════════════════════
-            COLONNA 2: STRUMENTI OPERATIVI
-           ════════════════════════════════════════════════════════════════════ */}
+      {/* ── Estratti + strumenti avanzati (sotto la coda) ─────────────────── */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <div className="flex min-w-0 flex-col gap-6">
           {/* ── Statement ── */}
           {statementStats && (
@@ -1507,9 +1530,11 @@ export default function CentroControlloClient({ sedeId }: Props) {
               </div>
             </SectionCard>
           )}
+        </div>
 
+        <div className="flex min-w-0 flex-col gap-6">
           {/* ── Strumenti di Manutenzione Avanzata (collassabile) ── */}
-          <details className="group">
+          <details className="group xl:sticky xl:top-4 xl:self-start">
             <summary className="flex cursor-pointer list-none select-none items-center gap-2 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-app-fg-muted transition-colors hover:bg-app-line-15 [&::-webkit-details-marker]:hidden">
               <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
               {t.strumentiCentroControllo.advTools}
