@@ -208,7 +208,7 @@ export default async function BollePage(props: {
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.bolle.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
+        <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 md:gap-3">
           <ExportButton rows={exportRows} type="bolle" period={exportPeriod} />
           <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
         </div>

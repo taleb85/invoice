@@ -25,12 +25,12 @@ const innerClsBaseLeading =
 const innerClsDenseBase =
   `flex w-full min-w-0 flex-row flex-nowrap items-center gap-x-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:gap-x-3`
 
-/** Destra strip: wrap + shrink; `justify-end` allinea label + FY + tray verso il bordo destro (padding ridotto in `innerClsBase`). */
+/** Destra strip: `shrink-0` così Esporta/FY non vengono coperti dalla colonna titolo su mobile. */
 const innerRightClsBase =
-  'flex min-h-0 min-w-0 max-w-full shrink flex-row flex-nowrap content-end justify-end gap-x-3 gap-y-1 sm:items-center sm:gap-x-4 md:gap-x-5'
+  'flex min-h-0 min-w-0 shrink-0 flex-row flex-nowrap content-end justify-end gap-x-2 sm:items-center sm:gap-x-4 md:gap-x-5'
 
 const innerRightClsDenseBase =
-  'flex min-h-0 min-w-0 max-w-full shrink flex-nowrap content-end justify-end gap-2 sm:gap-x-3 md:gap-3'
+  'flex min-h-0 min-w-0 shrink-0 flex-nowrap content-end justify-end gap-2 sm:gap-x-3 md:gap-3'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` + barra `.app-card-bar-accent` solo se `accent` è impostato.
@@ -98,8 +98,9 @@ export default function AppPageHeaderStrip({
   const innerRowCls = `${innerPad} ${
     alignStart ? 'items-start' : ''
   } ${dense && alignStart ? 'md:items-start' : dense && !alignStart ? 'md:items-center' : ''}`
-  const leftClusterCls = `flex min-w-0 min-h-0 flex-1 ${leadingAccessory ? 'gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3' : 'gap-3 lg:gap-4'} ${alignStart ? 'items-start' : 'items-center'}`
-  const titleCls = `min-w-0 flex-1 ${alignStart ? 'self-start' : 'self-center'}`
+  const leftClusterCls = `flex min-h-0 min-w-0 flex-1 overflow-hidden ${leadingAccessory ? 'gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3' : 'gap-3 lg:gap-4'} ${alignStart ? 'items-start' : 'items-center'}`
+  const titleCls = `min-w-0 flex-1 overflow-hidden [&_h1]:truncate ${alignStart ? 'self-start' : 'self-center'}`
+  const headerIconCls = leadingAccessory ? 'max-md:hidden' : ''
   const rightCls = `${dense ? innerRightClsDenseBase : innerRightClsBase} ${
     alignStart ? 'items-start sm:justify-end sm:pt-0' : 'items-center'
   }`
@@ -110,7 +111,7 @@ export default function AppPageHeaderStrip({
         {leadingAccessory}
         {icon && (
           <span
-            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center opacity-90 sm:h-12 sm:w-12 [&_svg]:h-8 [&_svg]:w-8 sm:[&_svg]:h-9 sm:[&_svg]:w-9 [&_svg]:shrink-0 ${alignStart ? 'mt-px' : ''} ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
+            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center opacity-90 sm:h-12 sm:w-12 [&_svg]:h-8 [&_svg]:w-8 sm:[&_svg]:h-9 sm:[&_svg]:w-9 [&_svg]:shrink-0 ${alignStart ? 'mt-px' : ''} ${headerIconCls} ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
             aria-hidden
           >
             {icon}
