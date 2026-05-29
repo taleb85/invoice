@@ -12,6 +12,7 @@ import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 import type { SupplierPriceHealth } from '@/lib/price-intelligence'
+import { interpolateTemplate } from '@/lib/interpolate-template'
 
 type DashboardData = {
   suppliers: SupplierPriceHealth[]
@@ -49,32 +50,42 @@ export default function AnalisiPrezziPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const [syncProgress, setSyncProgress] = useState<string | null>(null)
+  const [syncStatusText, setSyncStatusText] = useState<string | null>(null)
+
+  const ap = t.strumentiAnalisiPrezzi
 
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/listino/price-intelligence')
-      if (!res.ok) throw new Error(t.common.httpError.replace('{code}', String(res.status)))
+      if (!res.ok) {
+        throw new Error(
+          interpolateTemplate(t.common.httpError, { code: res.status }, `Error ${res.status}`),
+        )
+      }
       const json = await res.json()
       setData(json)
     } catch (e) {
-      showToast(e instanceof Error ? e.message : t.strumentiAnalisiPrezzi.loadError, 'error')
+      showToast(e instanceof Error ? e.message : ap.loadError ?? 'Errore caricamento', 'error')
     } finally {
       setLoading(false)
     }
-  }, [showToast, t])
+  }, [ap.loadError, showToast, t])
 
   useEffect(() => { loadData() }, [loadData])
 
   const handleSyncListino = useCallback(async () => {
     if (syncing) return
     setSyncing(true)
-    setSyncProgress(t.strumentiAnalisiPrezzi.syncDiscovering)
+    setSyncStatusText(
+      ap.syncDiscovering ?? 'Ricerca fatture da importare…',
+    )
     try {
       const discRes = await fetch('/api/listino/sync-from-fatture', { cache: 'no-store' })
       if (!discRes.ok) {
-        throw new Error(t.common.httpError.replace('{code}', String(discRes.status)))
+        throw new Error(
+          interpolateTemplate(t.common.httpError, { code: discRes.status }, `Error ${discRes.status}`),
+        )
       }
       const disc = (await discRes.json()) as {
         fornitori?: Array<{ id: string; nome: string; pending_fatture: number }>
@@ -82,7 +93,7 @@ export default function AnalisiPrezziPage() {
       }
       const fornitori = disc.fornitori ?? []
       if (fornitori.length === 0 || (disc.total_pending_fatture ?? 0) === 0) {
-        showToast(t.strumentiAnalisiPrezzi.syncNothingPending, 'info')
+        showToast(ap.syncNothingPending ?? 'Nessuna fattura da importare.', 'info')
         await loadData()
         return
       }
@@ -91,11 +102,12 @@ export default function AnalisiPrezziPage() {
       let fattureScanned = 0
       for (let i = 0; i < fornitori.length; i++) {
         const f = fornitori[i]
-        setSyncProgress(
-          t.strumentiAnalisiPrezzi.syncProgress
-            .replace('{current}', String(i + 1))
-            .replace('{total}', String(fornitori.length))
-            .replace('{name}', f.nome),
+        setSyncStatusText(
+          interpolateTemplate(
+            ap.syncProgress,
+            { current: i + 1, total: fornitori.length, name: f.nome ?? '—' },
+            `Fornitore ${i + 1}/${fornitori.length}`,
+          ),
         )
         const res = await fetch('/api/listino/sync-from-fatture', {
           method: 'POST',
@@ -108,26 +120,35 @@ export default function AnalisiPrezziPage() {
           fatture_scanned?: number
         }
         if (!res.ok) {
-          throw new Error(json.error ?? t.strumentiAnalisiPrezzi.syncError)
+          throw new Error(
+            typeof json.error === 'string'
+              ? json.error
+              : (ap.syncError ?? 'Aggiornamento listino non riuscito'),
+          )
         }
         righeInserite += json.righe_inserite ?? 0
         fattureScanned += json.fatture_scanned ?? 0
       }
 
       showToast(
-        t.strumentiAnalisiPrezzi.syncDone
-          .replace('{righe}', String(righeInserite))
-          .replace('{fatture}', String(fattureScanned)),
+        interpolateTemplate(
+          ap.syncDone,
+          { righe: righeInserite, fatture: fattureScanned },
+          `Listino aggiornato: ${righeInserite} righe da ${fattureScanned} fatture.`,
+        ),
         'success',
       )
       await loadData()
     } catch (e) {
-      showToast(e instanceof Error ? e.message : t.strumentiAnalisiPrezzi.syncError, 'error')
+      showToast(
+        e instanceof Error ? e.message : (ap.syncError ?? 'Aggiornamento listino non riuscito'),
+        'error',
+      )
     } finally {
       setSyncing(false)
-      setSyncProgress(null)
+      setSyncStatusText(null)
     }
-  }, [loadData, showToast, syncing, t])
+  }, [ap, loadData, showToast, syncing, t.common.httpError])
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -153,13 +174,13 @@ export default function AnalisiPrezziPage() {
           ) : (
             <RefreshCw className="h-3.5 w-3.5" />
           )}
-          <span className="hidden sm:inline">{t.strumentiAnalisiPrezzi.syncButton}</span>
+          <span className="hidden sm:inline">{ap.syncButton ?? 'Aggiorna prodotti e prezzi'}</span>
         </button>
       </AppPageHeaderStrip>
 
-      {syncProgress ? (
+      {syncStatusText ? (
         <p className="text-center text-xs text-white/50" role="status">
-          {syncProgress}
+          {syncStatusText}
         </p>
       ) : null}
 

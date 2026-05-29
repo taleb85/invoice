@@ -158,6 +158,7 @@ const translations: Translations = {
     queuePerPage: 'Por página',
     queuePrev: 'Anterior',
     queueNext: 'Siguiente',
+    queueDrawerHint: 'Expandir para ver y gestionar',
     rigaDataDocLabel: 'Fecha documento',
     rigaRicevutoLabel: 'Recibido en cola',
     rigaGiorniInStato: '{n}d en estado',

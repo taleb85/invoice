@@ -1873,6 +1873,7 @@ export type Translations = {
     queuePerPage: string
     queuePrev: string
     queueNext: string
+    queueDrawerHint: string
     rigaDataDocLabel: string
     rigaRicevutoLabel: string
     rigaGiorniInStato: string

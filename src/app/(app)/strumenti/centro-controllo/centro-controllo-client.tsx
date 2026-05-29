@@ -1228,10 +1228,11 @@ export default function CentroControlloClient({ sedeId }: Props) {
               </div>
               <div className="flex flex-col gap-3 border-t border-app-line-10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-app-fg-muted">
-                  {t.strumentiCentroControllo.queueShowing
-                    .replace('{from}', String(codaRangeFrom))
-                    .replace('{to}', String(codaRangeTo))
-                    .replace('{total}', String(codaTotal))}
+                  {interpolateTemplate(t.strumentiCentroControllo.queueShowing, {
+                    from: codaRangeFrom,
+                    to: codaRangeTo,
+                    total: codaTotal,
+                  }, `Mostrando ${codaRangeFrom}–${codaRangeTo} di ${codaTotal}`)}
                   {filtroOrigine !== 'tutti' ? ` ${t.strumentiCentroControllo.queueFilterActive}` : ''}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">

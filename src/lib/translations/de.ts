@@ -158,6 +158,7 @@ const translations: Translations = {
     queuePerPage: 'Pro Seite',
     queuePrev: 'Zurück',
     queueNext: 'Weiter',
+    queueDrawerHint: 'Zum Anzeigen und Bearbeiten aufklappen',
     rigaDataDocLabel: 'Belegdatum',
     rigaRicevutoLabel: 'In Warteschlange',
     rigaGiorniInStato: '{n}T im Status',
