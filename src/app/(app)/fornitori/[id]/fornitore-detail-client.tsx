@@ -5417,118 +5417,191 @@ function ListinoTab({
                             {t.fornitori.listinoShowHistory.replace('{n}', String(sorted.length))}
                           </span>
                         </summary>
-                        <div className="overflow-x-auto px-4 pb-3 sm:px-5">
-                          <table className="w-full min-w-[20rem] text-left text-xs">
-                            <thead>
-                              <tr className="border-b border-app-line-22/80 text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
-                                <th className="py-1.5 pr-3 font-semibold">{t.fornitori.listinoHistoryColDate}</th>
-                                <th className="py-1.5 pr-3 text-right font-semibold">{t.fornitori.listinoHistoryColPrice}</th>
-                                <th className="py-1.5 pr-3 text-right font-semibold">{t.fornitori.listinoHistoryColChange}</th>
-                                <th className="py-1.5 font-semibold">{t.fornitori.listinoHistoryColOrigin}</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-app-line-18/60">
-                              {[...sorted].reverse().map((entry) => {
-                                const likelyOcrQty =
-                                  sorted.length >= 2 &&
-                                  isBadListinoOcrPrice(
-                                    entry.prezzo,
-                                    sorted.filter((g) => g.id !== entry.id).map((g) => g.prezzo),
-                                  )
-                                const deltaPct = listinoHistoryDeltaPercent(
-                                  entry.prezzo,
-                                  prevPlausibleById.get(entry.id),
-                                )
-                                const isDisplay = entry.id === displayRow.id
-                                const rowFid = extractListinoSrcFatturaId(entry.note)
-                                const rowOrigin = rowFid
-                                  ? rows.find((r) => r.tipo === 'fattura' && r.id === rowFid)
-                                  : null
-                                const openInvoiceHref = rowFid
-                                  ? (() => {
-                                      const q = new URLSearchParams(searchParams.toString())
-                                      q.set('fattura', rowFid)
-                                      q.delete('bolla')
-                                      return `${pathname}?${q.toString()}`
-                                    })()
-                                  : null
-                                return (
-                                  <tr
-                                    key={entry.id}
-                                    className={
-                                      isDisplay
-                                        ? 'bg-cyan-950/25'
-                                        : undefined
-                                    }
+                        {(() => {
+                          const historyEntries = [...sorted].reverse().map((entry) => {
+                            const likelyOcrQty =
+                              sorted.length >= 2 &&
+                              isBadListinoOcrPrice(
+                                entry.prezzo,
+                                sorted.filter((g) => g.id !== entry.id).map((g) => g.prezzo),
+                              )
+                            const deltaPct = listinoHistoryDeltaPercent(
+                              entry.prezzo,
+                              prevPlausibleById.get(entry.id),
+                            )
+                            const isDisplay = entry.id === displayRow.id
+                            const rowFid = extractListinoSrcFatturaId(entry.note)
+                            const rowOrigin = rowFid
+                              ? rows.find((r) => r.tipo === 'fattura' && r.id === rowFid)
+                              : null
+                            const openInvoiceHref = rowFid
+                              ? (() => {
+                                  const q = new URLSearchParams(searchParams.toString())
+                                  q.set('fattura', rowFid)
+                                  q.delete('bolla')
+                                  return `${pathname}?${q.toString()}`
+                                })()
+                              : null
+                            const entryDateLabel = formatDateLib(entry.data_prezzo, locale, timezone, {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                            const deltaLabel =
+                              deltaPct == null ? (
+                                '—'
+                              ) : Math.abs(deltaPct) < 0.05 ? (
+                                '0.0%'
+                              ) : deltaPct > 0 ? (
+                                `+${deltaPct.toFixed(1)}%`
+                              ) : (
+                                `${deltaPct.toFixed(1)}%`
+                              )
+                            const deltaTone =
+                              deltaPct == null || Math.abs(deltaPct) < 0.05
+                                ? 'text-app-fg-muted'
+                                : deltaPct > 0
+                                  ? 'text-red-300'
+                                  : 'text-emerald-300'
+                            return {
+                              entry,
+                              likelyOcrQty,
+                              deltaPct,
+                              isDisplay,
+                              rowOrigin,
+                              openInvoiceHref,
+                              entryDateLabel,
+                              deltaLabel,
+                              deltaTone,
+                            }
+                          })
+                          return (
+                            <>
+                              <div className="divide-y divide-app-line-18/60 px-3 pb-3 md:hidden">
+                                {historyEntries.map((h) => (
+                                  <div
+                                    key={h.entry.id}
+                                    className={`py-2.5 ${h.isDisplay ? 'bg-cyan-950/25 -mx-3 px-3' : ''}`}
                                   >
-                                    <td className="py-2 pr-3 whitespace-nowrap text-app-fg-muted">
-                                      {formatDateLib(entry.data_prezzo, locale, timezone, {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric',
-                                      })}
-                                      {isDisplay ? (
-                                        <span className="ml-1.5 rounded bg-cyan-600/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-200">
-                                          {t.fornitori.listinoHistoryCurrent}
-                                        </span>
-                                      ) : null}
-                                    </td>
-                                    <td className="py-2 pr-3 text-right font-mono font-semibold tabular-nums">
-                                      <span
-                                        className={
-                                          likelyOcrQty
-                                            ? 'text-amber-300/90 line-through decoration-amber-500/50'
-                                            : 'text-app-fg'
-                                        }
-                                      >
-                                        {fmtMoney(entry.prezzo)}
-                                      </span>
-                                      {likelyOcrQty ? (
-                                        <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-300/80">
-                                          {t.fornitori.listinoHistoryLikelyOcrError}
-                                        </span>
-                                      ) : null}
-                                    </td>
-                                    <td className="py-2 pr-3 text-right font-mono tabular-nums">
-                                      {deltaPct == null ? (
-                                        <span className="text-app-fg-muted">—</span>
-                                      ) : Math.abs(deltaPct) < 0.05 ? (
-                                        <span className="text-app-fg-muted">0.0%</span>
-                                      ) : deltaPct > 0 ? (
-                                        <span className="text-red-300">+{deltaPct.toFixed(1)}%</span>
-                                      ) : (
-                                        <span className="text-emerald-300">{deltaPct.toFixed(1)}%</span>
-                                      )}
-                                    </td>
-                                    <td className="py-2 min-w-0 text-app-fg-muted">
-                                      {rowOrigin && openInvoiceHref ? (
-                                        <Link
-                                          href={openInvoiceHref}
-                                          scroll={false}
-                                          className="truncate font-medium text-violet-300 underline decoration-violet-500/40 underline-offset-2 hover:text-violet-200"
-                                          title={t.fornitori.listinoOriginInvoice
-                                            .replace('{inv}', rowOrigin.numero ?? '—')
-                                            .replace('{data}', formatDate(rowOrigin.data))
-                                            .replace('{supplier}', fornitoreNome)}
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="text-xs text-app-fg-muted">
+                                          {h.entryDateLabel}
+                                          {h.isDisplay ? (
+                                            <span className="ml-1.5 rounded bg-cyan-600/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-200">
+                                              {t.fornitori.listinoHistoryCurrent}
+                                            </span>
+                                          ) : null}
+                                        </p>
+                                        {h.rowOrigin && h.openInvoiceHref ? (
+                                          <Link
+                                            href={h.openInvoiceHref}
+                                            scroll={false}
+                                            className="mt-0.5 inline-block text-[11px] font-medium text-violet-300 underline decoration-violet-500/40 underline-offset-2"
+                                          >
+                                            {t.fornitori.listinoHistoryColOrigin}: {h.rowOrigin.numero ?? '—'}
+                                          </Link>
+                                        ) : h.rowOrigin ? (
+                                          <p className="mt-0.5 text-[11px] text-app-fg-muted">
+                                            {t.fornitori.listinoHistoryColOrigin}: {h.rowOrigin.numero ?? '—'}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                      <div className="shrink-0 text-right">
+                                        <p
+                                          className={`font-mono text-sm font-semibold tabular-nums ${
+                                            h.likelyOcrQty
+                                              ? 'text-amber-300/90 line-through decoration-amber-500/50'
+                                              : 'text-app-fg'
+                                          }`}
                                         >
-                                          {rowOrigin.numero ?? '—'}
-                                          {' · '}
-                                          {formatDate(rowOrigin.data)}
-                                        </Link>
-                                      ) : rowOrigin ? (
-                                        <span className="truncate">
-                                          {rowOrigin.numero ?? '—'}
-                                        </span>
-                                      ) : (
-                                        <span className="text-app-fg-muted/60">—</span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                                          {fmtMoney(h.entry.prezzo)}
+                                        </p>
+                                        <p className={`mt-0.5 font-mono text-xs tabular-nums ${h.deltaTone}`}>
+                                          {h.deltaLabel}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    {h.likelyOcrQty ? (
+                                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-amber-300/80">
+                                        {t.fornitori.listinoHistoryLikelyOcrError}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="hidden overflow-x-auto px-4 pb-3 md:block sm:px-5">
+                                <table className="w-full min-w-[20rem] text-left text-xs">
+                                  <thead>
+                                    <tr className="border-b border-app-line-22/80 text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+                                      <th className="py-1.5 pr-3 font-semibold">{t.fornitori.listinoHistoryColDate}</th>
+                                      <th className="py-1.5 pr-3 text-right font-semibold">{t.fornitori.listinoHistoryColPrice}</th>
+                                      <th className="py-1.5 pr-3 text-right font-semibold">{t.fornitori.listinoHistoryColChange}</th>
+                                      <th className="py-1.5 font-semibold">{t.fornitori.listinoHistoryColOrigin}</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-app-line-18/60">
+                                    {historyEntries.map((h) => (
+                                      <tr
+                                        key={h.entry.id}
+                                        className={h.isDisplay ? 'bg-cyan-950/25' : undefined}
+                                      >
+                                        <td className="py-2 pr-3 whitespace-nowrap text-app-fg-muted">
+                                          {h.entryDateLabel}
+                                          {h.isDisplay ? (
+                                            <span className="ml-1.5 rounded bg-cyan-600/25 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-200">
+                                              {t.fornitori.listinoHistoryCurrent}
+                                            </span>
+                                          ) : null}
+                                        </td>
+                                        <td className="py-2 pr-3 text-right font-mono font-semibold tabular-nums">
+                                          <span
+                                            className={
+                                              h.likelyOcrQty
+                                                ? 'text-amber-300/90 line-through decoration-amber-500/50'
+                                                : 'text-app-fg'
+                                            }
+                                          >
+                                            {fmtMoney(h.entry.prezzo)}
+                                          </span>
+                                          {h.likelyOcrQty ? (
+                                            <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-300/80">
+                                              {t.fornitori.listinoHistoryLikelyOcrError}
+                                            </span>
+                                          ) : null}
+                                        </td>
+                                        <td className={`py-2 pr-3 text-right font-mono tabular-nums ${h.deltaTone}`}>
+                                          {h.deltaLabel}
+                                        </td>
+                                        <td className="py-2 min-w-0 text-app-fg-muted">
+                                          {h.rowOrigin && h.openInvoiceHref ? (
+                                            <Link
+                                              href={h.openInvoiceHref}
+                                              scroll={false}
+                                              className="truncate font-medium text-violet-300 underline decoration-violet-500/40 underline-offset-2 hover:text-violet-200"
+                                              title={t.fornitori.listinoOriginInvoice
+                                                .replace('{inv}', h.rowOrigin.numero ?? '—')
+                                                .replace('{data}', formatDate(h.rowOrigin.data))
+                                                .replace('{supplier}', fornitoreNome)}
+                                            >
+                                              {h.rowOrigin.numero ?? '—'}
+                                              {' · '}
+                                              {formatDate(h.rowOrigin.data)}
+                                            </Link>
+                                          ) : h.rowOrigin ? (
+                                            <span className="truncate">{h.rowOrigin.numero ?? '—'}</span>
+                                          ) : (
+                                            <span className="text-app-fg-muted/60">—</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </>
+                          )
+                        })()}
                       </details>
                     ) : null}
                   </div>
