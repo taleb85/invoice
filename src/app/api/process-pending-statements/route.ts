@@ -12,6 +12,8 @@ import {
 } from '@/lib/statement-combined-pdf-invoice'
 import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
 import { normalizeStatementFileUrl } from '@/lib/statement-list-dedup'
+import { findUniqueFornitoreForPendingDoc } from '@/lib/auto-resolve-pending-doc'
+import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 
 export async function POST(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -240,8 +242,25 @@ export async function POST(req: NextRequest) {
       return
     }
 
-    const sedeId      = doc.sede_id
-    const fornitoreId = doc.fornitore_id
+    const sedeId = doc.sede_id
+    let fornitoreId = doc.fornitore_id
+    if (doc.oggetto_mail && extractStatementFromSupplierName(doc.oggetto_mail)) {
+      const fromSubject = await findUniqueFornitoreForPendingDoc(supabase, {
+        docSedeId: doc.sede_id,
+        oggetto_mail: doc.oggetto_mail,
+        metadata: {},
+        mittente: null,
+      })
+      if (fromSubject) {
+        fornitoreId = fromSubject.id
+        if (fromSubject.id !== doc.fornitore_id) {
+          await supabase
+            .from('documenti_da_processare')
+            .update({ fornitore_id: fromSubject.id })
+            .eq('id', doc.id)
+        }
+      }
+    }
 
     // ── 3. Create statement record (safe concurrent insert) ──────────────────
     const docDate = resolveStatementDocumentDate(extractedPdfDates, doc.data_documento)

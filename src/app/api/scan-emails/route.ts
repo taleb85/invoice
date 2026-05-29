@@ -24,6 +24,8 @@ import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
 import { resolveFornitoreFromScanEmail } from '@/lib/fornitore-resolve-scan-email'
+import { findUniqueFornitoreForPendingDoc } from '@/lib/auto-resolve-pending-doc'
+import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
 import { documentDateYmdFromOcr } from '@/lib/safe-date'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
@@ -925,7 +927,28 @@ async function resolveFornitore(
   supabase: SupabaseClient,
   senderEmail: string,
   sedeFilter?: string,
+  emailSubject?: string | null,
 ): Promise<Fornitore | null> {
+  if (emailSubject?.trim() && extractStatementFromSupplierName(emailSubject)) {
+    const fromSubject = await findUniqueFornitoreForPendingDoc(supabase, {
+      docSedeId: sedeFilter ?? null,
+      oggetto_mail: emailSubject,
+      metadata: {},
+      mittente: null,
+    })
+    if (fromSubject) {
+      mailDebugLog(
+        `[RLS] fornitore da oggetto «Statement from»: ${fromSubject.nome} (${fromSubject.id})`,
+      )
+      const { data: row } = await supabase
+        .from('fornitori')
+        .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id, email')
+        .eq('id', fromSubject.id)
+        .maybeSingle()
+      if (row) return row as Fornitore
+    }
+  }
+
   mailDebugLog(`[RLS] resolveFornitore: mittente="${senderEmail}" sedeFilter=${sedeFilter ?? 'nessuno'} (solo rubrica registrata)`)
   const resolved = await resolveFornitoreFromScanEmail(supabase, senderEmail, sedeFilter ?? null)
   if (resolved) {
@@ -1190,7 +1213,7 @@ async function processEmails(
         `[PROCESS] Analisi email da: ${email.from} | allegati: ${email.attachments.length} | corpo utilizzabile: ${emailHasScannableBody(email)}`
       )
       if (email.attachments.length) {
-        const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
+        const fornitore = await resolveFornitore(supabase, email.from, sedeFilter, email.subject)
         if (!fornitore) {
           mailDebugLog(`[PROCESS] WARN  Fornitore non trovato per "${email.from}" — OCR+P.IVA verrà tentato`)
           noFornitore.push(email)
@@ -1209,7 +1232,7 @@ async function processEmails(
           groups.get(fornitore.id)!.items.push({ email, attachment })
         }
       } else if (emailHasScannableBody(email)) {
-        const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
+        const fornitore = await resolveFornitore(supabase, email.from, sedeFilter, email.subject)
         if (!fornitore) {
           // ── PRE-FILTRO: mittente sconosciuto senza allegati ──────────────────
           // Se l'oggetto non contiene parole chiave fiscali, scarta l'email

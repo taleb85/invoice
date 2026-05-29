@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 
 export type OcrMetaForMatch = {
   ragione_sociale?: string | null
@@ -110,6 +111,26 @@ function ragioneSocialeCandidatesForMatch(rsTrim: string): string[] {
   return [...seen].sort((a, b) => b.length - a.length)
 }
 
+function findUniqueFornitoreInListByRagioneSociale(
+  list: FornitoreMatchRow[],
+  rsTrim: string,
+): { id: string; nome: string } | null {
+  const candidateKeys = ragioneSocialeCandidatesForMatch(rsTrim)
+  for (const key of candidateKeys) {
+    if (key.length < 3) continue
+    const hits = list.filter((f) => {
+      const nk = canonicalSupplierNameKey(f.nome)
+      const dk = f.display_name?.trim() ? canonicalSupplierNameKey(f.display_name) : ''
+      const nameHit = supplierNameKeysCompatible(key, nk)
+      const displayHit = dk ? supplierNameKeysCompatible(key, dk) : false
+      return nameHit || displayHit
+    })
+    if (hits.length === 1) return { id: hits[0].id, nome: hits[0].nome }
+    if (hits.length > 1) continue
+  }
+  return null
+}
+
 function normEmail(s: string | null | undefined): string | null {
   const t = s?.trim().toLowerCase()
   return t && t.includes('@') ? t : null
@@ -156,14 +177,17 @@ export async function findUniqueFornitoreForPendingDoc(
     fornitoreFilterId?: string | null
     metadata: OcrMetaForMatch | null | undefined
     mittente?: string | null
+    /** Es. «Statement from Saggiomo…» — ha priorità sul mittente email (inoltri da cliente). */
+    oggetto_mail?: string | null
   },
 ): Promise<{ id: string; nome: string } | null> {
   const meta = opts.metadata
   const pTrim = meta?.p_iva?.trim()
   const rsTrim = meta?.ragione_sociale?.trim()
   const ocrAddrKey = normalizeAddressKey(meta?.indirizzo)
+  const subjectSupplier = extractStatementFromSupplierName(opts.oggetto_mail)
   const pDigits = pTrim ? normalizePivaDigits(pTrim) : ''
-  if (!pTrim && !rsTrim && !normEmail(opts.mittente) && !ocrAddrKey) return null
+  if (!pTrim && !rsTrim && !normEmail(opts.mittente) && !ocrAddrKey && !subjectSupplier) return null
 
   const sedeId = await resolveEffectiveSedeId(supabase, opts)
 
@@ -188,6 +212,11 @@ export async function findUniqueFornitoreForPendingDoc(
   if (error || !rows?.length) return null
 
   const list = rows as FornitoreMatchRow[]
+
+  if (subjectSupplier) {
+    const fromSubject = findUniqueFornitoreInListByRagioneSociale(list, subjectSupplier)
+    if (fromSubject) return fromSubject
+  }
 
   if (pDigits.length >= 5) {
     const hits = list.filter((f) => f.piva && normalizePivaDigits(f.piva) === pDigits)
@@ -230,19 +259,8 @@ export async function findUniqueFornitoreForPendingDoc(
   }
 
   if (rsTrim) {
-    const candidateKeys = ragioneSocialeCandidatesForMatch(rsTrim)
-    for (const key of candidateKeys) {
-      if (key.length < 3) continue
-      const hits = list.filter((f) => {
-        const nk = canonicalSupplierNameKey(f.nome)
-        const dk = f.display_name?.trim() ? canonicalSupplierNameKey(f.display_name) : ''
-        const nameHit = supplierNameKeysCompatible(key, nk)
-        const displayHit = dk ? supplierNameKeysCompatible(key, dk) : false
-        return nameHit || displayHit
-      })
-      if (hits.length === 1) return { id: hits[0].id, nome: hits[0].nome }
-      if (hits.length > 1) continue
-    }
+    const fromOcr = findUniqueFornitoreInListByRagioneSociale(list, rsTrim)
+    if (fromOcr) return fromOcr
   }
 
   return null
