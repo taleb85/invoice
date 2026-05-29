@@ -14,7 +14,6 @@ import {
   RefreshCw,
   ScanLine,
   Search,
-  UserCheck,
   X,
   Zap,
 } from 'lucide-react'
@@ -34,11 +33,7 @@ import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate, formatDateTime } from '@/lib/locale'
-import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
-import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
-import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
 import AuditAndFixAllCard from '@/components/admin/audit-and-fix-all-card'
-import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import AssociaFornitoreDialog from './_dialogs/associa-fornitore-dialog'
 import AggiornaCategoriaDialog from './_dialogs/aggiorna-categoria-dialog'
 import RifiutaFatturaDialog from './_dialogs/rifiuta-fattura-dialog'
@@ -250,7 +245,6 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [historicProgressLine, setHistoricProgressLine] = useState<string | null>(null)
 
   // ── Duplicati ────────────────────────────────────────────────────────────
-  const [dupOpen, setDupOpen] = useState(false)
 
   type DialogType = 'associa' | 'categoria' | 'rifiuta_fattura' | 'assegna_fattura'
   const [dialogAperto, setDialogAperto] = useState<{
@@ -1523,19 +1517,8 @@ export default function CentroControlloClient({ sedeId }: Props) {
             <div className="mt-4 flex flex-col gap-4">
 
               <SectionCard title={t.strumentiCentroControllo.advOcrQuality}>
-                <div className="divide-y divide-app-line-10">
-                  <div className="px-4 py-3">
-                    <AuditAndFixAllCard />
-                  </div>
-                  <div className="px-4 py-3">
-                    <ReclassifyPendingKindCard />
-                  </div>
-                  <div className="px-4 py-3">
-                    <FixOcrDatesCard anchorId="cc-ocr-dates" />
-                  </div>
-                  <div className="px-4 py-3">
-                    <AiReclassifyCard />
-                  </div>
+                <div className="px-4 py-3">
+                  <AuditAndFixAllCard />
                 </div>
               </SectionCard>
 
@@ -1577,46 +1560,6 @@ export default function CentroControlloClient({ sedeId }: Props) {
 
               <SectionCard title={t.strumentiCentroControllo.advMaintenance}>
                 <div className="divide-y divide-app-line-10">
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advFindDupTitle}</p>
-                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advFindDupDesc}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setDupOpen(true)}
-                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18"
-                    >
-                      <ScanLine className="w-3 h-3" />
-                      {t.strumentiCentroControllo.advFindDupAction}
-                    </button>
-                  </div>
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advAuditMatchingTitle}</p>
-                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advAuditMatchingDesc}</p>
-                    </div>
-                    <a
-                      href="/inbox-ai?tab=audit"
-                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
-                    >
-                      <UserCheck className="w-3 h-3" />
-                      {t.strumentiCentroControllo.advAuditMatchingAction}
-                    </a>
-                  </div>
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advCentroOpTitle}</p>
-                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advCentroOpDesc}</p>
-                    </div>
-                    <a
-                      href="/strumenti/centro-operazioni"
-                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      {t.strumentiCentroControllo.advOpenAction}
-                    </a>
-                  </div>
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advLearningTitle}</p>
@@ -1683,7 +1626,6 @@ export default function CentroControlloClient({ sedeId }: Props) {
         onSuccess={handleDialogSuccess}
       />
 
-      <DuplicateManager open={dupOpen} onOpenChange={setDupOpen} />
     </div>
   )
 }
