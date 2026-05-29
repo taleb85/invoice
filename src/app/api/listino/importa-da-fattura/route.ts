@@ -7,6 +7,8 @@ export interface LineItem {
   prodotto: string
   codice_prodotto: string | null
   prezzo: number
+  quantita: number | null
+  importo_linea: number | null
   unita: string | null
   note: string | null
 }
@@ -20,7 +22,9 @@ Return ONLY valid JSON — no markdown, no explanation:
       "codice_prodotto": "SKU / article code / item # / EAN — or null if the line has no separate product code column",
       "prodotto": "Product name / description exactly as written (without repeating the code if it is only in the code column)",
       "prezzo": 12.50,
-      "unita": "kg / unit / box / l / pz — or null if not specified",
+      "quantita": 2,
+      "importo_linea": 25.00,
+      "unita": "X6 / kg / box — pack format or unit label, NOT the order quantity unless that is the only qty on the line",
       "note": "any useful detail (e.g. 'per 5kg case') or null"
     }
   ],
@@ -32,7 +36,11 @@ Rules:
 - NEVER use the quantity column (Qty, Qtà, Qty., Cases, Casse, etc.) as prezzo — quantity is not a price.
 - NEVER use the line total / amount / importo riga column as prezzo — if only line totals exist, set prezzo = line_total ÷ quantity.
 - If only line totals are available and there's a quantity, calculate: line_total / quantity.
-- Example: 6 cases at £7.61 each → prezzo = 7.61, NOT 45.66 (line total).
+- Always fill quantita (ordered cases/units on the invoice line) and importo_linea (line total / amount column) when visible.
+- Example: 2 cases at £12.50 each → quantita = 2, importo_linea = 25.00, prezzo = 12.50 — NOT prezzo = 25.00.
+- Example: 6 cases at £7.61 each → quantita = 6, importo_linea = 45.66, prezzo = 7.61.
+- Pack format like "X6" (6 items per case) is unita, not quantita — quantita is how many cases were ordered.
+- One invoice row = one JSON item; do not merge two product codes into one line (e.g. CFB128E and CF14BE are two lines).
 - For wholesale food/drink, case prices are often £10–£200; values under £1 on a line that also shows a much larger line total are usually quantity or per-kg, not the case price — prefer line_total/qty or the price in the dedicated price column.
 - Include ALL line items visible on the document.
 - Normalise prices to plain decimal numbers (e.g. "£12,50" → 12.50, "1.234,56" → 1234.56).
@@ -42,6 +50,14 @@ Rules:
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
 import { extractPdfText } from '@/lib/pdf-parse-utils'
+import { normalizeListinoImportLineItem } from '@/lib/listino-invoice-line-normalize'
+
+function parseOptionalPositiveNumber(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'))
+  if (!Number.isFinite(n) || n <= 0) return null
+  return n
+}
 
 function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string | null } {
   try {
@@ -61,12 +77,30 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
         const prodottoNorm = String(i.prodotto)
           .trim()
           .replace(/[\s.,;:\-]+$/, '')
-        return {
+        const prezzoRaw =
+          typeof i.prezzo === 'number' ? i.prezzo : parseFloat(String(i.prezzo)) || 0
+        const quantitaRaw = parseOptionalPositiveNumber(i.quantita ?? i.qty ?? i.quantity)
+        const importoLineaRaw = parseOptionalPositiveNumber(
+          i.importo_linea ?? i.line_total ?? i.totale_riga,
+        )
+        const raw: LineItem = {
           prodotto: prodottoNorm,
           codice_prodotto: codice,
-          prezzo: typeof i.prezzo === 'number' ? i.prezzo : parseFloat(String(i.prezzo)) || 0,
+          prezzo: prezzoRaw,
+          quantita: quantitaRaw,
+          importo_linea: importoLineaRaw,
           unita: i.unita ? String(i.unita) : null,
           note: i.note ? String(i.note) : null,
+        }
+        const normalized = normalizeListinoImportLineItem(raw)
+        return {
+          prodotto: normalized.prodotto,
+          codice_prodotto: normalized.codice_prodotto ?? codice,
+          prezzo: normalized.prezzo,
+          quantita: normalized.quantita ?? null,
+          importo_linea: importoLineaRaw,
+          unita: normalized.unita,
+          note: normalized.note,
         }
       })
     return { items, data_fattura: parsed.data_fattura ?? null }

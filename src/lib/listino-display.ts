@@ -1,4 +1,5 @@
-import { isBadListinoOcrPrice, resolveEffectiveListinoUnitPrice } from '@/lib/listino-price-sanity'
+import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
+import { resolveListinoUnitPriceForDisplay } from '@/lib/listino-invoice-line-normalize'
 
 /** Machine-parseable suffix on `listino_prezzi.note` when saving from invoice import. */
 export const LISTINO_SRC_FATTURA_MARK = '|listino_src_fattura:'
@@ -134,7 +135,7 @@ export function buildListinoByProduct<T extends { prodotto: string; note?: strin
   return out
 }
 
-type PriceRow = { id: string; data_prezzo: string; prezzo: number }
+type PriceRow = { id: string; data_prezzo: string; prezzo: number; note?: string | null }
 
 /** Latest row in calendar month of `dataYmd` (YYYY-MM-DD), excluding `excludeId` if set. */
 export function latestListinoInMonth(
@@ -285,7 +286,7 @@ export function pickDisplayListinoRow<T extends PriceRow>(sortedByDateAsc: T[]):
 /** Prezzo unitario effettivo per UI (corregge totale riga / IVA inclusa OCR). */
 export function displayListinoUnitPrice(row: PriceRow, sortedByDateAsc: PriceRow[]): number {
   const others = sortedByDateAsc.filter((r) => r.id !== row.id).map((r) => r.prezzo)
-  return resolveEffectiveListinoUnitPrice(row.prezzo, others)
+  return resolveListinoUnitPriceForDisplay(row.prezzo, row.note, others)
 }
 
 /**

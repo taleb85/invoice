@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
 import { LISTINO_SRC_FATTURA_MARK } from '@/lib/listino-display'
+import {
+  existingListinoPricesForImport,
+  normalizeListinoImportLineItem,
+} from '@/lib/listino-invoice-line-normalize'
 
 function maxDateForProducts(
   rows: Array<{ prodotto: string; data_prezzo: string }>,
@@ -73,10 +77,15 @@ export async function syncListinoFromFattureForFornitore(
 
   const { data: listinoFresh } = await service
     .from('listino_prezzi')
-    .select('prodotto, data_prezzo')
+    .select('prodotto, prezzo, data_prezzo, note')
     .eq('fornitore_id', fornitoreId)
 
-  const listinoRows = (listinoFresh ?? []) as Array<{ prodotto: string; data_prezzo: string }>
+  const listinoRows = (listinoFresh ?? []) as Array<{
+    prodotto: string
+    prezzo: number
+    data_prezzo: string
+    note?: string | null
+  }>
   let listinoInserted = 0
   let listinoFattureScanned = 0
 
@@ -91,6 +100,8 @@ export async function syncListinoFromFattureForFornitore(
         prodotto: string
         prezzo: number
         codice_prodotto?: string | null
+        quantita?: number | null
+        importo_linea?: number | null
         unita: string | null
         note: string | null
       }>
@@ -121,15 +132,35 @@ export async function syncListinoFromFattureForFornitore(
       : `Fattura · ${fattura.data}`
 
     for (const item of json.items) {
-      const prodotto = String(item.prodotto ?? '').trim()
-      if (!prodotto || typeof item.prezzo !== 'number' || item.prezzo <= 0) continue
+      const hist = existingListinoPricesForImport(
+        listinoRows,
+        String(item.prodotto ?? '').trim(),
+        item.codice_prodotto,
+      )
+      const normalized = normalizeListinoImportLineItem(
+        {
+          prodotto: String(item.prodotto ?? '').trim(),
+          codice_prodotto: item.codice_prodotto ?? null,
+          prezzo: item.prezzo,
+          quantita: item.quantita ?? null,
+          importo_linea: item.importo_linea ?? null,
+          unita: item.unita,
+          note: item.note,
+        },
+        hist,
+      )
+      const prodotto = normalized.prodotto.trim()
+      if (!prodotto || typeof normalized.prezzo !== 'number' || normalized.prezzo <= 0) continue
       const latest = maxByProduct.get(prodotto) ?? null
       if (latest != null && !isDocumentDateAtLeastLatestListino(docDate, latest)) continue
 
       const baseNote = [
-        item.codice_prodotto ? `Codice: ${item.codice_prodotto}` : null,
-        item.unita ? `Unità: ${item.unita}` : null,
-        item.note,
+        normalized.codice_prodotto ? `Codice: ${normalized.codice_prodotto}` : null,
+        normalized.unita ? `Unità: ${normalized.unita}` : null,
+        normalized.quantita != null && normalized.quantita > 1
+          ? `Qtà fattura: ${normalized.quantita}`
+          : null,
+        normalized.note,
       ]
         .filter(Boolean)
         .join(' — ') || null
@@ -137,7 +168,7 @@ export async function syncListinoFromFattureForFornitore(
         ? `${baseNote} — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
         : `Origine listino — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
 
-      rowsOut.push({ prodotto, prezzo: item.prezzo, data_prezzo: docDate, note })
+      rowsOut.push({ prodotto, prezzo: normalized.prezzo, data_prezzo: docDate, note })
     }
 
     if (rowsOut.length === 0) {
