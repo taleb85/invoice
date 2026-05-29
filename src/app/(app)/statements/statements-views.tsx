@@ -4929,7 +4929,7 @@ export function VerificationStatusTab({
           className={
             vsEmbeddedSupplier
               ? vsCompactS1
-                ? 'flex items-center justify-between gap-2 border-b border-app-soft-border bg-transparent px-3 py-2'
+                ? 'flex flex-col items-stretch gap-2 border-b border-app-soft-border bg-transparent px-3 py-2 max-md:gap-2.5 md:flex-row md:items-center md:justify-between'
                 : 'flex min-h-10 items-center justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5'
               : 'flex min-h-10 items-center justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5'
           }
@@ -4958,7 +4958,13 @@ export function VerificationStatusTab({
               )}
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          <div
+            className={
+              vsCompactS1
+                ? 'flex w-full shrink-0 items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-md:flex-nowrap max-md:pb-0.5 md:w-auto md:flex-wrap md:justify-end md:overflow-visible md:pb-0'
+                : 'flex shrink-0 flex-wrap items-center justify-end gap-1.5'
+            }
+          >
             {selectedStmt && (
               <button
                 type="button"
@@ -5058,7 +5064,7 @@ export function VerificationStatusTab({
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              {t.statements.btnRefresh}
+              <span className={vsCompactS1 ? 'max-md:sr-only' : undefined}>{t.statements.btnRefresh}</span>
             </button>
             <button
               type="button"
@@ -5096,7 +5102,9 @@ export function VerificationStatusTab({
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
+              <span className={vsCompactS1 ? 'max-md:sr-only' : undefined}>
+                {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
+              </span>
             </button>
           </div>
         </div>
@@ -5148,61 +5156,114 @@ export function VerificationStatusTab({
             </div>
           ) : (
             <div className="divide-y divide-app-line-15">
-              {stmts.map(s => (
+              {stmts.map(s => {
+                const stmtOfficialIso = statementOfficialDateIso(s)
+                const stmtListPrimary = fornitoreId
+                  ? (s.email_subject?.trim() ||
+                      formatStmtDate(stmtOfficialIso ?? s.received_at))
+                  : (s.fornitore_nome ?? s.email_subject ?? 'Statement')
+                return (
                 <button key={s.id} onClick={() => loadStatementRows(s)}
                   className={
                     vsEmbeddedSupplier
                       ? vsCompactS1
-                        ? 'flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
+                        ? 'flex w-full flex-col gap-2 px-3 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12] max-md:py-3 md:flex-row md:items-center md:gap-2 md:py-2'
                         : 'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
                       : 'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
                   }
                 >
+                  <div
+                    className={
+                      vsCompactS1 && vsEmbeddedSupplier
+                        ? 'flex min-w-0 w-full items-start gap-2'
+                        : 'contents'
+                    }
+                  >
                   {/* Status dot */}
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${
+                  <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 md:mt-0 ${
                     s.status === 'processing' ? 'bg-blue-400 animate-pulse' :
                     s.missing_rows > 0 ? 'bg-red-400' : 'bg-green-400'
                   }`} />
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`truncate font-medium ${vsCompactS1 && vsEmbeddedSupplier ? 'text-xs' : 'text-sm'} text-app-fg`}
+                      className={`line-clamp-2 font-medium ${vsCompactS1 && vsEmbeddedSupplier ? 'text-xs' : 'text-sm'} text-app-fg`}
                     >
-                      {s.fornitore_nome ?? s.email_subject ?? 'Statement'}
+                      {stmtListPrimary}
                     </p>
-                    {s.email_subject && s.fornitore_nome && (
+                    {!fornitoreId && s.email_subject && s.fornitore_nome && (
                       <p className="truncate text-xs text-app-fg-muted">
                         {s.email_subject}
                       </p>
                     )}
-                    <p className="mt-0.5 text-xs text-app-fg-muted">
-                      {(() => {
-                        const official = statementOfficialDateIso(s)
-                        if (official) {
-                          return (
+                    {(() => {
+                      const onSupplierPage = Boolean(fornitoreId)
+                      const noSubject = !s.email_subject?.trim()
+                      if (
+                        onSupplierPage &&
+                        noSubject &&
+                        stmtOfficialIso &&
+                        stmtListPrimary === formatStmtDate(stmtOfficialIso)
+                      ) {
+                        return (
+                          <p className="mt-0.5 text-xs text-app-fg-muted">
+                            {t.statements.labelReceived} {formatStmtDate(s.received_at)}
+                          </p>
+                        )
+                      }
+                      if (
+                        onSupplierPage &&
+                        noSubject &&
+                        stmtListPrimary === formatStmtDate(stmtOfficialIso ?? s.received_at)
+                      ) {
+                        return null
+                      }
+                      return (
+                        <p className="mt-0.5 text-xs text-app-fg-muted">
+                          {stmtOfficialIso ? (
                             <>
                               <span className="font-medium tabular-nums text-app-fg">
-                                {formatStmtDate(official)}
+                                {formatStmtDate(stmtOfficialIso)}
                               </span>
                               <span className="text-app-fg-muted"> · </span>
                               <span className="text-app-fg-muted">
                                 {t.statements.labelReceived} {formatStmtDate(s.received_at)}
                               </span>
                             </>
-                          )
-                        }
-                        return formatStmtDate(s.received_at)
-                      })()}
-                    </p>
+                          ) : (
+                            formatStmtDate(s.received_at)
+                          )}
+                        </p>
+                      )
+                    })()}
+                  </div>
+                  {vsCompactS1 && vsEmbeddedSupplier ? (
+                    <svg
+                      className="mt-0.5 h-4 w-4 shrink-0 opacity-80 text-app-fg-muted md:hidden"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  ) : null}
                   </div>
                   {/* Counts */}
+                  <div
+                    className={
+                      vsCompactS1 && vsEmbeddedSupplier
+                        ? 'flex w-full items-center justify-between gap-2 pl-4 max-md:pl-4 md:contents'
+                        : 'contents'
+                    }
+                  >
                   {s.status === 'processing' ? (
                     <span className="text-xs font-medium text-cyan-400">{t.statements.stmtListProcessing}</span>
                   ) : s.status === 'error' ? (
                     <span className="text-xs text-red-500 font-medium">{t.statements.stmtListParseError}</span>
                   ) : (
                     <>
-                    <div className="min-w-0 max-w-[10.5rem] shrink-0 text-right sm:max-w-[12rem]">
+                    <div className={`min-w-0 shrink-0 text-right ${vsCompactS1 && vsEmbeddedSupplier ? 'max-w-none flex-1' : 'max-w-[10.5rem] sm:max-w-[12rem]'}`}>
                       <p className="text-xs font-semibold text-app-fg-muted">
                         {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
                       </p>
@@ -5257,15 +5318,16 @@ export function VerificationStatusTab({
                     </>
                   )}
                   <svg
-                    className="w-4 h-4 shrink-0 opacity-80 text-app-fg-muted"
+                    className={`h-4 w-4 shrink-0 opacity-80 text-app-fg-muted ${vsCompactS1 && vsEmbeddedSupplier ? 'hidden md:block' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
+                  </div>
                 </button>
-              ))}
+              )})}
             </div>
           )
         )}
@@ -5282,8 +5344,12 @@ export function VerificationStatusTab({
 
         {/* Intestazione estratto + riepilogo campi letti dal PDF (account, plafond, ultimo pagamento, …) */}
         {selectedStmt && (
-          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5">
-            <div className="min-w-0 flex-1 pr-2">
+          <div
+            className={`flex flex-wrap items-start justify-between gap-3 border-b border-app-soft-border bg-transparent py-2.5 ${
+              vsCompactS1 ? 'flex-col px-3 max-md:gap-2.5 md:flex-row md:px-4' : 'px-4'
+            }`}
+          >
+            <div className="min-w-0 w-full flex-1 pr-0 md:pr-2">
               <p className="truncate text-sm font-semibold text-app-fg">
                 {selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement'}
               </p>
@@ -5317,7 +5383,13 @@ export function VerificationStatusTab({
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-1.5 self-start">
+            <div
+              className={
+                vsCompactS1
+                  ? 'flex w-full shrink-0 flex-wrap items-center gap-1.5 self-start max-md:overflow-x-auto max-md:flex-nowrap max-md:pb-0.5 max-md:[-ms-overflow-style:none] max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden md:w-auto'
+                  : 'flex shrink-0 flex-wrap items-center gap-1.5 self-start'
+              }
+            >
               {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && (
                 selectedStmt.linked_fattura_id ? (
                   <span
@@ -5359,7 +5431,9 @@ export function VerificationStatusTab({
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                   />
                 </svg>
-                {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
+                <span className={vsCompactS1 ? 'max-md:sr-only' : undefined}>
+                  {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
+                </span>
               </button>
             </div>
           </div>

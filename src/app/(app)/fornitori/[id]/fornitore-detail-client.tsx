@@ -146,6 +146,9 @@ type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documen
 /** Tab nascosti su mobile per utenti senza permessi di modifica (magazziniere/operatore). */
 const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'verifica', 'audit']
 
+/** Tab con intestazione nel contenuto: su mobile non ripetere il titolo in sticky header. */
+const MOBILE_SELF_HEADED_TABS: Tab[] = ['verifica', 'documenti']
+
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
 
@@ -6258,20 +6261,26 @@ function FornitoreDetailClient({
           )}
         </div>
 
-        <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border bg-transparent px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 id="mobile-supplier-tab-title" className="text-lg font-bold leading-tight tracking-tight text-app-fg">
-              {activeTabInfo.label}
-            </h2>
-            {activeTabInfo.badge != null && activeTabInfo.badge > 0 && (
-              <span className="rounded-full border border-app-line-25 bg-transparent px-2 py-0.5 text-xs font-bold tabular-nums text-app-fg-muted">
-                {activeTabInfo.badge > 99 ? '99+' : activeTabInfo.badge}
-              </span>
-            )}
-          </div>
-        </header>
+        {!MOBILE_SELF_HEADED_TABS.includes(displayTab) ? (
+          <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border bg-transparent px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="mobile-supplier-tab-title" className="text-lg font-bold leading-tight tracking-tight text-app-fg">
+                {activeTabInfo.label}
+              </h2>
+              {activeTabInfo.badge != null && activeTabInfo.badge > 0 && (
+                <span className="rounded-full border border-app-line-25 bg-transparent px-2 py-0.5 text-xs font-bold tabular-nums text-app-fg-muted">
+                  {activeTabInfo.badge > 99 ? '99+' : activeTabInfo.badge}
+                </span>
+              )}
+            </div>
+          </header>
+        ) : null}
 
-        <div className="min-w-0 scroll-mt-4 p-3 outline-none sm:p-4" data-supplier-tab-region tabIndex={-1}>
+        <div
+          className={`min-w-0 scroll-mt-4 outline-none ${MOBILE_SELF_HEADED_TABS.includes(displayTab) ? 'p-0' : 'p-3 sm:p-4'}`}
+          data-supplier-tab-region
+          tabIndex={-1}
+        >
           <ErrorBoundary sectionName="dettaglio fornitore">
             <TabContent variant="mobile" />
           </ErrorBoundary>
