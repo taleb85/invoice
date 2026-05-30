@@ -696,13 +696,13 @@ const translations: Translations = {
     catComunicazione: 'Communication',
     catListino: 'Tarif',
     errInvoiceNumberRequired: 'Numéro de facture non détecté. Saisissez-le manuellement avant de confirmer.',
-    errAssociateSupplierFirst: 'Associez un fournisseur avant d'enregistrer le document.',
+    errAssociateSupplierFirst: "Associez un fournisseur avant d'enregistrer le document.",
     errInvalidDocKind: 'Définissez le type (relevé, bon de livraison, facture, avoir, communication, liste de prix ou commande).',
     errListinoStaysInQueue: 'Liste de prix : reste dans la file. Ouvrez le lien pour voir le PDF.',
     errDocAlreadyProcessed: 'Document déjà traité.',
     errDocNotFound: 'Document introuvable.',
     errInvalidKind: 'Type de document invalide.',
-    errGenericFinalize: 'Échec de l'opération.',
+    errGenericFinalize: "Échec de l'opération.",
 
   },
   backupManager: {
