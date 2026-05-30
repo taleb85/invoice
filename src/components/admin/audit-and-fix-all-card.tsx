@@ -5,6 +5,13 @@ import { Sparkles, Trash2 } from 'lucide-react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
+import {
+  checkpointMatchesSede,
+  clearAuditFullRescanCheckpoint,
+  loadAuditFullRescanCheckpoint,
+  saveAuditFullRescanCheckpoint,
+  type AuditFullRescanCheckpoint,
+} from '@/lib/audit-full-rescan-checkpoint'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 
 /**
@@ -99,6 +106,17 @@ export default function AuditAndFixAllCard() {
   const [done, setDone] = useState(false)
   const [rescanStage, setRescanStage] = useState<'documents' | 'statements' | null>(null)
   const abortRef = useRef(false)
+  const rescanCursorRef = useRef<{
+    scanStage: 'documents' | 'statements'
+    afterId: string | null
+    statementAfterId: string | null
+    totals: Totals
+  }>({
+    scanStage: 'documents',
+    afterId: null,
+    statementAfterId: null,
+    totals: EMPTY_TOTALS,
+  })
 
   const [cleanupBusy, setCleanupBusy] = useState(false)
   const [cleanupPreview, setCleanupPreview] = useState<CleanupAction[] | null>(null)
@@ -108,6 +126,22 @@ export default function AuditAndFixAllCard() {
   } | null>(null)
   const [cleanupError, setCleanupError] = useState<string | null>(null)
   const [pendingTotal, setPendingTotal] = useState<number | null>(null)
+  const [savedCheckpoint, setSavedCheckpoint] = useState<AuditFullRescanCheckpoint | null>(
+    null,
+  )
+
+  const syncCheckpointFromStorage = useCallback(() => {
+    const cp = loadAuditFullRescanCheckpoint()
+    if (cp && checkpointMatchesSede(cp, sedeCtx.effectiveSedeId)) {
+      setSavedCheckpoint(cp)
+    } else {
+      setSavedCheckpoint(null)
+    }
+  }, [sedeCtx.effectiveSedeId])
+
+  useEffect(() => {
+    syncCheckpointFromStorage()
+  }, [syncCheckpointFromStorage])
 
   const refreshPendingCounts = useCallback(async () => {
     try {
@@ -150,88 +184,205 @@ export default function AuditAndFixAllCard() {
     [sedeCtx.effectiveSedeId],
   )
 
-  const handleStartRescan = useCallback(async () => {
-    if (
-      !confirm(
-        'Riesaminare TUTTI i documenti della sede dal primo all\'ultimo, rileggendo ogni PDF con Gemini e spostando al fornitore corretto? Operazione lunga e consuma quota AI.',
-      )
-    ) {
-      return
-    }
+  const persistCheckpoint = useCallback(
+    (
+      params: {
+        scanStage: 'documents' | 'statements'
+        afterId?: string | null
+        statementAfterId?: string | null
+        totals: Totals
+        reason: AuditFullRescanCheckpoint['reason']
+      },
+    ) => {
+      const cp: AuditFullRescanCheckpoint = {
+        version: 1,
+        sede_id: sedeCtx.effectiveSedeId?.trim() ?? null,
+        scan_stage: params.scanStage,
+        after_id: params.afterId?.trim() ?? null,
+        statement_after_id: params.statementAfterId?.trim() ?? null,
+        totals: params.totals,
+        saved_at: new Date().toISOString(),
+        reason: params.reason,
+      }
+      saveAuditFullRescanCheckpoint(cp)
+      setSavedCheckpoint(cp)
+    },
+    [sedeCtx.effectiveSedeId],
+  )
 
-    abortRef.current = false
-    setBusy(true)
-    setErrorMsg(null)
-    setDone(false)
-    setRecentChanges([])
-    setTotals(EMPTY_TOTALS)
-    setRescanStage(null)
+  const runRescanLoop = useCallback(
+    async (resume?: AuditFullRescanCheckpoint | null) => {
+      abortRef.current = false
+      setBusy(true)
+      setErrorMsg(null)
+      setDone(false)
+      let runningTotals: Totals = resume?.totals ?? { ...EMPTY_TOTALS }
+      setTotals(runningTotals)
 
-    let runningTotals: Totals = { ...EMPTY_TOTALS }
-    let afterId: string | null | undefined
-    let statementAfterId: string | null | undefined
-    let scanStage: 'documents' | 'statements' = 'documents'
-    let consecutiveErrors = 0
+      let afterId: string | null | undefined = resume?.after_id ?? undefined
+      let statementAfterId: string | null | undefined = resume?.statement_after_id ?? undefined
+      let scanStage: 'documents' | 'statements' = resume?.scan_stage ?? 'documents'
+      setRescanStage(scanStage)
+      rescanCursorRef.current = {
+        scanStage,
+        afterId: afterId ?? null,
+        statementAfterId: statementAfterId ?? null,
+        totals: runningTotals,
+      }
+      let consecutiveErrors = 0
+      let interrupted = false
 
-    try {
-      for (let i = 0; i < 2000; i++) {
-        if (abortRef.current) break
-        let result: BatchResult
-        try {
-          result = await runOneBatch({
-            afterId: scanStage === 'statements' ? undefined : afterId,
-            statementAfterId: scanStage === 'statements' ? statementAfterId : undefined,
-          })
-          consecutiveErrors = 0
-        } catch (e) {
-          consecutiveErrors++
-          runningTotals = { ...runningTotals, errors: runningTotals.errors + 1 }
-          setTotals(runningTotals)
-          if (consecutiveErrors >= 3) {
-            setErrorMsg(e instanceof Error ? e.message : 'Errore di rete persistente')
+      const writeCheckpoint = (reason: AuditFullRescanCheckpoint['reason']) => {
+        rescanCursorRef.current = {
+          scanStage,
+          afterId: afterId ?? null,
+          statementAfterId: statementAfterId ?? null,
+          totals: runningTotals,
+        }
+        persistCheckpoint({
+          ...rescanCursorRef.current,
+          reason,
+        })
+      }
+
+      try {
+        for (let i = 0; i < 2000; i++) {
+          if (abortRef.current) {
+            interrupted = true
             break
           }
-          continue
-        }
+          let result: BatchResult
+          try {
+            result = await runOneBatch({
+              afterId: scanStage === 'statements' ? undefined : afterId,
+              statementAfterId: scanStage === 'statements' ? statementAfterId : undefined,
+            })
+            consecutiveErrors = 0
+          } catch (e) {
+            consecutiveErrors++
+            runningTotals = { ...runningTotals, errors: runningTotals.errors + 1 }
+            setTotals(runningTotals)
+            writeCheckpoint('network')
+            if (consecutiveErrors >= 3) {
+              setErrorMsg(
+                (e instanceof Error ? e.message : 'Errore di rete persistente') +
+                  ' — progresso salvato: puoi usare «Riprendi» quando la connessione torna.',
+              )
+              interrupted = true
+              break
+            }
+            continue
+          }
 
-        runningTotals = {
-          iterations: runningTotals.iterations + 1,
-          checked: runningTotals.checked + result.checked,
-          fornitore_fixed: runningTotals.fornitore_fixed + result.fornitore_fixed,
-          tipo_fixed: runningTotals.tipo_fixed + result.tipo_fixed,
-          flagged_for_review: runningTotals.flagged_for_review + result.flagged_for_review,
-          unchanged: runningTotals.unchanged + result.unchanged,
-          errors: runningTotals.errors + result.errors,
-          remaining: result.remaining_estimate,
-          initialRemaining: runningTotals.initialRemaining ?? result.remaining_estimate,
-        }
-        setTotals(runningTotals)
+          runningTotals = {
+            iterations: runningTotals.iterations + 1,
+            checked: runningTotals.checked + result.checked,
+            fornitore_fixed: runningTotals.fornitore_fixed + result.fornitore_fixed,
+            tipo_fixed: runningTotals.tipo_fixed + result.tipo_fixed,
+            flagged_for_review:
+              runningTotals.flagged_for_review + result.flagged_for_review,
+            unchanged: runningTotals.unchanged + result.unchanged,
+            errors: runningTotals.errors + result.errors,
+            remaining: result.remaining_estimate,
+            initialRemaining: runningTotals.initialRemaining ?? result.remaining_estimate,
+          }
+          setTotals(runningTotals)
 
-        if (result.changes.length > 0) {
-          setRecentChanges((prev) => [...result.changes.slice(0, 3), ...prev].slice(0, 8))
-        }
+          if (result.changes.length > 0) {
+            setRecentChanges((prev) => [...result.changes.slice(0, 3), ...prev].slice(0, 8))
+          }
 
-        if (result.rescan_stage) {
-          scanStage = result.rescan_stage
-          setRescanStage(result.rescan_stage)
-        }
+          if (result.rescan_stage) {
+            scanStage = result.rescan_stage
+            setRescanStage(result.rescan_stage)
+          }
 
-        if (scanStage === 'documents') {
-          afterId = result.next_after_id ?? undefined
+          if (scanStage === 'documents') {
+            afterId = result.next_after_id ?? undefined
+          } else {
+            statementAfterId = result.next_after_id ?? undefined
+          }
+
+          writeCheckpoint('progress')
+
+          if (!result.has_more) break
+        }
+      } catch (e) {
+        setErrorMsg(e instanceof Error ? e.message : 'Errore di rete')
+        writeCheckpoint('network')
+        interrupted = true
+      } finally {
+        setBusy(false)
+        setDone(true)
+        if (interrupted) {
+          writeCheckpoint(abortRef.current ? 'user_stop' : 'network')
         } else {
-          statementAfterId = result.next_after_id ?? undefined
+          clearAuditFullRescanCheckpoint()
+          setSavedCheckpoint(null)
         }
-
-        if (!result.has_more) break
+        void refreshPendingCounts()
       }
-    } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : 'Errore di rete')
-    } finally {
-      setBusy(false)
-      setDone(true)
-      void refreshPendingCounts()
+    },
+    [persistCheckpoint, runOneBatch, refreshPendingCounts],
+  )
+
+  const handleStartRescan = useCallback(
+    async (opts?: { resume?: boolean; discardCheckpoint?: boolean }) => {
+      const cp =
+        !opts?.discardCheckpoint && (opts?.resume || savedCheckpoint)
+          ? savedCheckpoint
+          : null
+
+      if (opts?.discardCheckpoint) {
+        clearAuditFullRescanCheckpoint()
+        setSavedCheckpoint(null)
+      }
+
+      if (cp && !opts?.resume) {
+        const when = new Date(cp.saved_at).toLocaleString('it-IT')
+        const stageLabel =
+          cp.scan_stage === 'statements' ? 'estratti conto' : 'documenti in coda'
+        const resumeNow = confirm(
+          `Trovato un riesame interrotto (${when}): ${cp.totals.checked} documenti già elaborati, fase «${stageLabel}».\n\nOK = Riprendi da dove eri rimasto\nAnnulla = Ricomincia da zero`,
+        )
+        if (resumeNow) {
+          await runRescanLoop(cp)
+          return
+        }
+        clearAuditFullRescanCheckpoint()
+        setSavedCheckpoint(null)
+      } else if (cp && opts?.resume) {
+        await runRescanLoop(cp)
+        return
+      }
+
+      if (
+        !confirm(
+          'Riesaminare TUTTI i documenti della sede dal primo all\'ultimo, rileggendo ogni PDF con Gemini e spostando al fornitore corretto? Operazione lunga e consuma quota AI.',
+        )
+      ) {
+        return
+      }
+
+      setRecentChanges([])
+      setTotals(EMPTY_TOTALS)
+      setRescanStage(null)
+      await runRescanLoop(null)
+    },
+    [runRescanLoop, savedCheckpoint],
+  )
+
+  useEffect(() => {
+    if (!busy) return
+    const onOffline = () => {
+      persistCheckpoint({
+        ...rescanCursorRef.current,
+        reason: 'offline',
+      })
     }
-  }, [runOneBatch, refreshPendingCounts])
+    window.addEventListener('offline', onOffline)
+    return () => window.removeEventListener('offline', onOffline)
+  }, [busy, persistCheckpoint])
 
   const handleStop = useCallback(() => {
     abortRef.current = true
@@ -371,7 +522,42 @@ export default function AuditAndFixAllCard() {
             </span>
           ) : null}
         </button>
+        {savedCheckpoint && !busy ? (
+          <>
+            <button
+              type="button"
+              disabled={cleanupBusy}
+              onClick={() => void handleStartRescan({ resume: true })}
+              title="Riprende dal ultimo batch salvato (checkpoint locale)"
+              className="touch-manipulation rounded-lg border border-emerald-500/45 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:opacity-50"
+            >
+              Riprendi da checkpoint
+              <span className="ml-1 rounded-full bg-emerald-500/25 px-1.5 py-0.5 text-[9px] font-bold">
+                {savedCheckpoint.totals.checked}
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={cleanupBusy}
+              onClick={() => void handleStartRescan({ discardCheckpoint: true })}
+              className="touch-manipulation rounded-lg border border-app-line-25 px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-surface-elevated disabled:opacity-50"
+            >
+              Scarta checkpoint
+            </button>
+          </>
+        ) : null}
       </div>
+
+      {savedCheckpoint && !busy ? (
+        <p className="mt-2 text-[11px] text-amber-200/90">
+          Riesame interrotto il{' '}
+          {new Date(savedCheckpoint.saved_at).toLocaleString('it-IT')}
+          {savedCheckpoint.totals.remaining > 0
+            ? ` — circa ${savedCheckpoint.totals.remaining} documenti ancora in coda.`
+            : null}{' '}
+          Il progresso è salvato nel browser: se perdi la connessione puoi riprendere senza ricominciare da zero.
+        </p>
+      ) : null}
 
       <div className="mt-4 border-t border-app-line-15 pt-3">
         <h4 className="text-xs font-semibold text-app-fg">
