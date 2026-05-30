@@ -9,11 +9,16 @@ type BackButtonProps = {
   /** Destinazione quando non si usa la cronologia (vedi `historyFirst`). */
   href?: string
   className?: string
-  /** Solo icona 〈; `label` resta per `aria-label` (accessibilità). */
-  iconOnly?: boolean
   /**
-   * Se true (default quando `iconOnly`): dopo `returnTo` si usa la cronologia (`router.back()`), poi eventuale `href`.
-   * Se false (default per pulsante testuale tipo «← Lista»): dopo `returnTo` si usa `href`, poi `router.back()`.
+   * Solo icona 〈 (default). `label` resta per `aria-label`.
+   * @deprecated Preferire `showLabel` per il testo visibile; `iconOnly={false}` equivale a `showLabel`.
+   */
+  iconOnly?: boolean
+  /** Mostra etichetta testuale accanto alla freccia (es. form «← Fornitori»). */
+  showLabel?: boolean
+  /**
+   * Se true (default in modalità icona): dopo `returnTo` si usa la cronologia (`router.back()`), poi eventuale `href`.
+   * Se false (con `showLabel`): dopo `returnTo` si usa `href`, poi `router.back()`.
    */
   historyFirst?: boolean
 }
@@ -56,20 +61,28 @@ function resolveBackNavigation(
 /**
  * Pulsante «indietro»: preferisce `returnTo` nell’URL; poi in base a `historyFirst` cronologia vs `href` (come `navigateAfterDetailAction` sullo strip).
  */
-export function BackButton({ label = 'Indietro', href, className, iconOnly, historyFirst }: BackButtonProps) {
+export function BackButton({
+  label = 'Indietro',
+  href,
+  className,
+  iconOnly,
+  showLabel,
+  historyFirst,
+}: BackButtonProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const preferHistoryFirst = historyFirst ?? Boolean(iconOnly)
+  const compact = !showLabel && iconOnly !== false
+  const preferHistoryFirst = historyFirst ?? compact
 
-  /** `iconOnly`: variante compatta nello strip (icona sezione resta più grande). */
-  const baseClass = iconOnly
+  /** Compatta nello strip header: solo freccia, area tap 40×40. */
+  const baseClass = compact
     ? 'mb-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg sm:h-10 sm:w-10'
     : 'mb-3 flex w-fit items-center gap-1 text-sm text-app-fg-muted transition-colors hover:text-app-fg'
 
   return (
     <button
       type="button"
-      {...(iconOnly ? { 'aria-label': label } : {})}
+      aria-label={label}
       onClick={() => {
         const returnToPath = readReturnToFromGetter((k) => searchParams.get(k))
         resolveBackNavigation(router, {
@@ -80,8 +93,8 @@ export function BackButton({ label = 'Indietro', href, className, iconOnly, hist
       }}
       className={`${baseClass} ${className ?? ''}`}
     >
-      <ChevronLeft className="h-4 w-4 shrink-0" strokeWidth={iconOnly ? 2.25 : 2} aria-hidden />
-      {!iconOnly ? label : null}
+      <ChevronLeft className="h-4 w-4 shrink-0" strokeWidth={compact ? 2.25 : 2} aria-hidden />
+      {!compact ? label : null}
     </button>
   )
 }

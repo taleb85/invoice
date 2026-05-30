@@ -53,16 +53,54 @@ export function formattaPriorita(
   return { label: labels.priorityLow, colore: 'text-gray-600 bg-gray-50' }
 }
 
-export function labelPendingKind(kind: string): string {
-  const labelMap: Record<string, string> = {
-    da_determinare: 'Da determinare',
-    fattura: 'Fattura',
-    bolla: 'Bolla di consegna',
-    nota_credito: 'Nota di credito',
-    statement: 'Estratto conto',
-    ordine: 'Ordine',
-    comunicazione: 'Comunicazione',
-    listino: 'Listino prezzi',
+export type PendingKindLabels = {
+  da_determinare: string
+  fattura: string
+  bolla: string
+  nota_credito: string
+  statement: string
+  ordine: string
+  comunicazione: string
+  listino: string
+}
+
+const DEFAULT_PENDING_KIND_LABELS: PendingKindLabels = {
+  da_determinare: 'Da determinare',
+  fattura: 'Fattura',
+  bolla: 'Bolla di consegna',
+  nota_credito: 'Nota di credito',
+  statement: 'Estratto conto',
+  ordine: 'Ordine',
+  comunicazione: 'Comunicazione',
+  listino: 'Listino prezzi',
+}
+
+export function labelPendingKind(
+  kind: string,
+  labels: PendingKindLabels = DEFAULT_PENDING_KIND_LABELS,
+): string {
+  const key = kind.toLowerCase().trim().replace(/\s+/g, '_') as keyof PendingKindLabels
+  return labels[key] ?? kind
+}
+
+export type MatchedByLabels = {
+  email: string
+  piva: string
+  ai: string
+  statement_subject: string
+  name: string
+}
+
+export function labelMatchedBy(source: string, labels: MatchedByLabels): string {
+  const key = source.toLowerCase().trim()
+  const map: Record<string, string> = {
+    email: labels.email,
+    piva: labels.piva,
+    p_iva: labels.piva,
+    ai: labels.ai,
+    statement_subject: labels.statement_subject,
+    nome: labels.name,
+    name: labels.name,
   }
-  return labelMap[kind] || kind
+  return map[key] ?? source
 }

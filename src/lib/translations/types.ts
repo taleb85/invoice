@@ -2080,6 +2080,29 @@ export type Translations = {
     historicCompletedTitle: string
     historicCompletedDocs: string
     networkError: string
+    pendingKindDaDeterminare: string
+    pendingKindFattura: string
+    pendingKindBolla: string
+    pendingKindNotaCredito: string
+    pendingKindStatement: string
+    pendingKindOrdine: string
+    pendingKindComunicazione: string
+    pendingKindListino: string
+    rigaOcrTipo: string
+    rigaVat: string
+    rigaMatch: string
+    matchedByEmail: string
+    matchedByVat: string
+    matchedByAi: string
+    matchedByStatementSubject: string
+    matchedByName: string
+    rigaDelta: string
+    rigaStatementInvoice: string
+    rigaStatementBolle: string
+    rigaStatementBolleCount: string
+    rigaSuggestionLabel: string
+    rigaSuggestionConfirmations: string
+    rigaMoreActions: string
   }
   apprendimento: {
     statPatterns: string

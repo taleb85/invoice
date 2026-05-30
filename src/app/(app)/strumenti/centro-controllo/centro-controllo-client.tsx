@@ -27,7 +27,15 @@ import {
   comandiApplicabili,
 } from '@/lib/command-system/registry'
 import { suggerisciAzione, registraConfermaApprendimento, registraEsecuzioneDiretta } from '@/lib/action-learning/engine'
-import { formattaPriorita, labelPendingKind } from '@/lib/command-system/utils'
+import {
+  formattaPriorita,
+  labelPendingKind,
+  labelMatchedBy,
+  type PendingKindLabels,
+  type MatchedByLabels,
+} from '@/lib/command-system/utils'
+import type { Translations } from '@/lib/translations/types'
+import { formatCurrency } from '@/lib/locale-shared'
 import { useDocumentActions } from '@/lib/document-actions-context'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { useT } from '@/lib/use-t'
@@ -1705,6 +1713,33 @@ function StatCard({
   )
 }
 
+function pendingKindLabelsFromCentroControllo(
+  s: Translations['strumentiCentroControllo'],
+): PendingKindLabels {
+  return {
+    da_determinare: s.pendingKindDaDeterminare,
+    fattura: s.pendingKindFattura,
+    bolla: s.pendingKindBolla,
+    nota_credito: s.pendingKindNotaCredito,
+    statement: s.pendingKindStatement,
+    ordine: s.pendingKindOrdine,
+    comunicazione: s.pendingKindComunicazione,
+    listino: s.pendingKindListino,
+  }
+}
+
+function matchedByLabelsFromCentroControllo(
+  s: Translations['strumentiCentroControllo'],
+): MatchedByLabels {
+  return {
+    email: s.matchedByEmail,
+    piva: s.matchedByVat,
+    ai: s.matchedByAi,
+    statement_subject: s.matchedByStatementSubject,
+    name: s.matchedByName,
+  }
+}
+
 function RigaDocumento({
   item,
   sedeId,
@@ -1727,7 +1762,10 @@ function RigaDocumento({
   nested?: boolean
 }) {
   const t = useT()
+  const cc = t.strumentiCentroControllo
   const { locale, timezone } = useLocale()
+  const pendingKindLabels = pendingKindLabelsFromCentroControllo(cc)
+  const matchedByLabels = matchedByLabelsFromCentroControllo(cc)
   const priorita = formattaPriorita(item.priorita, {
     priorityCritical: t.strumentiCentroControllo.priorityCritical,
     priorityHigh: t.strumentiCentroControllo.priorityHigh,
@@ -1774,15 +1812,20 @@ function RigaDocumento({
     ? ctx?.bolle_json as Array<{numero_bolla?: string; importo?: number}> | undefined
     : undefined
 
-  const importoFormattato = item.importo != null
-    ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(item.importo)
-    : null
+  const importoFormattato = item.importo != null ? formatCurrency(item.importo, 'EUR', locale) : null
 
   const ocrInfo: string[] = []
-  if (item.ocr_tipo) ocrInfo.push(`OCR: ${item.ocr_tipo}`)
+  if (item.ocr_tipo) {
+    const tipoDisplay = labelPendingKind(item.ocr_tipo, pendingKindLabels)
+    ocrInfo.push(cc.rigaOcrTipo.replace('{tipo}', tipoDisplay))
+  }
   if (item.ocr_ragione_sociale) ocrInfo.push(item.ocr_ragione_sociale)
-  if (item.ocr_p_iva) ocrInfo.push(`P.IVA: ${item.ocr_p_iva}`)
-  if (item.matched_by) ocrInfo.push(`Match: ${item.matched_by}`)
+  if (item.ocr_p_iva) ocrInfo.push(cc.rigaVat.replace('{value}', item.ocr_p_iva))
+  if (item.matched_by) {
+    ocrInfo.push(
+      cc.rigaMatch.replace('{value}', labelMatchedBy(item.matched_by, matchedByLabels)),
+    )
+  }
 
   useEffect(() => {
     comandiApplicabili({ item, sedeId }).then((cmds) => {
@@ -1887,15 +1930,21 @@ function RigaDocumento({
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
               {deltaImporto != null && (
                 <span className={deltaImporto === 0 ? 'text-emerald-300/70' : 'text-rose-300/70'}>
-                  Delta: {new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(deltaImporto)}
+                  {cc.rigaDelta.replace('{amount}', formatCurrency(deltaImporto, 'EUR', locale))}
                 </span>
               )}
               {fatturaCollegata && (
-                <span className="text-app-fg-muted/60">Fattura: {fatturaCollegata}</span>
+                <span className="text-app-fg-muted/60">
+                  {cc.rigaStatementInvoice.replace('{num}', fatturaCollegata)}
+                </span>
               )}
               {bolleCollegate && bolleCollegate.length > 0 && (
                 <span className="text-app-fg-muted/60">
-                  Bolle: {bolleCollegate.map(b => b.numero_bolla).filter(Boolean).join(', ') || `${bolleCollegate.length} bolla(e)`}
+                  {cc.rigaStatementBolle.replace(
+                    '{list}',
+                    bolleCollegate.map(b => b.numero_bolla).filter(Boolean).join(', ')
+                      || cc.rigaStatementBolleCount.replace('{n}', String(bolleCollegate.length)),
+                  )}
                 </span>
               )}
               {!deltaImporto && !fatturaCollegata && (!bolleCollegate || bolleCollegate.length === 0) && (
@@ -1906,14 +1955,16 @@ function RigaDocumento({
 
           {suggerimento && (
             <div className="mt-2 flex flex-wrap items-center gap-2 p-2 bg-teal-950/30 border border-teal-800/40 rounded text-sm">
-              <span className="text-teal-300 font-medium">Suggerimento:</span>
+              <span className="text-teal-300 font-medium">{cc.rigaSuggestionLabel}</span>
               <span className="text-teal-200">{suggerimento.label}</span>
               <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
                 suggerimento.confidenza >= 0.9 ? 'bg-teal-800/60 text-teal-200' : 'bg-amber-900/50 text-amber-200'
               }`}>
                 {Math.round(suggerimento.confidenza * 100)}%
               </span>
-              <span className="text-xs text-app-fg-muted">({suggerimento.totali_conferme} conferme)</span>
+              <span className="text-xs text-app-fg-muted">
+                {cc.rigaSuggestionConfirmations.replace('{n}', String(suggerimento.totali_conferme))}
+              </span>
               <div className="ml-auto flex gap-1">
                 <button
                   onClick={() => onConfermaSuggerimento(item, suggerimento.azione_id)}
@@ -1950,7 +2001,7 @@ function RigaDocumento({
                 onClick={() => onApriAzioni?.(item)}
                 className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/25 bg-cyan-500/5 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/15"
               >
-                Altre azioni...
+                {cc.rigaMoreActions}
               </button>
             </div>
           )}
@@ -1979,13 +2030,18 @@ function RigaDocumento({
 
 function TipoBadge({ origine, pendingKind }: { origine: string; pendingKind: string }) {
   const t = useT()
+  const cc = t.strumentiCentroControllo
   const baseClass = 'text-xs font-medium px-1.5 py-0.5 rounded'
 
   if (origine === 'documento_da_processare') {
     if (pendingKind === 'da_determinare') {
-      return <span className={`${baseClass} bg-fuchsia-950/60 text-fuchsia-300`}>{t.strumentiCentroControllo.badgeToBeClassified}</span>
+      return <span className={`${baseClass} bg-fuchsia-950/60 text-fuchsia-300`}>{cc.badgeToBeClassified}</span>
     }
-    return <span className={`${baseClass} bg-sky-950/60 text-sky-300`}>{labelPendingKind(pendingKind)}</span>
+    return (
+      <span className={`${baseClass} bg-sky-950/60 text-sky-300`}>
+        {labelPendingKind(pendingKind, pendingKindLabelsFromCentroControllo(cc))}
+      </span>
+    )
   }
 
   if (origine === 'riga_statement') {
