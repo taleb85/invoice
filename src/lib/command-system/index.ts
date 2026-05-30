@@ -24,3 +24,4 @@ export {
 } from './registry'
 
 export { inizializzaComandi } from './commands'
+export { commandLabel, commandDescription } from './command-labels'

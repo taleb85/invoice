@@ -34,6 +34,7 @@ import {
   type PendingKindLabels,
   type MatchedByLabels,
 } from '@/lib/command-system/utils'
+import { commandLabel, commandDescription } from '@/lib/command-system/command-labels'
 import type { Translations } from '@/lib/translations/types'
 import { formatCurrency } from '@/lib/locale-shared'
 import { useDocumentActions } from '@/lib/document-actions-context'
@@ -1956,7 +1957,9 @@ function RigaDocumento({
           {suggerimento && (
             <div className="mt-2 flex flex-wrap items-center gap-2 p-2 bg-teal-950/30 border border-teal-800/40 rounded text-sm">
               <span className="text-teal-300 font-medium">{cc.rigaSuggestionLabel}</span>
-              <span className="text-teal-200">{suggerimento.label}</span>
+              <span className="text-teal-200">
+                {commandLabel(t, suggerimento.azione_id, suggerimento.label)}
+              </span>
               <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
                 suggerimento.confidenza >= 0.9 ? 'bg-teal-800/60 text-teal-200' : 'bg-amber-900/50 text-amber-200'
               }`}>
@@ -1994,7 +1997,7 @@ function RigaDocumento({
                   disabled={!!isRunning}
                   className="inline-flex items-center gap-1 rounded-lg bg-app-line-15 px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-25 disabled:opacity-40"
                 >
-                  {cmd.label}
+                  {commandLabel(t, cmd.id, cmd.label)}
                 </button>
               ))}
               <button
@@ -2083,13 +2086,12 @@ function CommandPalette({
   const risultati = useMemo(() => {
     if (!ricerca.trim()) return comandi
     const q = ricerca.toLowerCase()
-    return comandi.filter(
-      (c) =>
-        c.label.toLowerCase().includes(q) ||
-        c.descrizione.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q),
-    )
-  }, [comandi, ricerca])
+    return comandi.filter((c) => {
+      const label = commandLabel(t, c.id, c.label).toLowerCase()
+      const desc = commandDescription(t, c.id, c.descrizione).toLowerCase()
+      return label.includes(q) || desc.includes(q) || c.id.toLowerCase().includes(q)
+    })
+  }, [comandi, ricerca, t])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -2156,8 +2158,10 @@ function CommandPalette({
                 {i + 1}
               </span>
               <div className="flex-1">
-                <p className="font-medium text-inherit">{cmd.label}</p>
-                <p className="text-xs text-app-fg-muted">{cmd.descrizione}</p>
+                <p className="font-medium text-inherit">{commandLabel(t, cmd.id, cmd.label)}</p>
+                <p className="text-xs text-app-fg-muted">
+                  {commandDescription(t, cmd.id, cmd.descrizione)}
+                </p>
               </div>
               {cmd.shortcut && (
                 <kbd className="text-[10px] text-app-fg-muted bg-app-line-15 px-1.5 py-0.5 rounded font-mono">

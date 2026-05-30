@@ -2,37 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useT } from '@/lib/use-t'
-import type { Translations } from '@/lib/translations'
+import { commandLabel } from '@/lib/command-system/command-labels'
 import { Loader2, AlertCircle, CheckCircle, XCircle, Brain, TrendingUp, Zap } from 'lucide-react'
 import type { ApprendimentoStats } from '@/app/api/centro-controllo/apprendimento/route'
 
 interface Props {
   sedeId: string | null
-}
-
-function translateActionLabel(azioneId: string, fallback: string, t: Translations): string {
-  const m = t.apprendimento
-  const map: Record<string, string> = {
-    'documento.scarta': m.actionDocumentoScarta,
-    'documento.associa': m.actionDocumentoAssocia,
-    'documento.finalizza_come_fattura': m.actionDocumentoFattura,
-    'documento.finalizza_come_bolla': m.actionDocumentoBolla,
-    'documento.finalizza_come_nota_credito': m.actionDocumentoNotaCredito,
-    'documento.finalizza_come_statement': m.actionDocumentoStatement,
-    'documento.finalizza_come_ordine': m.actionDocumentoOrdine,
-    'documento.finalizza_come_comunicazione': m.actionDocumentoComunicazione,
-    'documento.rianalizza_ocr': m.actionDocumentoRianalizzaOcr,
-    'documento.ignora_mittente': m.actionDocumentoIgnoraMittente,
-    'documento.apri': m.actionDocumentoApri,
-    'documento.aggiorna_categoria': m.actionDocumentoAggiornaCategoria,
-    'fattura.approva': m.actionFatturaApprova,
-    'fattura.rifiuta': m.actionFatturaRifiuta,
-    'fattura.resetta_approvazione': m.actionFatturaResetta,
-    'statement.segna_come_ok': m.actionStatementOk,
-    'statement.assegna_fattura': m.actionStatementAssegna,
-    'statement.ricalcola': m.actionStatementRicalcola,
-  }
-  return map[azioneId] || fallback
 }
 
 export default function ApprendimentoClient({ sedeId }: Props) {
@@ -122,7 +97,7 @@ export default function ApprendimentoClient({ sedeId }: Props) {
               )}
               {stats.azioni_piu_comuni.map((a) => (
                 <div key={a.azione_id} className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-sm text-app-fg">{translateActionLabel(a.azione_id, a.label, t)}</span>
+                  <span className="text-sm text-app-fg">{commandLabel(t, a.azione_id, a.label)}</span>
                   <span className="rounded-full bg-app-line-28 px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-app-fg-muted">
                     {a.count}
                   </span>
@@ -149,7 +124,7 @@ export default function ApprendimentoClient({ sedeId }: Props) {
                     <XCircle className="h-4 w-4 shrink-0 text-rose-400" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-app-fg">{translateActionLabel(log.azione_id, log.label || log.azione_id, t)}</p>
+                    <p className="truncate text-sm text-app-fg">{commandLabel(t, log.azione_id, log.label || log.azione_id)}</p>
                     <p className="text-[10px] text-app-fg-muted">
                       {new Date(log.created_at).toLocaleString('it-IT', {
                         day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
