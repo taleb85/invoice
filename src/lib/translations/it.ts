@@ -115,6 +115,7 @@ const translations: Translations = {
     ordini: 'Ordini',
     archivio: 'Archivio',
     logEmail: 'Email Log',
+    aiInbox: 'AI Inbox',
     sedi: 'Azienda e utenti',
     sediTitle: 'Azienda',
     sediNavGroupMaster: 'Aziende',

@@ -46,6 +46,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   /** Aperto di default: Impostazioni / Strumenti / Guida restano visibili senza clic sul chevron. */
   const [footerOpen, setFooterOpen] = useState(false)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
+  const [pendingInboxCount, setPendingInboxCount] = useState(0)
 
   /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
   const gestisciSediLinkLabel = navGestisciSediLabel(t, getAssociatedSedeNome(me, getCookie))
@@ -213,6 +214,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
     ),
   }
 
+  const inboxAiNavItem = {
+    label: t.nav.aiInbox,
+    href: '/inbox-ai',
+    count: pendingInboxCount,
+    iconColor: 'text-violet-400',
+    icon: <Brain className="h-5 w-5 text-violet-400" strokeWidth={2} aria-hidden />,
+  }
+
   // Fetch pending approvals count for admin/admin_sede badge
   useEffect(() => {
     if (!isMasterAdmin && !isAdminSede) return
@@ -232,6 +241,47 @@ export default function Sidebar({ onClose }: SidebarProps) {
       clearInterval(interval)
     }
   }, [isMasterAdmin, isAdminSede])
+
+  // Badge AI Inbox: documenti da_associare + da_revisionare (stessa sede operativa della UI).
+  useEffect(() => {
+    if (!isMasterAdmin && !isAdminSede) return
+    const actingAsStaff = Boolean(me?.is_admin && activeOperator)
+    const sedeId =
+      actingAsStaff && activeOperator?.sede_id
+        ? activeOperator.sede_id
+        : isAdminSede && me?.sede_id
+          ? me.sede_id
+          : activeSede
+    if (!sedeId) {
+      setPendingInboxCount(0)
+      return
+    }
+    let cancelled = false
+    const fetchCount = () => {
+      const params = new URLSearchParams({
+        stati: 'da_associare,da_revisionare',
+        sede_id: sedeId,
+        total: '1',
+      })
+      fetch(`/api/documenti-da-processare?${params.toString()}`, { credentials: 'include' })
+        .then((r) => {
+          if (!r.ok) return null
+          const th = r.headers.get('x-total-count')
+          const n = th != null ? Number.parseInt(th, 10) : NaN
+          return Number.isFinite(n) ? n : null
+        })
+        .then((n) => {
+          if (!cancelled && n != null) setPendingInboxCount(n)
+        })
+        .catch(() => {})
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 60_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [isMasterAdmin, isAdminSede, me, activeOperator, activeSede])
 
   const analyticsNavItem = {
     label: t.nav.analytics,
@@ -314,6 +364,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       ),
     },
     logEmailNavItem,
+    inboxAiNavItem,
     backupNavItem,
   ]
 
@@ -324,7 +375,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const navItems = isMasterAdmin
     ? masterWithSedeItems
     : isAdminSede
-      ? [operatoreNavItems[0], approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
+      ? [
+          operatoreNavItems[0],
+          approvazioniNavItem,
+          attivitaNavItem,
+          logEmailNavItem,
+          inboxAiNavItem,
+          ...operatoreNavItems.slice(1),
+        ]
       : operatoreNavItems
 
   /** Master: Backup sempre in striscia fissa (come Consumi AI), mai nella colonna scroll. */

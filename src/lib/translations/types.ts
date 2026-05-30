@@ -1427,6 +1427,7 @@ export type Translations = {
     ordini: string
     archivio: string
     logEmail: string
+    aiInbox: string
     sedi: string
     sediTitle: string
     sediNavGroupMaster: string
