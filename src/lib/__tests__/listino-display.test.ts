@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildListinoByProduct,
+  listinoDisplayLabelForGroup,
   listinoGroupAliasNames,
   listinoGroupKey,
   parseListinoNoteParts,
@@ -80,11 +81,35 @@ describe('listino product grouping', () => {
     ]
     expect(listinoGroupKey(rows[0]!)).toBe(listinoGroupKey(rows[1]!))
     const grouped = buildListinoByProduct(rows)
+    const label = listinoDisplayLabelForGroup(rows)
     expect(Object.keys(grouped)).toHaveLength(1)
-    expect(grouped['500cc BLACK MICROWAVE CONTAINER & LIDS']).toHaveLength(2)
-    expect(listinoGroupAliasNames(rows, '500cc BLACK MICROWAVE CONTAINER & LIDS')).toEqual([
-      '500cc BLACK MICROWAVE CONTAINER & LIDS RETURNS',
-    ])
+    expect(grouped[label]).toHaveLength(2)
+    expect(listinoGroupAliasNames(rows, label).sort()).toEqual(
+      [
+        '500cc BLACK MICROWAVE CONTAINER & LIDS',
+        '500cc BLACK MICROWAVE CONTAINER & LIDS RETURNS',
+      ].sort(),
+    )
+  })
+
+  it('keeps separate listino rows when OCR name is generic but codici differ', () => {
+    const rows = [
+      {
+        prodotto: 'Goods/Services',
+        note: 'codice:807131 · |listino_src_fattura:abc|',
+        data_prezzo: '2025-06-30',
+      },
+      {
+        prodotto: 'Goods/Services',
+        note: 'codice:809302 · |listino_src_fattura:abc|',
+        data_prezzo: '2025-06-30',
+      },
+    ]
+    const grouped = buildListinoByProduct(rows)
+    expect(Object.keys(grouped)).toHaveLength(2)
+    expect(grouped['Goods/Services (807131)']).toHaveLength(1)
+    expect(grouped['Goods/Services (809302)']).toHaveLength(1)
+    expect(listinoDisplayLabelForGroup([rows[0]!])).toBe('Goods/Services (807131)')
   })
 })
 

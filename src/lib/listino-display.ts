@@ -98,6 +98,23 @@ export function listinoDisplayLabel(rows: { prodotto: string }[]): string {
   return pool.reduce((best, n) => (n.length > best.length ? n : best))
 }
 
+/**
+ * Etichetta univoca per la UI listino: stesso nome generico (es. "Goods/Services")
+ * con codici diversi resta in gruppi separati.
+ */
+export function listinoDisplayLabelForGroup(
+  rows: { prodotto: string; note?: string | null }[],
+): string {
+  const name = listinoDisplayLabel(rows)
+  const codice = parseListinoNoteParts(rows[0]?.note ?? null).codice?.trim()
+  if (!codice) return name
+  const codiceInName = new RegExp(`\\b${codice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(
+    name,
+  )
+  if (codiceInName) return name
+  return `${name} (${codice})`
+}
+
 /** Nomi prodotto alternativi nel gruppo (OCR / righe RETURNS), esclusa l'etichetta principale. */
 export function listinoGroupAliasNames(
   rows: { prodotto: string }[],
@@ -120,17 +137,15 @@ export function groupListinoRowsByProduct<T extends { prodotto: string; note?: s
   return map
 }
 
-/** Record UI: chiave = etichetta display, valore = tutte le rilevazioni del gruppo. */
+/** Record UI: chiave = etichetta display (un gruppo SKU per voce), valore = rilevazioni. */
 export function buildListinoByProduct<T extends { prodotto: string; note?: string | null; data_prezzo: string }>(
   rows: T[],
 ): Record<string, T[]> {
   const grouped = groupListinoRowsByProduct(rows)
   const out: Record<string, T[]> = {}
   for (const groupRows of grouped.values()) {
-    const label = listinoDisplayLabel(groupRows)
-    if (!out[label]) out[label] = []
-    out[label].push(...groupRows)
-    out[label].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+    const label = listinoDisplayLabelForGroup(groupRows)
+    out[label] = [...groupRows].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
   }
   return out
 }
