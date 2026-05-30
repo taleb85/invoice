@@ -345,6 +345,26 @@ function amountsClose(a: number, b: number, rel = 0.03): boolean {
 }
 
 /**
+ * Colonna Value in `prezzo` (totale riga) con importo = prezzo×qty: unitario = prezzo÷qty.
+ * Usa listino solo se il rapporto è plausibile (es. FOIL45 13.18→6.59 vs listino 6.59).
+ */
+function correctValueColumnWithListinoHistory(
+  rawPrezzo: number,
+  qty: number,
+  importoLinea: number | null | undefined,
+  hist: number[],
+): { unit: number; line: number } | null {
+  if (hist.length === 0 || qty <= 1 || rawPrezzo <= 0) return null
+  const ref = Math.min(...hist)
+  const importo = importoLinea ?? rawPrezzo * qty
+  if (!amountsClose(rawPrezzo * qty, importo, 0.04)) return null
+  if (rawPrezzo <= ref * 1.25) return null
+  const unit = roundMoney(rawPrezzo / qty)
+  if (unit < ref * 0.8 || unit > ref * 1.2) return null
+  return { unit, line: rawPrezzo }
+}
+
+/**
  * Corregge prezzo unitario (totale riga ÷ quantità, inferenza da storico) e pulisce il nome.
  */
 export function normalizeListinoImportLineItem(
@@ -355,6 +375,7 @@ export function normalizeListinoImportLineItem(
     item.codice_prodotto?.trim() || inferCodiceFromProductName(item.prodotto) || null
   const prodotto = sanitizeListinoProductName(item.prodotto, codice_prodotto)
   const qty = parseInvoiceOrderQuantity(item.quantita, item.unita)
+  const rawPrezzo = item.prezzo
   let prezzo = item.prezzo
 
   if (!Number.isFinite(prezzo) || prezzo <= 0) {
@@ -380,7 +401,14 @@ export function normalizeListinoImportLineItem(
     amountsClose(item.prezzo * qtyForResolve, item.importo_linea, 0.03) &&
     !amountsClose(item.prezzo, item.importo_linea, 0.02)
 
-  const correctedFromPdf = /pdf|lettura tabella/i.test(item.note ?? '')
+  const refForPdf = hist.length > 0 ? Math.min(...hist) : null
+  const correctedFromPdf =
+    /lettura tabella pdf/i.test(item.note ?? '') &&
+    !(
+      ambiguous &&
+      refForPdf != null &&
+      rawPrezzo > refForPdf * 1.25
+    )
   if (ambiguous && !correctedFromPdf) {
     const fixed = resolveAmbiguousInvoiceLinePrice(
       item.prezzo,
@@ -412,6 +440,20 @@ export function normalizeListinoImportLineItem(
           break
         }
       }
+    }
+  }
+
+  const qtyFinal = qtyForResolve ?? qty ?? item.quantita
+  if (qtyFinal != null && qtyFinal > 1) {
+    const fromHist = correctValueColumnWithListinoHistory(
+      rawPrezzo,
+      qtyFinal,
+      item.importo_linea,
+      hist,
+    )
+    if (fromHist) {
+      prezzo = fromHist.unit
+      lineTotal = fromHist.line
     }
   }
 

@@ -43,6 +43,7 @@ import {
 } from '@/lib/listino-display'
 import {
   existingListinoPricesForImport,
+  inferCodiceFromProductName,
   normalizeListinoImportLineItem,
   resolveListinoUnitPriceForDisplay,
 } from '@/lib/listino-invoice-line-normalize'
@@ -3745,24 +3746,21 @@ function ListinoTab({
               unita: string | null
               note: string | null
             }) => {
+              const codiceImport =
+                item.codice_prodotto != null && String(item.codice_prodotto).trim() !== ''
+                  ? String(item.codice_prodotto).trim()
+                  : inferCodiceFromProductName(item.prodotto)
               const normalized = normalizeListinoImportLineItem(
                 {
                   prodotto: item.prodotto,
-                  codice_prodotto:
-                    item.codice_prodotto != null && String(item.codice_prodotto).trim() !== ''
-                      ? String(item.codice_prodotto).trim()
-                      : null,
+                  codice_prodotto: codiceImport,
                   prezzo: item.prezzo,
                   quantita: item.quantita ?? null,
                   importo_linea: item.importo_linea ?? null,
                   unita: item.unita,
                   note: item.note,
                 },
-                existingListinoPricesForImport(
-                  listino,
-                  item.prodotto,
-                  item.codice_prodotto,
-                ),
+                existingListinoPricesForImport(listino, item.prodotto, codiceImport),
               )
               return {
                 ...normalized,

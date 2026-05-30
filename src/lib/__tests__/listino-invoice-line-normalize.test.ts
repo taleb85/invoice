@@ -160,6 +160,40 @@ describe('normalizeListinoImportLineItem', () => {
     expect(r.importo_linea).toBe(17.98)
   })
 
+  it('FOIL45: Value 13.18 for 2 rolls → unit 6.59 with listino ref', () => {
+    const r = normalizeListinoImportLineItem(
+      {
+        prodotto: '45cm X 75M CATERING FOIL',
+        codice_prodotto: 'FOIL45',
+        prezzo: 13.18,
+        quantita: 2,
+        importo_linea: 26.36,
+        unita: 'ROLL',
+        note: 'lettura tabella PDF (Value÷Qty)',
+      },
+      [6.59],
+    )
+    expect(r.prezzo).toBe(6.59)
+    expect(r.importo_linea).toBe(13.18)
+  })
+
+  it('ZZCLIN01: Value 23.40 for 6 rolls → unit 3.90 with listino ref', () => {
+    const r = normalizeListinoImportLineItem(
+      {
+        prodotto: 'CLING FILM 300mm X 300M',
+        codice_prodotto: 'ZZCLIN01',
+        prezzo: 23.4,
+        quantita: 6,
+        importo_linea: 140.4,
+        unita: 'ROLL',
+        note: null,
+      },
+      [3.6],
+    )
+    expect(r.prezzo).toBe(3.9)
+    expect(r.importo_linea).toBe(23.4)
+  })
+
   it('fixes Gemini doubled importo_linea (TOWE02N)', () => {
     const r = normalizeListinoImportLineItem({
       prodotto: 'MIDI BLUE C-FEED ROLL EMBOSSED',
