@@ -695,6 +695,15 @@ const translations: Translations = {
     catOrdine: 'Bestellung',
     catComunicazione: 'Mitteilung',
     catListino: 'Preisliste',
+    errInvoiceNumberRequired: 'Rechnungsnummer nicht erkannt. Bitte manuell eingeben, bevor Sie bestätigen.',
+    errAssociateSupplierFirst: 'Ordnen Sie zuerst einen Lieferanten zu.',
+    errInvalidDocKind: 'Legen Sie den Dokumenttyp fest (Auszug, Lieferschein, Rechnung, Gutschrift, Mitteilung, Preisliste oder Bestellung).',
+    errListinoStaysInQueue: 'Preisliste: bleibt in der Warteschlange. PDF über den Link öffnen.',
+    errDocAlreadyProcessed: 'Dokument bereits verarbeitet.',
+    errDocNotFound: 'Dokument nicht gefunden.',
+    errInvalidKind: 'Ungültiger Dokumenttyp.',
+    errGenericFinalize: 'Vorgang fehlgeschlagen.',
+
   },
   backupManager: {
     statusSchedulingAria: 'Backup-Status und -Zeitplan',

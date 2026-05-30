@@ -748,6 +748,17 @@ const translations: Translations = {
     catOrdine: 'Order',
     catComunicazione: 'Communication',
     catListino: 'Price list',
+    errInvoiceNumberRequired:
+      'Invoice number not detected. Enter it manually before confirming.',
+    errAssociateSupplierFirst: 'Link a supplier before registering this document.',
+    errInvalidDocKind:
+      'Set the document type (statement, delivery note, invoice, credit note, communication, price list, or order).',
+    errListinoStaysInQueue:
+      'Price list: stays in the document queue. Open the link to view the PDF.',
+    errDocAlreadyProcessed: 'Document already processed.',
+    errDocNotFound: 'Document not found.',
+    errInvalidKind: 'Invalid document type.',
+    errGenericFinalize: 'Operation failed.',
   },
   backupManager: {
     statusSchedulingAria: 'Backup status and scheduling',

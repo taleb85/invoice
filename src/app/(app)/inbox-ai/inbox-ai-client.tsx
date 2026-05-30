@@ -17,6 +17,7 @@ import {
   resolveInboxSuggestedKind,
   type InboxFinalizeKind,
 } from '@/lib/inbox-ai-suggested-kind'
+import { translateDocumentiDaProcessareError } from '@/lib/documenti-da-processare-errors'
 import { useT } from '@/lib/use-t'
 import { MoreHorizontal } from 'lucide-react'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
@@ -572,14 +573,15 @@ export default function InboxAiClient(props: {
       body: JSON.stringify(body),
     })
     const j = (await res.json()) as { error?: string; ok?: boolean }
-    if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`)
+    if (!res.ok) {
+      throw new Error(translateDocumentiDaProcessareError(j.error, t) || `HTTP ${res.status}`)
+    }
   }
 
   const finalizeWithKind = async (docId: string, kind: InboxFinalizeKind): Promise<boolean> => {
     setActionBusy(docId)
     try {
-      await postDoc({ id: docId, azione: 'set_pending_kind', kind })
-      await postDoc({ id: docId, azione: 'finalizza_tipo' })
+      await postDoc({ id: docId, azione: 'finalizza_tipo', kind })
       setDocs((d) => d.filter((x) => x.id !== docId))
       setSuggestions((s) => {
         const n = { ...s }
@@ -590,7 +592,11 @@ export default function InboxAiClient(props: {
       setResolvedToday(n)
       return true
     } catch (e) {
-      showToast(e instanceof Error ? e.message : t.log.inboxAiOperationFailed, 'error')
+      const msg =
+        e instanceof Error
+          ? translateDocumentiDaProcessareError(e.message, t)
+          : t.log.inboxAiOperationFailed
+      showToast(msg, 'error')
       return false
     } finally {
       setActionBusy(null)

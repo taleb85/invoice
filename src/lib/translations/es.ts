@@ -695,6 +695,15 @@ const translations: Translations = {
     catOrdine: 'Pedido',
     catComunicazione: 'Comunicación',
     catListino: 'Lista de precios',
+    errInvoiceNumberRequired: 'Número de factura no detectado. Introdúcelo manualmente antes de confirmar.',
+    errAssociateSupplierFirst: 'Asocia un proveedor antes de registrar el documento.',
+    errInvalidDocKind: 'Establece el tipo de documento (extracto, albarán, factura, nota de crédito, comunicación, lista de precios u pedido).',
+    errListinoStaysInQueue: 'Lista de precios: permanece en la cola. Abre el enlace para ver el PDF.',
+    errDocAlreadyProcessed: 'Documento ya procesado.',
+    errDocNotFound: 'Documento no encontrado.',
+    errInvalidKind: 'Tipo de documento no válido.',
+    errGenericFinalize: 'Operación fallida.',
+
   },
   backupManager: {
     statusSchedulingAria: 'Estado y planificación de copias',

@@ -54,12 +54,14 @@ async function finalizePendingByTipo(
   id: string,
   doc: DocRowFinalizza,
   userId?: string,
+  /** Tipo scelto dall’utente (AI Inbox / cambio categoria) — ha priorità su `metadata.pending_kind`. */
+  forceKind?: string,
 ): Promise<NextResponse> {
   const meta =
     doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
       ? (doc.metadata as Record<string, unknown>)
       : {}
-  let tipo = meta.pending_kind as string | undefined
+  let tipo = (forceKind ?? meta.pending_kind) as string | undefined
   if (
     tipo !== 'bolla' &&
     tipo !== 'fattura' &&
@@ -122,7 +124,10 @@ async function finalizePendingByTipo(
 
     if (!numeroNorm) {
       return NextResponse.json(
-        { error: 'Numero fattura non rilevato. Inseriscilo manualmente prima di confermare.' },
+        {
+          error: 'Numero fattura non rilevato. Inseriscilo manualmente prima di confermare.',
+          code: 'invoice_number_required',
+        },
         { status: 400 },
       )
     }
@@ -799,7 +804,7 @@ export async function POST(req: NextRequest) {
         doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
           ? (doc.metadata as Record<string, unknown>)
           : {}
-      let tipo = meta.pending_kind as string | undefined
+      let tipo = (kindToUse ?? meta.pending_kind) as string | undefined
       if (
         tipo !== 'bolla' &&
         tipo !== 'fattura' &&
@@ -837,7 +842,7 @@ export async function POST(req: NextRequest) {
         .eq('id', id)
     }
 
-    return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
+    return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id, kindToUse)
   }
 
   // ── Check processableStates per tutte le altre azioni ──
@@ -893,7 +898,7 @@ export async function POST(req: NextRequest) {
           .update({ metadata: prevMeta })
           .eq('id', id)
       }
-      return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
+      return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id, kind)
     }
     if (!bollaIds.length) return NextResponse.json({ error: 'Nessuna bolla selezionata' }, { status: 400 })
 

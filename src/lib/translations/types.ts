@@ -2488,6 +2488,14 @@ export type Translations = {
     catOrdine: string
     catComunicazione: string
     catListino: string
+    errInvoiceNumberRequired: string
+    errAssociateSupplierFirst: string
+    errInvalidDocKind: string
+    errListinoStaysInQueue: string
+    errDocAlreadyProcessed: string
+    errDocNotFound: string
+    errInvalidKind: string
+    errGenericFinalize: string
   }
   backupManager: {
     statusSchedulingAria: string

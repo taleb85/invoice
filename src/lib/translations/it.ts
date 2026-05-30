@@ -751,6 +751,17 @@ const translations: Translations = {
     catOrdine: 'Ordine',
     catComunicazione: 'Comunicazione',
     catListino: 'Listino',
+    errInvoiceNumberRequired:
+      'Numero fattura non rilevato. Inseriscilo manualmente prima di confermare.',
+    errAssociateSupplierFirst: 'Associa un fornitore prima di finalizzare.',
+    errInvalidDocKind:
+      'Imposta il tipo di documento (estratto, bolla, fattura, nota credito, comunicazione, listino o ordine).',
+    errListinoStaysInQueue:
+      'Listino prezzi: resta in coda documenti. Apri il link e consulta il PDF direttamente.',
+    errDocAlreadyProcessed: 'Documento già processato.',
+    errDocNotFound: 'Documento non trovato.',
+    errInvalidKind: 'Tipo documento non valido.',
+    errGenericFinalize: 'Operazione non riuscita.',
   },
   backupManager: {
     statusSchedulingAria: 'Stato e pianificazione backup',

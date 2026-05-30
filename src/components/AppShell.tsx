@@ -28,6 +28,7 @@ import { AppActivitiesProvider } from '@/lib/app-activities-context'
 import { DocumentActionsProvider } from '@/lib/document-actions-context'
 import type { DocumentActionItem } from '@/components/DocumentActionsModal'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
+import { translateDocumentiDaProcessareError } from '@/lib/documenti-da-processare-errors'
 import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
 import EmailSyncProgressBar from './EmailSyncProgressBar'
 import { isFornitoreProfileRoute, normalizeAppPath, showsMobileBottomBar } from '@/lib/mobile-hub-routes'
@@ -383,8 +384,11 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
     }
     const res = await fetch(api.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(api.body) })
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      showToast(data.error || httpErr(res.status), 'error')
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      showToast(
+        translateDocumentiDaProcessareError(data.error, t) || data.error || httpErr(res.status),
+        'error',
+      )
       return
     }
     showToast(a.operazioneCompletata, 'success')
