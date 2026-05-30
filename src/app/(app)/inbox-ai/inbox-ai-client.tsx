@@ -99,9 +99,16 @@ function bumpResolved(by: number) {
   }
 }
 
-function fmtDate(iso: string) {
+function fmtDate(iso: string, locale: Locale) {
+  const map: Record<Locale, string> = {
+    it: 'it-IT',
+    en: 'en-GB',
+    es: 'es-ES',
+    fr: 'fr-FR',
+    de: 'de-DE',
+  }
   try {
-    return new Date(iso).toLocaleString('it-IT', {
+    return new Date(iso).toLocaleString(map[locale] ?? 'it-IT', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
@@ -201,15 +208,19 @@ function pendingDocFileLabel(row: PendingDocRow): string {
 }
 
 type FinalizeKind = 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'listino'
-const FINALIZE_KINDS = new Set<string>(['fattura', 'nota_credito', 'comunicazione', 'bolla', 'listino'])
 
-const KIND_LABEL: Record<FinalizeKind, string> = {
-  fattura: 'Registra fattura',
-  nota_credito: 'Registra nota credito',
-  bolla: 'Registra bolla',
-  listino: 'Registra listino',
-  comunicazione: 'Registra comunicazione',
+function kindLabel(t: Translations, kind: FinalizeKind): string {
+  const m: Record<FinalizeKind, string> = {
+    fattura: t.log.inboxAiKindFattura,
+    nota_credito: t.log.inboxAiKindNotaCredito,
+    bolla: t.log.inboxAiKindBolla,
+    listino: t.log.inboxAiKindListino,
+    comunicazione: t.log.inboxAiKindComunicazione,
+  }
+  return m[kind]
 }
+
+const FINALIZE_KINDS = new Set<string>(['fattura', 'nota_credito', 'comunicazione', 'bolla', 'listino'])
 
 const KIND_BTN_CLASS: Record<FinalizeKind, string> = {
   fattura: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100',
@@ -441,7 +452,7 @@ export default function InboxAiClient(props: {
       })
       const j = (await res.json()) as { suggestions?: GeminiSuggestion[]; error?: string }
       if (!res.ok) {
-        showToast(j.error ?? 'Analisi non riuscita', 'error')
+        showToast(j.error ?? t.log.inboxAiAnalyzeFailed, 'error')
         return
       }
       const list = j.suggestions ?? []
@@ -474,7 +485,7 @@ export default function InboxAiClient(props: {
           setResolvedToday(bumpResolved(1))
           didMutateQueue = true
         } catch (e) {
-          showToast(e instanceof Error ? e.message : 'Scarto automatico non riuscito', 'error')
+          showToast(e instanceof Error ? e.message : t.log.inboxAiAutoDiscardFailed, 'error')
           break
         }
       }
@@ -573,7 +584,7 @@ export default function InboxAiClient(props: {
       setResolvedToday(n)
       return true
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
+      showToast(e instanceof Error ? e.message : t.log.inboxAiOperationFailed, 'error')
       return false
     } finally {
       setActionBusy(null)
@@ -603,10 +614,7 @@ export default function InboxAiClient(props: {
       queued.push({ row: d, kind })
     }
     if (queued.length === 0) {
-      showToast(
-        'Nessun documento pronto per la conferma massiva: serve fornitore associato e tipo (fattura, bolla, listino, ordine, estratto) riconosciuto dall’AI.',
-        'info',
-      )
+      showToast(t.log.inboxAiConfirmAllNone, 'info')
       return
     }
     setConfirmAllBusy(true)
@@ -637,7 +645,7 @@ export default function InboxAiClient(props: {
       await loadDocs({ silent: true })
       router.refresh()
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
+      showToast(e instanceof Error ? e.message : t.log.inboxAiOperationFailed, 'error')
     } finally {
       setActionBusy(null)
     }
@@ -721,7 +729,7 @@ export default function InboxAiClient(props: {
         retroactive?: { processed: number; scanned?: number; errors?: string[] }
       }
       if (!res.ok) {
-        showToast(j.error ?? 'Errore salvataggio', 'error')
+        showToast(j.error ?? t.log.inboxAiOperationFailed, 'error')
         return
       }
       const n = j.retroactive?.processed ?? 0
@@ -739,7 +747,7 @@ export default function InboxAiClient(props: {
       await loadDocs({ silent: true })
       router.refresh()
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Errore', 'error')
+      showToast(e instanceof Error ? e.message : t.log.inboxAiErrorGeneric, 'error')
     } finally {
       setSupplierSaveBusy(false)
     }
@@ -758,11 +766,11 @@ export default function InboxAiClient(props: {
         body: JSON.stringify({ entity: 'fatture', ids: del }),
       })
       const j = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(j.error ?? 'Eliminazione non riuscita')
+      if (!res.ok) throw new Error(j.error ?? t.log.inboxAiDeleteFailed)
       await loadDuplicates()
       setResolvedToday(bumpResolved(del.length))
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Errore', 'error')
+      showToast(e instanceof Error ? e.message : t.log.inboxAiErrorGeneric, 'error')
     } finally {
       setDupBusy(null)
     }
@@ -781,11 +789,11 @@ export default function InboxAiClient(props: {
         body: JSON.stringify({ entity: 'bolle', ids: del }),
       })
       const j = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(j.error ?? 'Eliminazione non riuscita')
+      if (!res.ok) throw new Error(j.error ?? t.log.inboxAiDeleteFailed)
       await loadDuplicates()
       setResolvedToday(bumpResolved(del.length))
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Errore', 'error')
+      showToast(e instanceof Error ? e.message : t.log.inboxAiErrorGeneric, 'error')
     } finally {
       setDupBusy(null)
     }
@@ -802,8 +810,25 @@ export default function InboxAiClient(props: {
 
   const docsTabTruncatedTooltip =
     typeof docsTotal === 'number' && docsTotal > docs.length
-      ? `Totale ${docsTotal} documenti in coda; in elenco (per data recente) caricati al massimo ${docs.length}`
+      ? t.log.inboxAiDocsTabTooltip
+          .replace(/\{total\}/g, String(docsTotal))
+          .replace(/\{shown\}/g, String(docs.length))
       : undefined
+
+  const tabLabelFor = (id: TabId): string => {
+    const n = String(tabBadge(id))
+    const tpl =
+      id === 'docs'
+        ? t.log.inboxAiTabDocs
+        : id === 'audit'
+          ? t.log.inboxAiTabAudit
+          : id === 'fatture'
+            ? t.log.inboxAiTabDupInvoices
+            : id === 'bolle'
+              ? t.log.inboxAiTabDupBolle
+              : t.log.inboxAiTabRekki
+    return tpl.replace(/\{n\}/g, n)
+  }
 
   const addEmailToFornitore = async (row: AuditMatchRow) => {
     const fid = row.assigned_fornitore_id
@@ -817,11 +842,11 @@ export default function InboxAiClient(props: {
         body: JSON.stringify({ fornitore_id: fid, email: row.mittente }),
       })
       const j = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(j.error ?? 'Errore')
+      if (!res.ok) throw new Error(j.error ?? t.log.inboxAiErrorGeneric)
       setAuditRows((r) => r.filter((x) => x.id !== row.id))
       setResolvedToday(bumpResolved(1))
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
+      showToast(e instanceof Error ? e.message : t.log.inboxAiOperationFailed, 'error')
     } finally {
       setAuditBusy(null)
     }
@@ -846,7 +871,7 @@ export default function InboxAiClient(props: {
         }),
       })
       const j = (await res.json()) as { error?: string }
-      if (!res.ok) throw new Error(j.error ?? 'Errore')
+      if (!res.ok) throw new Error(j.error ?? t.log.inboxAiErrorGeneric)
       setAuditRows((r) => r.filter((x) => x.id !== row.id))
       setResolvedToday(bumpResolved(1))
       setReassignSel((s) => {
@@ -855,7 +880,7 @@ export default function InboxAiClient(props: {
         return next
       })
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
+      showToast(e instanceof Error ? e.message : t.log.inboxAiOperationFailed, 'error')
     } finally {
       setAuditBusy(null)
     }
@@ -863,15 +888,21 @@ export default function InboxAiClient(props: {
 
   const assignedLabel = (row: AuditMatchRow) => {
     const bits: string[] = []
-    if (row.fornitore_fattura?.trim()) bits.push(`Fattura: ${row.fornitore_fattura.trim()}`)
-    if (row.fornitore_bolla?.trim()) bits.push(`Bolla: ${row.fornitore_bolla.trim()}`)
+    if (row.fornitore_fattura?.trim())
+      bits.push(
+        t.log.inboxAiAssignedInvoice.replace(/\{name\}/g, row.fornitore_fattura.trim()),
+      )
+    if (row.fornitore_bolla?.trim())
+      bits.push(
+        t.log.inboxAiAssignedBolla.replace(/\{name\}/g, row.fornitore_bolla.trim()),
+      )
     return bits.length > 0 ? bits.join(' · ') : '—'
   }
 
   if (blockedNoSede) {
     return (
       <p className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-100">
-        Nessuna sede operativa sul profilo: imposta la sede per usare AI Inbox.
+        {t.log.inboxAiBlockedNoSede}
       </p>
     )
   }
@@ -879,7 +910,7 @@ export default function InboxAiClient(props: {
   if (!sedeId) {
     return (
       <p className="rounded-xl border border-app-line-35 bg-app-line-10 px-4 py-3 text-sm text-app-fg-muted">
-        Seleziona una sede (menu sede admin) per caricare documenti e duplicati in questa vista.
+        {t.log.inboxAiSelectSede}
       </p>
     )
   }
@@ -889,7 +920,9 @@ export default function InboxAiClient(props: {
       <div className="app-card-bar-accent shrink-0 bg-gradient-to-r from-slate-500/40 via-slate-400/30 to-slate-500/35" aria-hidden />
       <div className="space-y-5 p-4 sm:p-5">
         <div className="flex flex-col gap-3 border-b border-white/10 pb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-teal-200/95">{resolvedToday} risolti oggi</p>
+          <p className="text-sm font-medium text-teal-200/95">
+            {t.log.inboxAiResolvedToday.replace(/\{n\}/g, String(resolvedToday))}
+          </p>
           {tab === 'docs' ? (
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -898,7 +931,7 @@ export default function InboxAiClient(props: {
                 disabled={analyzeBusy || confirmAllBusy || docs.length === 0}
                 className="rounded-lg bg-gradient-to-r from-teal-600 to-sky-600 px-3 py-2 text-xs font-bold text-white shadow disabled:opacity-40"
               >
-                {analyzeBusy ? 'Analisi AI…' : 'Analizza con AI (prossimi 5)'}
+                {analyzeBusy ? t.log.inboxAiAnalyzeBusy : t.log.inboxAiAnalyzeBtn}
               </button>
               <button
                 type="button"
@@ -908,12 +941,17 @@ export default function InboxAiClient(props: {
                 }
                 title={
                   confirmAllEligibleCount === 0
-                    ? 'Analizza con AI con fornitore associato: il pulsante attiva quando c’è almeno un documento confermabile in blocco.'
-                    : `Applica suggerimento e registra per ${confirmAllEligibleCount} documento/i (ordine lista, recenti prima).`
+                    ? t.log.inboxAiConfirmTitleDisabled
+                    : t.log.inboxAiConfirmTitleEnabled.replace(
+                        /\{n\}/g,
+                        String(confirmAllEligibleCount),
+                      )
                 }
                 className="rounded-md border border-cyan-400/50 bg-gradient-to-r from-cyan-600/90 to-teal-600/90 px-2.5 py-2 text-xs font-bold text-white shadow disabled:opacity-35"
               >
-                {confirmAllBusy ? 'Conferma in corso…' : `Conferma suggeriti (${confirmAllEligibleCount})`}
+                {confirmAllBusy
+                  ? t.log.inboxAiConfirmBusy
+                  : t.log.inboxAiConfirmBtn.replace(/\{n\}/g, String(confirmAllEligibleCount))}
               </button>
             </div>
           ) : null}
@@ -922,11 +960,11 @@ export default function InboxAiClient(props: {
         <div className="flex flex-wrap gap-1">
           {(
             [
-              ['docs', `Documenti (${tabBadge('docs')})`] as const,
-              ['audit', `Abbinamenti (${tabBadge('audit')})`] as const,
-              ['fatture', `Fatture dup. (${tabBadge('fatture')})`] as const,
-              ['bolle', `Bolle dup. (${tabBadge('bolle')})`] as const,
-              ['rekki', `Anomalie Rekki (${tabBadge('rekki')})`] as const,
+              ['docs', tabLabelFor('docs')] as const,
+              ['audit', tabLabelFor('audit')] as const,
+              ['fatture', tabLabelFor('fatture')] as const,
+              ['bolle', tabLabelFor('bolle')] as const,
+              ['rekki', tabLabelFor('rekki')] as const,
             ] as const
           ).map(([id, label]) => (
             <button
@@ -1074,29 +1112,7 @@ export default function InboxAiClient(props: {
               )}
             </aside>
           <section className="space-y-3">
-            <p className="text-xs text-app-fg-muted">
-              Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
-              <span className="font-mono text-app-fg">da_revisionare</span>). Con{' '}
-              <span className="font-semibold text-app-fg">fornitore associato</span>, registrazione automatica se confidenza ok: almeno{' '}
-              <span className="font-semibold text-app-fg">95%</span> per fattura/bolla/ordine/estratto; almeno{' '}
-              <span className="font-semibold text-app-fg">90%</span> per{' '}
-              <span className="font-mono text-app-fg">listino</span> (
-              <span lang="en" className="text-app-fg/90">
-                e.g. &quot;Price Update&quot;, price lists
-              </span>
-              ).{' '}
-              <span className="font-semibold text-app-fg">Tipo altro</span>
-              chiaramente non contabile alla stessa confidenza{' '}
-              <span className="font-semibold text-app-fg">
-                (~{Math.round(GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF * 100)}%)
-              </span>{' '}
-              viene{' '}
-              <span className="font-semibold text-app-fg">scartato in automatico</span> dall’analisi AI.{' '}
-              Altrimenti{' '}
-              <span className="font-semibold text-app-fg">Conferma suggeriti</span> o i pulsanti riga (incluso{' '}
-              <span className="font-semibold text-app-fg">Registra listino</span>
-              ). Ogni analisi mostra un segno di spunta e il dettaglio.
-            </p>
+            <p className="text-xs text-app-fg-muted">{t.log.inboxAiQueueIntro}</p>
             {docsLoading ? (
               <ul className="space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -1113,7 +1129,8 @@ export default function InboxAiClient(props: {
                 {docsNewestFirst.map((d) => {
                   const sug = suggestions[d.id]
                   const supplier =
-                    d.fornitore?.nome ?? (d.fornitore_id ? '(fornitore ID)' : '— sconosciuto —')
+                    d.fornitore?.nome ??
+                    (d.fornitore_id ? t.log.inboxAiSupplierIdPlaceholder : t.log.inboxAiSupplierUnknown)
                   const busyRow = actionBusy === d.id
                   const needsSupplier = !d.fornitore_id
                   const inGeminiAnalyze = analyzeBusy && analyzeTargetIds.includes(d.id)
@@ -1138,10 +1155,10 @@ export default function InboxAiClient(props: {
                             }`}
                             title={
                               sug
-                                ? 'Analizzato dall’AI'
+                                ? t.log.inboxAiAiAnalyzedTitle
                                 : inGeminiAnalyze
-                                  ? 'Analisi Gemini in corso…'
-                                  : 'In attesa di analisi'
+                                  ? t.log.inboxAiAiAnalyzingTitle
+                                  : t.log.inboxAiAiPendingTitle
                             }
                           >
                             {sug ? (
@@ -1160,7 +1177,7 @@ export default function InboxAiClient(props: {
                           <div className="min-w-0 flex-1">
                             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
                               <p className="min-w-0 flex-1 truncate text-sm font-semibold text-app-fg">
-                                {d.file_name ?? 'Senza nome file'}
+                                {d.file_name ?? t.log.inboxAiNoFileName}
                               </p>
                               {d.file_url ? (
                                 <OpenDocumentInAppButton
@@ -1174,18 +1191,27 @@ export default function InboxAiClient(props: {
                               ) : null}
                             </div>
                           <p className="text-xs text-app-fg-muted">
-                            Fornitore: <span className="text-app-fg">{supplier}</span> · Ricezione:{' '}
-                            {fmtDate(d.created_at)} ·{' '}
+                            {t.log.inboxAiSupplierLabel}{' '}
+                            <span className="text-app-fg">{supplier}</span> · {t.log.inboxAiReceivedLabel}{' '}
+                            {fmtDate(d.created_at, locale)} ·{' '}
                             <span className="rounded bg-white/10 px-1 font-mono text-[10px]">{d.stato}</span>
                           </p>
                           {sug ? (
                             <div className="mt-2 rounded-lg border border-teal-500/20 bg-teal-950/20 px-2 py-2 text-[11px] leading-snug text-teal-100/95">
-                              <span className="font-semibold text-teal-200">AI</span>: tipo{' '}
+                              <span className="font-semibold text-teal-200">AI</span>:{' '}
+                              {t.log.inboxAiAiTipoPrefix}{' '}
                               <span className="font-mono">{sug.tipo_suggerito}</span>
                               {sug.fornitore_suggerito ? (
-                                <> · fornitore letto: {sug.fornitore_suggerito}</>
+                                <>
+                                  {' '}
+                                  · {t.log.inboxAiAiFornitoreLetto} {sug.fornitore_suggerito}
+                                </>
                               ) : null}{' '}
-                              · {(sug.confidenza * 100).toFixed(0)}% confidenza
+                              ·{' '}
+                              {t.log.inboxAiAiConfidenza.replace(
+                                /\{n\}/g,
+                                (sug.confidenza * 100).toFixed(0),
+                              )}
                               <br />
                               <span className="text-app-fg-muted">{sug.azione_consigliata}</span>
                               {sug.error ? (
@@ -1203,14 +1229,14 @@ export default function InboxAiClient(props: {
                           const primaryLabel = needsSupplier
                             ? t.log.activityInboxAddSupplier
                             : finalizeKind
-                              ? KIND_LABEL[finalizeKind]
-                              : 'Registra fattura'
+                              ? kindLabel(t, finalizeKind)
+                              : t.log.inboxAiKindFattura
                           const primaryClass = needsSupplier
                             ? 'border-teal-500/45 bg-teal-500/15 text-teal-100'
                             : KIND_BTN_CLASS[finalizeKind ?? 'fattura']
                           const primaryDisabled = busyRow || (!needsSupplier && !d.fornitore_id)
                           const primaryTitle = !d.fornitore_id && !needsSupplier
-                            ? 'Associa un fornitore al documento prima di registrare'
+                            ? t.log.inboxAiNeedSupplierBeforeRegister
                             : undefined
 
                           const dotsItems = [
@@ -1218,7 +1244,7 @@ export default function InboxAiClient(props: {
                               .filter((k) => !(k === (finalizeKind ?? 'fattura') && !needsSupplier))
                               .map((k) => ({
                                 key: `reg-${k}`,
-                                label: KIND_LABEL[k],
+                                label: kindLabel(t, k),
                                 disabled: !d.fornitore_id || busyRow,
                                 onClick: () => { void finalizeAs(d.id, k) },
                               })),
@@ -1238,7 +1264,7 @@ export default function InboxAiClient(props: {
                             },
                             {
                               key: 'doc-actions',
-                              label: 'Altre azioni…',
+                              label: t.log.inboxAiMoreActions,
                               onClick: () => openActions({
                                 id: d.id,
                                 origine: 'documento_da_processare',
@@ -1256,7 +1282,7 @@ export default function InboxAiClient(props: {
                               {busyRow ? (
                                 <span className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-app-fg-muted">
                                   <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
-                                  In corso…
+                                  {t.log.inboxAiInProgress}
                                 </span>
                               ) : (
                                 <button
@@ -1279,8 +1305,8 @@ export default function InboxAiClient(props: {
                                   showContextMenu({ x: r.right, y: r.bottom + 4, items: dotsItems })
                                 }}
                                 className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/15 text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg disabled:opacity-35"
-                                title="Altre azioni"
-                                aria-label="Altre azioni"
+                                title={t.log.inboxAiMoreActionsTitle}
+                                aria-label={t.log.inboxAiMoreActionsTitle}
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </button>
@@ -1301,7 +1327,9 @@ export default function InboxAiClient(props: {
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
               <p className="text-sm font-semibold text-teal-100/95">
-                {auditLoading ? 'Caricamento…' : `${auditRows.length} abbinamenti da verificare`}
+                {auditLoading
+                  ? t.log.inboxAiAuditLoading
+                  : t.log.inboxAiAuditCount.replace(/\{n\}/g, String(auditRows.length))}
               </p>
               <button
                 type="button"
@@ -1309,12 +1337,10 @@ export default function InboxAiClient(props: {
                 onClick={() => void loadAudit()}
                 className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-app-fg-muted hover:bg-white/10"
               >
-                Aggiorna
+                {t.log.inboxAiRefresh}
               </button>
             </div>
-            <p className="text-xs text-app-fg-muted">
-              Documenti già salvati come <span className="font-mono">associato</span> dove l’email del mittente non è tra le email riconosciute del fornitore collegato alla fattura o alla bolla.
-            </p>
+            <p className="text-xs text-app-fg-muted">{t.log.inboxAiAuditIntro}</p>
             {auditLoading ? (
               <ul className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -1324,7 +1350,7 @@ export default function InboxAiClient(props: {
             ) : auditRows.length === 0 ? (
               <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-4 py-6 text-center text-sm text-emerald-100/95">
                 <span className="inline-flex items-center justify-center gap-1.5">
-                  Tutti gli abbinamenti sono corretti
+                  {t.log.inboxAiAuditAllOk}
                   <GlyphCheck className="h-4 w-4 text-emerald-300" aria-hidden />
                 </span>
               </div>
@@ -1339,13 +1365,13 @@ export default function InboxAiClient(props: {
                     >
                       <div className="flex flex-col gap-2">
                         <p className="text-sm font-semibold text-app-fg">
-                          {row.file_name?.trim() || 'Senza nome file'}
+                          {row.file_name?.trim() || t.log.inboxAiNoFileName}
                         </p>
                         <p className="truncate font-mono text-[11px] text-app-fg-muted">
-                          Mittente: {row.mittente ?? '—'}
+                          {t.log.inboxAiSenderLabel} {row.mittente ?? '—'}
                         </p>
                         <p className="text-xs text-cyan-100/95">
-                          Fornitore assegnato:{' '}
+                          {t.log.inboxAiAssignedSupplier}{' '}
                           <span className="text-app-fg">{assignedLabel(row)}</span>
                         </p>
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
@@ -1355,11 +1381,11 @@ export default function InboxAiClient(props: {
                             onClick={() => void addEmailToFornitore(row)}
                             className="rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1.5 text-[11px] font-semibold text-teal-100 disabled:opacity-40"
                           >
-                            Aggiungi email al fornitore
+                            {t.log.inboxAiAddEmailToSupplier}
                           </button>
                           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                             <label className="flex items-center gap-2 text-[11px] text-app-fg-muted">
-                              Cambia fornitore
+                              {t.log.inboxAiChangeSupplier}
                               <select
                                 className="max-w-[min(100%,220px)] rounded border border-white/15 bg-black/30 px-1 py-1 text-[11px] text-app-fg"
                                 value={reassignSel[row.id] ?? ''}
@@ -1368,7 +1394,7 @@ export default function InboxAiClient(props: {
                                   setReassignSel((s) => ({ ...s, [row.id]: e.target.value }))
                                 }
                               >
-                                <option value="">— fornitore —</option>
+                                <option value="">{t.log.inboxAiSupplierOptionPlaceholder}</option>
                                 {fornitori.map((f) => (
                                   <option key={f.id} value={f.id}>
                                     {f.nome ?? f.id.slice(0, 8)}
@@ -1382,7 +1408,7 @@ export default function InboxAiClient(props: {
                               onClick={() => void reassignFornitore(row)}
                               className="rounded-md border border-violet-500/40 bg-violet-500/15 px-2 py-1.5 text-[11px] font-semibold text-violet-100 disabled:opacity-40"
                             >
-                              Applica nuovo fornitore
+                              {t.log.inboxAiApplyNewSupplier}
                             </button>
                           </div>
                         </div>
@@ -1404,7 +1430,7 @@ export default function InboxAiClient(props: {
                 ))}
               </ul>
             ) : dupFat.length === 0 ? (
-              <p className="text-sm text-app-fg-muted">Nessun gruppo di fatture duplicate per questa sede.</p>
+              <p className="text-sm text-app-fg-muted">{t.log.inboxAiNoDupInvoices}</p>
             ) : (
               <ul className="space-y-4">
                 {dupFat.map((g) => (
@@ -1424,15 +1450,20 @@ export default function InboxAiClient(props: {
                         >
                           <div>
                             <span className="font-mono text-[10px] text-app-fg-muted">{f.id.slice(0, 8)}…</span>{' '}
-                            Data {f.data} · €{f.importo != null ? f.importo.toFixed(2) : '—'}
+                            {t.log.inboxAiDateAmount
+                              .replace(/\{date\}/g, f.data)
+                              .replace(
+                                /\{amount\}/g,
+                                f.importo != null ? f.importo.toFixed(2) : '—',
+                              )}
                             {f.bolla_id ? (
                               <span className="ms-2 rounded bg-cyan-500/20 px-1 text-[10px] text-cyan-200">
-                                bolla collegata
+                                {t.log.inboxAiLinkedBolla}
                               </span>
                             ) : null}
                             {f.id === g.ai_keep_id ? (
                               <span className="ms-2 rounded bg-teal-500/25 px-1 text-[10px] text-teal-100">
-                                suggerita AI
+                                {t.log.inboxAiAiSuggested}
                               </span>
                             ) : null}
                           </div>
@@ -1444,14 +1475,14 @@ export default function InboxAiClient(props: {
                                 className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
                                 title={t.bolle.viewDocument}
                               >
-                                Dettaglio
+                                {t.log.inboxAiDetail}
                               </OpenDocumentInAppButton>
                             ) : (
                               <Link
                                 href={`/fatture/${f.id}`}
                                 className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
                               >
-                                Dettaglio
+                                {t.log.inboxAiDetail}
                               </Link>
                             )}
                             <button
@@ -1460,7 +1491,7 @@ export default function InboxAiClient(props: {
                               onClick={() => void deleteDupFatture(g, f.id)}
                               className="rounded border border-rose-500/35 bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-100"
                             >
-                              Tieni questa / elimina le altre
+                              {t.log.inboxAiKeepThisDeleteOthers}
                             </button>
                             <DocumentActionsButton item={{
                               id: f.id,
@@ -1490,7 +1521,7 @@ export default function InboxAiClient(props: {
                 ))}
               </ul>
             ) : dupBol.length === 0 ? (
-              <p className="text-sm text-app-fg-muted">Nessun gruppo di bolle duplicate per questa sede.</p>
+              <p className="text-sm text-app-fg-muted">{t.log.inboxAiNoDupBolle}</p>
             ) : (
               <ul className="space-y-4">
                 {dupBol.map((g) => (
@@ -1510,15 +1541,20 @@ export default function InboxAiClient(props: {
                         >
                           <div>
                             <span className="font-mono text-[10px] text-app-fg-muted">{b.id.slice(0, 8)}…</span>{' '}
-                            Data {b.data} · €{b.importo != null ? b.importo.toFixed(2) : '—'}
+                            {t.log.inboxAiDateAmount
+                              .replace(/\{date\}/g, b.data)
+                              .replace(
+                                /\{amount\}/g,
+                                b.importo != null ? b.importo.toFixed(2) : '—',
+                              )}
                             {b.ha_fattura_collegata ? (
                               <span className="ms-2 rounded bg-emerald-500/20 px-1 text-[10px] text-emerald-200">
-                                ha fattura
+                                {t.log.inboxAiHasInvoice}
                               </span>
                             ) : null}
                             {b.id === g.ai_keep_id ? (
                               <span className="ms-2 rounded bg-teal-500/25 px-1 text-[10px] text-teal-100">
-                                suggerita AI
+                                {t.log.inboxAiAiSuggested}
                               </span>
                             ) : null}
                           </div>
@@ -1530,14 +1566,14 @@ export default function InboxAiClient(props: {
                                 className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
                                 title={t.bolle.viewDocument}
                               >
-                                Dettaglio
+                                {t.log.inboxAiDetail}
                               </OpenDocumentInAppButton>
                             ) : (
                               <Link
                                 href={`/bolle/${b.id}`}
                                 className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
                               >
-                                Dettaglio
+                                {t.log.inboxAiDetail}
                               </Link>
                             )}
                             <button
@@ -1546,7 +1582,7 @@ export default function InboxAiClient(props: {
                               onClick={() => void deleteDupBolle(g, b.id)}
                               className="rounded border border-rose-500/35 bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-100"
                             >
-                              Tieni questa / elimina le altre
+                              {t.log.inboxAiKeepThisDeleteOthers}
                             </button>
                             <DocumentActionsButton item={{
                               id: b.id,
@@ -1570,7 +1606,7 @@ export default function InboxAiClient(props: {
         {tab === 'rekki' ? (
           <div className="rounded-lg border border-emerald-500/25 bg-emerald-950/15 px-4 py-8 text-center text-sm text-emerald-100/95">
             <span className="inline-flex items-center justify-center gap-1.5">
-              Nessuna anomalia presente
+              {t.log.inboxAiNoRekkiAnomalies}
               <GlyphCheck className="h-4 w-4 text-emerald-300" aria-hidden />
             </span>
           </div>

@@ -763,6 +763,9 @@ export type Translations = {
     inboxUrgenteNavBolle: string
     inboxUrgenteNavOrdini: string
     inboxUrgenteNavAiInbox: string
+    inboxAiPageTitle: string
+    inboxAiPageSubtitle: string
+    inboxAiBreadcrumbLabel: string
     errorCountSuffix: string
     manualReceiptLabel: string
     manualReceiptPlaceholder: string
@@ -1281,6 +1284,70 @@ export type Translations = {
     inboxGeminiHistoryOutcomeBadResponse: string
     inboxGeminiHistoryClear: string
     inboxGeminiHistoryEmpty: string
+    inboxAiResolvedToday: string
+    inboxAiAnalyzeBusy: string
+    inboxAiAnalyzeBtn: string
+    inboxAiConfirmBusy: string
+    inboxAiConfirmBtn: string
+    inboxAiConfirmTitleDisabled: string
+    inboxAiConfirmTitleEnabled: string
+    inboxAiTabDocs: string
+    inboxAiTabAudit: string
+    inboxAiTabDupInvoices: string
+    inboxAiTabDupBolle: string
+    inboxAiTabRekki: string
+    inboxAiDocsTabTooltip: string
+    inboxAiBlockedNoSede: string
+    inboxAiSelectSede: string
+    inboxAiQueueIntro: string
+    inboxAiNoFileName: string
+    inboxAiSupplierUnknown: string
+    inboxAiSupplierIdPlaceholder: string
+    inboxAiSupplierLabel: string
+    inboxAiReceivedLabel: string
+    inboxAiAiAnalyzedTitle: string
+    inboxAiAiAnalyzingTitle: string
+    inboxAiAiPendingTitle: string
+    inboxAiAiTipoPrefix: string
+    inboxAiAiFornitoreLetto: string
+    inboxAiAiConfidenza: string
+    inboxAiKindFattura: string
+    inboxAiKindNotaCredito: string
+    inboxAiKindBolla: string
+    inboxAiKindListino: string
+    inboxAiKindComunicazione: string
+    inboxAiNeedSupplierBeforeRegister: string
+    inboxAiMoreActions: string
+    inboxAiMoreActionsTitle: string
+    inboxAiInProgress: string
+    inboxAiAnalyzeFailed: string
+    inboxAiAutoDiscardFailed: string
+    inboxAiOperationFailed: string
+    inboxAiConfirmAllNone: string
+    inboxAiAuditLoading: string
+    inboxAiAuditCount: string
+    inboxAiRefresh: string
+    inboxAiAuditIntro: string
+    inboxAiAuditAllOk: string
+    inboxAiSenderLabel: string
+    inboxAiAssignedSupplier: string
+    inboxAiAssignedInvoice: string
+    inboxAiAssignedBolla: string
+    inboxAiAddEmailToSupplier: string
+    inboxAiChangeSupplier: string
+    inboxAiSupplierOptionPlaceholder: string
+    inboxAiApplyNewSupplier: string
+    inboxAiNoDupInvoices: string
+    inboxAiNoDupBolle: string
+    inboxAiLinkedBolla: string
+    inboxAiAiSuggested: string
+    inboxAiDetail: string
+    inboxAiKeepThisDeleteOthers: string
+    inboxAiHasInvoice: string
+    inboxAiNoRekkiAnomalies: string
+    inboxAiDeleteFailed: string
+    inboxAiErrorGeneric: string
+    inboxAiDateAmount: string
     activityInboxIgnoreSender: string
     activityInboxAddSupplier: string
     activityInboxDiscard: string
