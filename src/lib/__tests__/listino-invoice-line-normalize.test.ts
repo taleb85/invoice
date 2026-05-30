@@ -5,6 +5,7 @@ import {
   normalizeListinoImportLineItem,
   parseInvoiceOrderQuantity,
   parseInvoiceTableLinesFromText,
+  resolveAmbiguousInvoiceLinePrice,
   resolveUnitPriceFromInvoiceValue,
   sanitizeListinoProductName,
 } from '@/lib/listino-invoice-line-normalize'
@@ -43,6 +44,11 @@ describe('resolveUnitPriceFromInvoiceValue', () => {
     expect(r.unit).toBe(8.99)
   })
 
+  it('does not treat doubled importo as unit price (Gemini prezzo=Value)', () => {
+    const r = resolveUnitPriceFromInvoiceValue(17.98, 2, 35.96)
+    expect(r.unit).toBe(17.98)
+  })
+
   it('FOIL45: 2 rolls, value 13.18 → unit 6.59', () => {
     const r = resolveUnitPriceFromInvoiceValue(13.18, 2, null)
     expect(r.unit).toBe(6.59)
@@ -51,6 +57,25 @@ describe('resolveUnitPriceFromInvoiceValue', () => {
   it('ZZCLIN01: 6 rolls, value 23.40 → unit 3.90', () => {
     const r = resolveUnitPriceFromInvoiceValue(23.4, 6, null)
     expect(r.unit).toBe(3.9)
+  })
+})
+
+describe('resolveAmbiguousInvoiceLinePrice', () => {
+  it('uses Value in prezzo when importo was doubled (no hist)', () => {
+    const r = resolveAmbiguousInvoiceLinePrice(17.98, 2, 35.96)
+    expect(r.unit).toBe(8.99)
+    expect(r.lineTotal).toBe(17.98)
+  })
+
+  it('keeps unit when prezzo already correct (via listino)', () => {
+    const r = resolveAmbiguousInvoiceLinePrice(8.99, 2, 17.98, [8.99, 9.1])
+    expect(r.unit).toBe(8.99)
+    expect(r.lineTotal).toBe(17.98)
+  })
+
+  it('picks unit matching listino when hist differs from wrong OCR', () => {
+    const r = resolveAmbiguousInvoiceLinePrice(17.98, 2, 35.96, [8.99, 9.1])
+    expect(r.unit).toBe(8.99)
   })
 })
 
@@ -71,6 +96,15 @@ ZZCLIN01 CLING FILM 300mm X 300M PROWRAP 6.00 ROLL 23.40
     expect(tow?.unita).toBe('X6')
     expect(foil?.prezzo).toBe(6.59)
     expect(zz?.prezzo).toBe(3.9)
+  })
+
+  it('parses tab-separated PDF rows', () => {
+    const text =
+      'TOWE02N\tCFB128E MIDI BLUE C-FEED ROLL EMBOSSED\t2.00\tX6\t17.98\n' +
+      'FOIL45\t45cm X 75M CATERING FOIL\t2.00\tROLL\t13.18'
+    const lines = parseInvoiceTableLinesFromText(text)
+    expect(lines.find((l) => l.codice_prodotto === 'TOWE02N')?.prezzo).toBe(8.99)
+    expect(lines.find((l) => l.codice_prodotto === 'FOIL45')?.prezzo).toBe(6.59)
   })
 })
 
@@ -119,6 +153,20 @@ describe('normalizeListinoImportLineItem', () => {
       prezzo: 17.98,
       quantita: 2,
       importo_linea: null,
+      unita: 'X6',
+      note: null,
+    })
+    expect(r.prezzo).toBe(8.99)
+    expect(r.importo_linea).toBe(17.98)
+  })
+
+  it('fixes Gemini doubled importo_linea (TOWE02N)', () => {
+    const r = normalizeListinoImportLineItem({
+      prodotto: 'MIDI BLUE C-FEED ROLL EMBOSSED',
+      codice_prodotto: 'TOWE02N',
+      prezzo: 17.98,
+      quantita: 2,
+      importo_linea: 35.96,
       unita: 'X6',
       note: null,
     })

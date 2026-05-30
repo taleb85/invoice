@@ -3768,7 +3768,7 @@ function ListinoTab({
                 ...normalized,
                 codice_prodotto: normalized.codice_prodotto ?? null,
                 quantita: normalized.quantita ?? null,
-                importo_linea: item.importo_linea ?? null,
+                importo_linea: normalized.importo_linea ?? null,
                 selected: true,
               }
             },
