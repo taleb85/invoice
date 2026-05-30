@@ -2162,6 +2162,8 @@ const translations: Translations = {
     inboxAiKindBolla: 'Registra bolla',
     inboxAiKindListino: 'Registra listino',
     inboxAiKindComunicazione: 'Registra comunicazione',
+    inboxAiKindStatement: 'Registra estratto',
+    inboxAiKindOrdine: 'Registra ordine',
     inboxAiNeedSupplierBeforeRegister:
       'Associa un fornitore al documento prima di registrare',
     inboxAiMoreActions: 'Altre azioni…',

@@ -11,6 +11,12 @@ import {
   GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF,
   inboxClassificationShouldAutoDiscard,
 } from '@/lib/gemini-inbox-classify'
+import {
+  geminiSuggestionFromMetadata,
+  mapInboxTipoToPendingKind,
+  resolveInboxSuggestedKind,
+  type InboxFinalizeKind,
+} from '@/lib/inbox-ai-suggested-kind'
 import { useT } from '@/lib/use-t'
 import { MoreHorizontal } from 'lucide-react'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
@@ -126,18 +132,6 @@ function parseInitialTab(raw: string | undefined): TabId {
   return 'docs'
 }
 
-function tipoAiToPendingKind(tipo: string): 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'statement' | 'ordine' | 'listino' | null {
-  const k = tipo.toLowerCase().trim()
-  if (k === 'fattura') return 'fattura'
-  if (k === 'nota_credito') return 'nota_credito'
-  if (k === 'comunicazione_cliente') return 'comunicazione'
-  if (k === 'bolla' || k === 'ddt') return 'bolla'
-  if (k === 'estratto_conto') return 'statement'
-  if (k === 'ordine') return 'ordine'
-  if (k === 'listino') return 'listino'
-  return null
-}
-
 /** Conferma automatica dopo la risposta Gemini (stesso criterio visivo del %. mostrato). */
 const AUTO_FINALIZE_AI_CONF_MIN = 0.95
 /** Fattura/bolla/… rimangono a 0.95; listino permette più varianti Gemini (≈90% reali). */
@@ -207,30 +201,38 @@ function pendingDocFileLabel(row: PendingDocRow): string {
   return rag || `${row.id.slice(0, 8)}…`
 }
 
-type FinalizeKind = 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'listino'
-
-function kindLabel(t: Translations, kind: FinalizeKind): string {
-  const m: Record<FinalizeKind, string> = {
+function kindLabel(t: Translations, kind: InboxFinalizeKind): string {
+  const m: Record<InboxFinalizeKind, string> = {
     fattura: t.log.inboxAiKindFattura,
     nota_credito: t.log.inboxAiKindNotaCredito,
     bolla: t.log.inboxAiKindBolla,
     listino: t.log.inboxAiKindListino,
     comunicazione: t.log.inboxAiKindComunicazione,
+    statement: t.log.inboxAiKindStatement,
+    ordine: t.log.inboxAiKindOrdine,
   }
   return m[kind]
 }
 
-const FINALIZE_KINDS = new Set<string>(['fattura', 'nota_credito', 'comunicazione', 'bolla', 'listino'])
-
-const KIND_BTN_CLASS: Record<FinalizeKind, string> = {
+const KIND_BTN_CLASS: Record<InboxFinalizeKind, string> = {
   fattura: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100',
   nota_credito: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100',
   bolla: 'border-violet-500/40 bg-violet-500/15 text-violet-100',
   listino: 'border-sky-500/45 bg-sky-500/15 text-sky-100',
   comunicazione: 'border-slate-500/40 bg-slate-500/15 text-slate-200',
+  statement: 'border-orange-500/40 bg-orange-500/15 text-orange-100',
+  ordine: 'border-amber-500/40 bg-amber-500/15 text-amber-100',
 }
 
-const SECONDARY_KINDS: FinalizeKind[] = ['fattura', 'bolla', 'listino', 'nota_credito', 'comunicazione']
+const SECONDARY_KINDS: InboxFinalizeKind[] = [
+  'fattura',
+  'bolla',
+  'listino',
+  'nota_credito',
+  'comunicazione',
+  'statement',
+  'ordine',
+]
 
 export default function InboxAiClient(props: {
   sedeId: string | null
@@ -308,7 +310,16 @@ export default function InboxAiClient(props: {
         setDocsTotal(null)
         return
       }
-      setDocs(data as PendingDocRow[])
+      const rows = data as PendingDocRow[]
+      setDocs(rows)
+      setSuggestions((prev) => {
+        const next = { ...prev }
+        for (const d of rows) {
+          const fromMeta = geminiSuggestionFromMetadata(d.id, d.metadata)
+          if (fromMeta && !next[d.id]) next[d.id] = fromMeta
+        }
+        return next
+      })
       const th = res.headers.get('x-total-count')
       const nt = th != null ? Number.parseInt(th, 10) : NaN
       setDocsTotal(Number.isFinite(nt) ? nt : (data as PendingDocRow[]).length)
@@ -412,9 +423,7 @@ export default function InboxAiClient(props: {
   /** Quanti documenti analizzati possono essere confermati in un colpo solo (tipo riconosciuto + fornitore). */
   const confirmAllEligibleCount = useMemo(() => {
     return docsNewestFirst.filter((d) => {
-      const sug = suggestions[d.id]
-      if (!sug) return false
-      const kind = tipoAiToPendingKind(sug.tipo_suggerito)
+      const kind = resolveInboxSuggestedKind(d.metadata, suggestions[d.id]?.tipo_suggerito)
       return !!(kind && d.fornitore_id)
     }).length
   }, [docsNewestFirst, suggestions])
@@ -498,7 +507,7 @@ export default function InboxAiClient(props: {
         if (discardedAuto.has(s.doc_id)) continue
         const row = workingDocs.find((d) => d.id === s.doc_id)
         if (!row) continue
-        const kind = tipoAiToPendingKind(s.tipo_suggerito)
+        const kind = mapInboxTipoToPendingKind(s.tipo_suggerito)
         if (!kind || !row.fornitore_id) continue
         const conf = suggestionConf01(s)
         const minConf =
@@ -566,10 +575,7 @@ export default function InboxAiClient(props: {
     if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`)
   }
 
-  const finalizeWithKind = async (
-    docId: string,
-    kind: 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'statement' | 'ordine' | 'listino',
-  ): Promise<boolean> => {
+  const finalizeWithKind = async (docId: string, kind: InboxFinalizeKind): Promise<boolean> => {
     setActionBusy(docId)
     try {
       await postDoc({ id: docId, azione: 'set_pending_kind', kind })
@@ -591,25 +597,18 @@ export default function InboxAiClient(props: {
     }
   }
 
-  /** Registra come fattura, nota credito, bolla, listino o comunicazione (pulsanti manuali sulla riga). */
-  const finalizeAs = async (
-    docId: string,
-    kind: 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'listino',
-  ) => {
+  /** Registra con il tipo scelto (pulsante primario o menu secondario). */
+  const finalizeAs = async (docId: string, kind: InboxFinalizeKind) => {
     const ok = await finalizeWithKind(docId, kind)
     if (ok) await loadDocs({ silent: true })
   }
 
   /** Una conferma dopo l’analisi AI: registra nell’ordine lista (recenti prima) tutti i documenti con suggerimento applicabile. */
   const confirmAllAiSuggestions = async () => {
-    const queued: {
-      row: PendingDocRow
-      kind: NonNullable<ReturnType<typeof tipoAiToPendingKind>>
-    }[] = []
+    const queued: { row: PendingDocRow; kind: InboxFinalizeKind }[] = []
     for (const d of docsNewestFirst) {
       const sug = suggestions[d.id]
-      if (!sug) continue
-      const kind = tipoAiToPendingKind(sug.tipo_suggerito)
+      const kind = resolveInboxSuggestedKind(d.metadata, sug?.tipo_suggerito)
       if (!kind || !d.fornitore_id) continue
       queued.push({ row: d, kind })
     }
@@ -1127,7 +1126,13 @@ export default function InboxAiClient(props: {
             ) : (
               <ul className="space-y-3" aria-busy={analyzeBusy}>
                 {docsNewestFirst.map((d) => {
-                  const sug = suggestions[d.id]
+                  const sessionSug = suggestions[d.id]
+                  const sug =
+                    sessionSug ?? geminiSuggestionFromMetadata(d.id, d.metadata)
+                  const suggestedKind = resolveInboxSuggestedKind(
+                    d.metadata,
+                    sessionSug?.tipo_suggerito ?? sug?.tipo_suggerito,
+                  )
                   const supplier =
                     d.fornitore?.nome ??
                     (d.fornitore_id ? t.log.inboxAiSupplierIdPlaceholder : t.log.inboxAiSupplierUnknown)
@@ -1200,7 +1205,11 @@ export default function InboxAiClient(props: {
                             <div className="mt-2 rounded-lg border border-teal-500/20 bg-teal-950/20 px-2 py-2 text-[11px] leading-snug text-teal-100/95">
                               <span className="font-semibold text-teal-200">AI</span>:{' '}
                               {t.log.inboxAiAiTipoPrefix}{' '}
-                              <span className="font-mono">{sug.tipo_suggerito}</span>
+                              <span className="font-mono">
+                                {suggestedKind
+                                  ? kindLabel(t, suggestedKind)
+                                  : sug.tipo_suggerito}
+                              </span>
                               {sug.fornitore_suggerito ? (
                                 <>
                                   {' '}
@@ -1223,17 +1232,14 @@ export default function InboxAiClient(props: {
                         </div>
                         {/* ── Azioni compatte: 1 CTA primario + menu dots ── */}
                         {(() => {
-                          const aiKind = sug ? tipoAiToPendingKind(sug.tipo_suggerito) : null
-                          const finalizeKind = aiKind && FINALIZE_KINDS.has(aiKind) ? aiKind as FinalizeKind : null
+                          const primaryKind: InboxFinalizeKind = suggestedKind ?? 'fattura'
 
                           const primaryLabel = needsSupplier
                             ? t.log.activityInboxAddSupplier
-                            : finalizeKind
-                              ? kindLabel(t, finalizeKind)
-                              : t.log.inboxAiKindFattura
+                            : kindLabel(t, primaryKind)
                           const primaryClass = needsSupplier
                             ? 'border-teal-500/45 bg-teal-500/15 text-teal-100'
-                            : KIND_BTN_CLASS[finalizeKind ?? 'fattura']
+                            : KIND_BTN_CLASS[primaryKind]
                           const primaryDisabled = busyRow || (!needsSupplier && !d.fornitore_id)
                           const primaryTitle = !d.fornitore_id && !needsSupplier
                             ? t.log.inboxAiNeedSupplierBeforeRegister
@@ -1241,7 +1247,7 @@ export default function InboxAiClient(props: {
 
                           const dotsItems = [
                             ...SECONDARY_KINDS
-                              .filter((k) => !(k === (finalizeKind ?? 'fattura') && !needsSupplier))
+                              .filter((k) => !(k === primaryKind && !needsSupplier))
                               .map((k) => ({
                                 key: `reg-${k}`,
                                 label: kindLabel(t, k),
@@ -1291,7 +1297,7 @@ export default function InboxAiClient(props: {
                                   title={primaryTitle}
                                   onClick={needsSupplier
                                     ? () => openSupplierModal(d)
-                                    : () => void finalizeAs(d.id, finalizeKind ?? 'fattura')}
+                                    : () => void finalizeAs(d.id, primaryKind)}
                                   className={`rounded-md border px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-35 ${primaryClass}`}
                                 >
                                   {primaryLabel}

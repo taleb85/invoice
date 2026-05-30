@@ -1316,6 +1316,8 @@ export type Translations = {
     inboxAiKindBolla: string
     inboxAiKindListino: string
     inboxAiKindComunicazione: string
+    inboxAiKindStatement: string
+    inboxAiKindOrdine: string
     inboxAiNeedSupplierBeforeRegister: string
     inboxAiMoreActions: string
     inboxAiMoreActionsTitle: string
