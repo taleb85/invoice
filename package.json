@@ -45,7 +45,9 @@
     "fix:eden-springs:statements": "node scripts/requeue-eden-springs-statements.mjs",
     "fix:eden-springs:statements:dry": "node scripts/requeue-eden-springs-statements.mjs --dry-run",
     "audit:listino-qty": "node scripts/audit-listino-qty-prices.mjs",
-    "audit:listino-qty:apply": "node scripts/audit-listino-qty-prices.mjs --apply"
+    "audit:listino-qty:apply": "node scripts/audit-listino-qty-prices.mjs --apply",
+    "repair:listino-prices": "node scripts/repair-listino-prices.mjs",
+    "repair:listino-prices:apply": "node scripts/repair-listino-prices.mjs --apply"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

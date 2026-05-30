@@ -50,3 +50,4 @@ next-env.d.ts
 _*.mjs
 _*.ts
 audit-listino-qty-report.json
+repair-listino-prices-report.json
