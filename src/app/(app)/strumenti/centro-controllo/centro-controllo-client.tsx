@@ -50,6 +50,7 @@ import AssegnaFatturaDialog from './_dialogs/assegna-fattura-dialog'
 import StatementGruppoCoda from './statement-gruppo-coda'
 import { buildCodaDisplayEntries } from '@/lib/centro-controllo-coda-grouping'
 import { interpolateTemplate } from '@/lib/interpolate-template'
+import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 
 INITIALIZE_COMMANDS()
 
@@ -102,6 +103,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
   // ── Coda documenti ───────────────────────────────────────────────────────
   const [items, setItems] = useState<CodaItem[]>([])
   const [loading, setLoading] = useState(true)
+  const hasLoadedCodaRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [filtroOrigine, setFiltroOrigine] = useState<FiltroOrigine>('tutti')
   const [codaPage, setCodaPage] = useState(1)
@@ -263,10 +265,16 @@ export default function CentroControlloClient({ sedeId }: Props) {
   } | null>(null)
 
   // ── Caricamento coda ─────────────────────────────────────────────────────
-  const caricaCoda = useCallback(async (pageOverride?: number) => {
+  const caricaCoda = useCallback(async (
+    pageOverride?: number,
+    opts?: { silent?: boolean },
+  ) => {
     const page = pageOverride ?? codaPage
-    setLoading(true)
-    setError(null)
+    const silent = opts?.silent ?? hasLoadedCodaRef.current
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     try {
       const params = new URLSearchParams()
       if (sedeId) params.set('sede_id', sedeId)
@@ -341,11 +349,17 @@ export default function CentroControlloClient({ sedeId }: Props) {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : t.strumentiCentroControllo.queueLoadError)
+      const msg = e instanceof Error ? e.message : t.strumentiCentroControllo.queueLoadError
+      if (silent) {
+        showToast(msg, 'error')
+      } else {
+        setError(msg)
+      }
     } finally {
-      setLoading(false)
+      hasLoadedCodaRef.current = true
+      if (!silent) setLoading(false)
     }
-  }, [sedeId, filtroOrigine, codaPage, codaPageSize, showToast])
+  }, [sedeId, filtroOrigine, codaPage, codaPageSize, showToast, t])
 
   // ── Caricamento statement ───────────────────────────────────────────────
   const caricaStatement = useCallback(async () => {
@@ -805,7 +819,37 @@ export default function CentroControlloClient({ sedeId }: Props) {
   }, [caricaStatement, caricaMonitoraggio])
 
   useEffect(() => {
+    hasLoadedCodaRef.current = false
+    setLoading(true)
+  }, [sedeId])
+
+  useEffect(() => {
     void caricaCoda()
+  }, [caricaCoda])
+
+  useEffect(() => {
+    const refreshCodaSilent = () => {
+      void caricaCoda(undefined, { silent: true })
+    }
+    const onDocumentTypeChanged = (e: Event) => {
+      const id = (e as CustomEvent<{ id?: string }>).detail?.id
+      if (typeof id === 'string' && id) {
+        setItems((prev) => prev.filter((i) => i.id !== id))
+        setCodaTotal((prev) => Math.max(0, prev - 1))
+        setSuggerimenti((prev) => {
+          const next = new Map(prev)
+          next.delete(id)
+          return next
+        })
+      }
+      refreshCodaSilent()
+    }
+    window.addEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, refreshCodaSilent)
+    window.addEventListener('document-type-changed', onDocumentTypeChanged)
+    return () => {
+      window.removeEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, refreshCodaSilent)
+      window.removeEventListener('document-type-changed', onDocumentTypeChanged)
+    }
   }, [caricaCoda])
 
   useEffect(() => {
@@ -903,7 +947,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           showToast(data.ricerca.error, 'error')
         }
 
-        await caricaCoda()
+        await caricaCoda(undefined, { silent: true })
         return { remaining }
       } catch (e) {
         showToast(
@@ -941,8 +985,15 @@ export default function CentroControlloClient({ sedeId }: Props) {
       const result = await cmd.esegui({ item, sedeId })
       if (result.success) {
         await registraEsecuzioneDiretta(item, commandId)
+        setItems((prev) => prev.filter((i) => i.id !== item.id))
+        setCodaTotal((prev) => Math.max(0, prev - 1))
+        setSuggerimenti((prev) => {
+          const next = new Map(prev)
+          next.delete(item.id)
+          return next
+        })
         showToast(result.message || t.appShellActions.operazioneCompletata, 'success')
-        caricaCoda()
+        void caricaCoda(undefined, { silent: true })
       } else {
         showToast(result.error || t.common.unknownError, 'error')
       }
@@ -985,8 +1036,14 @@ export default function CentroControlloClient({ sedeId }: Props) {
     showToast(message, 'success')
     if (itemId) {
       setItems((prev) => prev.filter((i) => i.id !== itemId))
+      setCodaTotal((prev) => Math.max(0, prev - 1))
+      setSuggerimenti((prev) => {
+        const next = new Map(prev)
+        next.delete(itemId)
+        return next
+      })
     }
-    caricaCoda()
+    void caricaCoda(undefined, { silent: true })
   }
 
   function formatAgo(iso: string | null): string {
@@ -1172,7 +1229,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           {error && (
             <div className="p-4 bg-rose-950/30 border border-rose-800/40 rounded-lg text-rose-300 text-sm">
               {error}
-              <button onClick={() => caricaCoda()} className="ml-2 underline hover:no-underline">{t.strumentiCentroControllo.queueRetry}</button>
+              <button onClick={() => void caricaCoda(undefined, { silent: false })} className="ml-2 underline hover:no-underline">{t.strumentiCentroControllo.queueRetry}</button>
             </div>
           )}
 
