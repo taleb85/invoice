@@ -922,6 +922,9 @@ export type Translations = {
     toolbarSelectDocument: string
     refreshDateFromDoc: string
     refreshDateFromDocTitle: string
+    refreshAllFromDocTitle: string
+    refreshAllFromDocDone: string
+    refreshAllFromDocErrors: string
     refreshDateFromDocSuccess: string
     refreshDateFromDocUnchanged: string
     refreshImportoFromDocSuccess: string

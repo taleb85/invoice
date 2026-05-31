@@ -2997,31 +2997,32 @@ function FattureTab({
     [fatture, toolbarFatturaId],
   )
 
-  const toolbarRefreshHandlers = useMemo(() => {
-    if (!toolbarSelectedFattura) return undefined
-    const f = toolbarSelectedFattura
-    return {
-      onDataUpdated: (d: string) => onFatturaDataRefreshed(f.id, d),
-      onImportoUpdated: (imp: number) => onFatturaImportoRefreshed(f.id, imp),
-      onNumeroFatturaUpdated: (n: string) => onFatturaNumeroFatturaRefreshed(f.id, n),
-      onTipoDocumentoUpdated: (tipo: string) => {
-        if (f.file_url) {
-          manualTipoOverridesRef.current = {
-            ...manualTipoOverridesRef.current,
-            [f.file_url.trim()]: tipo,
-          }
-          setTipoFatturaByFileUrl((prev) => ({ ...prev }))
-        }
-      },
-      onLedgerMutated,
-    }
-  }, [
-    toolbarSelectedFattura,
-    onFatturaDataRefreshed,
-    onFatturaImportoRefreshed,
-    onFatturaNumeroFatturaRefreshed,
-    onLedgerMutated,
-  ])
+  const toolbarRefreshBatch = useMemo(
+    () =>
+      fatture
+        .filter((f) => f.file_url?.trim())
+        .map((f) => ({
+          fatturaId: f.id,
+          onDataUpdated: (d: string) => onFatturaDataRefreshed(f.id, d),
+          onImportoUpdated: (imp: number) => onFatturaImportoRefreshed(f.id, imp),
+          onNumeroFatturaUpdated: (n: string) => onFatturaNumeroFatturaRefreshed(f.id, n),
+          onTipoDocumentoUpdated: (tipo: string) => {
+            if (f.file_url) {
+              manualTipoOverridesRef.current = {
+                ...manualTipoOverridesRef.current,
+                [f.file_url.trim()]: tipo,
+              }
+              setTipoFatturaByFileUrl((prev) => ({ ...prev }))
+            }
+          },
+        })),
+    [
+      fatture,
+      onFatturaDataRefreshed,
+      onFatturaImportoRefreshed,
+      onFatturaNumeroFatturaRefreshed,
+    ],
+  )
 
   const { showToast } = useToast()
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'numero_fattura' | 'importo' } | null>(null)
@@ -3129,7 +3130,7 @@ function FattureTab({
             fattureChoices={fattureWithFile}
             onFatturaIdChange={setToolbarFatturaId}
             showListinoSync={Boolean(toolbarSelectedFattura && !toolbarSelectedFattura.bolla_id)}
-            refreshHandlers={toolbarRefreshHandlers}
+            refreshBatch={toolbarRefreshBatch}
             onComplete={() => {
               onLedgerMutated?.()
               setLoading(true)

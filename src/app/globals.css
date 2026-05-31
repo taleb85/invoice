@@ -1561,6 +1561,19 @@ body:has([data-deep-aurora-integration])
   -webkit-backdrop-filter: none !important;
 }
 
+/** Azioni documento (sopra viewer PDF z-215): pannello sempre opaco e leggibile. */
+.document-actions-modal-panel {
+  background-color: #0f172a !important;
+  background-image: linear-gradient(155deg, rgb(15 23 42) 0%, rgb(30 27 75) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body:has([data-deep-aurora-integration]) .document-actions-modal-panel {
+  border-color: var(--app-surface-border) !important;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.55) !important;
+}
+
 /**
  * Full-viewport con `app-workspace-inset-bg` ma senza `app-aurora-modal-overlay`
  * (non il dettaglio bolla — quello usa `app-aurora-modal-overlay` + `.app-fornitore-doc-detail-scrim`).

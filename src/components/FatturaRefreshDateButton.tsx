@@ -7,12 +7,22 @@ import { formatDate as formatDateLib } from '@/lib/locale'
 import { useToast } from '@/lib/toast-context'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
-import { tipoDocumentoToLabel } from '@/lib/extract-doc-type'
+import {
+  applyFatturaRefreshOcrResponse,
+  fetchFatturaRefreshFromOcr,
+  type FatturaRefreshOcrCallbacks,
+} from '@/lib/fattura-refresh-from-ocr-client'
+
+export type FatturaRefreshBatchItem = {
+  fatturaId: string
+} & FatturaRefreshOcrCallbacks
 
 type Props = {
-  fatturaId: string
+  fatturaId?: string
   hasFile: boolean
   readOnly?: boolean
+  /** Se presente, rilegge tutti i documenti in sequenza (toolbar elenco fornitore). */
+  batch?: FatturaRefreshBatchItem[]
   onDataUpdated: (newIsoDate: string) => void
   onImportoUpdated?: (newImporto: number) => void
   onNumeroFatturaUpdated?: (newNumero: string) => void
@@ -25,6 +35,7 @@ export default function FatturaRefreshDateButton({
   fatturaId,
   hasFile,
   readOnly,
+  batch,
   onDataUpdated,
   onImportoUpdated,
   onNumeroFatturaUpdated,
@@ -36,92 +47,105 @@ export default function FatturaRefreshDateButton({
   const { locale, timezone } = useLocale()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [batchIndex, setBatchIndex] = useState(0)
 
-  if (readOnly || !hasFile) {
+  const targets: FatturaRefreshBatchItem[] =
+    batch && batch.length > 0
+      ? batch
+      : fatturaId
+        ? [
+            {
+              fatturaId,
+              onDataUpdated,
+              onImportoUpdated,
+              onNumeroFatturaUpdated,
+              onTipoDocumentoUpdated,
+            },
+          ]
+        : []
+
+  if (readOnly || !hasFile || targets.length === 0) {
     return null
   }
 
-  const fmt = (iso: string) => formatDateLib(iso, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' })
+  const isBatch = targets.length > 1
+  const fmt = (iso: string) =>
+    formatDateLib(iso, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' })
 
   const onClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     if (loading) return
     setLoading(true)
+    setBatchIndex(0)
+    let successCount = 0
+    let errorCount = 0
     try {
-      const res = await fetch('/api/fatture/refresh-date-from-ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fattura_id: fatturaId }),
-        credentials: 'include',
-      })
-      const j = (await res.json().catch(() => ({}))) as {
-        error?: string
-        ok?: boolean
-        data?: string
-        data_changed?: boolean
-        date_rejected?: boolean
-        info?: string
-        importo?: number | null
-        importo_changed?: boolean
-        numero_fattura?: string | null
-        numero_fattura_changed?: boolean
-        tipo_documento?: string | null
-      }
-      if (!res.ok) {
-        showToast(j.error ?? t.ui.networkError, 'error')
-        return
-      }
-      // Apply tipo_documento update immediately — do NOT dispatch fattura-mutated here
-      // as that would trigger a re-fetch that overwrites the direct state update.
-      if (j.tipo_documento) {
-        const label = tipoDocumentoToLabel(j.tipo_documento)
-        if (label) onTipoDocumentoUpdated?.(label)
-      }
-      const dataChanged = j.data_changed === true
-      const importoChanged = j.importo_changed === true && j.importo != null
-      const numeroChanged = j.numero_fattura_changed === true && j.numero_fattura != null
-      if (j.data && dataChanged) {
-        onDataUpdated(j.data)
-      }
-      if (importoChanged) {
-        onImportoUpdated?.(j.importo as number)
-      }
-      if (numeroChanged) {
-        onNumeroFatturaUpdated?.(j.numero_fattura as string)
-      }
-      if (dataChanged || importoChanged || numeroChanged) {
-        onLedgerMutated?.()
-        if (dataChanged) {
-          showToast(
-            t.fatture.refreshDateFromDocSuccess.replace('{data}', fmt(j.data!)),
-            'success',
-          )
-        } else if (importoChanged) {
-          showToast(t.fatture.refreshImportoFromDocSuccess, 'success')
-        } else if (numeroChanged) {
-          showToast(t.fatture.refreshNumeroFatturaFromDocSuccess, 'success')
+      for (let i = 0; i < targets.length; i++) {
+        setBatchIndex(i + 1)
+        const target = targets[i]!
+        const result = await fetchFatturaRefreshFromOcr(target.fatturaId)
+        if (!result.ok) {
+          errorCount++
+          if (!isBatch) {
+            showToast(result.body.error ?? t.ui.networkError, 'error')
+          }
+          continue
         }
-      } else if (j.date_rejected && j.info) {
-        showToast(j.info, 'info')
-      } else if (j.tipo_documento || j.info) {
-        showToast(j.info ?? t.fatture.refreshDateFromDocUnchanged, 'info')
-      } else {
-        showToast(t.fatture.refreshDateFromDocUnchanged, 'info')
+        successCount++
+        const j = result.body
+        const changed = applyFatturaRefreshOcrResponse(j, target)
+        if (changed && !isBatch) {
+          onLedgerMutated?.()
+        }
+        if (!isBatch) {
+          if (changed) {
+            if (j.data_changed && j.data) {
+              showToast(t.fatture.refreshDateFromDocSuccess.replace('{data}', fmt(j.data)), 'success')
+            } else if (j.importo_changed) {
+              showToast(t.fatture.refreshImportoFromDocSuccess, 'success')
+            } else if (j.numero_fattura_changed) {
+              showToast(t.fatture.refreshNumeroFatturaFromDocSuccess, 'success')
+            }
+          } else if (j.date_rejected && j.info) {
+            showToast(j.info, 'info')
+          } else {
+            showToast(j.info ?? t.fatture.refreshDateFromDocUnchanged, 'info')
+          }
+        }
+      }
+      if (isBatch) {
+        if (successCount > 0) onLedgerMutated?.()
+        showToast(
+          t.fatture.refreshAllFromDocDone
+            .replace('{ok}', String(successCount))
+            .replace('{total}', String(targets.length)),
+          errorCount > 0 ? 'info' : successCount > 0 ? 'success' : 'info',
+        )
+        if (errorCount > 0) {
+          showToast(t.fatture.refreshAllFromDocErrors.replace('{n}', String(errorCount)), 'error')
+        }
       }
     } catch {
       showToast(t.ui.networkError, 'error')
     } finally {
       setLoading(false)
+      setBatchIndex(0)
     }
   }
+
+  const label = loading && isBatch
+    ? `${batchIndex}/${targets.length}`
+    : loading
+      ? '…'
+      : t.fatture.refreshDateFromDoc
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={loading}
-      title={t.fatture.refreshDateFromDocTitle}
+      title={isBatch ? t.fatture.refreshAllFromDocTitle : t.fatture.refreshDateFromDocTitle}
       className={`inline-flex shrink-0 items-center gap-1 border border-app-line-30 bg-app-line-10 text-app-fg-muted font-semibold transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:opacity-50 ${BTN_SIZE_SM} ${className}`}
     >
       {loading ? (
@@ -136,7 +160,7 @@ export default function FatturaRefreshDateButton({
           />
         </svg>
       )}
-      <span className="whitespace-nowrap">{loading ? '…' : t.fatture.refreshDateFromDoc}</span>
+      <span className="whitespace-nowrap">{label}</span>
     </button>
   )
 }

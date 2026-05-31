@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
-import FatturaRefreshDateButton from '@/components/FatturaRefreshDateButton'
+import FatturaRefreshDateButton, { type FatturaRefreshBatchItem } from '@/components/FatturaRefreshDateButton'
 
 interface LineItem {
   prodotto: string
@@ -51,27 +51,20 @@ export type FatturaToolbarChoice = {
   senzaBolla: boolean
 }
 
-type RefreshHandlers = {
-  onDataUpdated: (newIsoDate: string) => void
-  onImportoUpdated?: (newImporto: number) => void
-  onNumeroFatturaUpdated?: (newNumero: string) => void
-  onTipoDocumentoUpdated?: (tipo: string) => void
-  onLedgerMutated?: () => void
-}
-
 export default function FattureInAttesaAutoSync({
   fatturaId,
   fattureChoices,
   onFatturaIdChange,
   showListinoSync = true,
-  refreshHandlers,
+  refreshBatch,
   onComplete,
 }: {
   fatturaId: string
   fattureChoices: FatturaToolbarChoice[]
   onFatturaIdChange: (id: string) => void
   showListinoSync?: boolean
-  refreshHandlers?: RefreshHandlers
+  /** Tutti i documenti con allegato nell’elenco — rilettura OCR in cascata. */
+  refreshBatch?: FatturaRefreshBatchItem[]
   onComplete?: () => void
 }) {
   const router = useRouter()
@@ -82,8 +75,9 @@ export default function FattureInAttesaAutoSync({
   const [importing, setImporting] = useState(false)
 
   const selected = fattureChoices.find((c) => c.id === fatturaId) ?? fattureChoices[0]
-  const canRefresh = Boolean(selected?.hasFile && refreshHandlers)
+  const canRefresh = Boolean(refreshBatch?.length)
   const canListino = showListinoSync && Boolean(selected?.senzaBolla)
+  const refreshFallback = refreshBatch?.[0]
 
   const handleAutoSync = async () => {
     if (!fatturaId) return
@@ -156,15 +150,15 @@ export default function FattureInAttesaAutoSync({
             </label>
           ) : null}
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {canRefresh && refreshHandlers ? (
+            {canRefresh && refreshFallback ? (
               <FatturaRefreshDateButton
-                fatturaId={fatturaId}
                 hasFile
-                onDataUpdated={refreshHandlers.onDataUpdated}
-                onImportoUpdated={refreshHandlers.onImportoUpdated}
-                onNumeroFatturaUpdated={refreshHandlers.onNumeroFatturaUpdated}
-                onTipoDocumentoUpdated={refreshHandlers.onTipoDocumentoUpdated}
-                onLedgerMutated={refreshHandlers.onLedgerMutated}
+                batch={refreshBatch}
+                onDataUpdated={refreshFallback.onDataUpdated}
+                onImportoUpdated={refreshFallback.onImportoUpdated}
+                onNumeroFatturaUpdated={refreshFallback.onNumeroFatturaUpdated}
+                onTipoDocumentoUpdated={refreshFallback.onTipoDocumentoUpdated}
+                onLedgerMutated={refreshFallback.onLedgerMutated}
               />
             ) : null}
             {canListino && !result ? (

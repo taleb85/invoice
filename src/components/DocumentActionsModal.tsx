@@ -156,12 +156,24 @@ export default function DocumentActionsModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-lg rounded-xl border border-app-line-28 bg-app-bg shadow-2xl shadow-black/20">
+    <div
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="document-actions-modal-panel relative mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-app-line-45 shadow-2xl shadow-black/55 ring-1 ring-cyan-400/25"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="document-actions-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-app-line-28 px-5 py-3.5">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-app-fg">{d.title}</p>
+            <p id="document-actions-modal-title" className="text-sm font-semibold text-app-fg">
+              {d.title}
+            </p>
             <p className="mt-0.5 truncate text-[11px] text-app-fg-muted">
               {item.fornitore_nome ?? d.noSupplier}
               {item.numero_documento && ` · ${item.numero_documento}`}
@@ -223,7 +235,7 @@ export default function DocumentActionsModal({
             if (!azioni.length) return null
             return (
               <div key={grp} className="mb-3 last:mb-0">
-                <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-app-fg-muted">
+                <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-app-fg-subtle">
                   {etichette[grp] ?? grp}
                 </p>
                 <div className="space-y-0.5">
@@ -236,7 +248,7 @@ export default function DocumentActionsModal({
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                         action.pericolosa
                           ? 'hover:bg-rose-500/10 active:bg-rose-500/15'
-                          : 'hover:bg-app-line-10 active:bg-app-line-18'
+                          : 'hover:bg-white/[0.06] active:bg-white/[0.09]'
                       } disabled:opacity-40`}
                     >
                       <span
