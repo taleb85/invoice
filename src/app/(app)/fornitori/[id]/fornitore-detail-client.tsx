@@ -100,6 +100,10 @@ const FattureInAttesaAutoSync = dynamic(
   () => import('@/components/FattureInAttesaAutoSync'),
   { ssr: false, loading: () => null },
 )
+const FornitoreAnomalieTab = dynamic(
+  () => import('@/components/FornitoreAnomalieTab'),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
+)
 const RecuperoCreditiAudit = dynamic(
   () => import('@/components/RecuperoCreditiAudit'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
@@ -149,10 +153,10 @@ import {
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ActivityFeed } from '@/components/activity/activity-feed'
 
-type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica' | 'audit'
+type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica' | 'audit' | 'anomalie'
 
 /** Tab nascosti su mobile per utenti senza permessi di modifica (magazziniere/operatore). */
-const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'verifica', 'audit']
+const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'verifica', 'audit', 'anomalie']
 
 /** Tab con intestazione nel contenuto: su mobile non ripetere il titolo in sticky header. */
 const MOBILE_SELF_HEADED_TABS: Tab[] = ['verifica', 'documenti']
@@ -441,6 +445,8 @@ type SupplierPeriodStats = {
   rekkiPriceAnomalies: number
   /** Anomalie non risolte nella tabella price_anomalies (fattura vs listino_prezzi). */
   listinoAnomaliesCount: number
+  fattureDuplicateExcess: number
+  bolleDuplicateExcess: number
 }
 
 const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
@@ -457,6 +463,8 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   statementsWithIssues: 0,
   rekkiPriceAnomalies: 0,
   listinoAnomaliesCount: 0,
+  fattureDuplicateExcess: 0,
+  bolleDuplicateExcess: 0,
 }
 
 function useSupplierPeriodStats(
@@ -6031,7 +6039,8 @@ function FornitoreDetailClient({
       p === 'conferme' ||
       p === 'documenti' ||
       p === 'verifica' ||
-      p === 'audit'
+      p === 'audit' ||
+      p === 'anomalie'
     ) {
       return p
     }
@@ -6372,6 +6381,19 @@ function FornitoreDetailClient({
   const fattureTabBadge = periodStatsLoading ? undefined : (periodStats?.fattureTotal ?? 0) > 0 ? periodStats!.fattureTotal : undefined
   const verificaTabBadge = periodStatsLoading ? undefined : (periodStats?.statementsWithIssues ?? 0) > 0 ? periodStats!.statementsWithIssues : undefined
 
+  const anomalieTabBadge = useMemo(() => {
+    if (periodStatsLoading || !periodStats) return undefined
+    const n =
+      (periodStats.listinoAnomaliesCount ?? 0) +
+      (periodStats.rekkiPriceAnomalies ?? 0) +
+      (periodStats.fattureDuplicateExcess ?? 0) +
+      (periodStats.bolleDuplicateExcess ?? 0) +
+      (periodStats.statementsWithIssues ?? 0) +
+      (periodStats.bolleAperte ?? 0) +
+      (periodStats.pending ?? 0)
+    return n > 0 ? n : undefined
+  }, [periodStats, periodStatsLoading])
+
   const expandLedgerToAllFatture = useCallback(() => {
     setLedgerPeriod(clampLedgerPeriodToToday('2000-01-01', todayYmd, todayYmd))
     setPeriodLedgerEpoch((e) => e + 1)
@@ -6380,16 +6402,18 @@ function FornitoreDetailClient({
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
     // Primary nav: 3 tabs only. bolle/fatture/dashboard remain accessible via KPI cards.
     const primary: { id: Tab; label: string; badge?: number }[] = [
-      { id: 'verifica',  label: t.statements.tabVerifica,  badge: verificaTabBadge },
+      { id: 'anomalie', label: t.fornitori.tabAnomalie, badge: anomalieTabBadge },
+      { id: 'verifica', label: t.statements.tabVerifica, badge: verificaTabBadge },
       { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
-      { id: 'listino',   label: t.fornitori.tabListino },
+      { id: 'listino', label: t.fornitori.tabListino },
     ]
     if (supplierReadOnlyMobile) {
-      return primary.filter((tb) => tb.id === 'listino' || tb.id === 'documenti')
+      return primary.filter((tb) => tb.id === 'listino' || tb.id === 'documenti' || tb.id === 'anomalie')
     }
     return primary
   }, [
     t,
+    anomalieTabBadge,
     verificaTabBadge,
     pendingCount,
     supplierReadOnlyMobile,
@@ -6457,6 +6481,18 @@ function FornitoreDetailClient({
             readOnly={supplierReadOnlyMobile}
           />
         ) : null)}
+      {displayTab === 'anomalie' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <FornitoreAnomalieTab
+            fornitoreId={fornitore.id}
+            dateFrom={ledgerPeriod.from}
+            dateToExclusive={ledgerDateToExclusive}
+            pathname={pathname}
+            searchParams={searchParams}
+            epoch={periodLedgerEpoch}
+            onNavigateTab={(next) => setTab(next as Tab)}
+          />
+        ) : null)}
       {displayTab === 'documenti' &&
         ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
           <PendingMatchesTab
@@ -6519,7 +6555,8 @@ function FornitoreDetailClient({
       bolle:     t.nav.bolle,
       fatture:   t.nav.fatture,
       conferme:  t.fornitori.tabConfermeOrdine,
-      audit:     t.statements.tabVerifica,
+      audit: t.statements.tabVerifica,
+      anomalie: t.fornitori.tabAnomalie,
     }
     return {
       id: displayTab,

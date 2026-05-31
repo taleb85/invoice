@@ -16,6 +16,10 @@ export const SUPPLIER_DETAIL_TAB_HIGHLIGHT = {
     border: 'border-app-line-28',
     bar: 'bg-gradient-to-r from-red-500/70 via-red-400/30 to-transparent',
   },
+  anomalie: {
+    border: 'border-amber-500/35',
+    bar: 'bg-gradient-to-r from-amber-500/75 via-rose-500/40 to-transparent',
+  },
 } as const
 
 export type SupplierDetailTabKey = keyof typeof SUPPLIER_DETAIL_TAB_HIGHLIGHT
@@ -30,6 +34,7 @@ export const SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE: Record<SupplierDetailTabKey, 
   documenti: 'border-b-app-line-40',
   verifica: 'border-b-app-line-40',
   audit: 'border-b-app-line-40',
+  anomalie: 'border-b-amber-500/50',
 }
 
 /** Tabella «riepilogo per mese»: stessi accenti della card del tab attivo (fatture, bolle, …). */
@@ -126,5 +131,15 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     periodNavWrap:
       'border-app-line-40 bg-red-500/[0.09] shadow-none',
     periodNavIconBtn: 'text-red-100/90 hover:bg-red-500/20 hover:text-white',
+  },
+  anomalie: {
+    selectionRow: 'bg-amber-500/10',
+    monthSelected: 'text-amber-200',
+    cellHover: 'hover:text-amber-200',
+    focusRing: 'focus-visible:ring-amber-500/40',
+    resetNav: 'text-amber-400 hover:bg-amber-500/20 hover:text-amber-300',
+    periodNavWrap:
+      'border-app-line-40 bg-amber-500/[0.09] shadow-none',
+    periodNavIconBtn: 'text-amber-100/90 hover:bg-amber-500/20 hover:text-white',
   },
 }

@@ -1002,6 +1002,25 @@ export type Translations = {
     saving: string
     tabRiepilogo: string
     tabListino: string
+    tabAnomalie: string
+    anomalieTabTitle: string
+    anomalieTabSubtitle: string
+    anomalieTabEmpty: string
+    anomalieTabEmptyHint: string
+    anomalieChipPrezzo: string
+    anomalieChipFatture: string
+    anomalieChipBolle: string
+    anomalieChipEstratti: string
+    anomalieChipCoda: string
+    anomalieSectionPrezzo: string
+    anomalieSectionFattureDup: string
+    anomalieSectionBolleDup: string
+    anomalieSectionEstratti: string
+    anomalieSectionBolleAperte: string
+    anomalieSectionDocumenti: string
+    anomalieVaiAlTab: string
+    anomalieRisolvi: string
+    anomalieApriCoda: string
     tabAuditPrezzi: string
     tabConfermeOrdine: string
     tabStrategyConto: string

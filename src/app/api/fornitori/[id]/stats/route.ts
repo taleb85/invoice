@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { analyzeFatturaDuplicatesForDeletion } from '@/lib/check-duplicates'
+import {
+  analyzeBolleDuplicatesForDeletion,
+  analyzeFatturaDuplicatesForDeletion,
+} from '@/lib/check-duplicates'
+import {
+  countBolleImportOverPrezzoRekki,
+  countRekkiUnitAnomaliesFromStatements,
+} from '@/lib/rekki-price-anomalies'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,9 +30,10 @@ export async function GET(req: NextRequest) {
     const service = createServiceClient()
 
     const [
-      bolleRes,
+      bolleCountRes,
       bolleAperteRes,
       fattureRes,
+      bolleRowsRes,
       listinoRes,
       stmtsRes,
       ordiniRes,
@@ -34,7 +42,18 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
       service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('stato', 'in attesa').gte('data', from).lt('data', to),
-      service.from('fatture').select('id, data, importo, numero_fattura, is_credit_note').eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
+      service
+        .from('fatture')
+        .select('id, data, importo, numero_fattura, is_credit_note, file_url')
+        .eq('fornitore_id', fornitoreId)
+        .gte('data', from)
+        .lt('data', to),
+      service
+        .from('bolle')
+        .select('id, data, numero_bolla, file_url, sede_id, email_sync_auto_saved_at')
+        .eq('fornitore_id', fornitoreId)
+        .gte('data', from)
+        .lt('data', to),
       service.from('listino_prezzi').select('prodotto').eq('fornitore_id', fornitoreId).gte('data_prezzo', from).lt('data_prezzo', to).limit(8000),
       service.from('statements').select('missing_rows, received_at, extracted_pdf_dates').eq('fornitore_id', fornitoreId).order('received_at', { ascending: false }).limit(800),
       service.from('conferme_ordine').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('created_at', from).lt('created_at', to),
@@ -54,8 +73,33 @@ export async function GET(req: NextRequest) {
         importo: f.importo as number | null,
         fornitore_id: fornitoreId,
         numero_fattura: f.numero_fattura as string | null,
-      }))
+        file_url: f.file_url as string | null,
+      })),
     )
+    const bollaDup = analyzeBolleDuplicatesForDeletion(
+      (bolleRowsRes.data ?? []).map((b: Record<string, unknown>) => ({
+        id: b.id as string,
+        data: b.data as string,
+        fornitore_id: fornitoreId,
+        numero_bolla: b.numero_bolla as string | null,
+        file_url: b.file_url as string | null,
+        sede_id: b.sede_id as string | null,
+        email_sync_auto_saved_at: b.email_sync_auto_saved_at as string | null,
+      })),
+    )
+    const dateBounds = { dateFrom: from, dateToExclusive: to }
+    const [rekkiStmt, rekkiBolle] = await Promise.all([
+      countRekkiUnitAnomaliesFromStatements(service, {
+        sedeId: null,
+        fornitoreIds: [fornitoreId],
+        fiscalBounds: null,
+        bollaDateBounds: dateBounds,
+      }),
+      countBolleImportOverPrezzoRekki(service, {
+        fornitoreIds: [fornitoreId],
+        bounds: dateBounds,
+      }),
+    ])
     const totaleSpesa = Math.max(0, totaleSpesaLordo - dup.surplusImporto - creditNoteTotal)
 
     const listinoRowsData = (listinoRes.data ?? []) as { prodotto: string }[]
@@ -70,9 +114,9 @@ export async function GET(req: NextRequest) {
     const statementsWithIssues = stmtData.filter((s) => (s.missing_rows ?? 0) > 0).length
 
     return NextResponse.json({
-      bolleTotal: bolleRes.count ?? 0,
+      bolleTotal: bolleCountRes.count ?? 0,
       bolleAperte: bolleAperteRes.count ?? 0,
-      fattureTotal: fattureRes.count ?? 0,
+      fattureTotal: fattureRes.data?.length ?? 0,
       ordiniNelPeriodo: ordiniRes.count ?? 0,
       pending: pendingRes.count ?? 0,
       totaleSpesaLordo,
@@ -81,8 +125,10 @@ export async function GET(req: NextRequest) {
       listinoProdottiDistinti,
       statementsInPeriod,
       statementsWithIssues,
-      rekkiPriceAnomalies: 0,
+      rekkiPriceAnomalies: rekkiStmt + rekkiBolle,
       listinoAnomaliesCount: anomalieRes.count ?? 0,
+      fattureDuplicateExcess: dup.excessIds.size,
+      bolleDuplicateExcess: bollaDup.excessIds.size,
     })
   } catch (err) {
     console.error('[GET /api/fornitori/stats]', err instanceof Error ? err.message : err)
