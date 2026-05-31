@@ -48,6 +48,8 @@ function issueLabel(
       return t.fornitori.anomalieIssueEstratto
     case 'documento_coda':
       return t.fornitori.anomalieIssueCoda
+    case 'fornitore_stesso_dominio':
+      return t.fornitori.anomalieIssueStessoDominio
   }
 }
 
@@ -71,6 +73,7 @@ function issueBadgeClass(row: SupplierAnomalieApiRow) {
   }
   if (kind === 'prezzo_listino') return 'border-amber-500/35 bg-amber-500/12 text-amber-100'
   if (kind === 'estratto_conto') return 'border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
+  if (kind === 'fornitore_stesso_dominio') return 'border-violet-500/40 bg-violet-500/15 text-violet-100'
   return 'border-app-line-30 bg-app-line-10 text-app-fg-muted'
 }
 
@@ -238,6 +241,13 @@ export default function FornitoreAnomalieTab({
         >
           {t.fornitori.anomalieApriCoda}
         </Link>
+      ) : row.kind === 'fornitore_stesso_dominio' && row.meta?.peerFornitoreId ? (
+        <Link
+          href={`/fornitori/${encodeURIComponent(fornitoreId)}/edit?merge_source=${encodeURIComponent(row.meta.peerFornitoreId)}`}
+          className="rounded-lg border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-100"
+        >
+          {t.fornitori.anomalieUnisciFornitore}
+        </Link>
       ) : (
         <button
           type="button"
@@ -294,6 +304,7 @@ export default function FornitoreAnomalieTab({
     { label: t.fornitori.anomalieChipBolle, n: data.summary.bolleDuplicati },
     { label: t.fornitori.anomalieChipEstratti, n: data.summary.estrattiConto },
     { label: t.fornitori.anomalieChipCoda, n: data.summary.documentiInCoda },
+    { label: t.fornitori.anomalieChipStessoDominio, n: data.summary.fornitoriStessoDominio ?? 0 },
   ].filter((c) => c.n > 0)
 
   return (

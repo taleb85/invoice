@@ -19,6 +19,7 @@ import {
   deliveryNoteOpenFallback,
   formatDeliveryNoteNumber,
 } from '@/lib/localization'
+import { findSameDomainConflictsForFornitore } from '@/lib/fornitore-same-domain'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,7 @@ export type SupplierAnomalieApiRow = {
     | 'estratto_conto'
     | 'bolla_aperta'
     | 'documento_coda'
+    | 'fornitore_stesso_dominio'
   title: string
   subtitle: string | null
   severity: 'high' | 'medium' | 'low'
@@ -51,6 +53,8 @@ export type SupplierAnomalieApiRow = {
     duplicateGroupKey?: string
     /** Se la data in anagrafica differisce da quella del documento originale nel gruppo. */
     registeredData?: string
+    peerFornitoreId?: string
+    emailDomain?: string
   }
 }
 
@@ -87,6 +91,7 @@ export type SupplierAnomalieApiResponse = {
     estrattiConto: number
     bolleAperte: number
     documentiInCoda: number
+    fornitoriStessoDominio: number
   }
   rows: SupplierAnomalieApiRow[]
 }
@@ -118,6 +123,7 @@ export async function GET(
       pendingRes,
       rekkiStmt,
       rekkiBolle,
+      sameDomainConflicts,
     ] = await Promise.all([
       service
         .from('fatture')
@@ -166,6 +172,7 @@ export async function GET(
         bounds: dateBounds,
         sedeId: null,
       }),
+      findSameDomainConflictsForFornitore(service, fornitoreId),
     ])
 
     const fatture = (fattureRes.data ?? []) as {
@@ -210,6 +217,30 @@ export async function GET(
     const bolleById = new Map(bolle.map((b) => [b.id, b]))
 
     const rows: SupplierAnomalieApiRow[] = []
+
+    const sameDomainPeerIds = new Set<string>()
+    for (const conflict of sameDomainConflicts) {
+      for (const peer of conflict.peers) {
+        if (peer.id === fornitoreId || sameDomainPeerIds.has(peer.id)) continue
+        sameDomainPeerIds.add(peer.id)
+        const emailHint = peer.emails.slice(0, 2).join(', ')
+        rows.push({
+          id: `sd-${peer.id}`,
+          kind: 'fornitore_stesso_dominio',
+          title: peer.nome,
+          subtitle: `@${conflict.domain}${emailHint ? ` · ${emailHint}` : ''}`,
+          severity: 'high',
+          data: null,
+          numero: null,
+          importo: null,
+          fileUrl: null,
+          meta: {
+            peerFornitoreId: peer.id,
+            emailDomain: conflict.domain,
+          },
+        })
+      }
+    }
 
     for (const a of priceAnomaliesRes.data ?? []) {
       const row = a as {
@@ -383,6 +414,8 @@ export async function GET(
     }
 
     rows.sort((a, b) => {
+      if (a.kind === 'fornitore_stesso_dominio' && b.kind !== 'fornitore_stesso_dominio') return -1
+      if (b.kind === 'fornitore_stesso_dominio' && a.kind !== 'fornitore_stesso_dominio') return 1
       const aGrp = a.meta?.duplicateGroupKey
       const bGrp = b.meta?.duplicateGroupKey
       if (aGrp && bGrp && aGrp === bGrp) {
@@ -400,6 +433,7 @@ export async function GET(
     const bolleAperteCount = bolleAperte.length
     const documentiInCoda = pendingRes.data?.length ?? 0
     const rekkiTotal = rekkiStmt + rekkiBolle
+    const fornitoriStessoDominio = sameDomainPeerIds.size
 
     const summary = {
       prezzoListino: priceAnomaliesRes.data?.length ?? 0,
@@ -409,6 +443,7 @@ export async function GET(
       estrattiConto,
       bolleAperte: bolleAperteCount,
       documentiInCoda,
+      fornitoriStessoDominio,
       total: rows.length,
     }
 

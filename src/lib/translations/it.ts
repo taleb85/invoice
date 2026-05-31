@@ -1617,6 +1617,15 @@ const translations: Translations = {
     anomalieChipBolle: 'bolle dup.',
     anomalieChipEstratti: 'estratti',
     anomalieChipCoda: 'in coda',
+    anomalieChipStessoDominio: 'stesso dominio',
+    anomalieIssueStessoDominio: 'Profilo duplicato (email)',
+    anomalieStessoDominioSubtitle:
+      'Più fornitori con @{domain}: la scansione non può collegare automaticamente le mail.',
+    anomalieUnisciFornitore: 'Unisci profili',
+    sameDomainMergeBanner:
+      'Altri fornitori nella stessa azienda usano lo stesso dominio email (@{domain}). Uniscili in un solo profilo per ripristinare l’abbinamento automatico delle mail.',
+    mergeFornitoreSameDomainGroup: 'Stesso dominio email',
+    mergeFornitoreOtherGroup: 'Altri fornitori',
     anomalieSectionPrezzo: 'Prezzi e listino',
     anomalieSectionFattureDup: 'Fatture duplicate',
     anomalieSectionBolleDup: 'Bolle duplicate',

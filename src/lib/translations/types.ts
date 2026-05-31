@@ -1012,6 +1012,13 @@ export type Translations = {
     anomalieChipBolle: string
     anomalieChipEstratti: string
     anomalieChipCoda: string
+    anomalieChipStessoDominio: string
+    anomalieIssueStessoDominio: string
+    anomalieStessoDominioSubtitle: string
+    anomalieUnisciFornitore: string
+    sameDomainMergeBanner: string
+    mergeFornitoreSameDomainGroup: string
+    mergeFornitoreOtherGroup: string
     anomalieSectionPrezzo: string
     anomalieSectionFattureDup: string
     anomalieSectionBolleDup: string

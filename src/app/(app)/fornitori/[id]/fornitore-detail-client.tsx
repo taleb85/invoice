@@ -447,6 +447,7 @@ type SupplierPeriodStats = {
   listinoAnomaliesCount: number
   fattureDuplicateExcess: number
   bolleDuplicateExcess: number
+  sameDomainPeerCount: number
 }
 
 const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
@@ -465,6 +466,7 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   listinoAnomaliesCount: 0,
   fattureDuplicateExcess: 0,
   bolleDuplicateExcess: 0,
+  sameDomainPeerCount: 0,
 }
 
 function useSupplierPeriodStats(
@@ -6391,7 +6393,8 @@ function FornitoreDetailClient({
       (periodStats.bolleDuplicateExcess ?? 0) +
       (periodStats.statementsWithIssues ?? 0) +
       (periodStats.bolleAperte ?? 0) +
-      (periodStats.pending ?? 0)
+      (periodStats.pending ?? 0) +
+      (periodStats.sameDomainPeerCount ?? 0)
     return n > 0 ? n : undefined
   }, [periodStats, periodStatsLoading])
 

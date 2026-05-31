@@ -8,6 +8,7 @@ import {
   countBolleImportOverPrezzoRekki,
   countRekkiUnitAnomaliesFromStatements,
 } from '@/lib/rekki-price-anomalies'
+import { findSameDomainPeersForFornitore } from '@/lib/fornitore-same-domain'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,7 +89,7 @@ export async function GET(req: NextRequest) {
       })),
     )
     const dateBounds = { dateFrom: from, dateToExclusive: to }
-    const [rekkiStmt, rekkiBolle] = await Promise.all([
+    const [rekkiStmt, rekkiBolle, sameDomainPeers] = await Promise.all([
       countRekkiUnitAnomaliesFromStatements(service, {
         sedeId: null,
         fornitoreIds: [fornitoreId],
@@ -99,6 +100,7 @@ export async function GET(req: NextRequest) {
         fornitoreIds: [fornitoreId],
         bounds: dateBounds,
       }),
+      findSameDomainPeersForFornitore(service, fornitoreId),
     ])
     const totaleSpesa = Math.max(0, totaleSpesaLordo - dup.surplusImporto - creditNoteTotal)
 
@@ -129,6 +131,7 @@ export async function GET(req: NextRequest) {
       listinoAnomaliesCount: anomalieRes.count ?? 0,
       fattureDuplicateExcess: dup.excessIds.size,
       bolleDuplicateExcess: bollaDup.excessIds.size,
+      sameDomainPeerCount: sameDomainPeers.length,
     })
   } catch (err) {
     console.error('[GET /api/fornitori/stats]', err instanceof Error ? err.message : err)

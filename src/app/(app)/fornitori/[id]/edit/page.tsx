@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -33,6 +33,7 @@ const editSectionBodyCls = 'space-y-4 bg-transparent p-6'
 export default function EditFornitore() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params.id as string
   const supabase = createClient()
   const t = useT()
@@ -60,6 +61,8 @@ export default function EditFornitore() {
   const [sedeId, setSedeId] = useState<string | null>(null)
   const [mergeSourceId, setMergeSourceId] = useState('')
   const [mergeCandidates, setMergeCandidates] = useState<{ id: string; nome: string }[]>([])
+  const [sameDomainPeerIds, setSameDomainPeerIds] = useState<Set<string>>(new Set())
+  const [sameDomainBanner, setSameDomainBanner] = useState<string | null>(null)
   const [merging, setMerging] = useState(false)
 
   const loadAliases = useCallback(async () => {
@@ -115,8 +118,54 @@ export default function EditFornitore() {
       .eq('sede_id', sedeId)
       .neq('id', id)
       .order('nome')
-      .then(({ data }) => setMergeCandidates(data ?? []))
+      .then(({ data }: { data: { id: string; nome: string }[] | null }) =>
+        setMergeCandidates(data ?? []),
+      )
   }, [id, sedeId, supabase])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch(`/api/fornitori/${encodeURIComponent(id)}/same-domain-peers`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((j: { conflicts?: { domain: string; peers: { id: string }[] }[] }) => {
+        if (cancelled) return
+        const peerIds = new Set<string>()
+        const domains: string[] = []
+        for (const c of j.conflicts ?? []) {
+          domains.push(c.domain)
+          for (const p of c.peers) {
+            if (p.id !== id) peerIds.add(p.id)
+          }
+        }
+        setSameDomainPeerIds(peerIds)
+        if (domains.length > 0) {
+          const domainLabel = domains.map((d) => `@${d}`).join(', ')
+          setSameDomainBanner(
+            t.fornitori.sameDomainMergeBanner.replace('{domain}', domainLabel),
+          )
+        } else {
+          setSameDomainBanner(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSameDomainPeerIds(new Set())
+          setSameDomainBanner(null)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, t.fornitori.sameDomainMergeBanner])
+
+  useEffect(() => {
+    const pre = searchParams.get('merge_source')?.trim()
+    if (!pre || pre === id) return
+    if (mergeCandidates.some((c) => c.id === pre)) setMergeSourceId(pre)
+  }, [searchParams, mergeCandidates, id])
+
+  const mergeSameDomain = mergeCandidates.filter((c) => sameDomainPeerIds.has(c.id))
+  const mergeOthers = mergeCandidates.filter((c) => !sameDomainPeerIds.has(c.id))
 
   const handleAddAlias = async () => {
     if (!newAlias.email.trim()) return
@@ -166,7 +215,7 @@ export default function EditFornitore() {
       router.push(`/fornitori/${id}`)
       router.refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : t.appStrings.networkError)
+      setError(e instanceof Error ? e.message : t.common.networkError)
     } finally {
       setMerging(false)
     }
@@ -404,6 +453,11 @@ export default function EditFornitore() {
               <h2 className="text-sm font-semibold text-app-fg">{t.fornitori.mergeFornitoreTitle}</h2>
               <p className="mt-0.5 text-xs text-app-fg-muted">{t.fornitori.mergeFornitoreHint}</p>
             </div>
+            {sameDomainBanner ? (
+              <p className="rounded-xl border border-violet-500/35 bg-violet-500/10 px-3 py-2.5 text-xs leading-relaxed text-violet-100">
+                {sameDomainBanner}
+              </p>
+            ) : null}
             <label className={labelCls}>{t.fornitori.mergeFornitoreSelect}</label>
             <select
               className={selectCls}
@@ -411,11 +465,30 @@ export default function EditFornitore() {
               onChange={(e) => setMergeSourceId(e.target.value)}
             >
               <option value="">{t.fornitori.mergeFornitoreSelectPlaceholder}</option>
-              {mergeCandidates.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
-              ))}
+              {mergeSameDomain.length > 0 ? (
+                <optgroup label={t.fornitori.mergeFornitoreSameDomainGroup}>
+                  {mergeSameDomain.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {mergeOthers.length > 0 && mergeSameDomain.length > 0 ? (
+                <optgroup label={t.fornitori.mergeFornitoreOtherGroup}>
+                  {mergeOthers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : (
+                mergeOthers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))
+              )}
             </select>
             <button
               type="button"
