@@ -1021,6 +1021,15 @@ export type Translations = {
     anomalieVaiAlTab: string
     anomalieRisolvi: string
     anomalieApriCoda: string
+    anomalieColIssue: string
+    anomalieColDocument: string
+    anomalieIssueDupFattura: string
+    anomalieIssueDupBolla: string
+    anomalieIssuePrezzo: string
+    anomalieIssueRekki: string
+    anomalieIssueEstratto: string
+    anomalieIssueBollaAperta: string
+    anomalieIssueCoda: string
     tabAuditPrezzi: string
     tabConfermeOrdine: string
     tabStrategyConto: string

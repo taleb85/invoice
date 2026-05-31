@@ -24,6 +24,11 @@ export type SupplierAnomalieApiRow = {
   title: string
   subtitle: string | null
   severity: 'high' | 'medium' | 'low'
+  /** Data documento (YYYY-MM-DD) per ordinamento e colonna tabella. */
+  data: string | null
+  numero: string | null
+  importo: number | null
+  fileUrl: string | null
   meta?: {
     fatturaId?: string
     bollaId?: string
@@ -98,13 +103,13 @@ export async function GET(
         .limit(100),
       service
         .from('statements')
-        .select('id, missing_rows, received_at, extracted_pdf_dates')
+        .select('id, missing_rows, received_at, extracted_pdf_dates, file_url')
         .eq('fornitore_id', fornitoreId)
         .order('received_at', { ascending: false })
         .limit(400),
       service
         .from('documenti_da_processare')
-        .select('id, file_name, created_at, stato')
+        .select('id, file_name, file_url, created_at, stato')
         .eq('fornitore_id', fornitoreId)
         .in('stato', ['in_attesa', 'da_processare', 'da_associare'])
         .gte('created_at', from)
@@ -129,12 +134,14 @@ export async function GET(
       data: string
       importo: number | null
       numero_fattura: string | null
+      file_url: string | null
     }[]
     const bolle = (bolleRes.data ?? []) as {
       id: string
       data: string
       importo: number | null
       numero_bolla: string | null
+      file_url: string | null
       stato: string
     }[]
 
@@ -174,12 +181,17 @@ export async function GET(
         differenza_percent: number
         fattura_id: string | null
       }
+      const linkedFattura = row.fattura_id ? fattureById.get(row.fattura_id) : null
       rows.push({
         id: `pl-${row.id}`,
         kind: 'prezzo_listino',
         title: row.prodotto,
         subtitle: `Pagato ${row.prezzo_pagato} · listino ${row.prezzo_listino} (+${(row.differenza_percent * 100).toFixed(1)}%)`,
         severity: row.differenza_percent >= 0.15 ? 'high' : 'medium',
+        data: linkedFattura?.data ?? null,
+        numero: linkedFattura?.numero_fattura ?? null,
+        importo: row.prezzo_pagato,
+        fileUrl: linkedFattura?.file_url?.trim() || null,
         meta: {
           fatturaId: row.fattura_id ?? undefined,
           differenzaPercent: row.differenza_percent,
@@ -195,6 +207,10 @@ export async function GET(
         title: 'Prezzo consegna vs Rekki',
         subtitle: `${rekkiStmt + rekkiBolle} voce/i con importo superiore al riferimento ordine`,
         severity: 'high',
+        data: null,
+        numero: null,
+        importo: null,
+        fileUrl: null,
         meta: {},
       })
     }
@@ -206,10 +222,12 @@ export async function GET(
         id: `fd-${excessId}`,
         kind: 'fattura_duplicata',
         title: f.numero_fattura?.trim() ? `#${f.numero_fattura.trim()}` : 'Fattura duplicata',
-        subtitle: [f.data, f.importo != null ? `£${Number(f.importo).toFixed(2)}` : null]
-          .filter(Boolean)
-          .join(' · '),
+        subtitle: null,
         severity: 'high',
+        data: f.data,
+        numero: f.numero_fattura,
+        importo: f.importo,
+        fileUrl: f.file_url?.trim() || null,
         meta: { fatturaId: excessId },
       })
     }
@@ -221,8 +239,12 @@ export async function GET(
         id: `bd-${excessId}`,
         kind: 'bolla_duplicata',
         title: b.numero_bolla?.trim() ? `DDT ${b.numero_bolla.trim()}` : 'Bolla duplicata',
-        subtitle: b.data,
+        subtitle: null,
         severity: 'high',
+        data: b.data,
+        numero: b.numero_bolla,
+        importo: b.importo,
+        fileUrl: b.file_url?.trim() || null,
         meta: { bollaId: excessId },
       })
     }
@@ -232,6 +254,7 @@ export async function GET(
       missing_rows: number | null
       received_at: string
       extracted_pdf_dates: unknown
+      file_url: string | null
     }[]
     for (const s of stmtData) {
       if (!statementMatchesCalendarWindow(s, from, to)) continue
@@ -240,9 +263,13 @@ export async function GET(
       rows.push({
         id: `st-${s.id}`,
         kind: 'estratto_conto',
-        title: 'Estratto conto con righe mancanti',
-        subtitle: `${missing} anomalia/e · ricevuto ${s.received_at.slice(0, 10)}`,
+        title: 'Estratto conto',
+        subtitle: `${missing} righe da verificare`,
         severity: missing >= 3 ? 'high' : 'medium',
+        data: s.received_at.slice(0, 10),
+        numero: null,
+        importo: null,
+        fileUrl: s.file_url?.trim() || null,
         meta: { statementId: s.id },
       })
     }
@@ -252,24 +279,40 @@ export async function GET(
       rows.push({
         id: `ba-${b.id}`,
         kind: 'bolla_aperta',
-        title: b.numero_bolla?.trim() ? `DDT ${b.numero_bolla.trim()} in attesa` : 'Bolla in attesa',
-        subtitle: b.data,
+        title: b.numero_bolla?.trim() ? `DDT ${b.numero_bolla.trim()}` : 'Bolla',
+        subtitle: null,
         severity: 'low',
+        data: b.data,
+        numero: b.numero_bolla,
+        importo: b.importo,
+        fileUrl: b.file_url?.trim() || null,
         meta: { bollaId: b.id },
       })
     }
 
     for (const d of pendingRes.data ?? []) {
-      const doc = d as { id: string; file_name: string | null; created_at: string; stato: string }
+      const doc = d as {
+        id: string
+        file_name: string | null
+        file_url: string | null
+        created_at: string
+        stato: string
+      }
       rows.push({
         id: `doc-${doc.id}`,
         kind: 'documento_coda',
         title: doc.file_name?.trim() || 'Documento in coda',
-        subtitle: `${doc.stato.replace(/_/g, ' ')} · ${doc.created_at.slice(0, 10)}`,
+        subtitle: doc.stato.replace(/_/g, ' '),
         severity: 'medium',
+        data: doc.created_at.slice(0, 10),
+        numero: null,
+        importo: null,
+        fileUrl: doc.file_url?.trim() || null,
         meta: { documentoId: doc.id },
       })
     }
+
+    rows.sort((a, b) => (b.data ?? '').localeCompare(a.data ?? ''))
 
     const fattureDuplicati = fattDup.excessIds.size
     const bolleDuplicati = bollaDup.excessIds.size

@@ -4,28 +4,49 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { SupplierAnomalieApiResponse, SupplierAnomalieApiRow } from '@/app/api/fornitori/[id]/anomalie/route'
-import { useT } from '@/lib/use-t'
-import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
-import { APP_SECTION_DIVIDE_ROWS, APP_SECTION_MOBILE_LIST } from '@/lib/app-shell-layout'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import { useT } from '@/lib/use-t'
+import { useLocale } from '@/lib/locale-context'
+import { formatDate as formatDateLib, formatCurrency } from '@/lib/locale'
+import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
+import {
+  APP_SECTION_DIVIDE_ROWS,
+  APP_SECTION_MOBILE_LIST,
+  APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_THEAD_STICKY,
+  APP_SECTION_TABLE_TR,
+  appSectionTableHeadRowAccentClass,
+} from '@/lib/app-shell-layout'
 import { createClient } from '@/utils/supabase/client'
 import { fornitoreBollaDeepLink, fornitoreFatturaDeepLink, fornitoreDocumentiQueueHref } from '@/lib/fornitore-supplier-url'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
 
 type TabTarget = 'listino' | 'verifica' | 'fatture' | 'bolle' | 'documenti'
 
-const KIND_TAB: Record<SupplierAnomalieApiRow['kind'], TabTarget> = {
-  prezzo_listino: 'listino',
-  fattura_duplicata: 'fatture',
-  bolla_duplicata: 'bolle',
-  estratto_conto: 'verifica',
-  bolla_aperta: 'bolle',
-  documento_coda: 'documenti',
+function issueLabel(row: SupplierAnomalieApiRow, t: ReturnType<typeof useT>): string {
+  switch (row.kind) {
+    case 'fattura_duplicata':
+      return t.fornitori.anomalieIssueDupFattura
+    case 'bolla_duplicata':
+      return t.fornitori.anomalieIssueDupBolla
+    case 'prezzo_listino':
+      return row.id === 'rekki-summary' ? t.fornitori.anomalieIssueRekki : t.fornitori.anomalieIssuePrezzo
+    case 'estratto_conto':
+      return t.fornitori.anomalieIssueEstratto
+    case 'bolla_aperta':
+      return t.fornitori.anomalieIssueBollaAperta
+    case 'documento_coda':
+      return t.fornitori.anomalieIssueCoda
+  }
 }
 
-function severityClass(s: SupplierAnomalieApiRow['severity']) {
-  if (s === 'high') return 'border-rose-500/35 bg-rose-500/10 text-rose-100'
-  if (s === 'medium') return 'border-amber-500/35 bg-amber-500/10 text-amber-100'
+function issueBadgeClass(kind: SupplierAnomalieApiRow['kind']) {
+  if (kind === 'fattura_duplicata' || kind === 'bolla_duplicata') {
+    return 'border-rose-500/40 bg-rose-500/15 text-rose-100'
+  }
+  if (kind === 'prezzo_listino') return 'border-amber-500/35 bg-amber-500/12 text-amber-100'
+  if (kind === 'estratto_conto') return 'border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
   return 'border-app-line-30 bg-app-line-10 text-app-fg-muted'
 }
 
@@ -36,6 +57,7 @@ export default function FornitoreAnomalieTab({
   pathname,
   searchParams,
   onNavigateTab,
+  currency = 'GBP',
   epoch = 0,
 }: {
   fornitoreId: string
@@ -44,14 +66,24 @@ export default function FornitoreAnomalieTab({
   pathname: string
   searchParams: ReadonlyURLSearchParams
   onNavigateTab: (tab: TabTarget) => void
+  currency?: string
   epoch?: number
 }) {
   const t = useT()
+  const { locale, timezone } = useLocale()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<SupplierAnomalieApiResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [resolvingId, setResolvingId] = useState<string | null>(null)
+
+  const formatDate = useCallback(
+    (iso: string | null) =>
+      iso
+        ? formatDateLib(iso, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' })
+        : '—',
+    [locale, timezone],
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -85,25 +117,9 @@ export default function FornitoreAnomalieTab({
     void load()
   }, [load, epoch])
 
-  const grouped = useMemo(() => {
+  const sortedRows = useMemo(() => {
     if (!data?.rows.length) return []
-    const order: SupplierAnomalieApiRow['kind'][] = [
-      'prezzo_listino',
-      'fattura_duplicata',
-      'bolla_duplicata',
-      'estratto_conto',
-      'documento_coda',
-      'bolla_aperta',
-    ]
-    const map = new Map<SupplierAnomalieApiRow['kind'], SupplierAnomalieApiRow[]>()
-    for (const row of data.rows) {
-      const arr = map.get(row.kind) ?? []
-      arr.push(row)
-      map.set(row.kind, arr)
-    }
-    return order
-      .filter((k) => (map.get(k)?.length ?? 0) > 0)
-      .map((k) => ({ kind: k, rows: map.get(k)! }))
+    return [...data.rows]
   }, [data])
 
   const resolvePriceAnomaly = async (anomalyId: string) => {
@@ -118,24 +134,7 @@ export default function FornitoreAnomalieTab({
     void load()
   }
 
-  const sectionTitle = (kind: SupplierAnomalieApiRow['kind']) => {
-    switch (kind) {
-      case 'prezzo_listino':
-        return t.fornitori.anomalieSectionPrezzo
-      case 'fattura_duplicata':
-        return t.fornitori.anomalieSectionFattureDup
-      case 'bolla_duplicata':
-        return t.fornitori.anomalieSectionBolleDup
-      case 'estratto_conto':
-        return t.fornitori.anomalieSectionEstratti
-      case 'bolla_aperta':
-        return t.fornitori.anomalieSectionBolleAperte
-      case 'documento_coda':
-        return t.fornitori.anomalieSectionDocumenti
-    }
-  }
-
-  const openRow = (row: SupplierAnomalieApiRow) => {
+  const openDetail = (row: SupplierAnomalieApiRow) => {
     if (row.meta?.fatturaId) {
       router.push(fornitoreFatturaDeepLink(pathname, searchParams, row.meta.fatturaId), { scroll: false })
       return
@@ -144,8 +143,85 @@ export default function FornitoreAnomalieTab({
       router.push(fornitoreBollaDeepLink(pathname, searchParams, row.meta.bollaId), { scroll: false })
       return
     }
-    onNavigateTab(KIND_TAB[row.kind])
+    if (row.kind === 'estratto_conto') onNavigateTab('verifica')
+    else if (row.kind === 'documento_coda') onNavigateTab('documenti')
+    else if (row.kind === 'prezzo_listino' || row.id === 'rekki-summary') onNavigateTab('listino')
+    else if (row.kind === 'bolla_duplicata' || row.kind === 'bolla_aperta') onNavigateTab('bolle')
+    else if (row.kind === 'fattura_duplicata') onNavigateTab('fatture')
   }
+
+  const renderAttachment = (row: SupplierAnomalieApiRow) => {
+    const url = row.fileUrl?.trim()
+    if (!url) return <span className="text-xs text-app-fg-muted">—</span>
+    if (row.meta?.fatturaId) {
+      return (
+        <OpenDocumentInAppButton fatturaId={row.meta.fatturaId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
+          {t.bolle.viewDocument}
+        </OpenDocumentInAppButton>
+      )
+    }
+    if (row.meta?.bollaId) {
+      return (
+        <OpenDocumentInAppButton bollaId={row.meta.bollaId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
+          {t.bolle.viewDocument}
+        </OpenDocumentInAppButton>
+      )
+    }
+    if (row.meta?.statementId) {
+      return (
+        <OpenDocumentInAppButton statementId={row.meta.statementId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
+          {t.bolle.viewDocument}
+        </OpenDocumentInAppButton>
+      )
+    }
+    if (row.meta?.documentoId) {
+      return (
+        <OpenDocumentInAppButton documentoId={row.meta.documentoId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
+          {t.bolle.viewDocument}
+        </OpenDocumentInAppButton>
+      )
+    }
+    return <span className="text-xs text-app-fg-muted">—</span>
+  }
+
+  const renderRowActions = (row: SupplierAnomalieApiRow) => (
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
+      {row.kind === 'prezzo_listino' && row.id.startsWith('pl-') && row.id !== 'rekki-summary' ? (
+        <button
+          type="button"
+          disabled={resolvingId === row.id}
+          onClick={() => void resolvePriceAnomaly(row.id)}
+          className="rounded-lg border border-app-line-30 px-2 py-1 text-[11px] font-semibold text-app-fg-muted hover:bg-app-line-15"
+        >
+          {resolvingId === row.id ? '…' : t.fornitori.anomalieRisolvi}
+        </button>
+      ) : null}
+      {row.meta?.fatturaId || row.meta?.bollaId ? (
+        <button
+          type="button"
+          onClick={() => openDetail(row)}
+          className="rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-200"
+        >
+          {t.common.detail}
+        </button>
+      ) : row.kind === 'documento_coda' ? (
+        <Link
+          href={fornitoreDocumentiQueueHref(pathname, searchParams)}
+          className="rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-200"
+        >
+          {t.fornitori.anomalieApriCoda}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => openDetail(row)}
+          className="rounded-lg border border-app-line-30 px-2 py-1 text-[11px] font-semibold text-app-fg-muted hover:bg-app-line-15"
+        >
+          {t.common.detail}
+        </button>
+      )}
+    </div>
+  )
 
   const hi = SUPPLIER_DETAIL_TAB_HIGHLIGHT.anomalie
 
@@ -194,90 +270,108 @@ export default function FornitoreAnomalieTab({
   ].filter((c) => c.n > 0)
 
   return (
-    <div className="supplier-detail-tab-shell flex flex-col overflow-hidden">
+    <div className="supplier-detail-tab-shell flex min-h-[min(420px,60vh)] flex-col overflow-hidden">
       <div className={`app-card-bar-accent ${hi.bar}`} aria-hidden />
-      <div className="border-b border-app-line-22/80 px-4 py-3 md:px-5">
+      <div className="shrink-0 border-b border-app-line-22/80 px-4 py-3 md:px-5">
         <p className="text-sm font-semibold text-app-fg">{t.fornitori.anomalieTabTitle}</p>
         <p className="mt-0.5 text-xs text-app-fg-muted">{t.fornitori.anomalieTabSubtitle}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {summaryChips.map((c) => (
-            <span
-              key={c.label}
-              className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-amber-100"
-            >
-              {c.n} {c.label}
-            </span>
-          ))}
-        </div>
+        {summaryChips.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {summaryChips.map((c) => (
+              <span
+                key={c.label}
+                className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-amber-100"
+              >
+                {c.n} {c.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {grouped.map(({ kind, rows }) => {
-          return (
-            <section key={kind} className="border-b border-app-line-22/60 last:border-b-0">
-              <div className="flex items-center justify-between gap-2 bg-white/[0.03] px-4 py-2 md:px-5">
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-app-fg-muted">
-                  {sectionTitle(kind)}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => onNavigateTab(KIND_TAB[kind])}
-                  className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-200"
-                >
-                  {t.fornitori.anomalieVaiAlTab} →
-                </button>
-              </div>
-              <div className={APP_SECTION_MOBILE_LIST}>
-                {rows.map((row) => (
-                  <div
-                    key={row.id}
-                    className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => openRow(row)}
-                      className="min-w-0 flex-1 text-left"
+      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
+        <div className="hidden md:block">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
+              <tr className={appSectionTableHeadRowAccentClass('amber')}>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.common.date}
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.fornitori.anomalieColIssue}
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.fornitori.anomalieColDocument}
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.bolle.colAttachmentKind}
+                </th>
+                <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.statements.colAmount}
+                </th>
+                <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.common.actions}
+                </th>
+              </tr>
+            </thead>
+            <tbody className={APP_SECTION_TABLE_TBODY}>
+              {sortedRows.map((row) => (
+                <tr key={row.id} className={APP_SECTION_TABLE_TR}>
+                  <td className="px-5 py-3 font-medium tabular-nums text-app-fg-muted">
+                    {formatDate(row.data)}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row.kind)}`}
                     >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${severityClass(row.severity)}`}
-                        >
-                          {row.severity}
-                        </span>
-                        <span className="text-sm font-medium text-app-fg">{row.title}</span>
-                      </div>
-                      {row.subtitle ? (
-                        <p className="mt-0.5 text-xs text-app-fg-muted">{row.subtitle}</p>
-                      ) : null}
-                    </button>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      {row.kind === 'prezzo_listino' &&
-                      row.id.startsWith('pl-') &&
-                      row.id !== 'rekki-summary' ? (
-                        <button
-                          type="button"
-                          disabled={resolvingId === row.id}
-                          onClick={() => void resolvePriceAnomaly(row.id)}
-                          className="rounded-lg border border-app-line-30 px-2.5 py-1 text-[11px] font-semibold text-app-fg-muted hover:bg-app-line-15"
-                        >
-                          {resolvingId === row.id ? '…' : t.fornitori.anomalieRisolvi}
-                        </button>
-                      ) : null}
-                      {row.kind === 'documento_coda' && row.meta?.documentoId ? (
-                        <Link
-                          href={fornitoreDocumentiQueueHref(pathname, searchParams)}
-                          className="rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-200"
-                        >
-                          {t.fornitori.anomalieApriCoda}
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
+                      {issueLabel(row, t)}
+                    </span>
+                    {row.subtitle ? (
+                      <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-app-fg-muted">{row.subtitle}</p>
+                    ) : null}
+                  </td>
+                  <td className="px-5 py-3">
+                    <p className="font-medium text-app-fg">{row.title}</p>
+                    {row.numero ? (
+                      <p className="mt-0.5 font-mono text-xs text-app-fg-muted">{row.numero}</p>
+                    ) : null}
+                  </td>
+                  <td className="px-5 py-3">{renderAttachment(row)}</td>
+                  <td className="px-5 py-3 text-right font-mono text-xs font-semibold tabular-nums text-app-fg">
+                    {row.importo != null ? formatCurrency(row.importo, currency, locale) : '—'}
+                  </td>
+                  <td className="px-5 py-3">{renderRowActions(row)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className={`md:hidden ${APP_SECTION_MOBILE_LIST}`}>
+          {sortedRows.map((row) => (
+            <div key={row.id} className="border-b border-app-line-22/50 px-4 py-3.5 last:border-b-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium tabular-nums text-app-fg">{formatDate(row.data)}</span>
+                <span
+                  className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row.kind)}`}
+                >
+                  {issueLabel(row, t)}
+                </span>
               </div>
-            </section>
-          )
-        })}
+              <p className="mt-1.5 text-sm font-semibold text-app-fg">{row.title}</p>
+              {row.subtitle ? <p className="mt-0.5 text-xs text-app-fg-muted">{row.subtitle}</p> : null}
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-app-fg-muted">
+                {row.importo != null ? (
+                  <span className="font-mono font-semibold tabular-nums text-app-fg">
+                    {formatCurrency(row.importo, currency, locale)}
+                  </span>
+                ) : null}
+                {renderAttachment(row)}
+              </div>
+              <div className="mt-2">{renderRowActions(row)}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

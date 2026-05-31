@@ -6489,6 +6489,7 @@ function FornitoreDetailClient({
             dateToExclusive={ledgerDateToExclusive}
             pathname={pathname}
             searchParams={searchParams}
+            currency={currency ?? 'GBP'}
             epoch={periodLedgerEpoch}
             onNavigateTab={(next) => setTab(next as Tab)}
           />
