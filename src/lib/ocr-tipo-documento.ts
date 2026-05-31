@@ -225,3 +225,24 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   }
   return null
 }
+
+/**
+ * Amount to persist on `bolle.importo` when ingesting from OCR.
+ * Delivery notes (bolla_ddt) usually have no fiscal document total; Gemini often
+ * still fills `totale_iva_inclusa` from line sums or unrelated sections.
+ */
+export function importoForBollaFromOcr(_ocr: {
+  tipo_documento?: unknown
+  totale_iva_inclusa?: number | null
+}): number | null {
+  return null
+}
+
+/** Forced bolla re-OCR classified as DDT: clear totals likely inferred by OCR earlier. */
+export function shouldClearBollaImportoAfterBollaDdtReocr(
+  ocrTipo: unknown,
+  existingImporto: number | null | undefined
+): boolean {
+  if (existingImporto == null || Number.isNaN(Number(existingImporto))) return false
+  return normalizeTipoDocumento(ocrTipo) === 'bolla_ddt'
+}

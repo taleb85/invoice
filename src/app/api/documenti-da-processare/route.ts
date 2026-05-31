@@ -11,7 +11,7 @@ import {
   normalizeNumeroFattura,
   numeroFatturaFromDocMetadata,
 } from '@/lib/fattura-duplicate-check'
-import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { importoForBollaFromOcr, normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
@@ -330,7 +330,11 @@ async function finalizePendingByTipo(
         file_url: doc.file_url,
         stato: 'in attesa',
         numero_bolla: numBolla,
-        importo: m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null,
+        importo: importoForBollaFromOcr({
+          tipo_documento: m.tipo_documento,
+          totale_iva_inclusa:
+            m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null,
+        }),
       }])
       .select('id')
       .single()

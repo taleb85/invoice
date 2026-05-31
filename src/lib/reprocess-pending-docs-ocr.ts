@@ -7,7 +7,12 @@ import {
   type OcrResult,
 } from '@/lib/ocr-invoice'
 import { documentDateYmdFromOcr } from '@/lib/safe-date'
-import { normalizeTipoDocumento, ocrClassifiedAsFatturaButContentMissing, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
+import {
+  importoForBollaFromOcr,
+  normalizeTipoDocumento,
+  ocrClassifiedAsFatturaButContentMissing,
+  ocrTipoAllowsEmailAutoFattura,
+} from '@/lib/ocr-tipo-documento'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
 import {
   emailSubjectLooksLikeStatement,
@@ -382,7 +387,7 @@ export async function processLegacyPendingDoc(
         dataDoc,
         fileUrl: url,
         numeroBolla: numRef,
-        importo: ocr.totale_iva_inclusa ?? null,
+        importo: importoForBollaFromOcr(ocr),
       })
       if ('id' in rb) registratoAutoBollaId = rb.id
       else if ('duplicateId' in rb) registratoAutoBollaId = rb.duplicateId

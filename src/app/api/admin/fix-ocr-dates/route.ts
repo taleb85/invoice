@@ -14,6 +14,7 @@ import {
   normalizeNumeroBolla,
 } from '@/lib/fix-ocr-dates-helpers'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
+import { shouldClearBollaImportoAfterBollaDdtReocr } from '@/lib/ocr-tipo-documento'
 
 export const dynamic = 'force-dynamic'
 
@@ -590,20 +591,16 @@ export async function POST(req: NextRequest) {
           const numRaw = normalizeNumeroBolla(ocr.numero_fattura) ?? ''
           const ocrNum = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
           const hasNum = Boolean(b.numero_bolla?.trim())
-          const hasImp = b.importo != null && !Number.isNaN(Number(b.importo))
-          const ocrImporto = ocr.totale_iva_inclusa
 
           const upd: Record<string, unknown> = {}
           if (newData && newData !== b.data) upd.data = newData
           if (isForcedBolla) {
             if (ocrNum && ocrNum !== (b.numero_bolla?.trim() ?? '')) upd.numero_bolla = ocrNum
-            if (ocrImporto != null) {
-              const cur = b.importo != null ? Number(b.importo) : null
-              if (cur == null || Number.isNaN(cur) || ocrImporto !== cur) upd.importo = ocrImporto
+            if (shouldClearBollaImportoAfterBollaDdtReocr(ocr.tipo_documento, b.importo)) {
+              upd.importo = null
             }
-          } else {
-            if (!hasNum && ocrNum) upd.numero_bolla = ocrNum
-            if (!hasImp && ocrImporto != null) upd.importo = ocrImporto
+          } else if (!hasNum && ocrNum) {
+            upd.numero_bolla = ocrNum
           }
 
           if (Object.keys(upd).length) {

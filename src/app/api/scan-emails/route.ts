@@ -56,7 +56,12 @@ import {
   linkScanSenderToFornitore,
 } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 import { persistKnownFornitoreEmailScanWithFile } from '@/lib/email-scan-persist-known-with-file'
-import { normalizeTipoDocumento, ocrClassifiedAsFatturaButContentMissing, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
+import {
+  importoForBollaFromOcr,
+  normalizeTipoDocumento,
+  ocrClassifiedAsFatturaButContentMissing,
+  ocrTipoAllowsEmailAutoFattura,
+} from '@/lib/ocr-tipo-documento'
 import {
   evaluatePreGeminiDiscardRule,
   evaluatePostGeminiDiscardRuleTipo,
@@ -2465,7 +2470,7 @@ async function processEmails(
               dataDoc: dataDocLocal,
               fileUrl: file_url,
               numeroBolla: numRef,
-              importo: ocr.totale_iva_inclusa ?? null,
+              importo: importoForBollaFromOcr(ocr),
             })
             if ('id' in rb) {
               registratoAutoBollaId = rb.id
