@@ -7,7 +7,7 @@ import type { SupplierAnomalieApiResponse, SupplierAnomalieApiRow } from '@/app/
 import { useT } from '@/lib/use-t'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 import { APP_SECTION_DIVIDE_ROWS, APP_SECTION_MOBILE_LIST } from '@/lib/app-shell-layout'
-import { AppSectionEmptyState } from '@/components/AppSectionEmptyState'
+import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { createClient } from '@/utils/supabase/client'
 import { fornitoreBollaDeepLink, fornitoreFatturaDeepLink, fornitoreDocumentiQueueHref } from '@/lib/fornitore-supplier-url'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
