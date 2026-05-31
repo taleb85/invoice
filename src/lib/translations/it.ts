@@ -1800,6 +1800,9 @@ const translations: Translations = {
     apri: 'Apri',
     colNumero: 'Numero',
     colAttachmentKind: 'Allegato',
+    colQuantita: 'Quantità',
+    labelQuantitaTotale: 'Quantità consegnata',
+    labelQuantitaHint: 'somma unità/casse dal DDT — non importo',
     riannalizzaOcr: 'Rianalizza (OCR)',
     ocrRerunMovedToInvoices:
       'Classificato come fattura: il documento è stato spostato nella tab Fatture.',

@@ -86,6 +86,7 @@ import {
 import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
 import { extractDocTypeLabel, tipoDocumentoToLabel, tipoDocumentoToLabelStrict } from '@/lib/extract-doc-type'
+import { formatBollaQuantita, quantitaFromDocMetadata } from '@/lib/bolla-quantita'
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
@@ -371,6 +372,7 @@ interface Bolla {
   file_url: string | null
   numero_bolla: string | null
   importo: number | null
+  quantita?: number | null
   email_sync_auto_saved_at?: string | null
 }
 
@@ -1837,6 +1839,7 @@ function BolleTab({
   const [bolle, setBolle] = useState<Bolla[]>([])
   const [numeroDaCodaByFileUrl, setNumeroDaCodaByFileUrl] = useState<Record<string, string>>({})
   const [tipoDocByFileUrl, setTipoDocByFileUrl] = useState<Record<string, string>>({})
+  const [quantitaByFileUrl, setQuantitaByFileUrl] = useState<Record<string, number>>({})
   /** Manual user overrides for the document type label — highest priority, never overwritten by the DB re-fetch. */
   const manualTipoOverridesRef = useRef<Record<string, string>>({})
   const [tipoEditingBollaId, setTipoEditingBollaId] = useState<string | null>(null)
@@ -2109,7 +2112,7 @@ function BolleTab({
     void (async () => {
       const { data } = await supabase
         .from('bolle')
-        .select('id, sede_id, data, stato, file_url, numero_bolla, importo, email_sync_auto_saved_at')
+        .select('id, sede_id, data, stato, file_url, numero_bolla, importo, quantita, email_sync_auto_saved_at')
         .eq('fornitore_id', fornitoreId)
         .gte('data', from)
         .lt('data', to)
@@ -2124,6 +2127,7 @@ function BolleTab({
       const urlsWithoutNumero = allUrls.filter((u) => rows.some((b) => b.file_url?.trim() === u && !b.numero_bolla?.trim()))
       const numeroMap: Record<string, string> = {}
       const tipoMap: Record<string, string> = {}
+      const qtyMap: Record<string, number> = {}
 
       if (autoSavedBollaIds.length > 0) {
         const { data: docsAuto } = await supabase
@@ -2147,6 +2151,8 @@ function BolleTab({
               const ocrLabel = tipoDocumentoToLabelStrict(meta?.tipo_documento)
               if (ocrLabel) tipoMap[fu] = ocrLabel
             }
+            const q = quantitaFromDocMetadata(row.metadata)
+            if (q != null && qtyMap[fu] == null) qtyMap[fu] = q
           }
         }
       }
@@ -2167,6 +2173,8 @@ function BolleTab({
               const n = numeroRefFromDocMetadata(row.metadata)
               if (n) numeroMap[fu] = n
             }
+            const qMeta = quantitaFromDocMetadata(row.metadata)
+            if (qMeta != null && !qtyMap[fu]) qtyMap[fu] = qMeta
             if (!tipoMap[fu] && !autoSavedFileUrls.has(fu)) {
               const rawTipo = (row.metadata as Record<string, unknown> | null)?.tipo_documento
               // Strict variant: always surface the OCR-detected type (including
@@ -2211,7 +2219,10 @@ function BolleTab({
               const bid = (row as { bolla_id?: string | null }).bolla_id
               if (!bid) continue
               const fu = fileUrlByBollaId.get(bid)
-              if (!fu || tipoMap[fu]) continue
+              if (!fu) continue
+              const qRow = quantitaFromDocMetadata(row.metadata)
+              if (qRow != null && qtyMap[fu] == null) qtyMap[fu] = qRow
+              if (tipoMap[fu]) continue
               const rawTipo = (row.metadata as Record<string, unknown> | null)?.tipo_documento
               const ocrLabel = tipoDocumentoToLabelStrict(rawTipo)
               if (ocrLabel) {
@@ -2238,6 +2249,7 @@ function BolleTab({
       }
       if (!cancelled) {
         setNumeroDaCodaByFileUrl(numeroMap)
+        setQuantitaByFileUrl(qtyMap)
         // Preserve any manual tipo overrides the user has set since the last fetch
         // (handleTipoOverride writes them to manualTipoOverridesRef).
         setTipoDocByFileUrl({ ...tipoMap, ...manualTipoOverridesRef.current })
@@ -2256,6 +2268,16 @@ function BolleTab({
     [numeroDaCodaByFileUrl],
   )
 
+  const quantitaInElenco = useCallback(
+    (b: Bolla): number | null => {
+      if (b.quantita != null && Number.isFinite(Number(b.quantita))) return Number(b.quantita)
+      const fu = b.file_url?.trim()
+      if (fu && quantitaByFileUrl[fu] != null) return quantitaByFileUrl[fu]!
+      return null
+    },
+    [quantitaByFileUrl],
+  )
+
   const bollaDupPayload = useMemo(() => {
     const analysis = analyzeBolleDuplicatesForDeletion(
       bolle.map((b) => ({
@@ -2263,10 +2285,18 @@ function BolleTab({
         numero_bolla: numeroInElenco(b) || b.numero_bolla || null,
         fornitore_id: fornitoreId,
         data: (b.data ?? '').trim().slice(0, 10),
+        file_url: b.file_url ?? null,
+        sede_id: b.sede_id ?? fornitoreSedeId ?? null,
+        email_sync_auto_saved_at: b.email_sync_auto_saved_at ?? null,
       })),
     )
     return serializeFatturaDuplicateDeletionPayload(analysis)
-  }, [bolle, fornitoreId, numeroInElenco])
+  }, [bolle, fornitoreId, fornitoreSedeId, numeroInElenco])
+
+  const bollaExcessIds = useMemo(
+    () => new Set(bollaDupPayload.excessIds),
+    [bollaDupPayload.excessIds],
+  )
 
   const onBollaDuplicateRemoved = useCallback(
     (removedId: string) => {
@@ -2275,29 +2305,6 @@ function BolleTab({
     },
     [onLedgerMutated],
   )
-
-  /** Bolle con lo stesso file_url di un'altra bolla nello stesso elenco: sono copie extra da eliminare. */
-  const sameFileUrlExcessIds = useMemo(() => {
-    const byUrl = new Map<string, string[]>()
-    for (const b of bolle) {
-      if (!b.file_url?.trim()) continue
-      const url = b.file_url.trim()
-      const arr = byUrl.get(url) ?? []
-      arr.push(b.id)
-      byUrl.set(url, arr)
-    }
-    const excess = new Set<string>()
-    for (const [, ids] of byUrl) {
-      if (ids.length <= 1) continue
-      // Keep the one with a numero_bolla (most data), or the lexicographically smallest id (oldest).
-      const withNumero = ids.find((id) => bolle.find((x) => x.id === id)?.numero_bolla?.trim())
-      const canonical = withNumero ?? [...ids].sort((a, b) => a.localeCompare(b))[0]!
-      for (const id of ids) {
-        if (id !== canonical) excess.add(id)
-      }
-    }
-    return excess
-  }, [bolle])
 
   const [deletingBollaId, setDeletingBollaId] = useState<string | null>(null)
 
@@ -2322,8 +2329,8 @@ function BolleTab({
   /** Auto-delete excess same-file-url bolle once per load (admin only). */
   const autoDeleteDoneRef = useRef<Set<string>>(new Set())
   useEffect(() => {
-    if (loading || readOnly || !canRianalizzaOcr || sameFileUrlExcessIds.size === 0) return
-    const toDelete = [...sameFileUrlExcessIds].filter((id) => !autoDeleteDoneRef.current.has(id))
+    if (loading || readOnly || !canRianalizzaOcr || bollaExcessIds.size === 0) return
+    const toDelete = [...bollaExcessIds].filter((id) => !autoDeleteDoneRef.current.has(id))
     if (!toDelete.length) return
     for (const id of toDelete) autoDeleteDoneRef.current.add(id)
     void (async () => {
@@ -2339,7 +2346,7 @@ function BolleTab({
         } catch { /* ignore */ }
       }
     })()
-  }, [loading, readOnly, canRianalizzaOcr, sameFileUrlExcessIds, onBollaDuplicateRemoved])
+  }, [loading, readOnly, canRianalizzaOcr, bollaExcessIds, onBollaDuplicateRemoved])
 
   if (loading) {
     return (
@@ -2504,14 +2511,12 @@ function BolleTab({
                   </span>
                 </p>
               )}
-              {b.importo != null && (
-                <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
-                  {formatCurrency(b.importo, currency, locale)}
-                </p>
-              )}
+              <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
+                {formatBollaQuantita(quantitaInElenco(b), locale)}
+              </p>
             </div>
             <div className="flex items-center gap-2">
-                {!readOnly && canRianalizzaOcr && sameFileUrlExcessIds.has(b.id) ? (
+                {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? (
                 <button
                   type="button"
                   disabled={deletingBollaId === b.id}
@@ -2606,7 +2611,7 @@ function BolleTab({
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colNumero}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colAttachmentKind}</th>
               <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
-                {t.statements.colAmount}
+                {t.bolle.colQuantita}
               </th>
               <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
                 {t.common.actions}
@@ -2678,7 +2683,7 @@ function BolleTab({
                   )}
                 </td>
                 <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
-                  {b.importo != null ? formatCurrency(b.importo, currency, locale) : '—'}
+                  {formatBollaQuantita(quantitaInElenco(b), locale)}
                 </td>
                 <td className="px-5 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
@@ -2695,7 +2700,7 @@ function BolleTab({
                         {attachmentOpenFileLinkLabel(fileKind, t)}
                       </OpenDocumentInAppButton>
                     )}
-                    {!readOnly && canRianalizzaOcr && sameFileUrlExcessIds.has(b.id) ? (
+                    {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? (
                       <button
                         type="button"
                         disabled={deletingBollaId === b.id}

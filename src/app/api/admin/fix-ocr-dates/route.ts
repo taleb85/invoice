@@ -14,6 +14,7 @@ import {
   normalizeNumeroBolla,
 } from '@/lib/fix-ocr-dates-helpers'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
+import { quantitaForBollaFromOcr } from '@/lib/bolla-quantita'
 import { shouldClearBollaImportoAfterBollaDdtReocr } from '@/lib/ocr-tipo-documento'
 
 export const dynamic = 'force-dynamic'
@@ -597,13 +598,16 @@ export async function POST(req: NextRequest) {
 
           const upd: Record<string, unknown> = {}
           if (newData && newData !== b.data) upd.data = newData
+          const ocrQty = quantitaForBollaFromOcr(ocr)
           if (isForcedBolla) {
             if (ocrNum && ocrNum !== (b.numero_bolla?.trim() ?? '')) upd.numero_bolla = ocrNum
             if (shouldClearBollaImportoAfterBollaDdtReocr(ocr.tipo_documento, b.importo)) {
               upd.importo = null
             }
-          } else if (!hasNum && ocrNum) {
-            upd.numero_bolla = ocrNum
+            if (ocrQty != null) upd.quantita = ocrQty
+          } else {
+            if (!hasNum && ocrNum) upd.numero_bolla = ocrNum
+            if (ocrQty != null) upd.quantita = ocrQty
           }
 
           if (Object.keys(upd).length) {
@@ -612,7 +616,7 @@ export async function POST(req: NextRequest) {
               report.errors.push({ id, table, message: u.message })
             } else {
               const hadData = 'data' in upd
-              const hadFields = 'numero_bolla' in upd || 'importo' in upd
+              const hadFields = 'numero_bolla' in upd || 'importo' in upd || 'quantita' in upd
               if (hadFields) report.bollaOcrEnriched++
               else if (hadData) report.dateOnlyFixes++
               const action: (typeof report.details)[number]['action'] =

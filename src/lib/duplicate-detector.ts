@@ -237,8 +237,44 @@ export async function detectDuplicateBolle(
     if (items.length < 2) continue
     items.forEach((b) => usedIds.add(b.id))
     groups.push({
-      reason: 'Stesso numero bolla + fornitore',
+      reason: 'Stesso numero bolla + fornitore + data',
       items: items.map((b) => ({
+        id: b.id,
+        label: `${b.fornitori?.nome ?? b.fornitore_id ?? '—'} · n.${b.numero_bolla ?? '—'}${b.importo != null ? ` · €${b.importo.toFixed(2)}` : ''} · ${b.data ?? '—'}`,
+        created_at: b.data ?? '',
+        metadata: {
+          numero_bolla: b.numero_bolla,
+          fornitore_id: b.fornitore_id,
+          importo: b.importo,
+          data: b.data,
+          stato: b.stato,
+          ha_file: Boolean(b.file_url?.trim()),
+          ha_fattura_collegata: linkedToFattura.has(b.id),
+          sistema_created_at: b.created_at,
+          sistema_updated_at: b.updated_at,
+        },
+      })),
+    })
+  }
+
+  // Group 1b: stesso fornitore + data — una bolla senza numero e una+ con stesso numero (doppio scan)
+  const byDay = groupBy(
+    all.filter((b) => b.fornitore_id && b.data && !usedIds.has(b.id)),
+    (b) => `${b.fornitore_id}\0${String(b.data).slice(0, 10)}`,
+  )
+  for (const items of byDay.values()) {
+    const orphans = items.filter((b) => !normalizeNumeroFattura(b.numero_bolla))
+    const withNum = items.filter((b) => normalizeNumeroFattura(b.numero_bolla))
+    if (orphans.length !== 1 || withNum.length === 0) continue
+    const nums = new Set(
+      withNum.map((b) => normalizeNumeroFattura(b.numero_bolla)!.toLowerCase()),
+    )
+    if (nums.size !== 1) continue
+    const cluster = [...orphans, ...withNum]
+    cluster.forEach((b) => usedIds.add(b.id))
+    groups.push({
+      reason: 'Stesso DDT registrato due volte (prima senza numero, poi con numero)',
+      items: cluster.map((b) => ({
         id: b.id,
         label: `${b.fornitori?.nome ?? b.fornitore_id ?? '—'} · n.${b.numero_bolla ?? '—'}${b.importo != null ? ` · €${b.importo.toFixed(2)}` : ''} · ${b.data ?? '—'}`,
         created_at: b.data ?? '',

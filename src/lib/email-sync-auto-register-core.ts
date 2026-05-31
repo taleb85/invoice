@@ -123,6 +123,7 @@ export async function insertEmailAutoBolla(
     fileUrl: string
     numeroBolla: string | null
     importo: number | null
+    quantita?: number | null
   }
 ): Promise<{ id: string } | { duplicateId: string } | { error: string }> {
   // Prevent duplicate import of the same PDF attachment.
@@ -183,6 +184,7 @@ export async function insertEmailAutoBolla(
         stato: 'in attesa',
         numero_bolla: opts.numeroBolla,
         importo: opts.importo,
+        ...(opts.quantita != null ? { quantita: opts.quantita } : {}),
         email_sync_auto_saved_at: autoAt,
       },
     ])

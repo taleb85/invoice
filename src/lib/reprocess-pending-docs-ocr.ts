@@ -7,6 +7,7 @@ import {
   type OcrResult,
 } from '@/lib/ocr-invoice'
 import { documentDateYmdFromOcr } from '@/lib/safe-date'
+import { quantitaForBollaFromOcr } from '@/lib/bolla-quantita'
 import {
   importoForBollaFromOcr,
   normalizeTipoDocumento,
@@ -110,6 +111,7 @@ function buildMetadata(
     promessa_invio_documento:
       ocr.promessa_invio_documento === true ? true : undefined,
     totale_iva_inclusa: ocr.totale_iva_inclusa,
+    quantita_totale: ocr.quantita_totale ?? null,
     importo_raw: ocr.importo_raw ?? null,
     formato_importo: ocr.formato_importo ?? null,
     estrazione_utile: ocr.estrazione_utile ?? undefined,
@@ -389,6 +391,7 @@ export async function processLegacyPendingDoc(
         fileUrl: url,
         numeroBolla: numRef,
         importo: importoForBollaFromOcr(ocr),
+        quantita: quantitaForBollaFromOcr(ocr),
       })
       if ('id' in rb) registratoAutoBollaId = rb.id
       else if ('duplicateId' in rb) duplicateSkippedBollaId = rb.duplicateId

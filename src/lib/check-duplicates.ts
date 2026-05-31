@@ -58,6 +58,13 @@ export type BollaDupProbe = {
   data: string
 }
 
+/** Campi opzionali per euristiche globali (orfana+numero, stesso file_url). */
+export type BollaDupListRow = BollaDupProbe & {
+  file_url?: string | null
+  sede_id?: string | null
+  email_sync_auto_saved_at?: string | null
+}
+
 /** Conferme ordine: criterio `numero_ordine` (o titolo) + `fornitore_id` + `data_ordine`. */
 export type OrdineDupListRow = {
   id: string
@@ -344,9 +351,104 @@ function bolleSortFn(a: BollaDupProbe, b: BollaDupProbe): number {
   return byDataThenId(a as { id: string; data: string }, b as { id: string; data: string })
 }
 
-/** Duplicati bolle: stessa data + fornitore + numero; canonical = data più vecchia poi `id`. */
-export function analyzeBolleDuplicatesForDeletion(rows: BollaDupProbe[]): FatturaDuplicateDeletionAnalysis {
-  return analyzeDuplicatesForDeletion(rows, bollaDupKey, bolleSortFn, false)
+/** Canonical: auto-save email, poi riga con numero, poi più vecchia per data/id. */
+function bollaCanonicalSort(a: BollaDupListRow, b: BollaDupListRow): number {
+  const aAuto = a.email_sync_auto_saved_at ? 1 : 0
+  const bAuto = b.email_sync_auto_saved_at ? 1 : 0
+  if (aAuto !== bAuto) return bAuto - aAuto
+  const aNum = normalizeNumeroFattura(a.numero_bolla) ? 1 : 0
+  const bNum = normalizeNumeroFattura(b.numero_bolla) ? 1 : 0
+  if (aNum !== bNum) return bNum - aNum
+  return bolleSortFn(a, b)
+}
+
+function emptyDuplicateDeletionAnalysis(): FatturaDuplicateDeletionAnalysis {
+  return {
+    memberIds: new Set(),
+    excessIds: new Set(),
+    canonicalIdByGroupKey: new Map(),
+    groupMembers: new Map(),
+    surplusCount: 0,
+    surplusImporto: 0,
+  }
+}
+
+/**
+ * Stesso fornitore + data + sede: una bolla senza numero e una o più con lo stesso numero
+ * (doppio passaggio scan email) — allineato a `insertEmailAutoBolla`.
+ */
+function analyzeBolleOrphanNumeroDuplicates(rows: BollaDupListRow[]): FatturaDuplicateDeletionAnalysis {
+  const byBucket = new Map<string, BollaDupListRow[]>()
+  for (const r of rows) {
+    if (!r.fornitore_id) continue
+    const d = (r.data ?? '').trim().slice(0, 10)
+    if (!d) continue
+    const k = `${r.fornitore_id}\u0000${d}\u0000${r.sede_id ?? ''}`
+    const arr = byBucket.get(k) ?? []
+    arr.push(r)
+    byBucket.set(k, arr)
+  }
+
+  let merged = emptyDuplicateDeletionAnalysis()
+  for (const [bucketKey, arr] of byBucket) {
+    const orphans = arr.filter((r) => !normalizeNumeroFattura(r.numero_bolla))
+    const withNum = arr.filter((r) => normalizeNumeroFattura(r.numero_bolla))
+    if (orphans.length !== 1 || withNum.length === 0) continue
+    const byNum = new Map<string, BollaDupListRow[]>()
+    for (const r of withNum) {
+      const n = normalizeNumeroFattura(r.numero_bolla)!.toLowerCase()
+      const g = byNum.get(n) ?? []
+      g.push(r)
+      byNum.set(n, g)
+    }
+    if (byNum.size !== 1) continue
+    const slice = analyzeDuplicatesForDeletion(
+      arr,
+      () => `${bucketKey}\u0000orphan-numero`,
+      bollaCanonicalSort,
+      false,
+    )
+    merged = mergeDuplicateAnalyses(merged, slice)
+  }
+  return merged
+}
+
+/** Stesso `file_url` su più righe bolle (stesso PDF registrato due volte). */
+function analyzeBolleSameFileUrlDuplicates(rows: BollaDupListRow[]): FatturaDuplicateDeletionAnalysis {
+  const byUrl = new Map<string, BollaDupListRow[]>()
+  for (const r of rows) {
+    const u = r.file_url?.trim()
+    if (!u) continue
+    const arr = byUrl.get(u) ?? []
+    arr.push(r)
+    byUrl.set(u, arr)
+  }
+
+  let merged = emptyDuplicateDeletionAnalysis()
+  for (const [url, arr] of byUrl) {
+    if (arr.length <= 1) continue
+    const slice = analyzeDuplicatesForDeletion(
+      arr,
+      () => `fileurl\u0000${url}`,
+      bollaCanonicalSort,
+      false,
+    )
+    merged = mergeDuplicateAnalyses(merged, slice)
+  }
+  return merged
+}
+
+/**
+ * Duplicati bolle (tutti i fornitori): stesso numero+data+fornitore, orfana+numero, stesso file_url.
+ * Canonical: salvata da email sync, poi con numero, poi più vecchia.
+ */
+export function analyzeBolleDuplicatesForDeletion(
+  rows: BollaDupListRow[],
+): FatturaDuplicateDeletionAnalysis {
+  const byNumero = analyzeDuplicatesForDeletion(rows, bollaDupKey, bollaCanonicalSort, false)
+  const byOrphan = analyzeBolleOrphanNumeroDuplicates(rows)
+  const byFile = analyzeBolleSameFileUrlDuplicates(rows)
+  return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumero, byOrphan), byFile)
 }
 
 /** Raggruppa per fornitore + numero bolla normalizzato (senza importo). */
@@ -358,11 +460,71 @@ async function fetchAllBolleDupRows(
   supabase: SupabaseClient,
   fornitoreIds: string[] | null,
   fiscalBounds: FiscalPgBounds | null,
-): Promise<BollaDupProbe[]> {
-  return fetchAllDupRows<BollaDupProbe>(
-    supabase, 'bolle', 'id, numero_bolla, fornitore_id, data', 'id',
-    fornitoreIds, fiscalBounds, 'data',
+): Promise<BollaDupListRow[]> {
+  return fetchAllDupRows<BollaDupListRow>(
+    supabase,
+    'bolle',
+    'id, numero_bolla, fornitore_id, data, file_url, sede_id, email_sync_auto_saved_at',
+    'id',
+    fornitoreIds,
+    fiscalBounds,
+    'data',
   )
+}
+
+export type CleanupDuplicateBolleResult = {
+  scanned: number
+  excessFound: number
+  deleted: number
+  excessIds: string[]
+}
+
+/**
+ * Rimuove copie bolle in eccesso per tutta la sede o un solo fornitore.
+ */
+export async function cleanupDuplicateBolle(
+  supabase: SupabaseClient,
+  opts: {
+    sedeId: string
+    fornitoreId?: string | null
+    fiscalBounds?: FiscalPgBounds | null
+    dryRun?: boolean
+  },
+): Promise<CleanupDuplicateBolleResult> {
+  const fornitoreIds = opts.fornitoreId ? [opts.fornitoreId] : null
+  let q = supabase.from('bolle').select(
+    'id, numero_bolla, fornitore_id, data, file_url, sede_id, email_sync_auto_saved_at',
+  )
+  q = q.eq('sede_id', opts.sedeId)
+  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  if (opts.fiscalBounds) {
+    q = q
+      .gte('data', opts.fiscalBounds.dateFrom)
+      .lt('data', opts.fiscalBounds.dateToExclusive)
+  }
+
+  const rows: BollaDupListRow[] = []
+  for (let from = 0; from < DUPLICATE_SCAN_MAX_ROWS; from += PAGE_SIZE) {
+    const { data, error } = await q.order('data', { ascending: false }).range(from, from + PAGE_SIZE - 1)
+    if (error) break
+    const chunk = (data ?? []) as BollaDupListRow[]
+    rows.push(...chunk)
+    if (chunk.length < PAGE_SIZE) break
+  }
+
+  const analysis = analyzeBolleDuplicatesForDeletion(rows.slice(0, DUPLICATE_SCAN_MAX_ROWS))
+  const excessIds = [...analysis.excessIds]
+  const deleted =
+    opts.dryRun || excessIds.length === 0
+      ? 0
+      : await autoDeleteExcessDuplicates(supabase, 'bolle', excessIds)
+
+  return {
+    scanned: rows.length,
+    excessFound: excessIds.length,
+    deleted,
+    excessIds,
+  }
 }
 
 export async function getDuplicateBolleCount(

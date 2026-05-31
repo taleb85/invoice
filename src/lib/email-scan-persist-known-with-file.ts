@@ -17,6 +17,7 @@ import {
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
+import { quantitaForBollaFromOcr } from '@/lib/bolla-quantita'
 import {
   importoForBollaFromOcr,
   normalizeTipoDocumento,
@@ -56,6 +57,7 @@ function buildMetadata(
     tipo_documento: ocr.tipo_documento ?? null,
     promessa_invio_documento: ocr.promessa_invio_documento === true ? true : undefined,
     totale_iva_inclusa: ocr.totale_iva_inclusa,
+    quantita_totale: ocr.quantita_totale ?? null,
     importo_raw: ocr.importo_raw ?? null,
     formato_importo: ocr.formato_importo ?? null,
     estrazione_utile: ocr.estrazione_utile ?? undefined,
@@ -425,6 +427,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
         fileUrl: file_url,
         numeroBolla: numRef,
         importo: importoForBollaFromOcr(ocr),
+        quantita: quantitaForBollaFromOcr(ocr),
       })
       if ('id' in rb) {
         registratoAutoBollaId = rb.id

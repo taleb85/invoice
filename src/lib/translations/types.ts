@@ -492,6 +492,9 @@ export type Translations = {
     apri: string
     colNumero: string
     colAttachmentKind: string
+    colQuantita: string
+    labelQuantitaTotale: string
+    labelQuantitaHint: string
     riannalizzaOcr: string
     ocrRerunMovedToInvoices: string
     ocrRerunUpdatedStaysBolla: string

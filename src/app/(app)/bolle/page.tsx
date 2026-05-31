@@ -133,6 +133,9 @@ export default async function BollePage(props: {
       numero_bolla: b.numero_bolla ?? null,
       fornitore_id: b.fornitore_id,
       data: (b.data ?? '').trim().slice(0, 10),
+      file_url: b.file_url ?? null,
+      sede_id: sedeId,
+      email_sync_auto_saved_at: b.email_sync_auto_saved_at ?? null,
     })),
   )
   const excessIds = [...dupAnalysis.excessIds]
@@ -151,6 +154,9 @@ export default async function BollePage(props: {
           numero_bolla: b.numero_bolla ?? null,
           fornitore_id: b.fornitore_id,
           data: (b.data ?? '').trim().slice(0, 10),
+          file_url: b.file_url ?? null,
+          sede_id: sedeId,
+          email_sync_auto_saved_at: b.email_sync_auto_saved_at ?? null,
         })),
       )
       dupAnalysis.memberIds = cleanAnalysis.memberIds

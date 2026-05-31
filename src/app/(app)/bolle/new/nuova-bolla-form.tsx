@@ -122,6 +122,7 @@ export default function NuovaBollaForm() {
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
   const [numeroBolla, setNumeroBolla] = useState('')
   const [importo, setImporto] = useState('')
+  const [quantita, setQuantita] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -542,6 +543,10 @@ export default function NuovaBollaForm() {
       return
     }
 
+    const quantitaFinale =
+      quantita.trim() !== '' && Number.isFinite(parseFloat(quantita))
+        ? parseFloat(quantita)
+        : null
     const { error: insertError } = await supabase.from('bolle').insert([{
       fornitore_id: fornitoreId,
       sede_id: sedeId,
@@ -550,7 +555,8 @@ export default function NuovaBollaForm() {
       stato: 'in attesa',
       registrato_da: registratoDa.trim().toUpperCase() || null,
       numero_bolla: numeroBolla.trim() || null,
-      importo: importo ? parseFloat(importo) : null,
+      importo: null,
+      ...(quantitaFinale != null ? { quantita: quantitaFinale } : {}),
     }])
 
     setSaving(false)
@@ -765,24 +771,42 @@ export default function NuovaBollaForm() {
               className={fieldInputCls}
             />
           </div>
-          <div className="border-t border-app-line-10 app-workspace-inset-bg-soft p-4">
-            <label className={fieldLabelCls}>
-              {t.appStrings.labelImportoTotale}{' '}
-              <span className={fieldHintCls}>(IVA inclusa, opzionale)</span>
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-app-fg-muted">£</span>
+          {registrationTarget === 'fattura' ? (
+            <div className="border-t border-app-line-10 app-workspace-inset-bg-soft p-4">
+              <label className={fieldLabelCls}>
+                {t.appStrings.labelImportoTotale}{' '}
+                <span className={fieldHintCls}>(IVA inclusa, opzionale)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-bold text-app-fg-muted">£</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={importo}
+                  onChange={e => setImporto(e.target.value)}
+                  className={`flex-1 ${fieldInputCls}`}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="border-t border-app-line-10 app-workspace-inset-bg-soft p-4">
+              <label className={fieldLabelCls}>
+                {t.bolle.labelQuantitaTotale}{' '}
+                <span className={fieldHintCls}>({t.bolle.labelQuantitaHint})</span>
+              </label>
               <input
                 type="number"
                 min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={importo}
-                onChange={e => setImporto(e.target.value)}
-                className={`flex-1 ${fieldInputCls}`}
+                step="any"
+                placeholder="0"
+                value={quantita}
+                onChange={e => setQuantita(e.target.value)}
+                className={fieldInputCls}
               />
             </div>
-          </div>
+          )}
         </div>
 
         <DataFieldWithOcrBadge

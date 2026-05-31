@@ -11,6 +11,7 @@ import {
   normalizeNumeroFattura,
   numeroFatturaFromDocMetadata,
 } from '@/lib/fattura-duplicate-check'
+import { quantitaForBollaFromOcr, quantitaFromDocMetadata } from '@/lib/bolla-quantita'
 import { importoForBollaFromOcr, normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
@@ -334,6 +335,11 @@ async function finalizePendingByTipo(
           tipo_documento: m.tipo_documento,
           totale_iva_inclusa:
             m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null,
+        }),
+        quantita: quantitaForBollaFromOcr({
+          tipo_documento: m.tipo_documento,
+          quantita_totale:
+            m.quantita_totale != null ? Number(m.quantita_totale) : quantitaFromDocMetadata(m),
         }),
       }])
       .select('id')

@@ -56,6 +56,7 @@ import {
   linkScanSenderToFornitore,
 } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 import { persistKnownFornitoreEmailScanWithFile } from '@/lib/email-scan-persist-known-with-file'
+import { quantitaForBollaFromOcr } from '@/lib/bolla-quantita'
 import {
   importoForBollaFromOcr,
   normalizeTipoDocumento,
@@ -2472,6 +2473,7 @@ async function processEmails(
               fileUrl: file_url,
               numeroBolla: numRef,
               importo: importoForBollaFromOcr(ocr),
+              quantita: quantitaForBollaFromOcr(ocr),
             })
             if ('id' in rb) {
               registratoAutoBollaId = rb.id
