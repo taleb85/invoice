@@ -57,6 +57,10 @@ export default function EditFornitore() {
   const [newAlias, setNewAlias] = useState({ email: '', label: '' })
   const [addingAlias, setAddingAlias] = useState(false)
   const [deletingAliasId, setDeletingAliasId] = useState<string | null>(null)
+  const [sedeId, setSedeId] = useState<string | null>(null)
+  const [mergeSourceId, setMergeSourceId] = useState('')
+  const [mergeCandidates, setMergeCandidates] = useState<{ id: string; nome: string }[]>([])
+  const [merging, setMerging] = useState(false)
 
   const loadAliases = useCallback(async () => {
     const { data } = await supabase
