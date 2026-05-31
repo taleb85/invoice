@@ -339,6 +339,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
   let registratoAutoFatturaId: string | null = null
   let registratoAutoBollaId: string | null = null
   let duplicateSkippedFatturaId: string | null = null
+  let duplicateSkippedBollaId: string | null = null
   let needsDocRevision = !!ocr.ocr_cliente_estratto_come_fornitore
   const skipAutoBozza = treatAsStatement || effectivePendingKind === 'ordine'
 
@@ -429,7 +430,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
         registratoAutoBollaId = rb.id
         counters.bozzaCreate++
       } else if ('duplicateId' in rb) {
-        registratoAutoBollaId = rb.duplicateId
+        duplicateSkippedBollaId = rb.duplicateId
       }
     } else {
       needsDocRevision = true
@@ -471,6 +472,29 @@ export async function persistKnownFornitoreEmailScanWithFile(
     return
   }
 
+  if (duplicateSkippedBollaId && !registratoAutoFatturaId && !registratoAutoBollaId) {
+    await insertSyncLog(supabase, email, 'successo', {
+      fornitore_id: fornitore.id,
+      file_url,
+      errore_dettaglio: `Duplicato saltato: bolla ${ocr.numero_fattura ?? ''} già in archivio (id=${duplicateSkippedBollaId}).`.trim(),
+      sede_id: documentSedeId,
+      allegato_nome: storedFileName,
+      scan_attachment_fingerprint: fp,
+    })
+    counters.ignorate++
+    if (earlyRekkiLines.length && !rekkiPersistedUids.has(email.uid)) {
+      rekkiPersistedUids.add(email.uid)
+      persistRekkiOrderStatement(supabase, {
+        fornitoreId: fornitore.id,
+        sedeId: documentSedeId,
+        rekkiLines: earlyRekkiLines,
+        emailSubject: email.subject ?? `Rekki — ${fornitore.nome}`,
+        fileUrl: file_url,
+      }).catch((err) => console.error('[REKKI] persist fallito:', err))
+    }
+    return
+  }
+
   const pendingKindStored =
     needsDocRevision && duplicateSkippedFatturaId
       ? ('fattura' as const)
@@ -483,6 +507,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
     ...(isSyntheticBodyDoc ? { origine_testo_email: true } : {}),
     ...(pendingKindStored ? { pending_kind: pendingKindStored } : {}),
     ...(duplicateSkippedFatturaId ? { duplicate_skipped_fattura_id: duplicateSkippedFatturaId } : {}),
+    ...(duplicateSkippedBollaId ? { duplicate_skipped_bolla_id: duplicateSkippedBollaId } : {}),
     ...(registratoAutoFatturaId || registratoAutoBollaId ? { salvato_automaticamente: true as const } : {}),
     ...(fornitore.rekki_link?.trim() ? { rekki_link: fornitore.rekki_link.trim() } : {}),
     ...(fornitore.rekki_supplier_id?.trim()

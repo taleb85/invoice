@@ -161,6 +161,14 @@ export async function insertEmailAutoBolla(
       return rowSede === ctxSede
     })
     if (dupByKey?.id) return { duplicateId: dupByKey.id as string }
+
+    /** Stesso giorno/sede ma bolla senza numero (primo pass OCR): non creare una seconda riga. */
+    const orphans = (rows ?? []).filter((row) => {
+      if (normalizeNumeroBolla(row.numero_bolla as string | null)) return false
+      const rowSede = (row.sede_id as string | null) ?? null
+      return rowSede === ctxSede
+    })
+    if (orphans.length === 1) return { duplicateId: orphans[0]!.id as string }
   }
 
   const autoAt = AUTO_SAVED_AT()

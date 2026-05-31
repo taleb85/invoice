@@ -315,6 +315,7 @@ export async function processLegacyPendingDoc(
   let registratoAutoFatturaId: string | null = null
   let registratoAutoBollaId: string | null = null
   let duplicateSkippedFatturaId: string | null = null
+  let duplicateSkippedBollaId: string | null = null
   let needsDocRevision = !!ocr.ocr_cliente_estratto_come_fornitore
 
   const documentSedeId = row.sede_id ?? fornitore?.sede_id ?? null
@@ -390,7 +391,7 @@ export async function processLegacyPendingDoc(
         importo: importoForBollaFromOcr(ocr),
       })
       if ('id' in rb) registratoAutoBollaId = rb.id
-      else if ('duplicateId' in rb) registratoAutoBollaId = rb.duplicateId
+      else if ('duplicateId' in rb) duplicateSkippedBollaId = rb.duplicateId
     } else {
       needsDocRevision = true
     }
@@ -401,6 +402,22 @@ export async function processLegacyPendingDoc(
   // Se la quality chain ha rilevato confidenza bassa (meno di 2 segnali su 3),
   // forza la revisione manuale indipendentemente dagli altri controlli.
   if (qualityForcesReview) needsDocRevision = true
+
+  if (duplicateSkippedBollaId && !registratoAutoFatturaId && !registratoAutoBollaId) {
+    const { error: dupUpdErr } = await service
+      .from('documenti_da_processare')
+      .update({
+        stato: 'associato',
+        bolla_id: duplicateSkippedBollaId,
+        metadata: {
+          ...existingMeta,
+          duplicate_skipped_bolla_id: duplicateSkippedBollaId,
+        },
+      })
+      .eq('id', row.id)
+    if (dupUpdErr) return { status: 'error', message: dupUpdErr.message }
+    return { status: 'ok', category: 'auto_saved' }
+  }
 
   const pendingKindStored =
     needsDocRevision && duplicateSkippedFatturaId
@@ -418,6 +435,7 @@ export async function processLegacyPendingDoc(
     ocr_tipo: ocrTipoStored,
     ...(pendingKindStored ? { pending_kind: pendingKindStored } : {}),
     ...(duplicateSkippedFatturaId ? { duplicate_skipped_fattura_id: duplicateSkippedFatturaId } : {}),
+    ...(duplicateSkippedBollaId ? { duplicate_skipped_bolla_id: duplicateSkippedBollaId } : {}),
     ...(registratoAutoFatturaId || registratoAutoBollaId ? { salvato_automaticamente: true as const } : {}),
     ...(fornitore?.rekki_link?.trim() ? { rekki_link: fornitore.rekki_link.trim() } : {}),
     ...(fornitore?.rekki_supplier_id?.trim()

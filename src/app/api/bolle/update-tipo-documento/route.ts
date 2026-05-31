@@ -107,7 +107,9 @@ export async function POST(req: NextRequest) {
 
   const { error: updErr } = await service
     .from('documenti_da_processare')
-    .update({ metadata: { ...existing, tipo_documento: tipoRaw } })
+    .update({
+      metadata: { ...existing, tipo_documento: tipoRaw, tipo_documento_manual: true },
+    })
     .eq('id', docRow.id)
 
   if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })

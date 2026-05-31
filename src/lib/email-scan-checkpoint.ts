@@ -123,9 +123,11 @@ async function scanUnitHistoricalShouldSkipFullyLinked(
   if (doc.bolla_id) {
     const { data: b } = await supabase
       .from('bolle')
-      .select('importo')
+      .select('importo, numero_bolla, email_sync_auto_saved_at')
       .eq('id', doc.bolla_id)
       .maybeSingle()
+    if (b?.email_sync_auto_saved_at) return true
+    if (b?.numero_bolla?.trim()) return true
     if (b?.importo != null && Number.isFinite(Number(b.importo))) return true
     return false
   }

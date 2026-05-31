@@ -371,6 +371,7 @@ interface Bolla {
   file_url: string | null
   numero_bolla: string | null
   importo: number | null
+  email_sync_auto_saved_at?: string | null
 }
 
 interface Fattura {
@@ -2108,17 +2109,48 @@ function BolleTab({
     void (async () => {
       const { data } = await supabase
         .from('bolle')
-        .select('id, sede_id, data, stato, file_url, numero_bolla, importo')
+        .select('id, sede_id, data, stato, file_url, numero_bolla, importo, email_sync_auto_saved_at')
         .eq('fornitore_id', fornitoreId)
         .gte('data', from)
         .lt('data', to)
         .order('data', { ascending: false })
       if (cancelled) return
       const rows = (data ?? []) as Bolla[]
+      const autoSavedBollaIds = rows.filter((b) => b.email_sync_auto_saved_at).map((b) => b.id)
+      const autoSavedFileUrls = new Set(
+        rows.filter((b) => b.email_sync_auto_saved_at && b.file_url?.trim()).map((b) => b.file_url!.trim()),
+      )
       const allUrls = [...new Set(rows.filter((b) => b.file_url?.trim()).map((b) => b.file_url!.trim()))]
       const urlsWithoutNumero = allUrls.filter((u) => rows.some((b) => b.file_url?.trim() === u && !b.numero_bolla?.trim()))
       const numeroMap: Record<string, string> = {}
       const tipoMap: Record<string, string> = {}
+
+      if (autoSavedBollaIds.length > 0) {
+        const { data: docsAuto } = await supabase
+          .from('documenti_da_processare')
+          .select('bolla_id, metadata, file_name, oggetto_mail, created_at')
+          .in('bolla_id', autoSavedBollaIds)
+        if (!cancelled && docsAuto?.length) {
+          const fileUrlByBollaId = new Map(
+            rows.filter((b) => b.email_sync_auto_saved_at && b.file_url?.trim()).map((b) => [b.id, b.file_url!.trim()] as const),
+          )
+          const sortedAuto = [...docsAuto].sort((a, b) =>
+            String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')),
+          )
+          for (const row of sortedAuto) {
+            const bid = (row as { bolla_id?: string | null }).bolla_id
+            if (!bid) continue
+            const fu = fileUrlByBollaId.get(bid)
+            if (!fu || tipoMap[fu]) continue
+            const meta = row.metadata as Record<string, unknown> | null
+            if (meta?.tipo_documento_manual === true || meta?.tipo_documento) {
+              const ocrLabel = tipoDocumentoToLabelStrict(meta?.tipo_documento)
+              if (ocrLabel) tipoMap[fu] = ocrLabel
+            }
+          }
+        }
+      }
+
       if (allUrls.length > 0) {
         const { data: docs } = await supabase
           .from('documenti_da_processare')
@@ -2135,7 +2167,7 @@ function BolleTab({
               const n = numeroRefFromDocMetadata(row.metadata)
               if (n) numeroMap[fu] = n
             }
-            if (!tipoMap[fu]) {
+            if (!tipoMap[fu] && !autoSavedFileUrls.has(fu)) {
               const rawTipo = (row.metadata as Record<string, unknown> | null)?.tipo_documento
               // Strict variant: always surface the OCR-detected type (including
               // 'fattura' / 'bolla_ddt') so the user can spot rows landed in
@@ -2199,7 +2231,7 @@ function BolleTab({
         // numero_bolla (some references contain hints like "SO", "ORDER", "CONF").
         for (const b of rows) {
           const fu = b.file_url?.trim()
-          if (!fu || tipoMap[fu]) continue
+          if (!fu || tipoMap[fu] || b.email_sync_auto_saved_at) continue
           const inferred = extractDocTypeLabel(b.numero_bolla, fu)
           if (inferred) tipoMap[fu] = inferred
         }

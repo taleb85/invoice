@@ -80,6 +80,7 @@ type BollaRow = {
   importo: number | null
   numero_bolla: string | null
   stato: string
+  email_sync_auto_saved_at: string | null
 }
 
 type FatturaRow = {
@@ -256,7 +257,7 @@ export async function POST(req: NextRequest) {
 
     let bolleSuspQ = service
       .from('bolle')
-      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato, email_sync_auto_saved_at')
       .not('file_url', 'is', null)
       .eq('fornitore_id', fornitoreIdBatch)
     if (sedeFilter) bolleSuspQ = bolleSuspQ.eq('sede_id', sedeFilter) as typeof bolleSuspQ
@@ -264,7 +265,7 @@ export async function POST(req: NextRequest) {
 
     let bolleAllQ = service
       .from('bolle')
-      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato, email_sync_auto_saved_at')
       .not('file_url', 'is', null)
       .eq('fornitore_id', fornitoreIdBatch)
     if (sedeFilter) bolleAllQ = bolleAllQ.eq('sede_id', sedeFilter) as typeof bolleAllQ
@@ -336,7 +337,7 @@ export async function POST(req: NextRequest) {
   } else if (bollaIdForce) {
     const { data: oneBolla, error: oErr } = await service
       .from('bolle')
-      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato, email_sync_auto_saved_at')
       .eq('id', bollaIdForce)
       .single()
     if (oErr || !oneBolla) {
@@ -376,7 +377,7 @@ export async function POST(req: NextRequest) {
   } else {
     let bolleQ = service
       .from('bolle')
-      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato, email_sync_auto_saved_at')
       .not('file_url', 'is', null)
     if (sedeFilter) bolleQ = bolleQ.eq('sede_id', sedeFilter)
     const { data: bolleAll, error: bErr } = await bolleQ.or(orFilter)
@@ -516,18 +517,20 @@ export async function POST(req: NextRequest) {
         const b = item.row as BollaRow
         /** Come «Rianalizza» su riga: con batch fornitore le euristiche bolla→fattura sono abilitate su ogni bolla. */
         const bollaIdForMigration = Boolean(bollaIdForce) || Boolean(fornitoreIdBatch)
-        const wantsFattura = shouldMigrateBollaRowToFattura({
-          ocr: {
-            tipo_documento: ocr.tipo_documento,
-            numero_fattura: ocr.numero_fattura,
-            totale_iva_inclusa: ocr.totale_iva_inclusa,
-          },
-          fileUrl: url,
-          bollaIdForce: bollaIdForMigration,
-          allowTipoMigrate,
-          existingNumeroBolla: b.numero_bolla,
-          existingImporto: b.importo,
-        })
+        const wantsFattura =
+          !b.email_sync_auto_saved_at &&
+          shouldMigrateBollaRowToFattura({
+            ocr: {
+              tipo_documento: ocr.tipo_documento,
+              numero_fattura: ocr.numero_fattura,
+              totale_iva_inclusa: ocr.totale_iva_inclusa,
+            },
+            fileUrl: url,
+            bollaIdForce: bollaIdForMigration,
+            allowTipoMigrate,
+            existingNumeroBolla: b.numero_bolla,
+            existingImporto: b.importo,
+          })
         const canMig = await canMigrateBollaToFattura(service, b.id)
         if (process.env.NODE_ENV === 'development') {
           lastBollaMigrationDebug = {

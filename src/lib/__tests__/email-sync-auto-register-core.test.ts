@@ -190,6 +190,30 @@ describe('insertEmailAutoBolla — skip duplicati', () => {
     expect(inserts).toHaveLength(1)
   })
 
+  it('ritorna duplicateId quando esiste una bolla senza numero stesso giorno/sede', async () => {
+    const existing: BollaRow = {
+      id: 'bolla-orphan',
+      fornitore_id: fornitoreId,
+      sede_id: sedeId,
+      data: '2025-10-29',
+      file_url: 'https://x/storage/first.pdf',
+      numero_bolla: null,
+    }
+    const { supabase, inserts } = mockSupabaseWithBolle([existing])
+
+    const res = await insertEmailAutoBolla(supabase, {
+      fornitoreId,
+      sedeId,
+      dataDoc: '2025-10-29',
+      fileUrl: 'https://x/storage/second.pdf',
+      numeroBolla: '50221659',
+      importo: null,
+    })
+
+    expect(res).toEqual({ duplicateId: 'bolla-orphan' })
+    expect(inserts).toHaveLength(0)
+  })
+
   it('non blocca senza numero bolla quando data o numero sono assenti', async () => {
     const { supabase, inserts } = mockSupabaseWithBolle([])
 
