@@ -57,6 +57,7 @@ export default function FattureInAttesaAutoSync({
   onFatturaIdChange,
   showListinoSync = true,
   refreshBatch,
+  onLedgerMutated,
   onComplete,
 }: {
   fatturaId: string
@@ -65,6 +66,7 @@ export default function FattureInAttesaAutoSync({
   showListinoSync?: boolean
   /** Tutti i documenti con allegato nell’elenco — rilettura OCR in cascata. */
   refreshBatch?: FatturaRefreshBatchItem[]
+  onLedgerMutated?: () => void
   onComplete?: () => void
 }) {
   const router = useRouter()
@@ -158,7 +160,7 @@ export default function FattureInAttesaAutoSync({
                 onImportoUpdated={refreshFallback.onImportoUpdated}
                 onNumeroFatturaUpdated={refreshFallback.onNumeroFatturaUpdated}
                 onTipoDocumentoUpdated={refreshFallback.onTipoDocumentoUpdated}
-                onLedgerMutated={refreshFallback.onLedgerMutated}
+                onLedgerMutated={onLedgerMutated}
               />
             ) : null}
             {canListino && !result ? (

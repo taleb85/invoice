@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
 
   if (pdfText) {
     const textLines = parseInvoiceTableLinesFromText(pdfText)
-    items = mergeImportLinesWithPdfText(items, textLines)
+    items = mergeImportLinesWithPdfText(items as ListinoImportLineInput[], textLines).map(toLineItem)
   }
 
   const { data: listinoRows } = await service

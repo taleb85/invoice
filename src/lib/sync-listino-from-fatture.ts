@@ -191,7 +191,12 @@ export async function syncListinoFromFattureForFornitore(
         const d = r.data_prezzo.slice(0, 10)
         const cur = maxByProduct.get(p)
         if (!cur || compareIsoDateStrings(d, cur) > 0) maxByProduct.set(p, d)
-        listinoRows.push({ prodotto: p, data_prezzo: d })
+        listinoRows.push({
+          prodotto: p,
+          prezzo: r.prezzo,
+          data_prezzo: d,
+          note: r.note,
+        })
       }
     } else {
       errors.push(

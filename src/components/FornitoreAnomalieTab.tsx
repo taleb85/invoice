@@ -233,7 +233,7 @@ export default function FornitoreAnomalieTab({
         </button>
       ) : row.kind === 'documento_coda' ? (
         <Link
-          href={fornitoreDocumentiQueueHref(pathname, searchParams)}
+          href={fornitoreDocumentiQueueHref(pathname, searchParams, 'tutti')}
           className="rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-200"
         >
           {t.fornitori.anomalieApriCoda}

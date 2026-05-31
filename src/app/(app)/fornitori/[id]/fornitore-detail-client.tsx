@@ -3139,6 +3139,7 @@ function FattureTab({
             onFatturaIdChange={setToolbarFatturaId}
             showListinoSync={Boolean(toolbarSelectedFattura && !toolbarSelectedFattura.bolla_id)}
             refreshBatch={toolbarRefreshBatch}
+            onLedgerMutated={onLedgerMutated}
             onComplete={() => {
               onLedgerMutated?.()
               setLoading(true)

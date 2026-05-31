@@ -10,7 +10,10 @@ import {
   countRekkiUnitAnomaliesFromStatements,
   statementMatchesCalendarWindow,
 } from '@/lib/rekki-price-anomalies'
-import { statementOfficialDateIso } from '@/lib/statement-official-date'
+import {
+  statementOfficialDateIso,
+  type StatementExtractedPdfDates,
+} from '@/lib/statement-official-date'
 import {
   deliveryNoteDuplicateFallback,
   deliveryNoteOpenFallback,
@@ -317,7 +320,7 @@ export async function GET(
       if (missing <= 0) continue
       const officialDate = statementOfficialDateIso({
         document_date: s.document_date,
-        extracted_pdf_dates: s.extracted_pdf_dates,
+        extracted_pdf_dates: s.extracted_pdf_dates as StatementExtractedPdfDates | null,
       })
       const receivedIso = s.received_at.slice(0, 10)
       const displayDate = officialDate ?? receivedIso

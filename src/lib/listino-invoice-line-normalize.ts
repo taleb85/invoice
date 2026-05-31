@@ -409,7 +409,7 @@ export function normalizeListinoImportLineItem(
       refForPdf != null &&
       rawPrezzo > refForPdf * 1.25
     )
-  if (ambiguous && !correctedFromPdf) {
+  if (ambiguous && !correctedFromPdf && item.importo_linea != null && Number.isFinite(item.importo_linea)) {
     const fixed = resolveAmbiguousInvoiceLinePrice(
       item.prezzo,
       qtyForResolve,
