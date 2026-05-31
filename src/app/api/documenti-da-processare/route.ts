@@ -104,6 +104,7 @@ async function finalizePendingByTipo(
     totale_iva_inclusa?: number | null
     numero_fattura?: string | null
     tipo_documento?: string | null
+    quantita_totale?: number | null
   }
 
   const ocrTipo = normalizeTipoDocumento(m.tipo_documento ?? meta.tipo_documento)
