@@ -917,6 +917,9 @@ export type Translations = {
     duplicateRemoveCopy: string
     duplicateRemoveThisCopy: string
     duplicatePairBadgeAria: string
+    toolbarDocActionsTitle: string
+    toolbarDocActionsDesc: string
+    toolbarSelectDocument: string
     refreshDateFromDoc: string
     refreshDateFromDocTitle: string
     refreshDateFromDocSuccess: string

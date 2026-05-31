@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
+import FatturaRefreshDateButton from '@/components/FatturaRefreshDateButton'
 
 interface LineItem {
   prodotto: string
@@ -43,11 +44,34 @@ interface AutoSyncResult {
   }
 }
 
+export type FatturaToolbarChoice = {
+  id: string
+  label: string
+  hasFile: boolean
+  senzaBolla: boolean
+}
+
+type RefreshHandlers = {
+  onDataUpdated: (newIsoDate: string) => void
+  onImportoUpdated?: (newImporto: number) => void
+  onNumeroFatturaUpdated?: (newNumero: string) => void
+  onTipoDocumentoUpdated?: (tipo: string) => void
+  onLedgerMutated?: () => void
+}
+
 export default function FattureInAttesaAutoSync({
   fatturaId,
+  fattureChoices,
+  onFatturaIdChange,
+  showListinoSync = true,
+  refreshHandlers,
   onComplete,
 }: {
   fatturaId: string
+  fattureChoices: FatturaToolbarChoice[]
+  onFatturaIdChange: (id: string) => void
+  showListinoSync?: boolean
+  refreshHandlers?: RefreshHandlers
   onComplete?: () => void
 }) {
   const router = useRouter()
@@ -57,7 +81,12 @@ export default function FattureInAttesaAutoSync({
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
 
+  const selected = fattureChoices.find((c) => c.id === fatturaId) ?? fattureChoices[0]
+  const canRefresh = Boolean(selected?.hasFile && refreshHandlers)
+  const canListino = showListinoSync && Boolean(selected?.senzaBolla)
+
   const handleAutoSync = async () => {
+    if (!fatturaId) return
     setLoading(true)
     setError(null)
     try {
@@ -86,7 +115,7 @@ export default function FattureInAttesaAutoSync({
     setImporting(true)
     setError(null)
     try {
-      if (onComplete) onComplete()
+      onComplete?.()
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : t.appStrings.autoSyncErrImport)
@@ -95,23 +124,61 @@ export default function FattureInAttesaAutoSync({
     }
   }
 
+  if (!fattureChoices.length) return null
+
   return (
     <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-bold text-app-fg">{t.appStrings.autoSyncTitle}</h3>
-          <p className="mt-1 text-xs text-app-fg-muted">{t.appStrings.autoSyncDesc}</p>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-app-fg">{t.fatture.toolbarDocActionsTitle}</h3>
+          <p className="mt-1 text-xs text-app-fg-muted">{t.fatture.toolbarDocActionsDesc}</p>
         </div>
-        {!result && (
-          <button
-            type="button"
-            onClick={handleAutoSync}
-            disabled={loading}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
-          >
-            {loading ? t.appStrings.autoSyncBtnLoading : t.appStrings.autoSyncBtn}
-          </button>
-        )}
+        <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+          {fattureChoices.length > 1 ? (
+            <label className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:min-w-[14rem]">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                {t.fatture.toolbarSelectDocument}
+              </span>
+              <select
+                value={fatturaId}
+                onChange={(e) => {
+                  setResult(null)
+                  onFatturaIdChange(e.target.value)
+                }}
+                className="w-full rounded-lg border border-app-line-28 bg-app-line-10 px-2.5 py-1.5 text-xs text-app-fg"
+              >
+                {fattureChoices.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {canRefresh && refreshHandlers ? (
+              <FatturaRefreshDateButton
+                fatturaId={fatturaId}
+                hasFile
+                onDataUpdated={refreshHandlers.onDataUpdated}
+                onImportoUpdated={refreshHandlers.onImportoUpdated}
+                onNumeroFatturaUpdated={refreshHandlers.onNumeroFatturaUpdated}
+                onTipoDocumentoUpdated={refreshHandlers.onTipoDocumentoUpdated}
+                onLedgerMutated={refreshHandlers.onLedgerMutated}
+              />
+            ) : null}
+            {canListino && !result ? (
+              <button
+                type="button"
+                onClick={handleAutoSync}
+                disabled={loading || !fatturaId}
+                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+              >
+                {loading ? t.appStrings.autoSyncBtnLoading : t.appStrings.autoSyncBtn}
+              </button>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {error && (

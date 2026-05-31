@@ -108,7 +108,6 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
-import FatturaRefreshDateButton from '@/components/FatturaRefreshDateButton'
 const FornitoreConfermeOrdineTab = dynamic(
   () => import('@/components/FornitoreConfermeOrdineTab'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
@@ -2960,6 +2959,70 @@ function FattureTab({
     [],
   )
 
+  const fattureToolbarChoices = useMemo(
+    () =>
+      fatture.map((f) => {
+        const parts = [formatDate(f.data)]
+        if (f.numero_fattura?.trim()) parts.push(`#${f.numero_fattura.trim()}`)
+        if (f.importo != null) parts.push(formatCurrency(f.importo, currency, locale))
+        return {
+          id: f.id,
+          label: parts.join(' · '),
+          hasFile: Boolean(f.file_url?.trim()),
+          senzaBolla: !f.bolla_id,
+        }
+      }),
+    [fatture, formatDate, currency, locale],
+  )
+
+  const fattureWithFile = useMemo(
+    () => fattureToolbarChoices.filter((c) => c.hasFile),
+    [fattureToolbarChoices],
+  )
+
+  const [toolbarFatturaId, setToolbarFatturaId] = useState('')
+
+  useEffect(() => {
+    if (!fattureWithFile.length) {
+      setToolbarFatturaId('')
+      return
+    }
+    setToolbarFatturaId((prev) =>
+      fattureWithFile.some((c) => c.id === prev) ? prev : fattureWithFile[0]!.id,
+    )
+  }, [fattureWithFile])
+
+  const toolbarSelectedFattura = useMemo(
+    () => fatture.find((f) => f.id === toolbarFatturaId) ?? null,
+    [fatture, toolbarFatturaId],
+  )
+
+  const toolbarRefreshHandlers = useMemo(() => {
+    if (!toolbarSelectedFattura) return undefined
+    const f = toolbarSelectedFattura
+    return {
+      onDataUpdated: (d: string) => onFatturaDataRefreshed(f.id, d),
+      onImportoUpdated: (imp: number) => onFatturaImportoRefreshed(f.id, imp),
+      onNumeroFatturaUpdated: (n: string) => onFatturaNumeroFatturaRefreshed(f.id, n),
+      onTipoDocumentoUpdated: (tipo: string) => {
+        if (f.file_url) {
+          manualTipoOverridesRef.current = {
+            ...manualTipoOverridesRef.current,
+            [f.file_url.trim()]: tipo,
+          }
+          setTipoFatturaByFileUrl((prev) => ({ ...prev }))
+        }
+      },
+      onLedgerMutated,
+    }
+  }, [
+    toolbarSelectedFattura,
+    onFatturaDataRefreshed,
+    onFatturaImportoRefreshed,
+    onFatturaNumeroFatturaRefreshed,
+    onLedgerMutated,
+  ])
+
   const { showToast } = useToast()
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'numero_fattura' | 'importo' } | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -3059,14 +3122,16 @@ function FattureTab({
 
   return (
     <>
-      {/* Auto-sync fatture in attesa - mostrato solo se ci sono fatture da processare */}
-      {!readOnly && fatture.some(f => !f.bolla_id) && (
+      {!readOnly && fattureWithFile.length > 0 && toolbarFatturaId ? (
         <div className="mb-4 px-4">
           <FattureInAttesaAutoSync
-            fatturaId={fatture.find(f => !f.bolla_id)?.id ?? ''}
+            fatturaId={toolbarFatturaId}
+            fattureChoices={fattureWithFile}
+            onFatturaIdChange={setToolbarFatturaId}
+            showListinoSync={Boolean(toolbarSelectedFattura && !toolbarSelectedFattura.bolla_id)}
+            refreshHandlers={toolbarRefreshHandlers}
             onComplete={() => {
               onLedgerMutated?.()
-              // Reload fatture
               setLoading(true)
               const supabase = createClient()
               supabase
@@ -3083,7 +3148,7 @@ function FattureTab({
             }}
           />
         </div>
-      )}
+      ) : null}
       
       <ErrorBoundary sectionName="lista fatture">
       <div
@@ -3109,18 +3174,6 @@ function FattureTab({
                         </span>
                       ) : null}
                     </div>
-                    {!readOnly && f.file_url?.trim() ? (
-                      <FatturaRefreshDateButton
-                        fatturaId={f.id}
-                        hasFile
-                        onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
-                        onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
-                        onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
-                        onTipoDocumentoUpdated={(tipo) => { if (f.file_url) { manualTipoOverridesRef.current = { ...manualTipoOverridesRef.current, [f.file_url.trim()]: tipo }; setTipoFatturaByFileUrl((prev) => ({ ...prev })) } }}
-                        onLedgerMutated={onLedgerMutated}
-                        className="mt-1.5 w-fit"
-                      />
-                    ) : null}
                     {f.numero_fattura && (
                       <p className="mt-0.5 text-xs text-app-fg-muted">
                         #{f.numero_fattura}
@@ -3197,19 +3250,7 @@ function FattureTab({
                 return (
                   <tr key={f.id} className={APP_SECTION_TABLE_TR}>
                     <td className="px-5 py-3 font-medium text-app-fg-muted">
-                      <div className="flex min-w-0 flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-                        <span className="tabular-nums">{formatDate(f.data)}</span>
-                        <FatturaRefreshDateButton
-                          fatturaId={f.id}
-                          hasFile={Boolean(f.file_url?.trim())}
-                          readOnly={readOnly}
-                          onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
-                          onImportoUpdated={(imp) => onFatturaImportoRefreshed(f.id, imp)}
-                          onNumeroFatturaUpdated={(n) => onFatturaNumeroFatturaRefreshed(f.id, n)}
-                          onTipoDocumentoUpdated={(tipo) => { if (f.file_url) { manualTipoOverridesRef.current = { ...manualTipoOverridesRef.current, [f.file_url.trim()]: tipo }; setTipoFatturaByFileUrl((prev) => ({ ...prev })) } }}
-                          onLedgerMutated={onLedgerMutated}
-                        />
-                      </div>
+                      <span className="tabular-nums">{formatDate(f.data)}</span>
                     </td>
                     <td
                       className="px-5 py-3 font-mono text-xs text-app-fg-muted"
