@@ -9,6 +9,7 @@ import {
   countRekkiUnitAnomaliesFromStatements,
   statementMatchesCalendarWindow,
 } from '@/lib/rekki-price-anomalies'
+import { statementOfficialDateIso } from '@/lib/statement-official-date'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,7 +114,7 @@ export async function GET(
         .limit(100),
       service
         .from('statements')
-        .select('id, missing_rows, received_at, extracted_pdf_dates, file_url')
+        .select('id, missing_rows, received_at, document_date, extracted_pdf_dates, file_url')
         .eq('fornitore_id', fornitoreId)
         .order('received_at', { ascending: false })
         .limit(400),
@@ -273,6 +274,7 @@ export async function GET(
       id: string
       missing_rows: number | null
       received_at: string
+      document_date: string | null
       extracted_pdf_dates: unknown
       file_url: string | null
     }[]
@@ -280,13 +282,23 @@ export async function GET(
       if (!statementMatchesCalendarWindow(s, from, to)) continue
       const missing = s.missing_rows ?? 0
       if (missing <= 0) continue
+      const officialDate = statementOfficialDateIso({
+        document_date: s.document_date,
+        extracted_pdf_dates: s.extracted_pdf_dates,
+      })
+      const receivedIso = s.received_at.slice(0, 10)
+      const displayDate = officialDate ?? receivedIso
+      const subtitle =
+        missing === 1
+          ? `1 riga da verificare${officialDate ? '' : ' · data di ricezione nell\'app'}`
+          : `${missing} righe da verificare${officialDate ? '' : ' · data di ricezione nell\'app'}`
       rows.push({
         id: `st-${s.id}`,
         kind: 'estratto_conto',
         title: 'Estratto conto',
-        subtitle: `${missing} righe da verificare`,
+        subtitle,
         severity: missing >= 3 ? 'high' : 'medium',
-        data: s.received_at.slice(0, 10),
+        data: displayDate,
         numero: null,
         importo: null,
         fileUrl: s.file_url?.trim() || null,
