@@ -1632,6 +1632,7 @@ const translations: Translations = {
     anomalieIssueDupBolla: 'DDT duplicato',
     anomalieIssueDupCanonical: 'Originale',
     anomalieIssueDupExcess: 'Copia duplicata',
+    anomalieRegisteredDateHint: 'Registrata come {date} in anagrafica',
     anomalieIssuePrezzo: 'Prezzo listino',
     anomalieIssueRekki: 'Prezzo vs Rekki',
     anomalieIssueEstratto: 'Estratto da verificare',

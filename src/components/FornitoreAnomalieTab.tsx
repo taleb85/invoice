@@ -45,6 +45,16 @@ function issueLabel(row: SupplierAnomalieApiRow, t: ReturnType<typeof useT>): st
   }
 }
 
+function registeredDateHint(
+  row: SupplierAnomalieApiRow,
+  t: ReturnType<typeof useT>,
+  formatDate: (iso: string | null) => string,
+): string | null {
+  const iso = row.meta?.registeredData?.trim()
+  if (!iso) return null
+  return t.fornitori.anomalieRegisteredDateHint.replace('{date}', formatDate(iso))
+}
+
 function issueBadgeClass(row: SupplierAnomalieApiRow) {
   const kind = row.kind
   if (kind === 'fattura_duplicata' || kind === 'bolla_duplicata') {
@@ -323,7 +333,9 @@ export default function FornitoreAnomalieTab({
               </tr>
             </thead>
             <tbody className={APP_SECTION_TABLE_TBODY}>
-              {sortedRows.map((row) => (
+              {sortedRows.map((row) => {
+                const regDateHint = registeredDateHint(row, t, formatDate)
+                return (
                 <tr key={row.id} className={APP_SECTION_TABLE_TR}>
                   <td className="px-5 py-3 font-medium tabular-nums text-app-fg-muted">
                     {formatDate(row.data)}
@@ -336,6 +348,9 @@ export default function FornitoreAnomalieTab({
                     </span>
                     {row.subtitle ? (
                       <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-app-fg-muted">{row.subtitle}</p>
+                    ) : null}
+                    {regDateHint ? (
+                      <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-amber-200/90">{regDateHint}</p>
                     ) : null}
                   </td>
                   <td className="px-5 py-3">
@@ -350,13 +365,15 @@ export default function FornitoreAnomalieTab({
                   </td>
                   <td className="px-5 py-3">{renderRowActions(row)}</td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
 
         <div className={`md:hidden ${APP_SECTION_MOBILE_LIST}`}>
-          {sortedRows.map((row) => (
+          {sortedRows.map((row) => {
+            const regDateHint = registeredDateHint(row, t, formatDate)
+            return (
             <div key={row.id} className="border-b border-app-line-22/50 px-4 py-3.5 last:border-b-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium tabular-nums text-app-fg">{formatDate(row.data)}</span>
@@ -368,6 +385,7 @@ export default function FornitoreAnomalieTab({
               </div>
               <p className="mt-1.5 text-sm font-semibold text-app-fg">{row.title}</p>
               {row.subtitle ? <p className="mt-0.5 text-xs text-app-fg-muted">{row.subtitle}</p> : null}
+              {regDateHint ? <p className="mt-0.5 text-xs text-amber-200/90">{regDateHint}</p> : null}
               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-app-fg-muted">
                 {row.importo != null ? (
                   <span className="font-mono font-semibold tabular-nums text-app-fg">
@@ -378,7 +396,7 @@ export default function FornitoreAnomalieTab({
               </div>
               <div className="mt-2">{renderRowActions(row)}</div>
             </div>
-          ))}
+          )})}
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import {
   analyzeBolleDuplicatesForDeletion,
   analyzeFatturaDuplicatesForDeletion,
+  type FatturaDuplicateDeletionAnalysis,
 } from '@/lib/check-duplicates'
 import {
   countBolleImportOverPrezzoRekki,
@@ -40,7 +41,25 @@ export type SupplierAnomalieApiRow = {
     /** In gruppi duplicati: copia consigliata da tenere vs copia in eccesso. */
     duplicateRole?: 'canonical' | 'excess'
     duplicateGroupKey?: string
+    /** Se la data in anagrafica differisce da quella del documento originale nel gruppo. */
+    registeredData?: string
   }
+}
+
+function duplicateDisplayDate(
+  memberId: string,
+  analysis: FatturaDuplicateDeletionAnalysis,
+  dataById: Map<string, string>,
+): { displayDate: string; registeredData?: string } {
+  const groupKey = duplicateGroupKeyForId(memberId, analysis.groupMembers)
+  const canonId = analysis.canonicalIdByGroupKey.get(groupKey)
+  const memberDate = dataById.get(memberId) ?? ''
+  const canonDate = canonId ? dataById.get(canonId) : null
+  const displayDate = canonDate ?? memberDate
+  if (memberDate && memberDate !== displayDate) {
+    return { displayDate, registeredData: memberDate }
+  }
+  return { displayDate }
 }
 
 function duplicateGroupKeyForId(id: string, groupMembers: Map<string, string[]>): string {
@@ -226,17 +245,19 @@ export async function GET(
       })
     }
 
+    const fatturaDataById = new Map(fatture.map((f) => [f.id, f.data]))
     for (const memberId of fattDup.memberIds) {
       const f = fattureById.get(memberId)
       if (!f) continue
       const isExcess = fattDup.excessIds.has(memberId)
+      const { displayDate, registeredData } = duplicateDisplayDate(memberId, fattDup, fatturaDataById)
       rows.push({
         id: `fd-${memberId}`,
         kind: 'fattura_duplicata',
         title: f.numero_fattura?.trim() ? `#${f.numero_fattura.trim()}` : 'Fattura duplicata',
         subtitle: null,
         severity: 'high',
-        data: f.data,
+        data: displayDate,
         numero: f.numero_fattura,
         importo: f.importo,
         fileUrl: f.file_url?.trim() || null,
@@ -244,21 +265,24 @@ export async function GET(
           fatturaId: memberId,
           duplicateRole: isExcess ? 'excess' : 'canonical',
           duplicateGroupKey: duplicateGroupKeyForId(memberId, fattDup.groupMembers),
+          registeredData,
         },
       })
     }
 
+    const bollaDataById = new Map(bolle.map((b) => [b.id, b.data]))
     for (const memberId of bollaDup.memberIds) {
       const b = bolleById.get(memberId)
       if (!b) continue
       const isExcess = bollaDup.excessIds.has(memberId)
+      const { displayDate, registeredData } = duplicateDisplayDate(memberId, bollaDup, bollaDataById)
       rows.push({
         id: `bd-${memberId}`,
         kind: 'bolla_duplicata',
         title: b.numero_bolla?.trim() ? `DDT ${b.numero_bolla.trim()}` : 'Bolla duplicata',
         subtitle: null,
         severity: 'high',
-        data: b.data,
+        data: displayDate,
         numero: b.numero_bolla,
         importo: b.importo,
         fileUrl: b.file_url?.trim() || null,
@@ -266,6 +290,7 @@ export async function GET(
           bollaId: memberId,
           duplicateRole: isExcess ? 'excess' : 'canonical',
           duplicateGroupKey: duplicateGroupKeyForId(memberId, bollaDup.groupMembers),
+          registeredData,
         },
       })
     }
