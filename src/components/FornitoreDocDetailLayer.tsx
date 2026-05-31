@@ -20,6 +20,9 @@ import type { Locale } from '@/lib/translations'
 import ToggleStato from '@/app/(app)/bolle/[id]/ToggleStato'
 import ReplaceFileButton from '@/app/(app)/fatture/[id]/ReplaceFileButton'
 import { AiAnalysisButton } from '@/components/AiAnalysisButton'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
+import { DocumentModalFooter } from '@/components/DocumentModalFooter'
+import { documentActionItemFromEntity } from '@/lib/document-action-item'
 import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useMe } from '@/lib/me-context'
@@ -33,6 +36,7 @@ type BollaPayload = {
   stato: BollaStato
   file_url: string | null
   fornitore_id: string
+  sede_id?: string | null
   importo: number | null
   numero_bolla: string | null
   fornitore?: { nome: string; email: string | null; piva: string | null; rekki_supplier_id?: string | null } | null
@@ -43,6 +47,9 @@ type FatturaPayload = {
   data: string
   file_url: string | null
   fornitore_id: string
+  numero_fattura?: string | null
+  importo?: number | null
+  sede_id?: string | null
   fornitore?: { nome: string; email: string | null; piva: string | null } | null
   bolla?: { id: string; data: string; stato: string } | null
 }
@@ -527,6 +534,16 @@ function FatturaLayerBody({
 
   if (fattura.file_url?.trim()) {
     const listinoAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
+    const docActionsItem = documentActionItemFromEntity({
+      fatturaId: fattura.id,
+      fileUrl: fattura.file_url,
+      fornitoreId: fattura.fornitore_id,
+      fornitoreNome: fattura.fornitore?.nome ?? null,
+      sedeId: fattura.sede_id ?? null,
+      numeroDocumento: fattura.numero_fattura ?? null,
+      dataDoc: fattura.data,
+      importo: fattura.importo ?? null,
+    })
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <FornitoreInlineDocPreview
@@ -546,6 +563,7 @@ function FatturaLayerBody({
               entityId={fattura.id}
               fornitoreId={fattura.fornitore_id}
             />
+            {docActionsItem ? <DocumentActionsButton item={docActionsItem} variant="link" /> : null}
             {deleteBtn}
           </div>
         </div>
@@ -608,7 +626,25 @@ function FatturaLayerBody({
         <div className="p-5">
           <h4 className="mb-3 text-sm font-semibold text-app-fg">{t.common.actions}</h4>
           <p className="mb-3 text-sm text-app-fg-muted">Nessun allegato</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-4">
+            <AiAnalysisButton
+              entityType="fattura"
+              entityId={fattura.id}
+              fornitoreId={fattura.fornitore_id}
+            />
+            {(() => {
+              const item = documentActionItemFromEntity({
+                fatturaId: fattura.id,
+                fileUrl: fattura.file_url,
+                fornitoreId: fattura.fornitore_id,
+                fornitoreNome: fattura.fornitore?.nome ?? null,
+                sedeId: fattura.sede_id ?? null,
+                numeroDocumento: fattura.numero_fattura ?? null,
+                dataDoc: fattura.data,
+                importo: fattura.importo ?? null,
+              })
+              return item ? <DocumentActionsButton item={item} variant="link" /> : null
+            })()}
             <ReplaceFileButton fatturaId={fattura.id} />
             {deleteBtn}
           </div>
@@ -713,18 +749,27 @@ function BollaLayerBody({
   }
 
   if (bolla.file_url?.trim()) {
+    const docActionsItem = documentActionItemFromEntity({
+      bollaId: bolla.id,
+      fileUrl: bolla.file_url,
+      fornitoreId: bolla.fornitore_id,
+      fornitoreNome: bolla.fornitore?.nome ?? null,
+      sedeId: bolla.sede_id ?? null,
+      numeroDocumento: bolla.numero_bolla ?? null,
+      dataDoc: bolla.data,
+      importo: bolla.importo,
+    })
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <FornitoreInlineDocPreview fill fileUrl={bolla.file_url} openKind="bolla" docId={bolla.id} />
-        <div className="shrink-0 border-t border-app-line-22/90 app-workspace-inset-bg-soft px-4 py-2.5 md:px-5">
-          <div className="flex flex-wrap items-center gap-4">
-            <AiAnalysisButton
-              entityType="bolla"
-              entityId={bolla.id}
-              fornitoreId={bolla.fornitore_id}
-            />
-          </div>
-        </div>
+        <DocumentModalFooter>
+          <AiAnalysisButton
+            entityType="bolla"
+            entityId={bolla.id}
+            fornitoreId={bolla.fornitore_id}
+          />
+          {docActionsItem ? <DocumentActionsButton item={docActionsItem} variant="link" /> : null}
+        </DocumentModalFooter>
       </div>
     )
   }
@@ -829,6 +874,29 @@ function BollaLayerBody({
           )}
         </div>
       </div>
+
+      {(() => {
+        const docActionsItem = documentActionItemFromEntity({
+          bollaId: bolla.id,
+          fileUrl: bolla.file_url,
+          fornitoreId: bolla.fornitore_id,
+          fornitoreNome: bolla.fornitore?.nome ?? null,
+          sedeId: bolla.sede_id ?? null,
+          numeroDocumento: bolla.numero_bolla ?? null,
+          dataDoc: bolla.data,
+          importo: bolla.importo,
+        })
+        return (
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <AiAnalysisButton
+              entityType="bolla"
+              entityId={bolla.id}
+              fornitoreId={bolla.fornitore_id}
+            />
+            {docActionsItem ? <DocumentActionsButton item={docActionsItem} variant="link" /> : null}
+          </div>
+        )
+      })()}
 
       <p className="text-center">
         <Link href={`/bolle/${bolla.id}`} className="text-xs text-app-fg-muted underline hover:text-app-fg">

@@ -1,8 +1,13 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CategoriaDropdown } from '@/components/CategoriaDropdown'
+import { AiAnalysisButton } from '@/components/AiAnalysisButton'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
+import { DocumentModalFooter } from '@/components/DocumentModalFooter'
+import type { DocumentActionItem } from '@/components/DocumentActionsModal'
+import { documentActionItemFromEntity } from '@/lib/document-action-item'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useT } from '@/lib/use-t'
@@ -70,6 +75,9 @@ type Props = {
   categoria?: string
   /** Quando fornito, la categoria diventa editabile tramite dropdown. */
   onCategoriaChange?: (nuovaCategoria: string) => void
+  /** Override per `DocumentActionsModal` nel footer del viewer. */
+  documentActionsItem?: DocumentActionItem | null
+  fornitoreId?: string | null
 }
 
 function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId' | 'confermaOrdineId'>): {
@@ -130,6 +138,8 @@ export function OpenDocumentInAppButton({
   viewerActions,
   categoria,
   onCategoriaChange,
+  documentActionsItem: documentActionsItemProp,
+  fornitoreId,
 }: Props) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -148,6 +158,35 @@ export function OpenDocumentInAppButton({
   const tabHref = hrefs?.tabHref ?? ''
   const canOpen = Boolean(hrefs)
   const kind = fileUrl?.trim() ? attachmentKindFromFileUrl(fileUrl) : 'pdf'
+
+  const documentActionsItem = useMemo(
+    () =>
+      documentActionsItemProp ??
+      documentActionItemFromEntity({
+        fatturaId,
+        bollaId,
+        documentoId,
+        statementId,
+        fileUrl,
+        fornitoreId,
+      }),
+    [
+      documentActionsItemProp,
+      fatturaId,
+      bollaId,
+      documentoId,
+      statementId,
+      fileUrl,
+      fornitoreId,
+    ],
+  )
+
+  const aiEntity =
+    fatturaId?.trim() ?
+      ({ type: 'fattura' as const, id: fatturaId.trim() })
+    : bollaId?.trim() ?
+      ({ type: 'bolla' as const, id: bollaId.trim() })
+    : null
 
   useLayoutEffect(() => {
     setPortalReady(true)
@@ -420,6 +459,7 @@ export function OpenDocumentInAppButton({
               ))}
             </div>
           )}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="app-aurora-viewer-fill flex min-h-0 flex-1 flex-col overflow-hidden pt-10 md:pt-12 bg-slate-950/35">
             {loading ? (
               <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
@@ -517,6 +557,19 @@ export function OpenDocumentInAppButton({
                 </div>
               </div>
             ) : null}
+          </div>
+          {documentActionsItem ? (
+            <DocumentModalFooter>
+              {aiEntity ? (
+                <AiAnalysisButton
+                  entityType={aiEntity.type}
+                  entityId={aiEntity.id}
+                  fornitoreId={fornitoreId}
+                />
+              ) : null}
+              <DocumentActionsButton item={documentActionsItem} variant="link" />
+            </DocumentModalFooter>
+          ) : null}
           </div>
         </div>
       </div>

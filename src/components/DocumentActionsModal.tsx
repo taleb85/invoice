@@ -156,7 +156,7 @@ export default function DocumentActionsModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="mx-4 w-full max-w-lg rounded-xl border border-app-line-28 bg-app-bg shadow-2xl shadow-black/20">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-app-line-28 px-5 py-3.5">
