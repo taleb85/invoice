@@ -6490,6 +6490,7 @@ function FornitoreDetailClient({
             pathname={pathname}
             searchParams={searchParams}
             currency={currency ?? 'GBP'}
+            countryCode={countryCode}
             epoch={periodLedgerEpoch}
             onNavigateTab={(next) => setTab(next as Tab)}
           />

@@ -77,6 +77,11 @@ export function getLocale(countryCode: string | null | undefined): CountryLocale
   return LOCALES[(countryCode ?? 'UK') as CountryCode] ?? LOCALES.UK
 }
 
+/** True solo per sedi italiane (acronimo DDT). */
+export function usesDdtAcronym(countryCode: string | null | undefined): boolean {
+  return (countryCode ?? 'UK').toUpperCase() === 'IT'
+}
+
 /** Termine bolla/DDT per etichette brevi in lista (minuscolo salvo acronimi come DDT). */
 export function deliveryNoteTermForList(countryCode: string | null | undefined): string {
   const cc = (countryCode ?? 'UK').toUpperCase()
@@ -84,6 +89,31 @@ export function deliveryNoteTermForList(countryCode: string | null | undefined):
   const term = getLocale(countryCode).deliveryNoteLabel
   if (term.length <= 4 || term === term.toUpperCase()) return term
   return term.toLowerCase()
+}
+
+/** Titolo riga con numero documento (es. «DDT 123» in IT, «Delivery note 123» altrove). */
+export function formatDeliveryNoteNumber(
+  countryCode: string | null | undefined,
+  numero: string | null | undefined,
+): string | null {
+  const n = numero?.trim()
+  if (!n) return null
+  if (usesDdtAcronym(countryCode)) return `DDT ${n}`
+  const term = deliveryNoteTermForList(countryCode)
+  const label = term.charAt(0).toUpperCase() + term.slice(1)
+  return `${label} ${n}`
+}
+
+export function deliveryNoteDuplicateFallback(countryCode: string | null | undefined): string {
+  if (usesDdtAcronym(countryCode)) return 'DDT duplicato'
+  return `Duplicate ${deliveryNoteTermForList(countryCode)}`
+}
+
+export function deliveryNoteOpenFallback(countryCode: string | null | undefined): string {
+  if (usesDdtAcronym(countryCode)) return 'DDT in attesa'
+  const term = deliveryNoteTermForList(countryCode)
+  const label = term.charAt(0).toUpperCase() + term.slice(1)
+  return `Open ${label}`
 }
 
 /** Etichetta breve bolle_mancanti in lista estratti (paese → DDT solo in IT). */

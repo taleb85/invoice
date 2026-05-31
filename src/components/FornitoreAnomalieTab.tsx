@@ -20,11 +20,17 @@ import {
 } from '@/lib/app-shell-layout'
 import { createClient } from '@/utils/supabase/client'
 import { fornitoreBollaDeepLink, fornitoreFatturaDeepLink, fornitoreDocumentiQueueHref } from '@/lib/fornitore-supplier-url'
+import { deliveryNoteTermForList } from '@/lib/localization'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
 
 type TabTarget = 'listino' | 'verifica' | 'fatture' | 'bolle' | 'documenti'
 
-function issueLabel(row: SupplierAnomalieApiRow, t: ReturnType<typeof useT>): string {
+function issueLabel(
+  row: SupplierAnomalieApiRow,
+  t: ReturnType<typeof useT>,
+  countryCode: string,
+): string {
+  const deliveryNote = deliveryNoteTermForList(countryCode)
   switch (row.kind) {
     case 'fattura_duplicata':
       return row.meta?.duplicateRole === 'canonical'
@@ -33,13 +39,13 @@ function issueLabel(row: SupplierAnomalieApiRow, t: ReturnType<typeof useT>): st
     case 'bolla_duplicata':
       return row.meta?.duplicateRole === 'canonical'
         ? t.fornitori.anomalieIssueDupCanonical
-        : t.fornitori.anomalieIssueDupExcess
+        : t.fornitori.anomalieIssueDupBolla.replace('{deliveryNote}', deliveryNote)
+    case 'bolla_aperta':
+      return t.fornitori.anomalieIssueBollaAperta.replace('{deliveryNote}', deliveryNote)
     case 'prezzo_listino':
       return row.id === 'rekki-summary' ? t.fornitori.anomalieIssueRekki : t.fornitori.anomalieIssuePrezzo
     case 'estratto_conto':
       return t.fornitori.anomalieIssueEstratto
-    case 'bolla_aperta':
-      return t.fornitori.anomalieIssueBollaAperta
     case 'documento_coda':
       return t.fornitori.anomalieIssueCoda
   }
@@ -76,6 +82,7 @@ export default function FornitoreAnomalieTab({
   searchParams,
   onNavigateTab,
   currency = 'GBP',
+  countryCode = 'UK',
   epoch = 0,
 }: {
   fornitoreId: string
@@ -85,6 +92,7 @@ export default function FornitoreAnomalieTab({
   searchParams: ReadonlyURLSearchParams
   onNavigateTab: (tab: TabTarget) => void
   currency?: string
+  countryCode?: string
   epoch?: number
 }) {
   const t = useT()
@@ -111,6 +119,7 @@ export default function FornitoreAnomalieTab({
         fornitore_id: fornitoreId,
         from: dateFrom,
         to: dateToExclusive,
+        country: countryCode,
       })
       const res = await fetch(`/api/fornitori/${encodeURIComponent(fornitoreId)}/anomalie?${q}`, {
         cache: 'no-store',
@@ -344,7 +353,7 @@ export default function FornitoreAnomalieTab({
                     <span
                       className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row)}`}
                     >
-                      {issueLabel(row, t)}
+                      {issueLabel(row, t, countryCode)}
                     </span>
                     {row.subtitle ? (
                       <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-app-fg-muted">{row.subtitle}</p>
@@ -380,7 +389,7 @@ export default function FornitoreAnomalieTab({
                 <span
                   className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row)}`}
                 >
-                  {issueLabel(row, t)}
+                  {issueLabel(row, t, countryCode)}
                 </span>
               </div>
               <p className="mt-1.5 text-sm font-semibold text-app-fg">{row.title}</p>

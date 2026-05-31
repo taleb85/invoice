@@ -11,6 +11,11 @@ import {
   statementMatchesCalendarWindow,
 } from '@/lib/rekki-price-anomalies'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
+import {
+  deliveryNoteDuplicateFallback,
+  deliveryNoteOpenFallback,
+  formatDeliveryNoteNumber,
+} from '@/lib/localization'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,6 +99,7 @@ export async function GET(
     const { id: fornitoreId } = await context.params
     const from = req.nextUrl.searchParams.get('from')
     const to = req.nextUrl.searchParams.get('to')
+    const countryCode = req.nextUrl.searchParams.get('country')?.trim() || 'UK'
     if (!from || !to) {
       return NextResponse.json({ error: 'from e to richiesti' }, { status: 400 })
     }
@@ -279,7 +285,9 @@ export async function GET(
       rows.push({
         id: `bd-${memberId}`,
         kind: 'bolla_duplicata',
-        title: b.numero_bolla?.trim() ? `DDT ${b.numero_bolla.trim()}` : 'Bolla duplicata',
+        title:
+          formatDeliveryNoteNumber(countryCode, b.numero_bolla) ??
+          deliveryNoteDuplicateFallback(countryCode),
         subtitle: null,
         severity: 'high',
         data: displayDate,
@@ -336,7 +344,9 @@ export async function GET(
       rows.push({
         id: `ba-${b.id}`,
         kind: 'bolla_aperta',
-        title: b.numero_bolla?.trim() ? `DDT ${b.numero_bolla.trim()}` : 'Bolla',
+        title:
+          formatDeliveryNoteNumber(countryCode, b.numero_bolla) ??
+          deliveryNoteOpenFallback(countryCode),
         subtitle: null,
         severity: 'low',
         data: b.data,
