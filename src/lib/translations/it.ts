@@ -1729,6 +1729,15 @@ const translations: Translations = {
       'Indirizzi aggiuntivi da cui questo fornitore può inviare documenti. La scansione email li abbina automaticamente.',
     recognizedEmailPlaceholder: 'es. fatture@fornitore.it',
     recognizedEmailLabelOptional: 'Etichetta (opz.)',
+    mergeFornitoreTitle: 'Unisci fornitore duplicato',
+    mergeFornitoreHint:
+      'Se in elenco compare due volte lo stesso fornitore (es. nomi OCR diversi), scegli l’altro profilo da fondere in questo. Documenti, listino ed email passano qui; l’altro record viene eliminato.',
+    mergeFornitoreSelect: 'Altro fornitore da unire',
+    mergeFornitoreSelectPlaceholder: 'Seleziona fornitore…',
+    mergeFornitoreConfirm:
+      'Unire «{source}» in «{target}»? Tutti i documenti andranno su questo profilo e l’altro fornitore verrà eliminato.',
+    mergeFornitoreButton: 'Unisci in questo profilo',
+    mergeFornitoreMerging: 'Unione in corso…',
     displayNameLabel: 'Nome visualizzato (breve)',
     displayNameHint:
       'Opzionale. Se compilato, viene usato nella barra in basso su mobile e negli elenchi compatti al posto del nome completo.',

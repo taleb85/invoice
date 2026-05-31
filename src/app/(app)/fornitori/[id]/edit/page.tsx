@@ -9,6 +9,7 @@ import { BackButton } from '@/components/BackButton'
 import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
 import { readReturnToFromGetter } from '@/lib/return-navigation'
+import { revalidateFornitori } from '@/lib/use-fornitori'
 
 interface AliasEmail {
   id: string
@@ -83,6 +84,7 @@ export default function EditFornitore() {
           rekki_supplier_id?: string | null
           emette_bolle?: boolean | null
         }
+        setSedeId(data.sede_id ?? null)
         setForm({
           nome: data.nome ?? '',
           display_name: (row.display_name ?? '').toLocaleUpperCase(),
@@ -100,6 +102,17 @@ export default function EditFornitore() {
     }
     load()
   }, [id, loadAliases, supabase, t.fornitori.notFound])
+
+  useEffect(() => {
+    if (!sedeId) return
+    void supabase
+      .from('fornitori')
+      .select('id, nome')
+      .eq('sede_id', sedeId)
+      .neq('id', id)
+      .order('nome')
+      .then(({ data }) => setMergeCandidates(data ?? []))
+  }, [id, sedeId, supabase])
 
   const handleAddAlias = async () => {
     if (!newAlias.email.trim()) return
@@ -120,6 +133,39 @@ export default function EditFornitore() {
     await supabase.from('fornitore_emails').delete().eq('id', aliasId)
     setDeletingAliasId(null)
     await loadAliases()
+  }
+
+  const handleMergeFornitore = async () => {
+    if (!mergeSourceId) return
+    const source = mergeCandidates.find((c) => c.id === mergeSourceId)
+    if (!source) return
+    const confirmMsg = t.fornitori.mergeFornitoreConfirm
+      .replace('{source}', source.nome)
+      .replace('{target}', form.nome.trim() || source.nome)
+    if (!window.confirm(confirmMsg)) return
+
+    setMerging(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/fornitori/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ target_id: id, source_id: mergeSourceId }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setError(j.error ?? `HTTP ${res.status}`)
+        return
+      }
+      revalidateFornitori()
+      router.push(`/fornitori/${id}`)
+      router.refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.appStrings.networkError)
+    } finally {
+      setMerging(false)
+    }
   }
 
   const handleCloseEdit = () => {
@@ -346,6 +392,38 @@ export default function EditFornitore() {
           </div>
         </div>
       </form>
+
+      {mergeCandidates.length > 0 ? (
+        <div className={`${editSectionShellCls} mb-6`}>
+          <div className={editSectionBodyCls}>
+            <div>
+              <h2 className="text-sm font-semibold text-app-fg">{t.fornitori.mergeFornitoreTitle}</h2>
+              <p className="mt-0.5 text-xs text-app-fg-muted">{t.fornitori.mergeFornitoreHint}</p>
+            </div>
+            <label className={labelCls}>{t.fornitori.mergeFornitoreSelect}</label>
+            <select
+              className={selectCls}
+              value={mergeSourceId}
+              onChange={(e) => setMergeSourceId(e.target.value)}
+            >
+              <option value="">{t.fornitori.mergeFornitoreSelectPlaceholder}</option>
+              {mergeCandidates.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={merging || !mergeSourceId}
+              onClick={() => void handleMergeFornitore()}
+              className="w-full rounded-xl border border-amber-500/40 bg-amber-500/10 py-2.5 text-sm font-semibold text-amber-100 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
+            >
+              {merging ? t.fornitori.mergeFornitoreMerging : t.fornitori.mergeFornitoreButton}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className={editSectionShellCls}>
         <div className={editSectionBodyCls}>

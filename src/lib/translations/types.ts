@@ -1123,6 +1123,13 @@ export type Translations = {
     recognizedEmailsHint: string
     recognizedEmailPlaceholder: string
     recognizedEmailLabelOptional: string
+    mergeFornitoreTitle: string
+    mergeFornitoreHint: string
+    mergeFornitoreSelect: string
+    mergeFornitoreSelectPlaceholder: string
+    mergeFornitoreConfirm: string
+    mergeFornitoreButton: string
+    mergeFornitoreMerging: string
     displayNameLabel: string
     displayNameHint: string
     displayNamePlaceholder: string
