@@ -27,9 +27,13 @@ type TabTarget = 'listino' | 'verifica' | 'fatture' | 'bolle' | 'documenti'
 function issueLabel(row: SupplierAnomalieApiRow, t: ReturnType<typeof useT>): string {
   switch (row.kind) {
     case 'fattura_duplicata':
-      return t.fornitori.anomalieIssueDupFattura
+      return row.meta?.duplicateRole === 'canonical'
+        ? t.fornitori.anomalieIssueDupCanonical
+        : t.fornitori.anomalieIssueDupExcess
     case 'bolla_duplicata':
-      return t.fornitori.anomalieIssueDupBolla
+      return row.meta?.duplicateRole === 'canonical'
+        ? t.fornitori.anomalieIssueDupCanonical
+        : t.fornitori.anomalieIssueDupExcess
     case 'prezzo_listino':
       return row.id === 'rekki-summary' ? t.fornitori.anomalieIssueRekki : t.fornitori.anomalieIssuePrezzo
     case 'estratto_conto':
@@ -41,8 +45,12 @@ function issueLabel(row: SupplierAnomalieApiRow, t: ReturnType<typeof useT>): st
   }
 }
 
-function issueBadgeClass(kind: SupplierAnomalieApiRow['kind']) {
+function issueBadgeClass(row: SupplierAnomalieApiRow) {
+  const kind = row.kind
   if (kind === 'fattura_duplicata' || kind === 'bolla_duplicata') {
+    if (row.meta?.duplicateRole === 'canonical') {
+      return 'border-emerald-500/35 bg-emerald-500/12 text-emerald-100'
+    }
     return 'border-rose-500/40 bg-rose-500/15 text-rose-100'
   }
   if (kind === 'prezzo_listino') return 'border-amber-500/35 bg-amber-500/12 text-amber-100'
@@ -322,7 +330,7 @@ export default function FornitoreAnomalieTab({
                   </td>
                   <td className="px-5 py-3">
                     <span
-                      className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row.kind)}`}
+                      className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row)}`}
                     >
                       {issueLabel(row, t)}
                     </span>
@@ -353,7 +361,7 @@ export default function FornitoreAnomalieTab({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium tabular-nums text-app-fg">{formatDate(row.data)}</span>
                 <span
-                  className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row.kind)}`}
+                  className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row)}`}
                 >
                   {issueLabel(row, t)}
                 </span>

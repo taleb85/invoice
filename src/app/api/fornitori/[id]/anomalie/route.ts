@@ -36,7 +36,17 @@ export type SupplierAnomalieApiRow = {
     documentoId?: string
     resolved?: boolean
     differenzaPercent?: number
+    /** In gruppi duplicati: copia consigliata da tenere vs copia in eccesso. */
+    duplicateRole?: 'canonical' | 'excess'
+    duplicateGroupKey?: string
   }
+}
+
+function duplicateGroupKeyForId(id: string, groupMembers: Map<string, string[]>): string {
+  for (const [k, ids] of groupMembers) {
+    if (ids.includes(id)) return k
+  }
+  return id
 }
 
 export type SupplierAnomalieApiResponse = {
@@ -215,11 +225,12 @@ export async function GET(
       })
     }
 
-    for (const excessId of fattDup.excessIds) {
-      const f = fattureById.get(excessId)
+    for (const memberId of fattDup.memberIds) {
+      const f = fattureById.get(memberId)
       if (!f) continue
+      const isExcess = fattDup.excessIds.has(memberId)
       rows.push({
-        id: `fd-${excessId}`,
+        id: `fd-${memberId}`,
         kind: 'fattura_duplicata',
         title: f.numero_fattura?.trim() ? `#${f.numero_fattura.trim()}` : 'Fattura duplicata',
         subtitle: null,
@@ -228,15 +239,20 @@ export async function GET(
         numero: f.numero_fattura,
         importo: f.importo,
         fileUrl: f.file_url?.trim() || null,
-        meta: { fatturaId: excessId },
+        meta: {
+          fatturaId: memberId,
+          duplicateRole: isExcess ? 'excess' : 'canonical',
+          duplicateGroupKey: duplicateGroupKeyForId(memberId, fattDup.groupMembers),
+        },
       })
     }
 
-    for (const excessId of bollaDup.excessIds) {
-      const b = bolleById.get(excessId)
+    for (const memberId of bollaDup.memberIds) {
+      const b = bolleById.get(memberId)
       if (!b) continue
+      const isExcess = bollaDup.excessIds.has(memberId)
       rows.push({
-        id: `bd-${excessId}`,
+        id: `bd-${memberId}`,
         kind: 'bolla_duplicata',
         title: b.numero_bolla?.trim() ? `DDT ${b.numero_bolla.trim()}` : 'Bolla duplicata',
         subtitle: null,
@@ -245,7 +261,11 @@ export async function GET(
         numero: b.numero_bolla,
         importo: b.importo,
         fileUrl: b.file_url?.trim() || null,
-        meta: { bollaId: excessId },
+        meta: {
+          bollaId: memberId,
+          duplicateRole: isExcess ? 'excess' : 'canonical',
+          duplicateGroupKey: duplicateGroupKeyForId(memberId, bollaDup.groupMembers),
+        },
       })
     }
 
@@ -312,10 +332,20 @@ export async function GET(
       })
     }
 
-    rows.sort((a, b) => (b.data ?? '').localeCompare(a.data ?? ''))
+    rows.sort((a, b) => {
+      const aGrp = a.meta?.duplicateGroupKey
+      const bGrp = b.meta?.duplicateGroupKey
+      if (aGrp && bGrp && aGrp === bGrp) {
+        const aCanon = a.meta?.duplicateRole === 'canonical' ? 0 : 1
+        const bCanon = b.meta?.duplicateRole === 'canonical' ? 0 : 1
+        if (aCanon !== bCanon) return aCanon - bCanon
+        return (b.data ?? '').localeCompare(a.data ?? '')
+      }
+      return (b.data ?? '').localeCompare(a.data ?? '')
+    })
 
-    const fattureDuplicati = fattDup.excessIds.size
-    const bolleDuplicati = bollaDup.excessIds.size
+    const fattureDuplicati = fattDup.memberIds.size
+    const bolleDuplicati = bollaDup.memberIds.size
     const estrattiConto = rows.filter((r) => r.kind === 'estratto_conto').length
     const bolleAperteCount = bolleAperte.length
     const documentiInCoda = pendingRes.data?.length ?? 0

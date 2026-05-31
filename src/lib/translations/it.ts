@@ -1630,6 +1630,8 @@ const translations: Translations = {
     anomalieColDocument: 'Documento',
     anomalieIssueDupFattura: 'Duplicato',
     anomalieIssueDupBolla: 'DDT duplicato',
+    anomalieIssueDupCanonical: 'Originale',
+    anomalieIssueDupExcess: 'Copia duplicata',
     anomalieIssuePrezzo: 'Prezzo listino',
     anomalieIssueRekki: 'Prezzo vs Rekki',
     anomalieIssueEstratto: 'Estratto da verificare',

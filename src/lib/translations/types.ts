@@ -1025,6 +1025,8 @@ export type Translations = {
     anomalieColDocument: string
     anomalieIssueDupFattura: string
     anomalieIssueDupBolla: string
+    anomalieIssueDupCanonical: string
+    anomalieIssueDupExcess: string
     anomalieIssuePrezzo: string
     anomalieIssueRekki: string
     anomalieIssueEstratto: string
