@@ -59,7 +59,6 @@ export async function GET(req: NextRequest) {
         .lt('data', to),
       service.from('listino_prezzi').select('prodotto').eq('fornitore_id', fornitoreId).gte('data_prezzo', from).lt('data_prezzo', to).limit(8000),
       service.from('statements').select('missing_rows, received_at, extracted_pdf_dates').eq('fornitore_id', fornitoreId).order('received_at', { ascending: false }).limit(800),
-      fetchFilteredConfermeOrdine(service, { fornitoreId, from, toExclusive: to }),
       service.from('price_anomalies').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('resolved', false),
       service
         .from('documenti_da_processare')
@@ -67,6 +66,7 @@ export async function GET(req: NextRequest) {
         .eq('fornitore_id', fornitoreId)
         .in('stato', ['in_attesa', 'da_processare', 'da_associare'])
         .or(pendingDocLedgerPeriodOrFilter(from, to)),
+      fetchFilteredConfermeOrdine(service, { fornitoreId, from, toExclusive: to }),
     ])
 
     const fattureRows = (fattureRes.data ?? []) as { importo: number | null; is_credit_note?: boolean | null }[]
