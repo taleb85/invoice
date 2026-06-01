@@ -53,6 +53,7 @@ function buildMetadata(
     p_iva: ocr.p_iva,
     indirizzo: ocr.indirizzo ?? null,
     data_fattura: ocr.data_fattura,
+    data_ordine: ocr.data_ordine ?? null,
     numero_fattura: ocr.numero_fattura,
     tipo_documento: ocr.tipo_documento ?? null,
     promessa_invio_documento: ocr.promessa_invio_documento === true ? true : undefined,
@@ -361,7 +362,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
         : 'fattura'
 
   if (fornitore.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
-    const dataDocLocal = documentDateYmdFromOcr(ocr)
+    const dataDocLocal = documentDateYmdFromOcr(ocr, email.subject ?? null)
     // Se OCR non estrae una data, usa oggi come fallback.
     // La bolla/fattura viene comunque creata (visibile nei KPI), ma
     // il documento va in revisione così l'utente può correggere la data.
@@ -540,7 +541,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
     file_url,
     file_name: storedFileName,
     content_type: storedContentType,
-    data_documento: documentDateYmdFromOcr(ocr),
+    data_documento: documentDateYmdFromOcr(ocr, email.subject ?? null),
     stato: rowStato,
     is_statement: isStatementDoc,
     metadata,
@@ -563,7 +564,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
         file_url,
         file_name: storedFileName,
         content_type: storedContentType,
-        data_documento: seg.data_fattura ?? documentDateYmdFromOcr(ocr),
+        data_documento: seg.data_fattura ?? documentDateYmdFromOcr(ocr, email.subject ?? null),
         stato: 'da_revisionare',
         is_statement: false,
         metadata: { ...metadata, ...segMeta },

@@ -54,12 +54,60 @@ export function safeDate(raw: string | null | undefined): string | null {
 }
 
 /**
+ * Estrae la data accanto a etichette «Order Date» / «Data ordine» (UK/EU day-first).
+ */
+export function extractOrderDateFromLabelledText(text: string): string | null {
+  if (!text?.trim()) return null
+  const patterns = [
+    /\border\s+date\b\s*[:\s]*(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/gi,
+    /\bdata\s+ordine\b\s*[:\s]*(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/gi,
+    /\bdate\s+de\s+commande\b\s*[:\s]*(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/gi,
+    /\bauftragsdatum\b\s*[:\s]*(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/gi,
+  ]
+  for (const re of patterns) {
+    re.lastIndex = 0
+    const m = re.exec(text)
+    if (m?.[1]) {
+      const ymd = safeDate(m[1])
+      if (ymd) return ymd
+    }
+  }
+  return null
+}
+
+/** Data ordine commerciale (conferme Rekki / fornitori UK). */
+export function orderDateYmdFromOcr(
+  raw: {
+    data_ordine?: string | null
+    data_fattura?: string | null
+    data?: string | null
+  },
+  contextText?: string | null,
+): string | null {
+  const explicit = safeDate(raw.data_ordine)
+  if (explicit) return explicit
+  const fromLabels = extractOrderDateFromLabelledText(contextText ?? '')
+  if (fromLabels) return fromLabels
+  return safeDate(raw.data_fattura) ?? safeDate(raw.data)
+}
+
+/**
  * Data documento da OCR: preferisce `data_fattura`, poi alias legacy `data`
  * (estrazioni vecchie / prompt che popolano solo `data`).
+ * Per `tipo_documento` ordine usa {@link orderDateYmdFromOcr} (Order Date, non spedizione).
  */
-export function documentDateYmdFromOcr(raw: {
-  data_fattura?: string | null
-  data?: string | null
-}): string | null {
+export function documentDateYmdFromOcr(
+  raw: {
+    data_fattura?: string | null
+    data?: string | null
+    data_ordine?: string | null
+    tipo_documento?: string | null
+  },
+  contextText?: string | null,
+): string | null {
+  const tipo = raw.tipo_documento?.trim()
+  if (tipo && tipo.toLowerCase() === 'ordine') {
+    return orderDateYmdFromOcr(raw, contextText)
+  }
   return safeDate(raw.data_fattura) ?? safeDate(raw.data)
 }

@@ -36,6 +36,7 @@ export type ConfermaOrdineRow = {
   numero_fattura_doc?: string | null
   oggetto_mail?: string | null
   data_ordine: string | null
+  data_ordine_display?: string | null
   note: string | null
   created_at: string
   righe: ConfermaOrdineRiga[] | null
@@ -339,9 +340,10 @@ export default function FornitoreConfermeOrdineTab({
                         </>
                       )
                     })()}
-                    {r.data_ordine ? (
+                    {(r.data_ordine_display ?? r.data_ordine) ? (
                       <p className={`mt-0.5 text-xs ${confermeSecondaryClass}`}>
-                        {t.fornitori.confermeOrdineOptionalOrderDate}: {fmt(r.data_ordine)}
+                        {t.fornitori.confermeOrdineOptionalOrderDate}:{' '}
+                        {fmt(r.data_ordine_display ?? r.data_ordine!)}
                       </p>
                     ) : null}
                     {(() => {
@@ -422,7 +424,9 @@ export default function FornitoreConfermeOrdineTab({
                   {rows.map((r) => (
                     <tr key={r.id} className={APP_SECTION_TABLE_TR}>
                       <td className={`px-5 py-3 ${confermeSecondaryClass}`}>
-                        {r.data_ordine ? fmt(r.data_ordine) : '—'}
+                        {r.data_ordine_display ?? r.data_ordine
+                          ? fmt(r.data_ordine_display ?? r.data_ordine!)
+                          : '—'}
                       </td>
                       <td className="px-5 py-3">
                         <OpenDocumentInAppButton

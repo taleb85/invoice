@@ -23,6 +23,7 @@ import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
 import { confermeOrdineTableUnavailable } from '@/lib/conferme-ordine-schema'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
+import { orderDateYmdFromOcr } from '@/lib/safe-date'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -86,13 +87,24 @@ async function finalizePendingByTipo(
     .eq('id', doc.fornitore_id)
     .maybeSingle()
   const sedeDefinitiva = fornitoreRow?.sede_id ?? doc.sede_id ?? null
-  const dataDoc = doc.data_documento ?? oggi
   const m = meta as {
     totale_iva_inclusa?: number | null
     numero_fattura?: string | null
     tipo_documento?: string | null
     quantita_totale?: number | null
+    data_ordine?: string | null
+    data_fattura?: string | null
   }
+  const dataDoc =
+    orderDateYmdFromOcr(
+      {
+        data_ordine: typeof m.data_ordine === 'string' ? m.data_ordine : null,
+        data_fattura: typeof m.data_fattura === 'string' ? m.data_fattura : null,
+      },
+      typeof doc.oggetto_mail === 'string' ? doc.oggetto_mail : null,
+    ) ??
+    doc.data_documento ??
+    oggi
 
   const ocrTipo = normalizeTipoDocumento(m.tipo_documento ?? meta.tipo_documento)
   const isCreditNote = ocrTipo === 'nota_credito'

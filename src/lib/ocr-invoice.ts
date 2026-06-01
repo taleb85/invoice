@@ -29,6 +29,8 @@ export interface OcrResult {
   indirizzo: string | null
   /** Document date normalised to YYYY-MM-DD */
   data_fattura: string | null
+  /** Per conferme ordine: data accanto a «Order Date» (YYYY-MM-DD), non spedizione/consegna */
+  data_ordine?: string | null
   numero_fattura: string | null
   /**
    * Model classification: delivery note vs tax invoice vs other commercial PDF.
@@ -329,6 +331,7 @@ Return ONLY valid JSON — no markdown, no explanation:
   "p_iva": "Supplier VAT/tax number digits only, no country prefix — or null",
   "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
+  "data_ordine": "For **ordine** only: Order Date (label 'Order Date', 'Data ordine', …) in YYYY-MM-DD. Use UK/EU day-first when the PDF shows DD/MM/YYYY (e.g. 01/04/2026 → 2026-04-01). Do NOT use Despatch Date, Delivery Date, or email receipt date. For non-ordine documents use null.",
   "numero_fattura": "Document reference: invoice number, DDT/bolla number, credit note number — or null if none visible",
   "tipo_documento": "Exactly one of: fattura | nota_credito | bolla_ddt | ordine | estratto_conto | comunicazione | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
   "promessa_invio_documento": false,
@@ -348,6 +351,7 @@ ${DOCUMENT_EXTRACTION_PROMPT}
 - **Logo vs legal name:** A prominent **brand, chain, or distributor name** (large type top-centre or top-left) may differ from the **legal company** printed with **VAT in the issuer header (often top-right)**. Prefer the **VAT-adjacent legal company name** from the issuer block for ragione_sociale. If only a marketing name without VAT is visible in one area and a full legal header with VAT appears top-right, **use the top-right issuer name**.
 - p_iva: accept VAT No., P.IVA, NIF/CIF, N° TVA, USt-IdNr., SIRET — strip all non-digit characters. Prefer the **supplier/issuer** VAT in the same block as ragione_sociale, not the customer's VAT.
 - indirizzo: only the supplier/seller address, not the customer.
+- For **ordine**: set **data_ordine** from the **Order Date** field only; set **data_fattura** to the same value as **data_ordine** (not Despatch/Delivery dates).
 - numero_fattura: for ANY document type, extract the main document reference number if visible — not only "Invoice No.". For delivery notes / DDT / dispatch documents, map English labels such as "Note Number", "Notes Number", "Notes No.", "Delivery Note No.", "DN", "D.N.", "Document No.", "Your document number", "Shipment number", "Despatch note"; Italian "Numero DDT", "Numero documento di trasporto"; German "Lieferschein-Nr."; French "N° bon de livraison"; Spanish "Nº albarán". Return ONLY the alphanumeric reference (e.g. "11851464"), never the label text. If both an invoice number and a separate delivery-note number appear on the same page, prefer the one matching tipo_documento.
 - **Account No. vs Invoice No. (UK suppliers, e.g. Eden Springs):** NEVER put "Account No.", "A/C No.", "Customer account", or "Account number" values in numero_fattura — those are customer account references (often 8–10 digits), not tax invoice numbers. Use the reference from the **Tax invoice / Self-billing invoice / Credit note** section only. If the PDF is mainly an account statement and only Account No. is visible in the header, set numero_fattura to null and tipo_documento to estratto_conto unless a separate invoice number appears in the statement lines or on another page.
 - For tipo_documento, also keep consistency with: Rechnung *as invoice*, Lieferschein, Albarán, Bon de livraison (map to ddt/bolla via the same keyword rules; never return fattura for a document whose primary title is only a transport/delivery docket, unless a full tax invoice is clearly the main document type).
@@ -415,9 +419,18 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
       dataRaw == null || dataRaw === ''
         ? ''
         : (typeof dataRaw === 'string' ? dataRaw : String(dataRaw)).trim()
-    const data_fattura = dataStr ? safeDate(dataStr) : null
+    const data_ordine_raw = parsed.data_ordine
+    const data_ordine_str =
+      data_ordine_raw == null || data_ordine_raw === ''
+        ? ''
+        : (typeof data_ordine_raw === 'string' ? data_ordine_raw : String(data_ordine_raw)).trim()
+    const data_ordine = data_ordine_str ? safeDate(data_ordine_str) : null
+    let data_fattura = dataStr ? safeDate(dataStr) : null
     const numero_fattura = normalizeNumeroBolla(parsed.numero_fattura)
     const tipo_documento = normalizeTipoDocumento(parsed.tipo_documento)
+    if (tipo_documento === 'ordine' && data_ordine) {
+      data_fattura = data_ordine
+    }
 
     const promessa_invio_documento =
       typeof parsed.promessa_invio_documento === 'boolean'
@@ -459,6 +472,7 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
         p_iva,
         indirizzo,
         data_fattura,
+        data_ordine: tipo_documento === 'ordine' ? data_ordine ?? data_fattura : data_ordine,
         numero_fattura,
         tipo_documento,
         promessa_invio_documento,

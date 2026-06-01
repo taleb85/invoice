@@ -6,6 +6,11 @@ import {
 import { confermeOrdineLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
 import { numeroFatturaFromDocMetadata } from '@/lib/fattura-duplicate-check'
 import { isConfermeOrdineMissingNumeroOrdineColumn } from '@/lib/conferme-ordine-schema'
+import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
+import { extractDocumentText } from '@/lib/document-extractors'
+import { extractOrderDateFromLabelledText, orderDateYmdFromOcr, safeDate } from '@/lib/safe-date'
+
+const PDF_ORDER_DATE_EXTRACT_LIMIT = 24
 
 const CONFERME_ORDINE_SELECT_BASE =
   'id, file_url, file_name, titolo, data_ordine, note, created_at, righe, fornitore_id'
@@ -25,6 +30,8 @@ export type ConfermaOrdineListRow = {
   created_at: string
   righe: unknown
   fornitore_id: string
+  /** Data ordine da mostrare (metadata OCR «Order Date» se presente, altrimenti colonna DB). */
+  data_ordine_display: string | null
 }
 
 export async function loadSedeFornitoriForMatch(
@@ -54,6 +61,16 @@ export async function loadSedeFornitoriForMatch(
       display_name: fornitoreRow.display_name,
     },
   ]
+}
+
+function orderDateYmdFromDocMetadata(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
+  const m = metadata as { data_ordine?: unknown; data_fattura?: unknown; pending_kind?: unknown }
+  if (m.pending_kind != null && m.pending_kind !== 'ordine') return null
+  return orderDateYmdFromOcr({
+    data_ordine: typeof m.data_ordine === 'string' ? m.data_ordine : null,
+    data_fattura: typeof m.data_fattura === 'string' ? m.data_fattura : null,
+  })
 }
 
 function ragioneSocialeFromMetadata(metadata: unknown): string | null {
@@ -103,6 +120,7 @@ export async function fetchFilteredConfermeOrdine(
   const ragioneByUrl = new Map<string, string>()
   const numeroFatturaByUrl = new Map<string, string>()
   const oggettoByUrl = new Map<string, string>()
+  const orderDateByUrl = new Map<string, string>()
   if (urls.length > 0) {
     const { data: docs } = await service
       .from('documenti_da_processare')
@@ -118,28 +136,66 @@ export async function fetchFilteredConfermeOrdine(
       if (num) numeroFatturaByUrl.set(url, num)
       const oggetto = (d as { oggetto_mail?: string | null }).oggetto_mail
       if (typeof oggetto === 'string' && oggetto.trim()) oggettoByUrl.set(url, oggetto.trim())
+      const orderYmd = orderDateYmdFromDocMetadata(meta)
+      if (orderYmd) orderDateByUrl.set(url, orderYmd)
     }
   }
 
-  const rows = raw
-    .filter((r) =>
-      confermeOrdineBelongsToFornitore(
-        {
-          titolo: r.titolo,
-          file_name: r.file_name,
-          ragione_sociale: ragioneByUrl.get(r.file_url) ?? null,
-          fornitore_id: r.fornitore_id,
-        },
-        fornitoreId,
-        sedeFornitori,
-      ),
-    )
-    .map((r) => ({
+  const filtered = raw.filter((r) =>
+    confermeOrdineBelongsToFornitore(
+      {
+        titolo: r.titolo,
+        file_name: r.file_name,
+        ragione_sociale: ragioneByUrl.get(r.file_url) ?? null,
+        fornitore_id: r.fornitore_id,
+      },
+      fornitoreId,
+      sedeFornitori,
+    ),
+  )
+
+  let pdfExtracts = 0
+  const rows: ConfermaOrdineListRow[] = []
+  for (const r of filtered) {
+    const fromMeta = orderDateByUrl.get(r.file_url) ?? null
+    const fromDb = r.data_ordine ? safeDate(r.data_ordine) : null
+    let display = fromMeta ?? fromDb
+
+    if (
+      !fromMeta &&
+      pdfExtracts < PDF_ORDER_DATE_EXTRACT_LIMIT &&
+      /order\s+confirmation/i.test(r.file_name ?? '')
+    ) {
+      const fromPdf = await tryOrderDateFromConfermaPdf(service, r.file_url)
+      if (fromPdf) {
+        display = fromPdf
+      }
+      pdfExtracts++
+    }
+
+    rows.push({
       ...r,
       numero_ordine: r.numero_ordine ?? null,
       numero_fattura_doc: numeroFatturaByUrl.get(r.file_url) ?? null,
       oggetto_mail: oggettoByUrl.get(r.file_url) ?? null,
-    }))
+      data_ordine_display: display,
+    })
+  }
 
   return { rows, sedeFornitori }
+}
+
+async function tryOrderDateFromConfermaPdf(
+  service: SupabaseClient,
+  fileUrl: string,
+): Promise<string | null> {
+  try {
+    const dl = await downloadStorageObjectByFileUrl(service, fileUrl)
+    if ('error' in dl) return null
+    const contentType = dl.contentType?.trim() || 'application/pdf'
+    const { text } = await extractDocumentText(dl.data, contentType)
+    return extractOrderDateFromLabelledText(text ?? '')
+  } catch {
+    return null
+  }
 }

@@ -160,6 +160,7 @@ function buildMetadata(
     p_iva:              ocr.p_iva,
     indirizzo:          ocr.indirizzo ?? null,
     data_fattura:       ocr.data_fattura,
+    data_ordine:        ocr.data_ordine ?? null,
     numero_fattura:     ocr.numero_fattura,
     tipo_documento:     ocr.tipo_documento ?? null,
     promessa_invio_documento:
