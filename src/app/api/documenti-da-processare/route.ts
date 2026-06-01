@@ -22,6 +22,7 @@ import { safeDate } from '@/lib/safe-date'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
 import { confermeOrdineTableUnavailable } from '@/lib/conferme-ordine-schema'
+import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -262,11 +263,17 @@ async function finalizePendingByTipo(
   }
 
   if (tipo === 'ordine') {
-    const numeroOrdineRaw =
-      typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null
-    const numeroOrdine = numeroOrdineRaw ? normalizeNumeroFattura(numeroOrdineRaw) : null
+    const numeroOrdineResolved = resolveConfermaOrdineNumero({
+      titolo: null,
+      fileName: doc.file_name ?? null,
+      numeroFatturaMetadata:
+        typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null,
+      oggettoMail:
+        typeof doc.oggetto_mail === 'string' && doc.oggetto_mail.trim() ? doc.oggetto_mail.trim() : null,
+    })
+    const numeroOrdine = numeroOrdineResolved ? normalizeNumeroFattura(numeroOrdineResolved) : null
     const titoloOrdine =
-      numeroOrdineRaw ||
+      numeroOrdineResolved ||
       (typeof doc.oggetto_mail === 'string' && doc.oggetto_mail.trim() ? doc.oggetto_mail.trim() : null)
 
     // Righe prodotto salvate durante la scansione IMAP in metadata.rekki_lines

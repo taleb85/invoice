@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   cleanConfermaOrdineTitleText,
   confermaOrdineDisplayLabel,
+  extractOrderReferenceFromFileName,
   extractOrderReferenceFromText,
 } from '@/lib/extract-doc-type'
 
@@ -12,6 +13,12 @@ describe('cleanConfermaOrdineTitleText', () => {
         '**DO NOT REPLY EMAIL** La Tua Pasta Order Confirmation Order Confirmation',
       ),
     ).toBe('La Tua Pasta Order Confirmation')
+  })
+})
+
+describe('extractOrderReferenceFromFileName', () => {
+  it('reads Sales Order Confirmation suffix from PDF name', () => {
+    expect(extractOrderReferenceFromFileName('Sales Order Confirmation-543585.pdf')).toBe('543585')
   })
 })
 
@@ -37,13 +44,14 @@ describe('confermaOrdineDisplayLabel', () => {
     ).toEqual({ primary: 'SO1965613', secondary: 'Order Confirmation' })
   })
 
-  it('uses metadata numero when column is empty', () => {
+  it('prefers filename over rekki message id in titolo/metadata', () => {
     expect(
       confermaOrdineDisplayLabel({
-        titolo: '14697598 Order Confirmation',
-        numeroFatturaMetadata: 'PO-778899',
+        titolo: '14697598',
+        fileName: 'Sales Order Confirmation-543585.pdf',
+        numeroFatturaMetadata: '14697598',
       }),
-    ).toEqual({ primary: 'PO-778899', secondary: 'Order Confirmation' })
+    ).toEqual({ primary: '543585', secondary: 'Order Confirmation' })
   })
 
   it('extracts reference from oggetto mail', () => {

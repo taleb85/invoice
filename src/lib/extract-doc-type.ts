@@ -131,6 +131,37 @@ function isLikelyCalendarYearToken(token: string): boolean {
   return y >= 2015 && y <= 2035
 }
 
+/** Segmento file senza path/query ed estensione. */
+function fileNameStem(fileName: string): string {
+  const seg = fileName.includes('/') ? (fileName.split('/').pop() ?? fileName) : fileName
+  return seg.split('?')[0]!.replace(/\.[a-z0-9]+$/i, '')
+}
+
+/**
+ * Numero ordine nel nome allegato Rekki / fornitore (es. `Sales Order Confirmation-543585.pdf`).
+ */
+export function extractOrderReferenceFromFileName(
+  fileName: string | null | undefined,
+): string | null {
+  if (!fileName?.trim()) return null
+  const stem = fileNameStem(fileName)
+
+  const salesOrderTail = stem.match(
+    /(?:sales\s+)?order\s+confirmation[-_\s#:]+([A-Z]{0,4}[-]?[0-9]{3,}[A-Z0-9/-]*)\s*$/i,
+  )
+  if (salesOrderTail?.[1]) return salesOrderTail[1].replace(/^[-\s]+/, '').trim()
+
+  const confirmTail = stem.match(/confirmation[-_\s#:]+([A-Z]{0,4}[-]?[0-9]{3,})\s*$/i)
+  if (confirmTail?.[1]) return confirmTail[1].replace(/^[-\s]+/, '').trim()
+
+  return null
+}
+
+/** ID numerico lungo tipico dell’oggetto mail Rekki (non numero ordine commerciale). */
+function looksLikeRekkiEmailMessageId(value: string): boolean {
+  return /^\d{7,9}$/.test(value.trim())
+}
+
 /**
  * Estrae il riferimento ordine commerciale da titolo, oggetto mail o nome file.
  * Preferisce codici alfanumerici (SO1965613) rispetto a numeri generici brevi.
@@ -187,6 +218,42 @@ function confermaTitleLooksLikeNoise(primary: string): boolean {
   )
 }
 
+/** Miglior numero ordine commerciale per archiviazione / tabella conferme. */
+export function resolveConfermaOrdineNumero(input: {
+  titolo?: string | null
+  fileName?: string | null
+  numeroOrdine?: string | null
+  numeroFatturaMetadata?: string | null
+  oggettoMail?: string | null
+}): string | null {
+  const columnRef = input.numeroOrdine?.trim()
+  if (columnRef) return columnRef
+
+  const fileRef = extractOrderReferenceFromFileName(input.fileName)
+  if (fileRef) return fileRef
+
+  const textRef = extractOrderReferenceFromText(input.oggettoMail, input.titolo)
+  if (textRef && /[A-Z]{2,}/i.test(textRef)) return textRef
+
+  const metaRef = input.numeroFatturaMetadata?.trim() || null
+  const titoloRef = input.titolo?.trim() || null
+  const metaTitoloSameRekkiId =
+    !!metaRef &&
+    !!titoloRef &&
+    metaRef === titoloRef &&
+    looksLikeRekkiEmailMessageId(metaRef)
+
+  if (metaRef && !metaTitoloSameRekkiId) return metaRef
+  if (textRef && !(metaTitoloSameRekkiId && textRef === metaRef)) return textRef
+
+  const cleanedTitolo = cleanConfermaOrdineTitleText(titoloRef ?? '')
+  if (cleanedTitolo && !confermaTitleLooksLikeNoise(cleanedTitolo) && !looksLikeRekkiEmailMessageId(cleanedTitolo)) {
+    return cleanedTitolo
+  }
+
+  return titoloRef || metaRef || null
+}
+
 /** Etichetta tabella Conferme ordine: numero ordine in evidenza, tipo documento in seconda riga. */
 export function confermaOrdineDisplayLabel(input: {
   titolo?: string | null
@@ -198,29 +265,16 @@ export function confermaOrdineDisplayLabel(input: {
   const docType =
     extractDocTypeLabel(input.titolo, input.fileName, input.oggettoMail) ?? 'Order Confirmation'
 
-  const explicit =
-    input.numeroOrdine?.trim() || input.numeroFatturaMetadata?.trim() || null
-  if (explicit) {
-    return { primary: explicit, secondary: docType }
-  }
-
-  const ref = extractOrderReferenceFromText(
-    input.titolo,
-    input.oggettoMail,
-    input.fileName,
-  )
-  if (ref) {
-    return { primary: ref, secondary: docType }
-  }
-
-  const cleanedTitolo = cleanConfermaOrdineTitleText(input.titolo ?? '')
-  const split = splitDocTitleForDisplay(cleanedTitolo || null, input.fileName ?? null)
-  if (split.primary && split.primary !== '—' && !confermaTitleLooksLikeNoise(split.primary)) {
-    return { primary: split.primary, secondary: split.secondary ?? docType }
+  const primary = resolveConfermaOrdineNumero(input)
+  if (primary) {
+    return { primary, secondary: docType }
   }
 
   const fallback =
-    cleanedTitolo || input.oggettoMail?.trim() || input.fileName?.trim() || '—'
+    cleanConfermaOrdineTitleText(input.titolo ?? '') ||
+    input.oggettoMail?.trim() ||
+    input.fileName?.trim() ||
+    '—'
   return {
     primary: fallback,
     secondary: docType,
