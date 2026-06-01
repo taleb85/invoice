@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -139,8 +139,6 @@ export default function FornitoreConfermeOrdineTab({
     currentId: string
     currentLabel: string
   } | null>(null)
-  const autoOcrRunKeyRef = useRef<string | null>(null)
-
   const sortedRows = useMemo(
     () =>
       sortConfermeOrdineByDocumentDateDesc(
@@ -272,12 +270,7 @@ export default function FornitoreConfermeOrdineTab({
     [sortedRows],
   )
 
-  const confermaIdsWithFile = useMemo(
-    () => sortedRows.filter((r) => r.file_url?.trim()).map((r) => r.id),
-    [sortedRows],
-  )
-
-  const runAutoOcrBatch = useCallback(async () => {
+  const runOcrBatch = useCallback(async () => {
     if (readOnly || refreshBatch.length === 0) return
     const total = refreshBatch.length
     let ok = 0
@@ -307,23 +300,6 @@ export default function FornitoreConfermeOrdineTab({
       setOcrProgress(null)
     }
   }, [readOnly, refreshBatch, confermaLabelById, load, showToast, t])
-
-  useEffect(() => {
-    if (loading || readOnly || confermaIdsWithFile.length === 0 || ocrProgress) return
-    const runKey = `${fornitoreId}|${dateFrom ?? ''}|${dateToExclusive ?? ''}|${confermaIdsWithFile.join(',')}`
-    if (autoOcrRunKeyRef.current === runKey) return
-    autoOcrRunKeyRef.current = runKey
-    void runAutoOcrBatch()
-  }, [
-    loading,
-    readOnly,
-    confermaIdsWithFile,
-    fornitoreId,
-    dateFrom,
-    dateToExclusive,
-    ocrProgress,
-    runAutoOcrBatch,
-  ])
 
   const rowOcrClass = (id: string) =>
     ocrProgress?.currentId === id ? CONFERMA_OCR_ROW_ACTIVE : ''
@@ -407,25 +383,54 @@ export default function FornitoreConfermeOrdineTab({
         <div className="flex flex-col gap-2 border-b border-app-line-20 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-relaxed text-app-fg">{t.fornitori.confermeOrdineIntro}</p>
           {!readOnly && sortedRows.length > 0 ? (
-            <button
-              type="button"
-              disabled={convertingAll || Boolean(ocrProgress)}
-              onClick={() => void handleConvertAll()}
-              title="Converti tutti in bolle e impara per i prossimi documenti"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/8 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 transition-colors hover:border-emerald-400/50 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {convertingAll ? (
-                <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              ) : (
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-              )}
-              Converti tutti in bolle
-            </button>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              {refreshBatch.length > 0 ? (
+                <button
+                  type="button"
+                  disabled={Boolean(ocrProgress) || loading}
+                  onClick={() => void runOcrBatch()}
+                  title={t.fatture.refreshAllFromDocTitle}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-30 bg-app-line-10 px-3 py-1.5 text-[11px] font-semibold text-app-fg-muted transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {ocrProgress ? (
+                    <span className="h-3 w-3 shrink-0 animate-spin rounded-full border border-current border-t-transparent" aria-hidden />
+                  ) : (
+                    <svg className={`h-3 w-3 shrink-0 ${icon.orders}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                  )}
+                  <span className="whitespace-nowrap">
+                    {ocrProgress
+                      ? `${ocrProgress.index}/${ocrProgress.total}`
+                      : t.fatture.refreshDateFromDoc}
+                  </span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={convertingAll || Boolean(ocrProgress)}
+                onClick={() => void handleConvertAll()}
+                title="Converti tutti in bolle e impara per i prossimi documenti"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/8 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 transition-colors hover:border-emerald-400/50 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {convertingAll ? (
+                  <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                )}
+                Converti tutti in bolle
+              </button>
+            </div>
           ) : null}
         </div>
         {error ? (
