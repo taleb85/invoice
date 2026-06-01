@@ -6,7 +6,7 @@ import {
   OcrTransientError,
   type OcrResult,
 } from '@/lib/ocr-invoice'
-import { documentDateYmdFromOcr } from '@/lib/safe-date'
+import { documentContextText, processingDocumentDateYmdFromOcr } from '@/lib/safe-date'
 import { quantitaForBollaFromOcr } from '@/lib/bolla-quantita'
 import {
   importoForBollaFromOcr,
@@ -106,6 +106,7 @@ function buildMetadata(
     p_iva: ocr.p_iva,
     indirizzo: ocr.indirizzo ?? null,
     data_fattura: ocr.data_fattura,
+    data_ordine: ocr.data_ordine ?? null,
     numero_fattura: numeroFattura,
     tipo_documento: ocr.tipo_documento ?? null,
     promessa_invio_documento:
@@ -232,7 +233,6 @@ export async function processLegacyPendingDoc(
   // ── Catena di qualità: valida fornitore, data e tipo documento (2/3 segnali) ──
   // Se la confidenza è < 2 su qualsiasi campo, forza da_revisionare.
   let qualityForcesReview = false
-  let qualityDate: string | null = null
   let qualityType: string | null = null
   try {
     const { runQualityChain } = await import('@/lib/document-quality-chain')
@@ -241,7 +241,10 @@ export async function processLegacyPendingDoc(
       sedeId: row.sede_id,
       ocrRagioneSociale: ocr.ragione_sociale,
       ocrPiva: ocr.p_iva,
-      ocrDate: ocr.data_fattura,
+      ocrDate: processingDocumentDateYmdFromOcr(
+        ocr,
+        documentContextText(row.file_name, row.oggetto_mail),
+      ),
       ocrTipo: ocr.tipo_documento,
       receivedAt: null,
       fileName: row.file_name,
@@ -249,7 +252,6 @@ export async function processLegacyPendingDoc(
       fornitoreId: fornitore?.id ?? null,
     })
     qualityForcesReview = quality.needsReview
-    qualityDate = quality.documentDate
     qualityType = quality.documentType
   } catch {
     // Se la quality chain fallisce, procede comunque con i dati OCR
@@ -274,7 +276,10 @@ export async function processLegacyPendingDoc(
         metadata,
         stato: normalizeDocumentoQueueStatoForDb('scartato'),
         note: noteFromEmailBody,
-        data_documento: qualityDate ?? documentDateYmdFromOcr(ocr),
+        data_documento: processingDocumentDateYmdFromOcr(
+          ocr,
+          documentContextText(row.file_name, row.oggetto_mail),
+        ),
       })
       .eq('id', row.id)
     if (cvErr) return { status: 'error', message: cvErr.message }
@@ -341,9 +346,9 @@ export async function processLegacyPendingDoc(
         : 'fattura'
 
   if (fornitore?.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
-    const dataDocLocal = documentDateYmdFromOcr(ocr)
-    const todayYmd = new Date().toISOString().slice(0, 10)
-    const dataDoc = dataDocLocal ?? todayYmd
+    const docContext = documentContextText(row.file_name, row.oggetto_mail)
+    const dataDocLocal = processingDocumentDateYmdFromOcr(ocr, docContext)
+    const dataDoc = dataDocLocal
     const hasDocDateFallback = !dataDocLocal
 
     if (targetKind === 'fattura') {
@@ -354,47 +359,51 @@ export async function processLegacyPendingDoc(
       } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
       }
-      const res = await insertEmailAutoFattura(service, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc,
-        fileUrl: url,
-        meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
-      })
-      if ('id' in res) {
-        registratoAutoFatturaId = res.id
-        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
-        fetch(`${baseUrl}/api/price-anomalies/check`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
-          },
-          body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
-        }).catch(() => {})
-      } else if ('duplicateId' in res) {
-        /**
-         * La fattura è già in archivio (stessa chiave fornitore+data+numero).
-         * Niente revisione manuale: chiudi la riga collegandola alla fattura
-         * esistente (vedi update sotto: `rowStato='associato'`, `fattura_id`).
-         */
-        duplicateSkippedFatturaId = res.duplicateId
-        registratoAutoFatturaId = res.duplicateId
+      if (dataDoc) {
+        const res = await insertEmailAutoFattura(service, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc,
+          fileUrl: url,
+          meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+        })
+        if ('id' in res) {
+          registratoAutoFatturaId = res.id
+          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+          fetch(`${baseUrl}/api/price-anomalies/check`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+            },
+            body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+          }).catch(() => {})
+        } else if ('duplicateId' in res) {
+          /**
+           * La fattura è già in archivio (stessa chiave fornitore+data+numero).
+           * Niente revisione manuale: chiudi la riga collegandola alla fattura
+           * esistente (vedi update sotto: `rowStato='associato'`, `fattura_id`).
+           */
+          duplicateSkippedFatturaId = res.duplicateId
+          registratoAutoFatturaId = res.duplicateId
+        }
       }
     } else if (targetKind === 'bolla') {
       if (hasDocDateFallback) needsDocRevision = true
       const numRef = ocr.numero_fattura?.trim() || null
-      const rb = await insertEmailAutoBolla(service, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc,
-        fileUrl: url,
-        numeroBolla: numRef,
-        importo: importoForBollaFromOcr(ocr),
-        quantita: quantitaForBollaFromOcr(ocr),
-      })
-      if ('id' in rb) registratoAutoBollaId = rb.id
-      else if ('duplicateId' in rb) duplicateSkippedBollaId = rb.duplicateId
+      if (dataDoc) {
+        const rb = await insertEmailAutoBolla(service, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc,
+          fileUrl: url,
+          numeroBolla: numRef,
+          importo: importoForBollaFromOcr(ocr),
+          quantita: quantitaForBollaFromOcr(ocr),
+        })
+        if ('id' in rb) registratoAutoBollaId = rb.id
+        else if ('duplicateId' in rb) duplicateSkippedBollaId = rb.duplicateId
+      }
     } else {
       needsDocRevision = true
     }
@@ -466,7 +475,7 @@ export async function processLegacyPendingDoc(
         options?.ignoreLinkedFornitore === true ? (fornitore?.id ?? null) : (fornitore?.id ?? row.fornitore_id),
       metadata,
       stato: normalizeDocumentoQueueStatoForDb(rowStato),
-      data_documento: documentDateYmdFromOcr(ocr),
+      data_documento: processingDocumentDateYmdFromOcr(ocr, docContext),
       note: noteFromEmailBody,
       is_statement: isStatementDoc || row.is_statement === true,
       ...(registratoAutoFatturaId ? { fattura_id: registratoAutoFatturaId } : {}),

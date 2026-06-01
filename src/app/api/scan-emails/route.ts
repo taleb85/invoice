@@ -27,7 +27,7 @@ import { resolveFornitoreFromScanEmail } from '@/lib/fornitore-resolve-scan-emai
 import { findUniqueFornitoreForPendingDoc } from '@/lib/auto-resolve-pending-doc'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
-import { documentDateYmdFromOcr } from '@/lib/safe-date'
+import { documentContextText, processingDocumentDateYmdFromOcr, safeDate } from '@/lib/safe-date'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 import type { EmailScanMailboxContext, EmailScanStreamEvent } from '@/lib/email-scan-stream'
 import {
@@ -442,7 +442,10 @@ async function insertDocumentoScartatoDaRegolaScan(
     file_url: p.filePublicUrl,
     file_name: p.storedFileName,
     content_type: p.storedContentType,
-    data_documento: documentDateYmdFromOcr(p.ocrMeta),
+    data_documento: processingDocumentDateYmdFromOcr(
+      p.ocrMeta,
+      documentContextText(p.storedFileName, p.email.subject),
+    ),
     stato: 'scartato',
     metadata: meta,
     note: p.ocrMeta.note_corpo_mail?.trim() ?? null,
@@ -1506,7 +1509,10 @@ async function processEmails(
             file_url: syn.publicUrl,
             file_name: SYNTHETIC_EMAIL_DOC_FILENAME,
             content_type: 'text/plain',
-            data_documento: documentDateYmdFromOcr(ocr),
+            data_documento: processingDocumentDateYmdFromOcr(
+              ocr,
+              documentContextText(SYNTHETIC_EMAIL_DOC_FILENAME, email.subject),
+            ),
             stato: 'da_revisionare',
             metadata: {
               ...buildMetadata(ocr, 'unknown'),
@@ -1584,7 +1590,10 @@ async function processEmails(
           file_url:       syn.publicUrl,
           file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
           content_type:   'text/plain',
-          data_documento: documentDateYmdFromOcr(ocr),
+          data_documento: processingDocumentDateYmdFromOcr(
+            ocr,
+            documentContextText(SYNTHETIC_EMAIL_DOC_FILENAME, email.subject),
+          ),
           stato:          'da_revisionare',
           metadata:       {
             ...buildMetadata(ocr, 'unknown'),
@@ -1671,7 +1680,10 @@ async function processEmails(
           file_url: publicRefIg,
           file_name: attachment.filename ?? null,
           content_type: attachment.contentType ?? null,
-          data_documento: documentDateYmdFromOcr(ocr),
+          data_documento: processingDocumentDateYmdFromOcr(
+            ocr,
+            documentContextText(attachment.filename, email.subject),
+          ),
           stato: 'da_revisionare',
           metadata: {
             ...buildMetadata(ocr, 'unknown'),
@@ -1744,7 +1756,10 @@ async function processEmails(
         file_url:       publicRef,
         file_name:      attachment.filename ?? null,
         content_type:   attachment.contentType ?? null,
-        data_documento: documentDateYmdFromOcr(ocr),
+        data_documento: processingDocumentDateYmdFromOcr(
+          ocr,
+          documentContextText(attachment.filename, email.subject),
+        ),
         stato:          'da_revisionare',
         metadata:       {
           ...buildMetadata(ocr, 'unknown'),
@@ -1884,7 +1899,10 @@ async function processEmails(
         file_url: syn.publicUrl,
         file_name: SYNTHETIC_EMAIL_DOC_FILENAME,
         content_type: 'text/plain',
-        data_documento: documentDateYmdFromOcr(ocr),
+        data_documento: processingDocumentDateYmdFromOcr(
+          ocr,
+          documentContextText(SYNTHETIC_EMAIL_DOC_FILENAME, email.subject),
+        ),
         stato: 'da_revisionare',
         metadata: {
           ...buildMetadata(ocr, 'unknown'),
@@ -1962,7 +1980,10 @@ async function processEmails(
       file_url:       syn.publicUrl,
       file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
       content_type:   'text/plain',
-      data_documento: documentDateYmdFromOcr(ocr),
+      data_documento: processingDocumentDateYmdFromOcr(
+        ocr,
+        documentContextText(SYNTHETIC_EMAIL_DOC_FILENAME, email.subject),
+      ),
       stato:          'da_revisionare',
       metadata:       {
         ...buildMetadata(ocr, 'unknown'),
@@ -2401,7 +2422,10 @@ async function processEmails(
             : 'fattura'
 
       if (fornitore.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
-        const dataDocLocal = documentDateYmdFromOcr(ocr)
+        const dataDocLocal = processingDocumentDateYmdFromOcr(
+          ocr,
+          documentContextText(storedFileName, email.subject),
+        )
         const inferredKind = inferPendingDocumentKindForQueueRow({
           oggetto_mail: email.subject,
           file_name: storedFileName,
@@ -2602,7 +2626,10 @@ async function processEmails(
         file_url,
         file_name:      storedFileName,
         content_type:   storedContentType,
-        data_documento: documentDateYmdFromOcr(ocr),
+        data_documento: processingDocumentDateYmdFromOcr(
+          ocr,
+          documentContextText(storedFileName, email.subject),
+        ),
         stato:          rowStato,
         is_statement:   isStatementDoc,
         metadata,
@@ -2626,7 +2653,12 @@ async function processEmails(
             file_url,
             file_name: storedFileName,
             content_type: storedContentType,
-            data_documento: seg.data_fattura ?? documentDateYmdFromOcr(ocr),
+            data_documento:
+              safeDate(seg.data_fattura) ??
+              processingDocumentDateYmdFromOcr(
+                ocr,
+                documentContextText(storedFileName, email.subject),
+              ),
             stato: 'da_revisionare' as const,
             is_statement: false,
             metadata: {

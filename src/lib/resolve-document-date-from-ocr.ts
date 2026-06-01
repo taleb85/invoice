@@ -1,6 +1,6 @@
 import { qualityValidateDate, type SignalStrength } from '@/lib/document-quality-chain'
 import { isSuspiciousDocumentDate } from '@/lib/fix-ocr-dates-helpers'
-import { documentDateYmdFromOcr } from '@/lib/safe-date'
+import { documentContextText, processingDocumentDateYmdFromOcr } from '@/lib/safe-date'
 
 export type DocumentDateRejectReason =
   | 'no_ocr_date'
@@ -49,40 +49,30 @@ export function isPlausibleStoredDocumentDate(
  * Usato da «Rileggi documento» e riallineabile al batch fix-ocr-dates.
  */
 export function resolveDocumentDateFromOcrContext(opts: {
-  ocr: { data_fattura?: string | null; data?: string | null }
+  ocr: {
+    data_fattura?: string | null
+    data?: string | null
+    data_ordine?: string | null
+    tipo_documento?: string | null
+    pending_kind?: string | null
+  }
   currentDate?: string | null
   fileName?: string | null
   emailSubject?: string | null
   receivedAt?: string | null
 }): ResolveDocumentDateFromOcrResult {
-  const ocrDate = documentDateYmdFromOcr(opts.ocr)
-  let quality = qualityValidateDate(
+  const ocrDate = processingDocumentDateYmdFromOcr(
+    opts.ocr,
+    documentContextText(opts.fileName, opts.emailSubject),
+  )
+  const quality = qualityValidateDate(
     ocrDate,
     opts.receivedAt,
     opts.fileName,
     opts.emailSubject,
   )
-  let proposed = quality.value
-  let confidence = quality.confidence
-
-  if (proposed && isStaleRelativeToReceipt(proposed, opts.receivedAt)) {
-    const withoutOcr = qualityValidateDate(
-      null,
-      opts.receivedAt,
-      opts.fileName,
-      opts.emailSubject,
-    )
-    if (
-      withoutOcr.value
-      && withoutOcr.confidence >= 1
-      && !isSuspiciousDocumentDate(withoutOcr.value)
-      && !isStaleRelativeToReceipt(withoutOcr.value, opts.receivedAt)
-    ) {
-      proposed = withoutOcr.value
-      confidence = withoutOcr.confidence
-      quality = withoutOcr
-    }
-  }
+  const proposed = quality.value ?? ocrDate
+  const confidence = quality.value ? quality.confidence : ocrDate ? (2 as SignalStrength) : quality.confidence
 
   const current = opts.currentDate?.trim() || null
 
@@ -94,9 +84,6 @@ export function resolveDocumentDateFromOcrContext(opts: {
   }
   if (current && proposed === current) {
     return { proposedDate: null, confidence, skipReason: 'unchanged', ocrDate }
-  }
-  if (isStaleRelativeToReceipt(proposed, opts.receivedAt)) {
-    return { proposedDate: null, confidence, skipReason: 'stale_vs_receipt', ocrDate }
   }
   if (
     current

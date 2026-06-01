@@ -217,47 +217,87 @@ export function qualityValidateDate(
   }
 
   if (signals.length === 0) {
-    // Nessun segnale disponibile: usa received_at
-    const fallback = receivedAt?.slice(0, 10) ?? null
-    return { value: fallback, confidence: 0, signals: ['fallback_received_at'] }
+    return { value: null, confidence: 0, signals: [] }
+  }
+
+  const sourceRank = (source: string): number => {
+    switch (source) {
+      case 'ocr':
+        return 4
+      case 'nome_file':
+        return 3
+      case 'righe_documento':
+        return 2
+      case 'oggetto_mail':
+        return 1
+      default:
+        return 0
+    }
   }
 
   // Conta voti per ogni valore data
-  const dateVotes = new Map<string, { count: number; sources: string[] }>()
+  const dateVotes = new Map<string, { count: number; sources: string[]; rank: number }>()
   for (const s of signals) {
-    const entry = dateVotes.get(s.value) ?? { count: 0, sources: [] }
+    const entry = dateVotes.get(s.value) ?? { count: 0, sources: [], rank: 0 }
     entry.count++
     entry.sources.push(s.source)
+    entry.rank = Math.max(entry.rank, sourceRank(s.source))
     dateVotes.set(s.value, entry)
   }
 
   let bestDate = ''
   let bestCount = 0
+  let bestRank = 0
   let bestSources: string[] = []
   for (const [d, entry] of dateVotes) {
-    if (entry.count > bestCount) {
+    if (
+      entry.count > bestCount ||
+      (entry.count === bestCount && entry.rank > bestRank)
+    ) {
       bestDate = d
       bestCount = entry.count
+      bestRank = entry.rank
       bestSources = entry.sources
     }
   }
 
-  // Validazione: data non può essere > 3 giorni dopo la ricezione
+  // Se la data migliore è molto posteriore alla ricezione, preferisci altri segnali dal documento
+  // (mai la data di ricezione email come data documento).
   if (receivedAt && bestDate && bestDate > receivedAt.slice(0, 10)) {
     const diffMs = new Date(bestDate).getTime() - new Date(receivedAt.slice(0, 10)).getTime()
     const diffDays = diffMs / (1000 * 60 * 60 * 24)
     if (diffDays > 3) {
-      // Data sospetta: usa il secondo miglior segnale o received_at
       dateVotes.delete(bestDate)
       let secondDate = ''
       let secondCount = 0
+      let secondRank = 0
+      let secondSources: string[] = []
       for (const [d, entry] of dateVotes) {
-        if (entry.count > secondCount) { secondDate = d; secondCount = entry.count }
+        if (
+          entry.count > secondCount ||
+          (entry.count === secondCount && entry.rank > secondRank)
+        ) {
+          secondDate = d
+          secondCount = entry.count
+          secondRank = entry.rank
+          secondSources = entry.sources
+        }
       }
       if (secondDate) {
-        return { value: secondDate, confidence: Math.max(1, secondCount) as SignalStrength, signals: [`${bestDate}(rifiutata:${diffDays.toFixed(0)}gg)`] }
+        return {
+          value: secondDate,
+          confidence: Math.max(1, secondCount) as SignalStrength,
+          signals: [`${bestDate}(rifiutata:${diffDays.toFixed(0)}gg)`, ...secondSources],
+        }
       }
-      return { value: receivedAt.slice(0, 10), confidence: 1, signals: [`${bestDate}(rifiutata:${diffDays.toFixed(0)}gg)`, 'received_at' as string] }
+      if (bestSources.includes('ocr') || bestSources.includes('nome_file')) {
+        return {
+          value: bestDate,
+          confidence: bestCount as SignalStrength,
+          signals: [...bestSources, `post_ricezione_${diffDays.toFixed(0)}gg`],
+        }
+      }
+      return { value: null, confidence: 0, signals: [`${bestDate}(sospetta_vs_ricezione)`] }
     }
   }
 

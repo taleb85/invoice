@@ -39,6 +39,7 @@ import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { sortStatementsByDocumentDateDesc } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
+import { processingDocumentDateYmdFromMetadata } from '@/lib/safe-date'
 import type { StatementAnomalyCountByStatus } from '@/lib/statement-anomaly-preview'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -231,22 +232,18 @@ function fmt(d: string | null, locale = 'it-IT', timezone?: string) {
   }
 }
 
-/** Data «ufficiale» del documento: colonna DB, altrimenti data_fattura in metadata OCR. */
+/** Data «ufficiale» del documento: colonna DB, altrimenti OCR in metadata (mai `created_at`). */
 function officialDateIsoForPendingDoc(doc: Documento): string | null {
   const col = doc.data_documento?.trim()
   if (col) return col
-  const raw = doc.metadata?.data_fattura?.trim()
-  if (!raw) return null
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
-  const d = new Date(raw)
-  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10)
-  const itMatch = raw.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/)
-  if (itMatch) {
-    const [, dd, mm, yyyy] = itMatch
-    const d2 = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`)
-    if (!Number.isNaN(d2.getTime())) return d2.toISOString().slice(0, 10)
-  }
-  return null
+  const meta =
+    doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+      ? (doc.metadata as Record<string, unknown>)
+      : {}
+  return processingDocumentDateYmdFromMetadata(meta, {
+    oggettoMail: doc.oggetto_mail,
+    fileName: doc.file_name,
+  })
 }
 
 /** Giorno (YYYY-MM-DD) della ricezione in coda — ancoraggio alternativo quando data fattura e DDT distano parecchio. */

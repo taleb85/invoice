@@ -7,7 +7,7 @@ import { autoRegisterCombinedPdfInvoiceAfterStatement } from '@/lib/statement-co
 import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
-import { documentDateYmdFromOcr } from '@/lib/safe-date'
+import { documentContextText, processingDocumentDateYmdFromOcr, safeDate } from '@/lib/safe-date'
 import { recordAiUsage } from '@/lib/ai-usage-log'
 import {
   emailSubjectLooksLikeStatement,
@@ -362,12 +362,9 @@ export async function persistKnownFornitoreEmailScanWithFile(
         : 'fattura'
 
   if (fornitore.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
-    const dataDocLocal = documentDateYmdFromOcr(ocr, email.subject ?? null)
-    // Se OCR non estrae una data, usa oggi come fallback.
-    // La bolla/fattura viene comunque creata (visibile nei KPI), ma
-    // il documento va in revisione così l'utente può correggere la data.
-    const todayYmd = new Date().toISOString().slice(0, 10)
-    const dataDoc = dataDocLocal ?? todayYmd
+    const docContext = documentContextText(storedFileName, email.subject)
+    const dataDocLocal = processingDocumentDateYmdFromOcr(ocr, docContext)
+    const dataDoc = dataDocLocal
     const hasDocDateFallback = !dataDocLocal
 
     const inferredKind = inferPendingDocumentKindForQueueRow({
@@ -394,7 +391,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
       } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
       }
-      if (!shouldSkipEmailAutoFattura(ocr)) {
+      if (!shouldSkipEmailAutoFattura(ocr) && dataDoc) {
         const res = await insertEmailAutoFattura(supabase, {
           fornitoreId: fornitore.id,
           sedeId: documentSedeId,
@@ -421,20 +418,22 @@ export async function persistKnownFornitoreEmailScanWithFile(
     } else if (targetKind === 'bolla') {
       if (hasDocDateFallback) needsDocRevision = true
       const numRef = normalizeNumeroBolla(ocr.numero_fattura)
-      const rb = await insertEmailAutoBolla(supabase, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc,
-        fileUrl: file_url,
-        numeroBolla: numRef,
-        importo: importoForBollaFromOcr(ocr),
-        quantita: quantitaForBollaFromOcr(ocr),
-      })
-      if ('id' in rb) {
-        registratoAutoBollaId = rb.id
-        counters.bozzaCreate++
-      } else if ('duplicateId' in rb) {
-        duplicateSkippedBollaId = rb.duplicateId
+      if (dataDoc) {
+        const rb = await insertEmailAutoBolla(supabase, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc,
+          fileUrl: file_url,
+          numeroBolla: numRef,
+          importo: importoForBollaFromOcr(ocr),
+          quantita: quantitaForBollaFromOcr(ocr),
+        })
+        if ('id' in rb) {
+          registratoAutoBollaId = rb.id
+          counters.bozzaCreate++
+        } else if ('duplicateId' in rb) {
+          duplicateSkippedBollaId = rb.duplicateId
+        }
       }
     } else {
       needsDocRevision = true
@@ -541,7 +540,10 @@ export async function persistKnownFornitoreEmailScanWithFile(
     file_url,
     file_name: storedFileName,
     content_type: storedContentType,
-    data_documento: documentDateYmdFromOcr(ocr, email.subject ?? null),
+    data_documento: processingDocumentDateYmdFromOcr(
+      ocr,
+      documentContextText(storedFileName, email.subject),
+    ),
     stato: rowStato,
     is_statement: isStatementDoc,
     metadata,
@@ -564,7 +566,9 @@ export async function persistKnownFornitoreEmailScanWithFile(
         file_url,
         file_name: storedFileName,
         content_type: storedContentType,
-        data_documento: seg.data_fattura ?? documentDateYmdFromOcr(ocr, email.subject ?? null),
+        data_documento:
+          safeDate(seg.data_fattura) ??
+          processingDocumentDateYmdFromOcr(ocr, documentContextText(storedFileName, email.subject)),
         stato: 'da_revisionare',
         is_statement: false,
         metadata: { ...metadata, ...segMeta },

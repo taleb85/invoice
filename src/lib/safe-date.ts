@@ -109,5 +109,55 @@ export function documentDateYmdFromOcr(
   if (tipo && tipo.toLowerCase() === 'ordine') {
     return orderDateYmdFromOcr(raw, contextText)
   }
+  if (raw.data_ordine?.trim()) {
+    const orderDay = orderDateYmdFromOcr(raw, contextText)
+    if (orderDay) return orderDay
+  }
   return safeDate(raw.data_fattura) ?? safeDate(raw.data)
+}
+
+export type ProcessingDocumentDateFields = {
+  data_fattura?: string | null
+  data?: string | null
+  data_ordine?: string | null
+  tipo_documento?: string | null
+  pending_kind?: string | null
+}
+
+/** Contesto testuale (oggetto mail, nome file) per etichette «Order Date» nel PDF/email. */
+export function documentContextText(...parts: (string | null | undefined)[]): string {
+  return parts.filter((p) => typeof p === 'string' && p.trim()).join('\n')
+}
+
+/**
+ * Data da usare per coda, finalizzazione e archivio: solo lettura documento (OCR/PDF),
+ * mai `created_at` / ricezione email.
+ */
+export function processingDocumentDateYmdFromOcr(
+  raw: ProcessingDocumentDateFields,
+  contextText?: string | null,
+): string | null {
+  const kind = (raw.pending_kind ?? raw.tipo_documento ?? '').trim().toLowerCase()
+  if (kind === 'ordine') {
+    return orderDateYmdFromOcr(raw, contextText)
+  }
+  return documentDateYmdFromOcr(raw, contextText)
+}
+
+/** Data documento da `metadata` OCR in coda (dopo rianalizza o scan email). */
+export function processingDocumentDateYmdFromMetadata(
+  meta: Record<string, unknown> | null | undefined,
+  context?: { oggettoMail?: string | null; fileName?: string | null },
+): string | null {
+  const m = meta ?? {}
+  return processingDocumentDateYmdFromOcr(
+    {
+      data_fattura: typeof m.data_fattura === 'string' ? m.data_fattura : null,
+      data_ordine: typeof m.data_ordine === 'string' ? m.data_ordine : null,
+      data: typeof m.data === 'string' ? m.data : null,
+      tipo_documento: typeof m.tipo_documento === 'string' ? m.tipo_documento : null,
+      pending_kind: typeof m.pending_kind === 'string' ? m.pending_kind : null,
+    },
+    documentContextText(context?.fileName, context?.oggettoMail),
+  )
 }

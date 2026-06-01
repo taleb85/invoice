@@ -23,7 +23,11 @@ import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
 import { confermeOrdineTableUnavailable } from '@/lib/conferme-ordine-schema'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
-import { orderDateYmdFromOcr } from '@/lib/safe-date'
+import {
+  documentContextText,
+  processingDocumentDateYmdFromMetadata,
+  processingDocumentDateYmdFromOcr,
+} from '@/lib/safe-date'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -96,15 +100,29 @@ async function finalizePendingByTipo(
     data_fattura?: string | null
   }
   const dataDoc =
-    orderDateYmdFromOcr(
-      {
-        data_ordine: typeof m.data_ordine === 'string' ? m.data_ordine : null,
-        data_fattura: typeof m.data_fattura === 'string' ? m.data_fattura : null,
-      },
-      typeof doc.oggetto_mail === 'string' ? doc.oggetto_mail : null,
-    ) ??
+    processingDocumentDateYmdFromMetadata(meta, {
+      oggettoMail: doc.oggetto_mail,
+      fileName: doc.file_name,
+    }) ??
     doc.data_documento ??
-    oggi
+    null
+
+  if (
+    !dataDoc &&
+    (tipo === 'fattura' ||
+      tipo === 'nota_credito' ||
+      tipo === 'bolla' ||
+      tipo === 'ordine')
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          'Data documento non disponibile: rileggi il PDF (OCR) o inserisci la data prima di finalizzare.',
+        code: 'document_date_required',
+      },
+      { status: 400 },
+    )
+  }
 
   const ocrTipo = normalizeTipoDocumento(m.tipo_documento ?? meta.tipo_documento)
   const isCreditNote = ocrTipo === 'nota_credito'
@@ -783,7 +801,7 @@ export async function POST(req: NextRequest) {
 
     const { data: docRow, error: readErr } = await supabase
       .from('documenti_da_processare')
-      .select('metadata, data_documento, sede_id, stato')
+      .select('metadata, data_documento, sede_id, stato, oggetto_mail, file_name')
       .eq('id', id)
       .maybeSingle()
     if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 })
@@ -806,13 +824,12 @@ export async function POST(req: NextRequest) {
       docRow.metadata && typeof docRow.metadata === 'object' && !Array.isArray(docRow.metadata)
         ? (docRow.metadata as Record<string, unknown>)
         : {}
-    const rawDf = typeof meta.data_fattura === 'string' ? meta.data_fattura.trim() : ''
-    if (!rawDf) {
-      return NextResponse.json({ error: 'Nessuna data documento nell’estrazione OCR' }, { status: 400 })
-    }
-    const target = safeDate(rawDf)
+    const target = processingDocumentDateYmdFromMetadata(meta, {
+      oggettoMail: docRow.oggetto_mail,
+      fileName: docRow.file_name,
+    })
     if (!target) {
-      return NextResponse.json({ error: 'Data OCR non leggibile nel formato atteso' }, { status: 400 })
+      return NextResponse.json({ error: 'Nessuna data documento nell’estrazione OCR' }, { status: 400 })
     }
 
     const current = typeof docRow.data_documento === 'string' ? docRow.data_documento.trim() : ''
@@ -1025,7 +1042,19 @@ export async function POST(req: NextRequest) {
     const oggi        = new Date().toISOString().split('T')[0]
     const sedeDefinitiva  = primaBolla.sede_id ?? doc.sede_id ?? null
     const importoTotale   = bolleRows.reduce((s, b) => s + (b.importo ?? 0), 0)
-    const dataFatturaAssocia = doc.data_documento ?? oggi
+    const dataFatturaAssocia =
+      processingDocumentDateYmdFromMetadata(
+        doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+          ? (doc.metadata as Record<string, unknown>)
+          : {},
+        { oggettoMail: doc.oggetto_mail, fileName: doc.file_name },
+      ) ?? doc.data_documento
+    if (!dataFatturaAssocia) {
+      return NextResponse.json(
+        { error: 'Data documento mancante: rileggi il PDF prima di associare le bolle.' },
+        { status: 400 },
+      )
+    }
     const numeroDaMeta = numeroFatturaFromDocMetadata(doc.metadata)
     if (numeroDaMeta) {
       const dupId = await findDuplicateFatturaId(supabase, {
