@@ -18,6 +18,7 @@ import {
   serializeFatturaDuplicateDeletionPayload,
 } from '@/lib/check-duplicates'
 import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
+import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
 import {
   confermaOrdineRowToOrdineDupProbe,
   sortConfermeOrdineByDocumentDateDesc,
@@ -54,6 +55,7 @@ export type ConfermaOrdineRow = {
   note: string | null
   created_at: string
   righe: ConfermaOrdineRiga[] | null
+  importo_totale?: number | null
 }
 
 function confermaRowLabel(r: ConfermaOrdineRow) {
@@ -64,24 +66,6 @@ function confermaRowLabel(r: ConfermaOrdineRow) {
     numeroFatturaMetadata: r.numero_fattura_doc,
     oggettoMail: r.oggetto_mail,
   })
-}
-
-/**
- * Somma `importo_linea` su tutte le righe della conferma.
- * Restituisce `null` se non c'è alcun importo numerico valido (per render `—`).
- */
-function sumRigheImporto(righe: ConfermaOrdineRiga[] | null | undefined): number | null {
-  if (!Array.isArray(righe) || righe.length === 0) return null
-  let total = 0
-  let found = false
-  for (const r of righe) {
-    const v = typeof r?.importo_linea === 'number' ? r.importo_linea : null
-    if (v !== null && Number.isFinite(v)) {
-      total += v
-      found = true
-    }
-  }
-  return found ? Math.round(total * 100) / 100 : null
 }
 
 /** Sul guscio `supplier-detail-tab-shell` (trasparente): niente `app-workspace-inset-bg`. */
@@ -264,6 +248,11 @@ export default function FornitoreConfermeOrdineTab({
           onNumeroOrdineUpdated: (n: string) => {
             setRows((prev) =>
               prev.map((row) => (row.id === r.id ? { ...row, numero_ordine: n } : row)),
+            )
+          },
+          onImportoTotaleUpdated: (importo: number) => {
+            setRows((prev) =>
+              prev.map((row) => (row.id === r.id ? { ...row, importo_totale: importo } : row)),
             )
           },
         })),
@@ -534,7 +523,7 @@ export default function FornitoreConfermeOrdineTab({
                       </p>
                     ) : null}
                     {(() => {
-                      const tot = sumRigheImporto(r.righe)
+                      const tot = confermaOrdineImportoTotale(r)
                       if (tot == null) return null
                       return (
                         <p className={`mt-0.5 font-mono text-xs tabular-nums ${confermeSecondaryClass}`}>
@@ -659,9 +648,9 @@ export default function FornitoreConfermeOrdineTab({
                           })()}
                         </OpenDocumentInAppButton>
                       </td>
-                      <td className={`px-5 py-3 text-right font-mono text-sm tabular-nums ${confermeSecondaryClass}`}>
+                      <td className="px-5 py-3 text-right font-mono text-sm tabular-nums text-app-fg">
                         {(() => {
-                          const tot = sumRigheImporto(r.righe)
+                          const tot = confermaOrdineImportoTotale(r)
                           return tot != null ? formatCurrency(tot, currency, locale) : '—'
                         })()}
                       </td>

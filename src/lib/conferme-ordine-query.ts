@@ -8,6 +8,7 @@ import { numeroFatturaFromDocMetadata } from '@/lib/fattura-duplicate-check'
 import { isConfermeOrdineMissingNumeroOrdineColumn } from '@/lib/conferme-ordine-schema'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractDocumentText } from '@/lib/document-extractors'
+import { totaleFromDocMetadata } from '@/lib/conferme-ordine-importo'
 import { extractOrderDateFromLabelledText, orderDateYmdFromOcr, safeDate } from '@/lib/safe-date'
 import type { OrdineDupListRow } from '@/lib/check-duplicates'
 
@@ -33,6 +34,8 @@ export type ConfermaOrdineListRow = {
   fornitore_id: string
   /** Data ordine da mostrare (metadata OCR «Order Date» se presente, altrimenti colonna DB). */
   data_ordine_display: string | null
+  /** Totale documento da OCR in coda (se non calcolabile dalle righe Rekki). */
+  importo_totale: number | null
 }
 
 /** Giorno per ordinamento elenco: data documento (display/OCR o DB), poi ricezione. */
@@ -159,6 +162,7 @@ export async function fetchFilteredConfermeOrdine(
   const numeroFatturaByUrl = new Map<string, string>()
   const oggettoByUrl = new Map<string, string>()
   const orderDateByUrl = new Map<string, string>()
+  const importoByUrl = new Map<string, number>()
   if (urls.length > 0) {
     const { data: docs } = await service
       .from('documenti_da_processare')
@@ -176,6 +180,8 @@ export async function fetchFilteredConfermeOrdine(
       if (typeof oggetto === 'string' && oggetto.trim()) oggettoByUrl.set(url, oggetto.trim())
       const orderYmd = orderDateYmdFromDocMetadata(meta)
       if (orderYmd) orderDateByUrl.set(url, orderYmd)
+      const tot = totaleFromDocMetadata(meta)
+      if (tot != null) importoByUrl.set(url, tot)
     }
   }
 
@@ -217,6 +223,7 @@ export async function fetchFilteredConfermeOrdine(
       numero_fattura_doc: numeroFatturaByUrl.get(r.file_url) ?? null,
       oggetto_mail: oggettoByUrl.get(r.file_url) ?? null,
       data_ordine_display: display,
+      importo_totale: importoByUrl.get(r.file_url) ?? null,
     })
   }
 

@@ -26,6 +26,8 @@ export type ConfermaRefreshOcrResponse = {
   info?: string
   numero_ordine?: string | null
   numero_ordine_changed?: boolean
+  importo_totale?: number | null
+  importo_totale_changed?: boolean
 }
 
 export type BollaRefreshOcrCallbacks = {
@@ -37,6 +39,7 @@ export type BollaRefreshOcrCallbacks = {
 export type ConfermaRefreshOcrCallbacks = {
   onDataOrdineUpdated: (newIsoDate: string) => void
   onNumeroOrdineUpdated?: (newNumero: string) => void
+  onImportoTotaleUpdated?: (importo: number) => void
 }
 
 export async function fetchBollaRefreshFromOcr(
@@ -88,9 +91,14 @@ export function applyConfermaRefreshOcrResponse(
 ): boolean {
   const dataChanged = j.data_ordine_changed === true && Boolean(j.data_ordine)
   const numeroChanged = j.numero_ordine_changed === true && j.numero_ordine != null
+  const importoChanged =
+    j.importo_totale_changed === true &&
+    j.importo_totale != null &&
+    Number.isFinite(Number(j.importo_totale))
   if (j.data_ordine && dataChanged) callbacks.onDataOrdineUpdated(j.data_ordine)
   if (numeroChanged) callbacks.onNumeroOrdineUpdated?.(j.numero_ordine as string)
-  return dataChanged || numeroChanged
+  if (importoChanged) callbacks.onImportoTotaleUpdated?.(Number(j.importo_totale))
+  return dataChanged || numeroChanged || importoChanged
 }
 
 export async function fetchPendingDocRefreshFromOcr(

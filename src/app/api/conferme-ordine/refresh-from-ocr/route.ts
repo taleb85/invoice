@@ -4,6 +4,7 @@ import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { fileNameFromStorageUrl } from '@/lib/fix-ocr-dates-helpers'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
+import { totaleFromDocMetadata } from '@/lib/conferme-ordine-importo'
 import { orderDateYmdFromOcr } from '@/lib/safe-date'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   const { data: docRow } = await service
     .from('documenti_da_processare')
-    .select('created_at, oggetto_mail, file_name')
+    .select('id, created_at, oggetto_mail, file_name, metadata')
     .eq('file_url', row.file_url)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -126,6 +127,34 @@ export async function POST(req: NextRequest) {
   })
   const numeroOrdine = numeroResolved ? normalizeNumeroFattura(numeroResolved) : null
 
+  const importoTotale =
+    ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))
+      ? Math.round(Number(ocr.totale_iva_inclusa) * 100) / 100
+      : null
+
+  const pendingDoc = docRow as { id?: string; metadata?: unknown } | null
+  const prevMeta =
+    pendingDoc?.metadata &&
+    typeof pendingDoc.metadata === 'object' &&
+    !Array.isArray(pendingDoc.metadata)
+      ? (pendingDoc.metadata as Record<string, unknown>)
+      : {}
+  const prevImportoTotale = totaleFromDocMetadata(prevMeta)
+  const importoChanged = importoTotale != null && importoTotale !== prevImportoTotale
+
+  if (pendingDoc?.id && importoChanged) {
+    await service
+      .from('documenti_da_processare')
+      .update({
+        metadata: {
+          ...prevMeta,
+          totale_iva_inclusa: importoTotale,
+          importo_raw: ocr.importo_raw ?? String(importoTotale),
+        },
+      })
+      .eq('id', pendingDoc.id)
+  }
+
   const updates: { data_ordine?: string; numero_ordine?: string; titolo?: string } = {}
   if (proposedDate && proposedDate !== row.data_ordine) {
     updates.data_ordine = proposedDate
@@ -137,30 +166,39 @@ export async function POST(req: NextRequest) {
     updates.titolo = numeroResolved
   }
 
-  if (Object.keys(updates).length === 0) {
+  const dataChanged = updates.data_ordine !== undefined
+  const numeroChanged = updates.numero_ordine !== undefined
+
+  if (Object.keys(updates).length === 0 && !importoChanged) {
     return NextResponse.json({
       ok: true,
       data_ordine: row.data_ordine,
       data_ordine_changed: false,
       numero_ordine: row.numero_ordine ?? null,
       numero_ordine_changed: false,
+      importo_totale: importoTotale ?? prevImportoTotale,
+      importo_totale_changed: false,
       info:
         locale === 'it'
-          ? 'Nessun campo aggiornato: data e numero ordine sono già allineati al documento.'
-          : 'No fields updated: order date and number already match the document.',
+          ? 'Nessun campo aggiornato: data, numero e importo sono già allineati al documento.'
+          : 'No fields updated: date, number and amount already match the document.',
     })
   }
 
-  const { error: uErr } = await service.from('conferme_ordine').update(updates).eq('id', confermaId)
-  if (uErr) {
-    return NextResponse.json({ error: uErr.message }, { status: 500 })
+  if (Object.keys(updates).length > 0) {
+    const { error: uErr } = await service.from('conferme_ordine').update(updates).eq('id', confermaId)
+    if (uErr) {
+      return NextResponse.json({ error: uErr.message }, { status: 500 })
+    }
   }
 
   return NextResponse.json({
     ok: true,
     data_ordine: updates.data_ordine ?? row.data_ordine,
-    data_ordine_changed: updates.data_ordine !== undefined,
+    data_ordine_changed: dataChanged,
     numero_ordine: updates.numero_ordine ?? row.numero_ordine ?? null,
-    numero_ordine_changed: updates.numero_ordine !== undefined,
+    numero_ordine_changed: numeroChanged,
+    importo_totale: importoTotale ?? prevImportoTotale,
+    importo_totale_changed: importoChanged,
   })
 }
