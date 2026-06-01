@@ -6474,7 +6474,14 @@ function FornitoreDetailClient({
       const data = (await res.json().catch(() => ({}))) as {
         error?: string
         fixOcr?: { corrected?: number; scanned?: number; error?: string }
-        duplicates?: { itemsTouchingFornitore?: number; totalReported?: number }
+        duplicates?: {
+          itemsTouchingFornitore?: number
+          totalReported?: number
+          safeDeletedTotal?: number
+          bolle?: { deleted?: number; excessFound?: number }
+          fatture?: { deleted?: number; excessFound?: number }
+          ordini?: { deleted?: number; excessFound?: number }
+        }
         listino?: { righeInserite?: number; fattureScanned?: number; skipped?: boolean; reason?: string }
         errors?: string[]
       }
@@ -6485,16 +6492,24 @@ function FornitoreDetailClient({
       bumpPeriodLedger()
       const errs = Array.isArray(data.errors) ? data.errors : []
       const fx = data.fixOcr
-      const dupHit = data.duplicates?.itemsTouchingFornitore
-      const dupTot = data.duplicates?.totalReported
+      const dup = data.duplicates
+      const dupHit = dup?.itemsTouchingFornitore
+      const dupTot = dup?.totalReported
+      const safeDel = dup?.safeDeletedTotal ?? 0
+      const dupB = dup?.bolle?.deleted ?? 0
+      const dupF = dup?.fatture?.deleted ?? 0
+      const dupO = dup?.ordini?.deleted ?? 0
       const li = data.listino
       const lines = [
         typeof fx?.corrected === 'number'
           ? `OCR / date sospette: ${fx.corrected} documenti migliorati (${fx.scanned ?? '—'} in coda).`
           : 'OCR / date sospette: elaborazione completata.',
+        safeDel > 0
+          ? `Duplicati sicuri rimossi: ${dupB} bolle, ${dupF} fatture, ${dupO} conferme ordine.`
+          : 'Duplicati sicuri: nessuna copia da rimuovere.',
         dupHit != null
-          ? `Duplicati legati al fornitore: ${dupHit} documenti (su ${dupTot ?? '—'} totali sede).`
-          : 'Duplicati: —',
+          ? `Duplicati in revisione: ${dupHit} documenti legati al fornitore (su ${dupTot ?? '—'} segnalati in sede).`
+          : 'Duplicati in revisione: —',
         li?.skipped
           ? `Listino: saltato (${li.reason ?? '—'}).`
           : `Listino: +${li?.righeInserite ?? 0} righe, fatture elaborate: ${li?.fattureScanned ?? 0}.`,
@@ -6926,7 +6941,7 @@ function FornitoreDetailClient({
                   type="button"
                   onClick={() => void runAnalisiCompletaFornitore()}
                   disabled={analisiCompletaBusy}
-                  title="OCR documenti, controllo duplicati, correzione date, import listino da fatture"
+                  title={t.fornitori.analisiCompletaButtonTitle}
                   className="inline-flex h-7 max-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold leading-tight text-teal-100 transition-colors hover:bg-teal-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:max-w-none sm:px-2.5 sm:text-[11px]"
                 >
                   {analisiCompletaBusy ? (
@@ -6947,7 +6962,7 @@ function FornitoreDetailClient({
                       />
                     </svg>
                   )}
-                  <span className="min-w-0 truncate">Analisi completa</span>
+                  <span className="min-w-0 truncate">{t.fornitori.analisiCompletaButton}</span>
                 </button>
               </div>
             ) : null}

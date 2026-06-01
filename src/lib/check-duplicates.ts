@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { confermeFileUrlsInUse, deleteConfermaOrdineRow } from '@/lib/conferme-ordine-delete'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
@@ -411,6 +412,22 @@ async function fetchAllFattureDupRows(
   )
 }
 
+async function fetchFatturaDupListRows(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null,
+  fiscalBounds: FiscalPgBounds | null,
+): Promise<FatturaDupListRow[]> {
+  return fetchAllDupRows<FatturaDupListRow>(
+    supabase,
+    'fatture',
+    'id, importo, numero_fattura, fornitore_id, data, file_url',
+    'id',
+    fornitoreIds,
+    fiscalBounds,
+    'data',
+  )
+}
+
 export async function getDuplicateInvoicesCount(
   supabase: SupabaseClient,
   opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null },
@@ -688,15 +705,104 @@ function analyzeOrdineSameFileUrlDuplicates(rows: OrdineDupListRow[]): FatturaDu
   return merged
 }
 
+const ORDINI_DUP_SELECT =
+  'id, fornitore_id, data_ordine, numero_ordine, titolo, created_at, file_url, file_name'
+
 async function fetchAllOrdiniDupRows(
   supabase: SupabaseClient,
   fornitoreIds: string[] | null,
   fiscalBounds: FiscalPgBounds | null,
 ): Promise<OrdineDupListRow[]> {
   return fetchAllDupRows<OrdineDupListRow>(
-    supabase, 'conferme_ordine', 'id, fornitore_id, data_ordine, numero_ordine, titolo, created_at', 'created_at',
-    fornitoreIds, fiscalBounds, 'created_at',
+    supabase,
+    'conferme_ordine',
+    ORDINI_DUP_SELECT,
+    'created_at',
+    fornitoreIds,
+    fiscalBounds,
+    'created_at',
   )
+}
+
+export type CleanupSafeDuplicatesSlice = {
+  scanned: number
+  excessFound: number
+  deleted: number
+  excessIds: string[]
+}
+
+export type CleanupSafeDuplicatesForFornitoreResult = {
+  bolle: CleanupSafeDuplicatesSlice
+  fatture: CleanupSafeDuplicatesSlice
+  ordini: CleanupSafeDuplicatesSlice
+}
+
+/**
+ * Rimuove duplicati ad alta confidenza (bolle, fatture, conferme ordine) per un fornitore.
+ */
+export async function cleanupSafeDuplicatesForFornitore(
+  supabase: SupabaseClient,
+  opts: {
+    sedeId: string
+    fornitoreId: string
+    fiscalBounds?: FiscalPgBounds | null
+    dryRun?: boolean
+  },
+): Promise<CleanupSafeDuplicatesForFornitoreResult> {
+  const fornitoreIds = [opts.fornitoreId]
+  const fiscal = opts.fiscalBounds ?? null
+
+  const bolleSlice = await cleanupDuplicateBolle(supabase, {
+    sedeId: opts.sedeId,
+    fornitoreId: opts.fornitoreId,
+    fiscalBounds: fiscal,
+    dryRun: opts.dryRun,
+  })
+
+  const fattureRows = await fetchFatturaDupListRows(supabase, fornitoreIds, fiscal)
+  const fattureExcess = fatturaExcessIdsForAutoDeletion(fattureRows)
+  const fattureDeleted =
+    opts.dryRun || fattureExcess.length === 0
+      ? 0
+      : await autoDeleteExcessDuplicates(supabase, 'fatture', fattureExcess)
+
+  const ordiniRows = await fetchAllOrdiniDupRows(supabase, fornitoreIds, fiscal)
+  const ordiniExcess = ordineExcessIdsForAutoDeletion(ordiniRows)
+  let ordiniDeleted = 0
+  if (!opts.dryRun && ordiniExcess.length > 0) {
+    const deleteIds = new Set(ordiniExcess)
+    const urlsStillUsed = confermeFileUrlsInUse(ordiniRows, deleteIds)
+    for (const id of ordiniExcess) {
+      const row = ordiniRows.find((r) => r.id === id)
+      const { error } = await deleteConfermaOrdineRow(supabase, {
+        id,
+        fileUrl: row?.file_url,
+        otherFileUrlsStillInUse: urlsStillUsed,
+      })
+      if (!error) ordiniDeleted++
+    }
+  }
+
+  return {
+    bolle: {
+      scanned: bolleSlice.scanned,
+      excessFound: bolleSlice.excessFound,
+      deleted: bolleSlice.deleted,
+      excessIds: bolleSlice.excessIds,
+    },
+    fatture: {
+      scanned: fattureRows.length,
+      excessFound: fattureExcess.length,
+      deleted: fattureDeleted,
+      excessIds: fattureExcess,
+    },
+    ordini: {
+      scanned: ordiniRows.length,
+      excessFound: ordiniExcess.length,
+      deleted: ordiniDeleted,
+      excessIds: ordiniExcess,
+    },
+  }
 }
 
 export async function getDuplicateOrdiniCount(

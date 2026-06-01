@@ -1808,6 +1808,9 @@ const translations: Translations = {
       'Rimosse {n} copie duplicate sicure (stesso PDF o stesso ordine con data). Le altre segnalate restano in revisione.',
     ledgerAutoDedupeDone:
       'Rimosse {n} copie duplicate sicure. Le altre segnalate restano in revisione.',
+    analisiCompletaButton: 'Analisi completa',
+    analisiCompletaButtonTitle:
+      'OCR documenti, rimozione duplicati sicuri (bolle, fatture, conferme), correzione date, import listino da fatture',
   },
   bolle: {
     title: 'Bolle',

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { detectAllDuplicates, type AllDuplicatesReport } from '@/lib/duplicate-detector'
-import { cleanupDuplicateBolle } from '@/lib/check-duplicates'
+import { cleanupSafeDuplicatesForFornitore } from '@/lib/check-duplicates'
 import { syncListinoFromFattureForFornitore } from '@/lib/sync-listino-from-fatture'
 
 export const dynamic = 'force-dynamic'
@@ -85,19 +85,23 @@ export async function POST(req: NextRequest, segmentCtx: { params: Promise<{ id:
     ;(report.errors as string[]).push(`Fix OCR/date: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  // 3 Duplicates: rilevazione sede + pulizia copie bolle per questo fornitore
+  // 3 Duplicati: rilevazione sede + rimozione copie sicure (bolle, fatture, conferme ordine)
   try {
     const dupReport = await detectAllDuplicates(fornitoreSedeId, service)
     const hits = duplicateHitsForFornitore(dupReport, fornitoreId)
-    const bollaCleanup = await cleanupDuplicateBolle(service, {
+    const safeDup = await cleanupSafeDuplicatesForFornitore(service, {
       sedeId: fornitoreSedeId,
       fornitoreId,
     })
+    const safeDeletedTotal =
+      safeDup.bolle.deleted + safeDup.fatture.deleted + safeDup.ordini.deleted
     report.duplicates = {
       totalReported: dupReport.total,
       itemsTouchingFornitore: hits,
-      bolleDeleted: bollaCleanup.deleted,
-      bolleExcessFound: bollaCleanup.excessFound,
+      safeDeletedTotal,
+      bolle: safeDup.bolle,
+      fatture: safeDup.fatture,
+      ordini: safeDup.ordini,
     }
   } catch (e) {
     ;(report.errors as string[]).push(`Duplicati: ${e instanceof Error ? e.message : String(e)}`)
