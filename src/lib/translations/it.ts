@@ -1802,6 +1802,8 @@ const translations: Translations = {
     confermeOrdineMigrationTitle: 'Tabella conferme ordine non attiva',
     confermeOrdineMigrationHint:
       'Esegui la migration SQL `add-conferme-ordine.sql` nel progetto Supabase (SQL Editor) per creare la tabella `conferme_ordine` e le policy RLS.',
+    confermeOrdineOcrAutoProgress: 'Rilettura {current} di {total}: {label}',
+    confermeOrdineOcrAutoDone: 'Riletti {ok} conferme su {total}.',
   },
   bolle: {
     title: 'Bolle',

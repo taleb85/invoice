@@ -1,7 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import dynamic from 'next/dynamic'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -24,11 +23,11 @@ import {
   sortConfermeOrdineByDocumentDateDesc,
 } from '@/lib/conferme-ordine-query'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
-
-const SupplierDocumentOcrToolbar = dynamic(
-  () => import('@/components/SupplierDocumentOcrToolbar'),
-  { ssr: false, loading: () => null },
-)
+import {
+  documentOcrRefreshTargetId,
+  runDocumentOcrRefresh,
+  type DocumentOcrRefreshTarget,
+} from '@/lib/document-refresh-from-ocr-client'
 import { confermeOrdineTableMissingFromApiError } from '@/lib/conferme-ordine-schema'
 
 /**
@@ -95,6 +94,9 @@ const CONFERME_OPEN_PILL =
 const RED_ACTION_PILL =
   'inline-flex items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
 
+const CONFERMA_OCR_ROW_ACTIVE =
+  'bg-cyan-500/8 ring-1 ring-inset ring-cyan-400/25'
+
 function pathFromDocumentiPublicUrl(url: string): string | null {
   try {
     const u = new URL(url)
@@ -131,7 +133,13 @@ export default function FornitoreConfermeOrdineTab({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [convertingId, setConvertingId] = useState<string | null>(null)
   const [convertingAll, setConvertingAll] = useState(false)
-  const [toolbarConfermaId, setToolbarConfermaId] = useState('')
+  const [ocrProgress, setOcrProgress] = useState<{
+    index: number
+    total: number
+    currentId: string
+    currentLabel: string
+  } | null>(null)
+  const autoOcrRunKeyRef = useRef<string | null>(null)
 
   const sortedRows = useMemo(
     () =>
@@ -229,33 +237,17 @@ export default function FornitoreConfermeOrdineTab({
     void load()
   }, [load])
 
-  const toolbarChoices = useMemo(
-    () =>
-      sortedRows.map((r) => {
-        const { primary } = confermaRowLabel(r)
-        const datePart = (r.data_ordine_display ?? r.data_ordine)
-          ? fmt(r.data_ordine_display ?? r.data_ordine!)
-          : null
-        return {
-          id: r.id,
-          label: [primary, datePart].filter(Boolean).join(' · '),
-          hasFile: Boolean(r.file_url?.trim()),
-        }
-      }),
-    [sortedRows, fmt],
-  )
-
-  const rowsWithFile = useMemo(() => toolbarChoices.filter((c) => c.hasFile), [toolbarChoices])
-
-  useEffect(() => {
-    if (!rowsWithFile.length) {
-      setToolbarConfermaId('')
-      return
+  const confermaLabelById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const r of sortedRows) {
+      const { primary } = confermaRowLabel(r)
+      const datePart = (r.data_ordine_display ?? r.data_ordine)
+        ? fmt(r.data_ordine_display ?? r.data_ordine!)
+        : null
+      map.set(r.id, [primary, datePart].filter(Boolean).join(' · '))
     }
-    setToolbarConfermaId((prev) =>
-      rowsWithFile.some((c) => c.id === prev) ? prev : rowsWithFile[0]!.id,
-    )
-  }, [rowsWithFile])
+    return map
+  }, [sortedRows, fmt])
 
   const refreshBatch = useMemo(
     () =>
@@ -279,6 +271,62 @@ export default function FornitoreConfermeOrdineTab({
         })),
     [sortedRows],
   )
+
+  const confermaIdsWithFile = useMemo(
+    () => sortedRows.filter((r) => r.file_url?.trim()).map((r) => r.id),
+    [sortedRows],
+  )
+
+  const runAutoOcrBatch = useCallback(async () => {
+    if (readOnly || refreshBatch.length === 0) return
+    const total = refreshBatch.length
+    let ok = 0
+    let errors = 0
+    setOcrProgress({ index: 0, total, currentId: '', currentLabel: '' })
+    try {
+      for (let i = 0; i < refreshBatch.length; i++) {
+        const target = refreshBatch[i] as DocumentOcrRefreshTarget
+        const currentId = documentOcrRefreshTargetId(target)
+        const currentLabel = confermaLabelById.get(currentId) ?? currentId
+        setOcrProgress({ index: i + 1, total, currentId, currentLabel })
+        const result = await runDocumentOcrRefresh(target)
+        if (result.ok) ok++
+        else errors++
+      }
+      if (ok > 0) await load()
+      const doneMsg = t.fornitori.confermeOrdineOcrAutoDone
+        .replace('{ok}', String(ok))
+        .replace('{total}', String(total))
+      showToast(doneMsg, errors > 0 ? 'info' : ok > 0 ? 'success' : 'info')
+      if (errors > 0) {
+        showToast(t.fatture.refreshAllFromDocErrors.replace('{n}', String(errors)), 'error')
+      }
+    } catch {
+      showToast(t.ui.networkError, 'error')
+    } finally {
+      setOcrProgress(null)
+    }
+  }, [readOnly, refreshBatch, confermaLabelById, load, showToast, t])
+
+  useEffect(() => {
+    if (loading || readOnly || confermaIdsWithFile.length === 0 || ocrProgress) return
+    const runKey = `${fornitoreId}|${dateFrom ?? ''}|${dateToExclusive ?? ''}|${confermaIdsWithFile.join(',')}`
+    if (autoOcrRunKeyRef.current === runKey) return
+    autoOcrRunKeyRef.current = runKey
+    void runAutoOcrBatch()
+  }, [
+    loading,
+    readOnly,
+    confermaIdsWithFile,
+    fornitoreId,
+    dateFrom,
+    dateToExclusive,
+    ocrProgress,
+    runAutoOcrBatch,
+  ])
+
+  const rowOcrClass = (id: string) =>
+    ocrProgress?.currentId === id ? CONFERMA_OCR_ROW_ACTIVE : ''
 
   const handleDelete = async (row: ConfermaOrdineRow) => {
     if (!window.confirm(t.fornitori.confermeOrdineDeleteConfirm)) return
@@ -353,19 +401,6 @@ export default function FornitoreConfermeOrdineTab({
   }
 
   return (
-    <>
-      {!readOnly && rowsWithFile.length > 0 && toolbarConfermaId ? (
-        <div className="mb-4">
-          <SupplierDocumentOcrToolbar
-            choices={rowsWithFile}
-            selectedId={toolbarConfermaId}
-            onSelectedIdChange={setToolbarConfermaId}
-            refreshBatch={refreshBatch}
-            readOnly={readOnly}
-            onLedgerMutated={() => void load()}
-          />
-        </div>
-      ) : null}
     <div className={`supplier-detail-tab-shell mt-4 flex flex-col overflow-hidden ${confermeTheme.border}`}>
       <div className={`app-card-bar-accent ${confermeTheme.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
@@ -374,7 +409,7 @@ export default function FornitoreConfermeOrdineTab({
           {!readOnly && sortedRows.length > 0 ? (
             <button
               type="button"
-              disabled={convertingAll}
+              disabled={convertingAll || Boolean(ocrProgress)}
               onClick={() => void handleConvertAll()}
               title="Converti tutti in bolle e impara per i prossimi documenti"
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/8 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 transition-colors hover:border-emerald-400/50 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-40"
@@ -395,6 +430,35 @@ export default function FornitoreConfermeOrdineTab({
         </div>
         {error ? (
           <p className="border-b border-app-line-20 px-5 py-2 text-sm text-red-200/95">{error}</p>
+        ) : null}
+
+        {ocrProgress ? (
+          <div
+            className="border-b border-app-line-20 bg-cyan-500/5 px-5 py-3"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-cyan-400/40 border-t-cyan-300"
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-app-fg">
+                  {t.fornitori.confermeOrdineOcrAutoProgress
+                    .replace('{current}', String(ocrProgress.index))
+                    .replace('{total}', String(ocrProgress.total))
+                    .replace('{label}', ocrProgress.currentLabel)}
+                </p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-app-line-10">
+                  <div
+                    className="h-full rounded-full bg-cyan-500/70 transition-[width] duration-300"
+                    style={{ width: `${(ocrProgress.index / ocrProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         ) : null}
 
         {loading ? (
@@ -431,7 +495,7 @@ export default function FornitoreConfermeOrdineTab({
               {sortedRows.map((r) => (
                 <div
                   key={r.id}
-                  className="flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-app-line-5"
+                  className={`flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-app-line-5 ${rowOcrClass(r.id)}`}
                 >
                   <div className="min-w-0">
                     {(() => {
@@ -491,7 +555,7 @@ export default function FornitoreConfermeOrdineTab({
                     <>
                       <button
                         type="button"
-                        disabled={convertingId === r.id}
+                        disabled={convertingId === r.id || Boolean(ocrProgress)}
                         onClick={() => void handleConvertOne(r)}
                         className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-transparent px-2 py-1 text-[10px] font-semibold text-emerald-400/80 transition-colors hover:bg-emerald-500/10 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
                       >
@@ -499,7 +563,7 @@ export default function FornitoreConfermeOrdineTab({
                       </button>
                       <button
                         type="button"
-                        disabled={deletingId === r.id}
+                        disabled={deletingId === r.id || Boolean(ocrProgress)}
                         onClick={() => void handleDelete(r)}
                         className={RED_ACTION_PILL}
                       >
@@ -540,7 +604,7 @@ export default function FornitoreConfermeOrdineTab({
                 </thead>
                 <tbody className={APP_SECTION_TABLE_TBODY}>
                   {sortedRows.map((r) => (
-                    <tr key={r.id} className={APP_SECTION_TABLE_TR}>
+                    <tr key={r.id} className={`${APP_SECTION_TABLE_TR} ${rowOcrClass(r.id)}`}>
                       <td className={`px-5 py-3 ${confermeSecondaryClass}`}>
                         {r.data_ordine_display ?? r.data_ordine
                           ? fmt(r.data_ordine_display ?? r.data_ordine!)
@@ -601,7 +665,7 @@ export default function FornitoreConfermeOrdineTab({
                         <div className="inline-flex items-center gap-2">
                           <button
                             type="button"
-                            disabled={convertingId === r.id}
+                            disabled={convertingId === r.id || Boolean(ocrProgress)}
                             onClick={() => void handleConvertOne(r)}
                             className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-transparent px-2 py-1 text-[10px] font-semibold text-emerald-400/80 transition-colors hover:bg-emerald-500/10 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
                           >
@@ -609,7 +673,7 @@ export default function FornitoreConfermeOrdineTab({
                           </button>
                           <button
                             type="button"
-                            disabled={deletingId === r.id}
+                            disabled={deletingId === r.id || Boolean(ocrProgress)}
                             onClick={() => void handleDelete(r)}
                             className={RED_ACTION_PILL}
                           >
@@ -629,6 +693,5 @@ export default function FornitoreConfermeOrdineTab({
         )}
       </div>
     </div>
-    </>
   )
 }

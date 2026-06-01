@@ -112,6 +112,19 @@ export type DocumentOcrRefreshTarget =
   | ({ kind: 'conferma'; confermaId: string } & ConfermaRefreshOcrCallbacks)
   | { kind: 'pending'; documentoId: string }
 
+export function documentOcrRefreshTargetId(target: DocumentOcrRefreshTarget): string {
+  switch (target.kind) {
+    case 'fattura':
+      return target.fatturaId
+    case 'bolla':
+      return target.bollaId
+    case 'conferma':
+      return target.confermaId
+    case 'pending':
+      return target.documentoId
+  }
+}
+
 export async function runDocumentOcrRefresh(
   target: DocumentOcrRefreshTarget,
 ): Promise<{ ok: boolean; changed: boolean; body: FatturaRefreshOcrResponse | BollaRefreshOcrResponse | ConfermaRefreshOcrResponse | { error?: string } }> {
