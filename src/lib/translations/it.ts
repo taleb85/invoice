@@ -1804,6 +1804,8 @@ const translations: Translations = {
       'Esegui la migration SQL `add-conferme-ordine.sql` nel progetto Supabase (SQL Editor) per creare la tabella `conferme_ordine` e le policy RLS.',
     confermeOrdineOcrAutoProgress: 'Rilettura {current} di {total}: {label}',
     confermeOrdineOcrAutoDone: 'Riletti {ok} conferme su {total}.',
+    confermeOrdineAutoDedupeDone:
+      'Rimosse {n} copie duplicate sicure (stesso PDF o stesso ordine con data). Le altre segnalate restano in revisione.',
   },
   bolle: {
     title: 'Bolle',

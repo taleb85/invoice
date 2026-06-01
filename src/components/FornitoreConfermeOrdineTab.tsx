@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -15,8 +15,10 @@ import { useToast } from '@/lib/toast-context'
 
 import {
   analyzeOrdineDuplicatesForDeletion,
+  ordineExcessIdsForAutoDeletion,
   serializeFatturaDuplicateDeletionPayload,
 } from '@/lib/check-duplicates'
+import { confermeFileUrlsInUse, deleteConfermaOrdineRow } from '@/lib/conferme-ordine-delete'
 import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
 import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
 import {
@@ -85,18 +87,6 @@ const CONFERMA_OCR_ROW_ACTIVE =
 const CONFERME_OCR_PILL =
   'inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-30 bg-transparent px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-40'
 
-function pathFromDocumentiPublicUrl(url: string): string | null {
-  try {
-    const u = new URL(url)
-    const marker = '/object/public/documenti/'
-    const i = u.pathname.indexOf(marker)
-    if (i === -1) return null
-    return decodeURIComponent(u.pathname.slice(i + marker.length))
-  } catch {
-    return null
-  }
-}
-
 export default function FornitoreConfermeOrdineTab({
   fornitoreId,
   sedeId,
@@ -151,6 +141,57 @@ export default function FornitoreConfermeOrdineTab({
   const onConfermaDuplicateRemoved = useCallback((removedId: string) => {
     setRows((prev) => prev.filter((x) => x.id !== removedId))
   }, [])
+
+  const autoDedupeDoneRef = useRef<string | null>(null)
+
+  const safeAutoDeleteIds = useMemo(
+    () => ordineExcessIdsForAutoDeletion(sortedRows.map((r) => confermaOrdineRowToOrdineDupProbe(r))),
+    [sortedRows],
+  )
+
+  useEffect(() => {
+    if (loading || readOnly || safeAutoDeleteIds.length === 0) return
+    const runKey = `${fornitoreId}|${dateFrom ?? ''}|${dateToExclusive ?? ''}|${safeAutoDeleteIds.join(',')}`
+    if (autoDedupeDoneRef.current === runKey) return
+    autoDedupeDoneRef.current = runKey
+
+    void (async () => {
+      const supabase = createClient()
+      const deleteIds = new Set(safeAutoDeleteIds)
+      const urlsStillUsed = confermeFileUrlsInUse(rows, deleteIds)
+      let deleted = 0
+      for (const id of safeAutoDeleteIds) {
+        const row = rows.find((r) => r.id === id)
+        if (!row) continue
+        const { error } = await deleteConfermaOrdineRow(supabase, {
+          id,
+          fileUrl: row.file_url,
+          otherFileUrlsStillInUse: urlsStillUsed,
+        })
+        if (!error) {
+          deleted++
+          onConfermaDuplicateRemoved(id)
+        }
+      }
+      if (deleted > 0) {
+        showToast(
+          t.fornitori.confermeOrdineAutoDedupeDone.replace('{n}', String(deleted)),
+          'success',
+        )
+      }
+    })()
+  }, [
+    loading,
+    readOnly,
+    safeAutoDeleteIds,
+    fornitoreId,
+    dateFrom,
+    dateToExclusive,
+    rows,
+    onConfermaDuplicateRemoved,
+    showToast,
+    t,
+  ])
 
   const confermeTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.conferme
   const migrationTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti
@@ -344,18 +385,19 @@ export default function FornitoreConfermeOrdineTab({
     setDeletingId(row.id)
     setError(null)
     const supabase = createClient()
-    const { error: delErr } = await supabase.from('conferme_ordine').delete().eq('id', row.id)
+    const excluding = new Set([row.id])
+    const { error: delErr } = await deleteConfermaOrdineRow(supabase, {
+      id: row.id,
+      fileUrl: row.file_url,
+      otherFileUrlsStillInUse: confermeFileUrlsInUse(rows, excluding),
+    })
     if (delErr) {
       setDeletingId(null)
       setError(`${t.fornitori.confermeOrdineErrDelete}: ${delErr.message}`)
       return
     }
-    const path = pathFromDocumentiPublicUrl(row.file_url)
-    if (path) {
-      await supabase.storage.from('documenti').remove([path]).catch(() => {})
-    }
     setDeletingId(null)
-    await load()
+    onConfermaDuplicateRemoved(row.id)
   }
 
   const callConvertApi = async (ids: string[], updateHint: boolean) => {

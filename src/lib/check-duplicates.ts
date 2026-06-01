@@ -572,12 +572,41 @@ function ordiniSortFn(a: OrdineDupListRow, b: OrdineDupListRow): number {
   return byCreatedAtThenId(a, b)
 }
 
+/** Mantiene la copia più completa (data/numero) e la più vecchia. */
+function ordineCanonicalSort(a: OrdineDupListRow, b: OrdineDupListRow): number {
+  const aDate = (a.data_ordine ?? '').trim().length >= 10 ? 1 : 0
+  const bDate = (b.data_ordine ?? '').trim().length >= 10 ? 1 : 0
+  if (aDate !== bDate) return bDate - aDate
+  const aNum = ordineResolvedNumero(a) ? 1 : 0
+  const bNum = ordineResolvedNumero(b) ? 1 : 0
+  if (aNum !== bNum) return bNum - aNum
+  return ordiniSortFn(a, b)
+}
+
 /** Duplicati ordini (conferme): canonical = `created_at` più vecchio poi `id`. */
 export function analyzeOrdineDuplicatesForDeletion(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
-  const byNumeroData = analyzeDuplicatesForDeletion(rows, ordineDupKey, ordiniSortFn, false)
+  const byNumeroData = analyzeDuplicatesForDeletion(rows, ordineDupKey, ordineCanonicalSort, false)
   const byFile = analyzeOrdineSameFileUrlDuplicates(rows)
-  const byNumOnly = analyzeDuplicatesForDeletion(rows, ordineDupKeyByNumeroOnly, ordiniSortFn, false)
+  const byNumOnly = analyzeDuplicatesForDeletion(rows, ordineDupKeyByNumeroOnly, ordineCanonicalSort, false)
   return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumeroData, byFile), byNumOnly)
+}
+
+/**
+ * Duplicati con confidenza alta per cancellazione automatica:
+ * - stesso `file_url` (stesso PDF registrato due volte)
+ * - stesso fornitore + numero ordine + data ordine
+ * Esclusi i gruppi «solo numero» senza data allineata (revisione manuale).
+ */
+export function analyzeHighConfidenceOrdineDuplicatesForDeletion(
+  rows: OrdineDupListRow[],
+): FatturaDuplicateDeletionAnalysis {
+  const byNumeroData = analyzeDuplicatesForDeletion(rows, ordineDupKey, ordineCanonicalSort, false)
+  const byFile = analyzeOrdineSameFileUrlDuplicates(rows)
+  return mergeDuplicateAnalyses(byFile, byNumeroData)
+}
+
+export function ordineExcessIdsForAutoDeletion(rows: OrdineDupListRow[]): string[] {
+  return [...analyzeHighConfidenceOrdineDuplicatesForDeletion(rows).excessIds]
 }
 
 function analyzeOrdineSameFileUrlDuplicates(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
@@ -595,7 +624,7 @@ function analyzeOrdineSameFileUrlDuplicates(rows: OrdineDupListRow[]): FatturaDu
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,
-      ordiniSortFn,
+      ordineCanonicalSort,
       false,
     )
     merged = mergeDuplicateAnalyses(merged, slice)
