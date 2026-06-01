@@ -6,6 +6,7 @@ import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib, formatCurrency } from '@/lib/locale'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
+import { confermeOrdineLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
 
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
@@ -86,10 +87,15 @@ export default function FornitoreConfermeOrdineTab({
   fornitoreId,
   sedeId,
   readOnly,
+  dateFrom,
+  dateToExclusive,
 }: {
   fornitoreId: string
   sedeId: string | null
   readOnly?: boolean
+  /** Periodo header scheda fornitore (inclusivo / esclusivo). */
+  dateFrom?: string
+  dateToExclusive?: string
 }) {
   const t = useT()
   const { locale, timezone, currency } = useLocale()
@@ -136,11 +142,14 @@ export default function FornitoreConfermeOrdineTab({
   const load = useCallback(async () => {
     setLoading(true)
     const supabase = createClient()
-    const { data, error: qErr } = await supabase
+    let q = supabase
       .from('conferme_ordine')
       .select('id, file_url, file_name, titolo, data_ordine, note, created_at, righe')
       .eq('fornitore_id', fornitoreId)
-      .order('created_at', { ascending: false })
+    if (dateFrom && dateToExclusive) {
+      q = q.or(confermeOrdineLedgerPeriodOrFilter(dateFrom, dateToExclusive))
+    }
+    const { data, error: qErr } = await q.order('created_at', { ascending: false })
 
     if (qErr) {
       if (qErr.message?.includes('conferme_ordine') || qErr.code === '42P01') {
@@ -156,7 +165,7 @@ export default function FornitoreConfermeOrdineTab({
     setTableMissing(false)
     setRows((data ?? []) as ConfermaOrdineRow[])
     setLoading(false)
-  }, [fornitoreId])
+  }, [fornitoreId, dateFrom, dateToExclusive])
 
   useEffect(() => {
     void load()

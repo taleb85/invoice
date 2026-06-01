@@ -52,6 +52,10 @@ import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fa
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
 import { DOCUMENTI_PENDING_STATI_API_DEFAULT } from '@/lib/documenti-queue-stato'
+import {
+  effectivePendingDocDayIso,
+  isYmdInHalfOpenRange,
+} from '@/lib/documenti-queue-period'
 import { safeDate } from '@/lib/safe-date'
 import {
   GlyphCheck,
@@ -1319,7 +1323,17 @@ export function PendingMatchesTab({
     const res = await fetch(`/api/documenti-da-processare?${params.toString()}`)
     const data = res.ok ? await res.json() : []
     if (docsFetchSeqRef.current !== seq) return
-    setDocs((data ?? []).map((d: Record<string, unknown>) => ({ ...d, is_statement: (d.is_statement as boolean | null) ?? false })) as Documento[])
+    let mapped = (data ?? []).map(
+      (d: Record<string, unknown>) =>
+        ({ ...d, is_statement: (d.is_statement as boolean | null) ?? false }) as Documento,
+    )
+    if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+      mapped = mapped.filter((d) => {
+        const day = effectivePendingDocDayIso(d)
+        return day != null && isYmdInHalfOpenRange(day, ledgerDateFrom, ledgerDateToExclusive)
+      })
+    }
+    setDocs(mapped)
     if (docsFetchSeqRef.current !== seq) return
     setLoading(false)
   }, [filter, sedeId, fornitoreId, year, month, ledgerDateFrom, ledgerDateToExclusive])

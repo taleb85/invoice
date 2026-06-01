@@ -15,6 +15,7 @@ import { quantitaForBollaFromOcr, quantitaFromDocMetadata } from '@/lib/bolla-qu
 import { importoForBollaFromOcr, normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
+import { pendingDocLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reprocess-pending-docs-ocr'
 import { safeDate } from '@/lib/safe-date'
@@ -472,11 +473,8 @@ export async function GET(req: NextRequest) {
     if (fornitoreId) {
       countQ = countQ.eq('fornitore_id', fornitoreId)
     }
-    if (fromDate) {
-      countQ = countQ.gte('created_at', fromDate)
-    }
-    if (toDate) {
-      countQ = countQ.lt('created_at', toDate)
+    if (fromDate && toDate) {
+      countQ = countQ.or(pendingDocLedgerPeriodOrFilter(fromDate, toDate))
     }
     countQ = applyPendingQueueSedeScope(countQ, {
       sedeId,
@@ -501,11 +499,8 @@ export async function GET(req: NextRequest) {
     query = query.eq('fornitore_id', fornitoreId) as typeof query
   }
 
-  if (fromDate) {
-    query = query.gte('created_at', fromDate) as typeof query
-  }
-  if (toDate) {
-    query = query.lt('created_at', toDate) as typeof query
+  if (fromDate && toDate) {
+    query = query.or(pendingDocLedgerPeriodOrFilter(fromDate, toDate)) as typeof query
   }
 
   query = applyPendingQueueSedeScope(query, {

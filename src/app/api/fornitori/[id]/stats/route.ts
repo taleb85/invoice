@@ -9,6 +9,10 @@ import {
   countRekkiUnitAnomaliesFromStatements,
 } from '@/lib/rekki-price-anomalies'
 import { findSameDomainPeersForFornitore } from '@/lib/fornitore-same-domain'
+import {
+  confermeOrdineLedgerPeriodOrFilter,
+  pendingDocLedgerPeriodOrFilter,
+} from '@/lib/documenti-queue-period'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,9 +61,18 @@ export async function GET(req: NextRequest) {
         .lt('data', to),
       service.from('listino_prezzi').select('prodotto').eq('fornitore_id', fornitoreId).gte('data_prezzo', from).lt('data_prezzo', to).limit(8000),
       service.from('statements').select('missing_rows, received_at, extracted_pdf_dates').eq('fornitore_id', fornitoreId).order('received_at', { ascending: false }).limit(800),
-      service.from('conferme_ordine').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('created_at', from).lt('created_at', to),
+      service
+        .from('conferme_ordine')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .or(confermeOrdineLedgerPeriodOrFilter(from, to)),
       service.from('price_anomalies').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('resolved', false),
-      service.from('documenti_da_processare').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).in('stato', ['in_attesa', 'da_processare', 'da_associare']).gte('created_at', from).lt('created_at', to),
+      service
+        .from('documenti_da_processare')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .in('stato', ['in_attesa', 'da_processare', 'da_associare'])
+        .or(pendingDocLedgerPeriodOrFilter(from, to)),
     ])
 
     const fattureRows = (fattureRes.data ?? []) as { importo: number | null; is_credit_note?: boolean | null }[]
@@ -113,7 +126,10 @@ export async function GET(req: NextRequest) {
       const d = s.received_at?.slice(0, 10)
       return d && d >= from && d < to
     }).length
-    const statementsWithIssues = stmtData.filter((s) => (s.missing_rows ?? 0) > 0).length
+    const statementsWithIssues = stmtData.filter((s) => {
+      const d = s.received_at?.slice(0, 10)
+      return d && d >= from && d < to && (s.missing_rows ?? 0) > 0
+    }).length
 
     return NextResponse.json({
       bolleTotal: bolleCountRes.count ?? 0,

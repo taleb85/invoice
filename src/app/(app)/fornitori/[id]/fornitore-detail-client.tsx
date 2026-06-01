@@ -6408,7 +6408,16 @@ function FornitoreDetailClient({
     const primary: { id: Tab; label: string; badge?: number }[] = [
       { id: 'anomalie', label: t.fornitori.tabAnomalie, badge: anomalieTabBadge },
       { id: 'verifica', label: t.statements.tabVerifica, badge: verificaTabBadge },
-      { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
+      {
+        id: 'documenti',
+        label: t.statements.tabDocumenti,
+        badge:
+          !periodStatsLoading && (periodStats?.pending ?? 0) > 0
+            ? periodStats!.pending
+            : pendingCount > 0
+              ? pendingCount
+              : undefined,
+      },
       { id: 'listino', label: t.fornitori.tabListino },
     ]
     if (supplierReadOnlyMobile) {
@@ -6420,6 +6429,8 @@ function FornitoreDetailClient({
     anomalieTabBadge,
     verificaTabBadge,
     pendingCount,
+    periodStats,
+    periodStatsLoading,
     supplierReadOnlyMobile,
   ])
 
@@ -6483,6 +6494,8 @@ function FornitoreDetailClient({
             fornitoreId={fornitore.id}
             sedeId={fornitore.sede_id ?? null}
             readOnly={supplierReadOnlyMobile}
+            dateFrom={ledgerPeriod.from}
+            dateToExclusive={ledgerDateToExclusive}
           />
         ) : null)}
       {displayTab === 'anomalie' &&
