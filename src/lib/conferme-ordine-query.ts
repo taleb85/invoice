@@ -9,6 +9,7 @@ import { isConfermeOrdineMissingNumeroOrdineColumn } from '@/lib/conferme-ordine
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractDocumentText } from '@/lib/document-extractors'
 import { extractOrderDateFromLabelledText, orderDateYmdFromOcr, safeDate } from '@/lib/safe-date'
+import type { OrdineDupListRow } from '@/lib/check-duplicates'
 
 const PDF_ORDER_DATE_EXTRACT_LIMIT = 24
 
@@ -46,6 +47,23 @@ export function confermaOrdineSortDayIso(row: Pick<ConfermaOrdineListRow, 'data_
 }
 
 /** Conferme in tab fornitore: data documento decrescente (come fatture/bolle). */
+/** Mappa riga elenco → probe duplicati (numero da filename/OCR, data display). */
+export function confermaOrdineRowToOrdineDupProbe(row: ConfermaOrdineListRow): OrdineDupListRow {
+  const day = confermaOrdineSortDayIso(row)
+  return {
+    id: row.id,
+    fornitore_id: row.fornitore_id,
+    data_ordine: day || row.data_ordine,
+    numero_ordine: row.numero_ordine,
+    titolo: row.titolo,
+    created_at: row.created_at,
+    file_url: row.file_url,
+    file_name: row.file_name,
+    numero_fattura_doc: row.numero_fattura_doc,
+    oggetto_mail: row.oggetto_mail,
+  }
+}
+
 export function sortConfermeOrdineByDocumentDateDesc(rows: ConfermaOrdineListRow[]): ConfermaOrdineListRow[] {
   return [...rows].sort((a, b) => {
     const dayCmp = confermaOrdineSortDayIso(b).localeCompare(confermaOrdineSortDayIso(a))

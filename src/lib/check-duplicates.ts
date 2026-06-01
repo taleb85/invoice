@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { logger } from '@/lib/logger'
@@ -73,6 +74,10 @@ export type OrdineDupListRow = {
   numero_ordine: string | null
   titolo: string | null
   created_at: string
+  file_url?: string | null
+  file_name?: string | null
+  numero_fattura_doc?: string | null
+  oggetto_mail?: string | null
 }
 
 export type DuplicateGroupAnalysis = {
@@ -120,12 +125,38 @@ function bollaDupKey(r: BollaDupProbe): string | null {
   return `${r.fornitore_id}\u0000${d}\u0000${num.toLowerCase()}`
 }
 
+function ordineResolvedNumero(r: OrdineDupListRow): string | null {
+  const resolved = resolveConfermaOrdineNumero({
+    titolo: r.titolo,
+    fileName: r.file_name,
+    numeroOrdine: r.numero_ordine,
+    numeroFatturaMetadata: r.numero_fattura_doc ?? null,
+    oggettoMail: r.oggetto_mail ?? null,
+  })
+  return normalizeNumeroFattura(resolved ?? r.numero_ordine ?? r.titolo ?? null)
+}
+
 function ordineDupKey(r: OrdineDupListRow): string | null {
-  const num = normalizeNumeroFattura(r.numero_ordine ?? r.titolo ?? null)
+  const num = ordineResolvedNumero(r)
   if (!num || !r.fornitore_id) return null
   const d = (r.data_ordine ?? '').trim().slice(0, 10)
   if (!d) return null
   return `${r.fornitore_id}\u0000${d}\u0000${num.toLowerCase()}`
+}
+
+/** Stesso PDF registrato più volte (doppio finalize / sync email). */
+function ordineDupKeyByFileUrl(r: OrdineDupListRow): string | null {
+  const u = r.file_url?.trim()
+  if (!u || !r.fornitore_id) return null
+  return `${r.fornitore_id}\u0000fileurl\u0000${u}`
+}
+
+/** Stesso numero ordine commerciale senza data allineata (es. una riga senza `data_ordine`). */
+function ordineDupKeyByNumeroOnly(r: OrdineDupListRow): string | null {
+  const num = ordineResolvedNumero(r)
+  if (!num || !r.fornitore_id) return null
+  if (!/^\d{4,}$/.test(num)) return null
+  return `${r.fornitore_id}\u0000numonly\u0000${num.toLowerCase()}`
 }
 
 // ── Helpers generici ──────────────────────────────────────────
@@ -543,7 +574,33 @@ function ordiniSortFn(a: OrdineDupListRow, b: OrdineDupListRow): number {
 
 /** Duplicati ordini (conferme): canonical = `created_at` più vecchio poi `id`. */
 export function analyzeOrdineDuplicatesForDeletion(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
-  return analyzeDuplicatesForDeletion(rows, ordineDupKey, ordiniSortFn, false)
+  const byNumeroData = analyzeDuplicatesForDeletion(rows, ordineDupKey, ordiniSortFn, false)
+  const byFile = analyzeOrdineSameFileUrlDuplicates(rows)
+  const byNumOnly = analyzeDuplicatesForDeletion(rows, ordineDupKeyByNumeroOnly, ordiniSortFn, false)
+  return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumeroData, byFile), byNumOnly)
+}
+
+function analyzeOrdineSameFileUrlDuplicates(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
+  const byUrl = new Map<string, OrdineDupListRow[]>()
+  for (const r of rows) {
+    const u = r.file_url?.trim()
+    if (!u) continue
+    const arr = byUrl.get(u) ?? []
+    arr.push(r)
+    byUrl.set(u, arr)
+  }
+  let merged = emptyDuplicateDeletionAnalysis()
+  for (const [url, arr] of byUrl) {
+    if (arr.length <= 1) continue
+    const slice = analyzeDuplicatesForDeletion(
+      arr,
+      () => `fileurl\u0000${url}`,
+      ordiniSortFn,
+      false,
+    )
+    merged = mergeDuplicateAnalyses(merged, slice)
+  }
+  return merged
 }
 
 async function fetchAllOrdiniDupRows(

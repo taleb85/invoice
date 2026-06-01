@@ -293,6 +293,59 @@ async function finalizePendingByTipo(
       ? (meta as { rekki_lines: unknown[] }).rekki_lines
       : null
 
+    const fileUrlOrdine = typeof doc.file_url === 'string' ? doc.file_url.trim() : ''
+    if (fileUrlOrdine) {
+      const { data: dupByUrl } = await supabase
+        .from('conferme_ordine')
+        .select('id')
+        .eq('fornitore_id', doc.fornitore_id)
+        .eq('file_url', fileUrlOrdine)
+        .limit(1)
+      if (dupByUrl?.[0]) {
+        await supabase
+          .from('documenti_da_processare')
+          .update({
+            stato: 'associato',
+            bolla_id: null,
+            fattura_id: null,
+            ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+          })
+          .eq('id', id)
+        await recordLearnedKindFromDocMetadata(supabase, {
+          fornitoreId: doc.fornitore_id,
+          metadata: doc.metadata,
+          pendingKind: 'ordine',
+        })
+        return NextResponse.json({ ok: true, skipped_duplicate: true })
+      }
+    }
+    if (numeroOrdine && dataDoc) {
+      const { data: dupByNum } = await supabase
+        .from('conferme_ordine')
+        .select('id')
+        .eq('fornitore_id', doc.fornitore_id)
+        .eq('numero_ordine', numeroOrdine)
+        .eq('data_ordine', dataDoc)
+        .limit(1)
+      if (dupByNum?.[0]) {
+        await supabase
+          .from('documenti_da_processare')
+          .update({
+            stato: 'associato',
+            bolla_id: null,
+            fattura_id: null,
+            ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+          })
+          .eq('id', id)
+        await recordLearnedKindFromDocMetadata(supabase, {
+          fornitoreId: doc.fornitore_id,
+          metadata: doc.metadata,
+          pendingKind: 'ordine',
+        })
+        return NextResponse.json({ ok: true, skipped_duplicate: true })
+      }
+    }
+
     const { error: coErr } = await supabase.from('conferme_ordine').insert([
       {
         fornitore_id: doc.fornitore_id,

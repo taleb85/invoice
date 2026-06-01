@@ -14,8 +14,16 @@ import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR 
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
+import {
+  analyzeOrdineDuplicatesForDeletion,
+  serializeFatturaDuplicateDeletionPayload,
+} from '@/lib/check-duplicates'
 import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
-import { sortConfermeOrdineByDocumentDateDesc } from '@/lib/conferme-ordine-query'
+import {
+  confermaOrdineRowToOrdineDupProbe,
+  sortConfermeOrdineByDocumentDateDesc,
+} from '@/lib/conferme-ordine-query'
+import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 
 const SupplierDocumentOcrToolbar = dynamic(
   () => import('@/components/SupplierDocumentOcrToolbar'),
@@ -138,6 +146,17 @@ export default function FornitoreConfermeOrdineTab({
       ),
     [rows, fornitoreId],
   )
+
+  const confermeDupPayload = useMemo(() => {
+    const analysis = analyzeOrdineDuplicatesForDeletion(
+      sortedRows.map((r) => confermaOrdineRowToOrdineDupProbe(r)),
+    )
+    return serializeFatturaDuplicateDeletionPayload(analysis)
+  }, [sortedRows])
+
+  const onConfermaDuplicateRemoved = useCallback((removedId: string) => {
+    setRows((prev) => prev.filter((x) => x.id !== removedId))
+  }, [])
 
   const confermeTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.conferme
   const migrationTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti
@@ -419,7 +438,20 @@ export default function FornitoreConfermeOrdineTab({
                       const { primary, secondary } = confermaRowLabel(r)
                       return (
                         <>
-                          <p className="font-medium text-app-fg">{primary}</p>
+                          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium text-app-fg">
+                            <span>{primary}</span>
+                            <DuplicateLedgerRowExtras
+                              rowId={r.id}
+                              payload={confermeDupPayload}
+                              kind="ordine"
+                              duplicateBadgeLabel={t.common.duplicateBadge}
+                              duplicateDeleteConfirm={t.fornitori.confermeOrdineDuplicateCopyDeleteConfirm}
+                              removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                              deleteFailedPrefix={t.appStrings.deleteFailed}
+                              refreshRouter={false}
+                              onAfterDelete={() => onConfermaDuplicateRemoved(r.id)}
+                            />
+                          </p>
                           {secondary && (
                             <p className={`text-xs ${confermeSecondaryClass}`}>{secondary}</p>
                           )}
@@ -527,8 +559,21 @@ export default function FornitoreConfermeOrdineTab({
                             const { primary, secondary } = confermaRowLabel(r)
                             return (
                               <>
-                                <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
-                                  {primary}
+                                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="truncate" title={r.titolo?.trim() || r.file_name || undefined}>
+                                    {primary}
+                                  </span>
+                                  <DuplicateLedgerRowExtras
+                                    rowId={r.id}
+                                    payload={confermeDupPayload}
+                                    kind="ordine"
+                                    duplicateBadgeLabel={t.common.duplicateBadge}
+                                    duplicateDeleteConfirm={t.fornitori.confermeOrdineDuplicateCopyDeleteConfirm}
+                                    removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                                    deleteFailedPrefix={t.appStrings.deleteFailed}
+                                    refreshRouter={false}
+                                    onAfterDelete={() => onConfermaDuplicateRemoved(r.id)}
+                                  />
                                 </span>
                                 {secondary && (
                                   <span className={`mt-0.5 block truncate text-xs font-normal ${confermeSecondaryClass}`}>
