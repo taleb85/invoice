@@ -5,10 +5,16 @@ import {
 } from '@/lib/conferme-ordine-fornitore-match'
 import { confermeOrdineLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
 import { numeroFatturaFromDocMetadata } from '@/lib/fattura-duplicate-check'
-import { isConfermeOrdineMissingNumeroOrdineColumn } from '@/lib/conferme-ordine-schema'
+import {
+  isConfermeOrdineMissingImportoTotaleColumn,
+  isConfermeOrdineMissingNumeroOrdineColumn,
+} from '@/lib/conferme-ordine-schema'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractDocumentText } from '@/lib/document-extractors'
-import { totaleFromDocMetadata } from '@/lib/conferme-ordine-importo'
+import {
+  extractOrderTotalFromLabelledText,
+  totaleFromDocMetadata,
+} from '@/lib/conferme-ordine-importo'
 import { extractOrderDateFromLabelledText, orderDateYmdFromOcr, safeDate } from '@/lib/safe-date'
 import type { OrdineDupListRow } from '@/lib/check-duplicates'
 
@@ -17,6 +23,7 @@ const PDF_ORDER_DATE_EXTRACT_LIMIT = 24
 const CONFERME_ORDINE_SELECT_BASE =
   'id, file_url, file_name, titolo, data_ordine, note, created_at, righe, fornitore_id'
 const CONFERME_ORDINE_SELECT_WITH_NUMERO = `${CONFERME_ORDINE_SELECT_BASE}, numero_ordine`
+const CONFERME_ORDINE_SELECT_FULL = `${CONFERME_ORDINE_SELECT_WITH_NUMERO}, importo_totale`
 
 export type ConfermaOrdineListRow = {
   id: string
@@ -145,16 +152,26 @@ export async function fetchFilteredConfermeOrdine(
     return q
   }
 
-  let { data, error } = await buildQuery(CONFERME_ORDINE_SELECT_WITH_NUMERO)
+  let { data, error } = await buildQuery(CONFERME_ORDINE_SELECT_FULL)
+  if (error && isConfermeOrdineMissingImportoTotaleColumn(error)) {
+    ;({ data, error } = await buildQuery(CONFERME_ORDINE_SELECT_WITH_NUMERO))
+  }
   if (error && isConfermeOrdineMissingNumeroOrdineColumn(error)) {
     ;({ data, error } = await buildQuery(CONFERME_ORDINE_SELECT_BASE))
   }
   if (error) throw new Error(error.message)
 
-  const raw = (data ?? []).map((r) => ({
-    ...(r as Omit<ConfermaOrdineListRow, 'numero_ordine' | 'numero_fattura_doc' | 'oggetto_mail'>),
-    numero_ordine: (r as ConfermaOrdineListRow).numero_ordine ?? null,
-  })) as ConfermaOrdineListRow[]
+  const raw = (data ?? []).map((r) => {
+    const row = r as ConfermaOrdineListRow & { importo_totale?: number | null }
+    return {
+      ...(row as Omit<ConfermaOrdineListRow, 'numero_ordine' | 'numero_fattura_doc' | 'oggetto_mail'>),
+      numero_ordine: row.numero_ordine ?? null,
+      importo_totale:
+        typeof row.importo_totale === 'number' && Number.isFinite(row.importo_totale)
+          ? row.importo_totale
+          : null,
+    }
+  }) as ConfermaOrdineListRow[]
   if (raw.length === 0) return { rows: [], sedeFornitori }
 
   const urls = [...new Set(raw.map((r) => r.file_url).filter(Boolean))]
@@ -204,15 +221,24 @@ export async function fetchFilteredConfermeOrdine(
     const fromMeta = orderDateByUrl.get(r.file_url) ?? null
     const fromDb = r.data_ordine ? safeDate(r.data_ordine) : null
     let display = fromMeta ?? fromDb
+    let importo =
+      (typeof r.importo_totale === 'number' && Number.isFinite(r.importo_totale)
+        ? r.importo_totale
+        : null) ??
+      importoByUrl.get(r.file_url) ??
+      null
 
-    if (
-      !fromMeta &&
+    const needsPdfExtract =
       pdfExtracts < PDF_ORDER_DATE_EXTRACT_LIMIT &&
-      /order\s+confirmation/i.test(r.file_name ?? '')
-    ) {
-      const fromPdf = await tryOrderDateFromConfermaPdf(service, r.file_url)
-      if (fromPdf) {
-        display = fromPdf
+      /order\s+confirmation|sales\s+order/i.test(r.file_name ?? '')
+
+    if (needsPdfExtract) {
+      const pdfFields = await tryOrderFieldsFromConfermaPdf(service, r.file_url)
+      if (!fromMeta && pdfFields.orderDate) {
+        display = pdfFields.orderDate
+      }
+      if (importo == null && pdfFields.importoTotale != null) {
+        importo = pdfFields.importoTotale
       }
       pdfExtracts++
     }
@@ -223,24 +249,28 @@ export async function fetchFilteredConfermeOrdine(
       numero_fattura_doc: numeroFatturaByUrl.get(r.file_url) ?? null,
       oggetto_mail: oggettoByUrl.get(r.file_url) ?? null,
       data_ordine_display: display,
-      importo_totale: importoByUrl.get(r.file_url) ?? null,
+      importo_totale: importo,
     })
   }
 
   return { rows: sortConfermeOrdineByDocumentDateDesc(rows), sedeFornitori }
 }
 
-async function tryOrderDateFromConfermaPdf(
+async function tryOrderFieldsFromConfermaPdf(
   service: SupabaseClient,
   fileUrl: string,
-): Promise<string | null> {
+): Promise<{ orderDate: string | null; importoTotale: number | null }> {
   try {
     const dl = await downloadStorageObjectByFileUrl(service, fileUrl)
-    if ('error' in dl) return null
+    if ('error' in dl) return { orderDate: null, importoTotale: null }
     const contentType = dl.contentType?.trim() || 'application/pdf'
     const { text } = await extractDocumentText(dl.data, contentType)
-    return extractOrderDateFromLabelledText(text ?? '')
+    const body = text ?? ''
+    return {
+      orderDate: extractOrderDateFromLabelledText(body),
+      importoTotale: extractOrderTotalFromLabelledText(body),
+    }
   } catch {
-    return null
+    return { orderDate: null, importoTotale: null }
   }
 }

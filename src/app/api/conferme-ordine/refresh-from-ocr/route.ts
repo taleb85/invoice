@@ -4,7 +4,12 @@ import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { fileNameFromStorageUrl } from '@/lib/fix-ocr-dates-helpers'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
-import { totaleFromDocMetadata } from '@/lib/conferme-ordine-importo'
+import { extractDocumentText } from '@/lib/document-extractors'
+import {
+  importoTotaleFromOcrResult,
+  totaleFromDocMetadata,
+} from '@/lib/conferme-ordine-importo'
+import { isConfermeOrdineMissingImportoTotaleColumn } from '@/lib/conferme-ordine-schema'
 import { orderDateYmdFromOcr } from '@/lib/safe-date'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 
@@ -43,11 +48,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'conferma_id richiesto' }, { status: 400 })
   }
 
-  const { data: row, error: qErr } = await service
+  let { data: row, error: qErr } = await service
     .from('conferme_ordine')
-    .select('id, data_ordine, numero_ordine, titolo, file_url, file_name')
+    .select('id, data_ordine, numero_ordine, titolo, file_url, file_name, importo_totale')
     .eq('id', confermaId)
     .single()
+  if (qErr && isConfermeOrdineMissingImportoTotaleColumn(qErr)) {
+    ;({ data: row, error: qErr } = await service
+      .from('conferme_ordine')
+      .select('id, data_ordine, numero_ordine, titolo, file_url, file_name')
+      .eq('id', confermaId)
+      .single())
+  }
 
   if (qErr || !row) {
     return NextResponse.json({ error: 'Conferma ordine non trovata' }, { status: 404 })
@@ -116,7 +128,14 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  const contextText = [emailSubject, fileName].filter(Boolean).join('\n')
+  let pdfText = ''
+  try {
+    const { text } = await extractDocumentText(buffer, contentType)
+    pdfText = text ?? ''
+  } catch {
+    /* testo PDF opzionale */
+  }
+  const contextText = [emailSubject, fileName, pdfText].filter(Boolean).join('\n')
   const proposedDate = orderDateYmdFromOcr(ocr, contextText)
   const numeroResolved = resolveConfermaOrdineNumero({
     titolo: row.titolo,
@@ -127,10 +146,7 @@ export async function POST(req: NextRequest) {
   })
   const numeroOrdine = numeroResolved ? normalizeNumeroFattura(numeroResolved) : null
 
-  const importoTotale =
-    ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))
-      ? Math.round(Number(ocr.totale_iva_inclusa) * 100) / 100
-      : null
+  const importoTotale = importoTotaleFromOcrResult(ocr, contextText)
 
   const pendingDoc = docRow as { id?: string; metadata?: unknown } | null
   const prevMeta =
@@ -139,8 +155,11 @@ export async function POST(req: NextRequest) {
     !Array.isArray(pendingDoc.metadata)
       ? (pendingDoc.metadata as Record<string, unknown>)
       : {}
-  const prevImportoTotale = totaleFromDocMetadata(prevMeta)
-  const importoChanged = importoTotale != null && importoTotale !== prevImportoTotale
+  const prevImportoStored =
+    typeof row.importo_totale === 'number' && Number.isFinite(row.importo_totale)
+      ? Math.round(row.importo_totale * 100) / 100
+      : totaleFromDocMetadata(prevMeta)
+  const importoChanged = importoTotale != null && importoTotale !== prevImportoStored
 
   if (pendingDoc?.id && importoChanged) {
     await service
@@ -155,7 +174,12 @@ export async function POST(req: NextRequest) {
       .eq('id', pendingDoc.id)
   }
 
-  const updates: { data_ordine?: string; numero_ordine?: string; titolo?: string } = {}
+  const updates: {
+    data_ordine?: string
+    numero_ordine?: string
+    titolo?: string
+    importo_totale?: number
+  } = {}
   if (proposedDate && proposedDate !== row.data_ordine) {
     updates.data_ordine = proposedDate
   }
@@ -164,6 +188,9 @@ export async function POST(req: NextRequest) {
   }
   if (numeroResolved && numeroResolved !== (row.titolo?.trim() ?? '')) {
     updates.titolo = numeroResolved
+  }
+  if (importoChanged && importoTotale != null) {
+    updates.importo_totale = importoTotale
   }
 
   const dataChanged = updates.data_ordine !== undefined
@@ -176,7 +203,7 @@ export async function POST(req: NextRequest) {
       data_ordine_changed: false,
       numero_ordine: row.numero_ordine ?? null,
       numero_ordine_changed: false,
-      importo_totale: importoTotale ?? prevImportoTotale,
+      importo_totale: importoTotale ?? prevImportoStored,
       importo_totale_changed: false,
       info:
         locale === 'it'
@@ -186,11 +213,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (Object.keys(updates).length > 0) {
-    const { error: uErr } = await service.from('conferme_ordine').update(updates).eq('id', confermaId)
+    let { error: uErr } = await service.from('conferme_ordine').update(updates).eq('id', confermaId)
+    if (uErr && isConfermeOrdineMissingImportoTotaleColumn(uErr) && updates.importo_totale != null) {
+      const { importo_totale: _drop, ...withoutImporto } = updates
+      if (Object.keys(withoutImporto).length > 0) {
+        ;({ error: uErr } = await service.from('conferme_ordine').update(withoutImporto).eq('id', confermaId))
+      } else {
+        uErr = null
+      }
+    }
     if (uErr) {
       return NextResponse.json({ error: uErr.message }, { status: 500 })
     }
   }
+
+  const importoResponse = importoTotale ?? prevImportoStored
 
   return NextResponse.json({
     ok: true,
@@ -198,7 +235,7 @@ export async function POST(req: NextRequest) {
     data_ordine_changed: dataChanged,
     numero_ordine: updates.numero_ordine ?? row.numero_ordine ?? null,
     numero_ordine_changed: numeroChanged,
-    importo_totale: importoTotale ?? prevImportoTotale,
+    importo_totale: importoResponse,
     importo_totale_changed: importoChanged,
   })
 }

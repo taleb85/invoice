@@ -91,13 +91,14 @@ export function applyConfermaRefreshOcrResponse(
 ): boolean {
   const dataChanged = j.data_ordine_changed === true && Boolean(j.data_ordine)
   const numeroChanged = j.numero_ordine_changed === true && j.numero_ordine != null
-  const importoChanged =
-    j.importo_totale_changed === true &&
-    j.importo_totale != null &&
-    Number.isFinite(Number(j.importo_totale))
+  const importo =
+    j.importo_totale != null && Number.isFinite(Number(j.importo_totale))
+      ? Math.round(Number(j.importo_totale) * 100) / 100
+      : null
+  const importoChanged = j.importo_totale_changed === true && importo != null
   if (j.data_ordine && dataChanged) callbacks.onDataOrdineUpdated(j.data_ordine)
   if (numeroChanged) callbacks.onNumeroOrdineUpdated?.(j.numero_ordine as string)
-  if (importoChanged) callbacks.onImportoTotaleUpdated?.(Number(j.importo_totale))
+  if (importo != null) callbacks.onImportoTotaleUpdated?.(importo)
   return dataChanged || numeroChanged || importoChanged
 }
 

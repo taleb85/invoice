@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   confermaOrdineImportoTotale,
+  extractOrderTotalFromLabelledText,
+  importoTotaleFromOcrResult,
   sumConfermaOrdineRigheImporto,
   totaleFromDocMetadata,
 } from '@/lib/conferme-ordine-importo'
@@ -27,5 +29,17 @@ describe('confermaOrdineImportoTotale', () => {
   it('legge totale da metadata documento', () => {
     expect(totaleFromDocMetadata({ totale_iva_inclusa: '1.234,56' })).toBe(1234.56)
     expect(sumConfermaOrdineRigheImporto([{ quantita: 2, prezzo_unitario: 50 }])).toBe(100)
+  })
+
+  it('estrae Grand Total da testo PDF', () => {
+    expect(
+      extractOrderTotalFromLabelledText('Line items\nGrand Total £1,234.56\nThank you'),
+    ).toBe(1234.56)
+    expect(
+      importoTotaleFromOcrResult(
+        { totale_iva_inclusa: null, importo_raw: null },
+        'Order Total: 2.500,00',
+      ),
+    ).toBe(2500)
   })
 })

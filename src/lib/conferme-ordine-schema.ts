@@ -35,3 +35,14 @@ export function confermeOrdineTableMissingFromApiError(message: string): boolean
 export function isConfermeOrdineMissingNumeroOrdineColumn(err: { message?: string }): boolean {
   return isConfermeOrdineMissingColumnMessage((err.message ?? '').toLowerCase())
 }
+
+function isConfermeOrdineMissingImportoTotaleMessage(messageLower: string): boolean {
+  return (
+    messageLower.includes('importo_totale') &&
+    (messageLower.includes('column') || messageLower.includes('schema cache'))
+  )
+}
+
+export function isConfermeOrdineMissingImportoTotaleColumn(err: { message?: string }): boolean {
+  return isConfermeOrdineMissingImportoTotaleMessage((err.message ?? '').toLowerCase())
+}

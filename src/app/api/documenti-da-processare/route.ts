@@ -21,7 +21,11 @@ import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reproce
 import { safeDate } from '@/lib/safe-date'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
-import { confermeOrdineTableUnavailable } from '@/lib/conferme-ordine-schema'
+import { totaleFromDocMetadata } from '@/lib/conferme-ordine-importo'
+import {
+  confermeOrdineTableUnavailable,
+  isConfermeOrdineMissingImportoTotaleColumn,
+} from '@/lib/conferme-ordine-schema'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
 import {
   documentContextText,
@@ -364,19 +368,26 @@ async function finalizePendingByTipo(
       }
     }
 
-    const { error: coErr } = await supabase.from('conferme_ordine').insert([
-      {
-        fornitore_id: doc.fornitore_id,
-        sede_id: sedeDefinitiva,
-        file_url: doc.file_url,
-        file_name: doc.file_name ?? null,
-        titolo: titoloOrdine,
-        numero_ordine: numeroOrdine,
-        data_ordine: dataDoc,
-        note: null,
-        ...(righe ? { righe } : {}),
-      },
-    ])
+    const importoOrdine = totaleFromDocMetadata(meta)
+    const confermaPayload = {
+      fornitore_id: doc.fornitore_id,
+      sede_id: sedeDefinitiva,
+      file_url: doc.file_url,
+      file_name: doc.file_name ?? null,
+      titolo: titoloOrdine,
+      numero_ordine: numeroOrdine,
+      data_ordine: dataDoc,
+      note: null,
+      ...(righe ? { righe } : {}),
+      ...(importoOrdine != null ? { importo_totale: importoOrdine } : {}),
+    }
+    let { error: coErr } = await supabase.from('conferme_ordine').insert([confermaPayload])
+    if (coErr && isConfermeOrdineMissingImportoTotaleColumn(coErr)) {
+      const { importo_totale: _i, ...withoutImporto } = confermaPayload as typeof confermaPayload & {
+        importo_totale?: number
+      }
+      ;({ error: coErr } = await supabase.from('conferme_ordine').insert([withoutImporto]))
+    }
     if (coErr && !confermeOrdineTableUnavailable(coErr)) {
       return NextResponse.json(
         { error: `Errore archiviazione ordine (tabella conferme_ordine): ${coErr.message}` },
