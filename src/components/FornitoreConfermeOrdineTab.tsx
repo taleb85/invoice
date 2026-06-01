@@ -23,6 +23,7 @@ import {
   confermaOrdineRowToOrdineDupProbe,
   sortConfermeOrdineByDocumentDateDesc,
 } from '@/lib/conferme-ordine-query'
+import DocumentOcrRefreshButton from '@/components/DocumentOcrRefreshButton'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import {
   documentOcrRefreshTargetId,
@@ -80,6 +81,9 @@ const RED_ACTION_PILL =
 
 const CONFERMA_OCR_ROW_ACTIVE =
   'bg-cyan-500/8 ring-1 ring-inset ring-cyan-400/25'
+
+const CONFERME_OCR_PILL =
+  'inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-30 bg-transparent px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-40'
 
 function pathFromDocumentiPublicUrl(url: string): string | null {
   try {
@@ -259,6 +263,14 @@ export default function FornitoreConfermeOrdineTab({
     [sortedRows],
   )
 
+  const refreshBatchById = useMemo(() => {
+    const map = new Map<string, DocumentOcrRefreshTarget>()
+    for (const item of refreshBatch) {
+      if (item.kind === 'conferma') map.set(item.confermaId, item)
+    }
+    return map
+  }, [refreshBatch])
+
   const runOcrBatch = useCallback(async () => {
     if (readOnly || refreshBatch.length === 0) return
     const total = refreshBatch.length
@@ -292,6 +304,40 @@ export default function FornitoreConfermeOrdineTab({
 
   const rowOcrClass = (id: string) =>
     ocrProgress?.currentId === id ? CONFERMA_OCR_ROW_ACTIVE : ''
+
+  const renderRowActions = (r: ConfermaOrdineRow) => {
+    const ocrTarget = refreshBatchById.get(r.id)
+    const actionsLocked = Boolean(ocrProgress)
+    return (
+      <>
+        {ocrTarget && r.file_url?.trim() ? (
+          <DocumentOcrRefreshButton
+            hasFile
+            batch={[ocrTarget]}
+            readOnly={readOnly || actionsLocked}
+            onLedgerMutated={() => void load()}
+            className={CONFERME_OCR_PILL}
+          />
+        ) : null}
+        <button
+          type="button"
+          disabled={convertingId === r.id || actionsLocked}
+          onClick={() => void handleConvertOne(r)}
+          className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-transparent px-2 py-1 text-[10px] font-semibold text-emerald-400/80 transition-colors hover:bg-emerald-500/10 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {convertingId === r.id ? t.common.loading : '→ Bolla'}
+        </button>
+        <button
+          type="button"
+          disabled={deletingId === r.id || actionsLocked}
+          onClick={() => void handleDelete(r)}
+          className={RED_ACTION_PILL}
+        >
+          {deletingId === r.id ? t.common.loading : t.common.delete}
+        </button>
+      </>
+    )
+  }
 
   const handleDelete = async (row: ConfermaOrdineRow) => {
     if (!window.confirm(t.fornitori.confermeOrdineDeleteConfirm)) return
@@ -546,24 +592,7 @@ export default function FornitoreConfermeOrdineTab({
                       {pdfOpenTrigger}
                     </OpenDocumentInAppButton>
                     {!readOnly ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={convertingId === r.id || Boolean(ocrProgress)}
-                        onClick={() => void handleConvertOne(r)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-transparent px-2 py-1 text-[10px] font-semibold text-emerald-400/80 transition-colors hover:bg-emerald-500/10 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {convertingId === r.id ? t.common.loading : '→ Bolla'}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={deletingId === r.id || Boolean(ocrProgress)}
-                        onClick={() => void handleDelete(r)}
-                        className={RED_ACTION_PILL}
-                      >
-                        {deletingId === r.id ? t.common.loading : t.common.delete}
-                      </button>
-                    </>
+                      <div className="flex flex-wrap items-center gap-2">{renderRowActions(r)}</div>
                     ) : null}
                   </div>
                 </div>
@@ -656,23 +685,8 @@ export default function FornitoreConfermeOrdineTab({
                       </td>
                       <td className="px-5 py-3 text-right">
                         {!readOnly ? (
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={convertingId === r.id || Boolean(ocrProgress)}
-                            onClick={() => void handleConvertOne(r)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-transparent px-2 py-1 text-[10px] font-semibold text-emerald-400/80 transition-colors hover:bg-emerald-500/10 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {convertingId === r.id ? t.common.loading : '→ Bolla'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deletingId === r.id || Boolean(ocrProgress)}
-                            onClick={() => void handleDelete(r)}
-                            className={RED_ACTION_PILL}
-                          >
-                            {deletingId === r.id ? t.common.loading : t.common.delete}
-                          </button>
+                        <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                          {renderRowActions(r)}
                         </div>
                         ) : (
                           <span className={`text-xs ${confermeSecondaryClass}`}>—</span>
