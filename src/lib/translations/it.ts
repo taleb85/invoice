@@ -1781,7 +1781,7 @@ const translations: Translations = {
     logoUrlHint:
       'Indirizzo HTTPS di un’immagine (PNG, JPG o SVG). Se il link non è valido o non si carica, restano le iniziali del nome.',
     confermeOrdineIntro:
-      'Archivia qui le conferme d’ordine e PDF commerciali non fiscali. Non sostituiscono DDT o fatture nel flusso contabile.',
+      'Conferme d’ordine nel periodo (es. da Rekki o sync). «→ Bolla» o «Converti tutti in bolle» le porta nel flusso DDT; non sostituiscono le fatture.',
     confermeOrdineOptionalTitle: 'Titolo (opz.)',
     confermeOrdineOptionalTitlePh: 'es. Ordine 4582',
     confermeOrdineOptionalOrderDate: 'Data ordine',

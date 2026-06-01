@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -11,8 +11,6 @@ import { confermeOrdineLedgerPeriodOrFilter } from '@/lib/documenti-queue-period
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR } from '@/lib/app-shell-layout'
-import { openDocumentUrl } from '@/lib/open-document-url'
-import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
@@ -68,9 +66,6 @@ const CONFERME_OPEN_PILL =
 const RED_ACTION_PILL =
   'inline-flex items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
 
-const inputClass =
-  'w-full rounded-lg border border-app-line-25 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-a-40 focus:outline-none focus:ring-1 focus:ring-app-a-25 [color-scheme:dark]'
-
 function pathFromDocumentiPublicUrl(url: string): string | null {
   try {
     const u = new URL(url)
@@ -100,15 +95,9 @@ export default function FornitoreConfermeOrdineTab({
   const t = useT()
   const { locale, timezone, currency } = useLocale()
   const { showToast } = useToast()
-  const fileRef = useRef<HTMLInputElement>(null)
   const [rows, setRows] = useState<ConfermaOrdineRow[]>([])
   const [loading, setLoading] = useState(true)
   const [tableMissing, setTableMissing] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const [titolo, setTitolo] = useState('')
-  const [dataOrdine, setDataOrdine] = useState('')
-  const [note, setNote] = useState('')
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [convertingId, setConvertingId] = useState<string | null>(null)
@@ -116,8 +105,6 @@ export default function FornitoreConfermeOrdineTab({
 
   const confermeTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.conferme
   const migrationTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti
-  /** Allineato a `confermeTheme` (bordo/barra rosa): più leggibile di `text-app-fg-muted` su questo guscio. */
-  const confermeFormLabelClass = `mb-1.5 block text-[10px] font-bold uppercase tracking-widest ${confermeTheme.label}`
   const confermeSecondaryClass = 'text-app-fg-muted'
 
   const fmt = useCallback(
@@ -170,67 +157,6 @@ export default function FornitoreConfermeOrdineTab({
   useEffect(() => {
     void load()
   }, [load])
-
-  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] ?? null
-    setError(null)
-    if (f && f.type !== 'application/pdf') {
-      setFile(null)
-      setError(t.fornitori.confermeOrdineErrPdf)
-      e.target.value = ''
-      return
-    }
-    setFile(f)
-  }
-
-  const resetForm = () => {
-    setFile(null)
-    setTitolo('')
-    setDataOrdine('')
-    setNote('')
-    if (fileRef.current) fileRef.current.value = ''
-  }
-
-  const handleSave = async () => {
-    if (!file) {
-      setError(t.fornitori.confermeOrdineErrNeedFile)
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const supabase = createClient()
-    const ext = file.name.split('.').pop() ?? 'pdf'
-    const uniqueName = `conferma_ordine_${crypto.randomUUID()}.${ext}`
-    const { error: upErr } = await supabase.storage.from('documenti').upload(uniqueName, file, {
-      contentType: file.type || 'application/pdf',
-      upsert: false,
-    })
-    if (upErr) {
-      setSaving(false)
-      setError(`${t.fornitori.confermeOrdineErrUpload}: ${upErr.message}`)
-      return
-    }
-    const file_url = documentiPublicRefUrl(uniqueName)
-
-    const payload = {
-      fornitore_id: fornitoreId,
-      sede_id: sedeId,
-      file_url,
-      file_name: file.name,
-      titolo: titolo.trim() || null,
-      data_ordine: dataOrdine.trim() || null,
-      note: note.trim() || null,
-    }
-    const { error: insErr } = await supabase.from('conferme_ordine').insert([payload])
-    setSaving(false)
-    if (insErr) {
-      setError(`${t.fornitori.confermeOrdineErrSave}: ${insErr.message}`)
-      await supabase.storage.from('documenti').remove([uniqueName]).catch(() => {})
-      return
-    }
-    resetForm()
-    await load()
-  }
 
   const handleDelete = async (row: ConfermaOrdineRow) => {
     if (!window.confirm(t.fornitori.confermeOrdineDeleteConfirm)) return
@@ -308,7 +234,7 @@ export default function FornitoreConfermeOrdineTab({
     <div className={`supplier-detail-tab-shell mt-4 flex flex-col overflow-hidden ${confermeTheme.border}`}>
       <div className={`app-card-bar-accent ${confermeTheme.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3 border-b border-app-line-20 px-5 py-3.5">
+        <div className="flex flex-col gap-2 border-b border-app-line-20 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-relaxed text-app-fg">{t.fornitori.confermeOrdineIntro}</p>
           {!readOnly && rows.length > 0 ? (
             <button
@@ -332,63 +258,8 @@ export default function FornitoreConfermeOrdineTab({
             </button>
           ) : null}
         </div>
-
-        {!readOnly ? (
-        <div className="border-b border-app-line-20 px-5 py-4">
-          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid lg:grid-cols-[2fr_1.2fr_1.2fr_2fr_auto] lg:items-end">
-            <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-1">
-              <label className={confermeFormLabelClass}>{t.common.document}</label>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="application/pdf"
-                onChange={onPickFile}
-                className={`block w-full text-sm ${confermeSecondaryClass} file:mr-3 file:rounded-lg file:border file:border-[rgba(34,211,238,0.15)] file:bg-app-line-15 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-app-fg-muted hover:file:bg-app-line-20`}
-              />
-            </div>
-            <div className="flex min-h-0 flex-col">
-              <label className={confermeFormLabelClass}>{t.fornitori.confermeOrdineOptionalTitle}</label>
-              <input
-                value={titolo}
-                onChange={(e) => setTitolo(e.target.value)}
-                placeholder={t.fornitori.confermeOrdineOptionalTitlePh}
-                className={inputClass}
-              />
-            </div>
-            <div className="flex min-h-0 flex-col">
-              <label className={confermeFormLabelClass}>{t.fornitori.confermeOrdineOptionalOrderDate}</label>
-              <input
-                type="date"
-                value={dataOrdine}
-                onChange={(e) => setDataOrdine(e.target.value)}
-                className={`${inputClass} [color-scheme:dark]`}
-              />
-            </div>
-            <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-1">
-              <label className={confermeFormLabelClass}>{t.common.notes}</label>
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder={t.fornitori.confermeOrdineOptionalNotePh}
-                className={inputClass}
-              />
-            </div>
-            <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-1">
-              <div className="hidden min-h-0 flex-1 lg:block" aria-hidden />
-              <button
-                type="button"
-                disabled={saving || !file}
-                onClick={() => void handleSave()}
-                className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-app-cyan-400/45 bg-cyan-400/12 px-4 py-2.5 text-sm font-bold text-app-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/18 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {saving ? t.common.saving : t.fornitori.confermeOrdineAdd}
-              </button>
-            </div>
-          </div>
-          {error ? (
-            <p className="mt-3 rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-3 py-2 text-sm text-red-200/95">{error}</p>
-          ) : null}
-        </div>
+        {error ? (
+          <p className="border-b border-app-line-20 px-5 py-2 text-sm text-red-200/95">{error}</p>
         ) : null}
 
         {loading ? (
