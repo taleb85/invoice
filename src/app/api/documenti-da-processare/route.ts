@@ -380,6 +380,29 @@ async function finalizePendingByTipo(
   return NextResponse.json({ ok: true })
 }
 
+type PendingDocsListQuery = ReturnType<
+  ReturnType<SupabaseClient['from']>['select']
+>
+
+/** Filtro sede su righe coda: inbox sede sì; scheda fornitore no (già filtrata per `fornitore_id`). */
+function applyPendingQueueSedeScope(
+  query: PendingDocsListQuery,
+  opts: {
+    sedeId: string | null
+    fornitoreId: string | null
+    isMasterAdmin: boolean
+    profileSedeId: string | null | undefined
+  },
+): PendingDocsListQuery {
+  const { sedeId, fornitoreId, isMasterAdmin, profileSedeId } = opts
+  if (fornitoreId) return query
+  if (sedeId) return query.eq('sede_id', sedeId) as PendingDocsListQuery
+  if (!isMasterAdmin && profileSedeId) {
+    return query.or(`sede_id.eq.${profileSedeId},sede_id.is.null`) as PendingDocsListQuery
+  }
+  return query
+}
+
 // ── GET /api/documenti-da-processare ──────────────────────────────────────────
 // Returns pending documents using the service client to bypass RLS.
 // This is necessary because documents can have sede_id = NULL (global IMAP /
@@ -423,6 +446,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'sede_id non consentito' }, { status: 403 })
   }
 
+  if (fornitoreId && isBranchStaffScoped && profile?.sede_id) {
+    const { data: fornitoreRow, error: fornitoreErr } = await service
+      .from('fornitori')
+      .select('sede_id')
+      .eq('id', fornitoreId)
+      .maybeSingle()
+    if (fornitoreErr) {
+      return NextResponse.json({ error: fornitoreErr.message }, { status: 500 })
+    }
+    if (fornitoreRow?.sede_id && fornitoreRow.sede_id !== profile.sede_id) {
+      return NextResponse.json({ error: 'Fornitore non accessibile' }, { status: 403 })
+    }
+  }
+
   const wantsTotal =
     searchParams.get('total') === '1' || searchParams.get('include_total') === '1'
 
@@ -441,11 +478,12 @@ export async function GET(req: NextRequest) {
     if (toDate) {
       countQ = countQ.lt('created_at', toDate)
     }
-    if (sedeId) {
-      countQ = countQ.eq('sede_id', sedeId)
-    } else if (!isMasterAdmin && profile?.sede_id) {
-      countQ = countQ.or(`sede_id.eq.${profile.sede_id},sede_id.is.null`)
-    }
+    countQ = applyPendingQueueSedeScope(countQ, {
+      sedeId,
+      fornitoreId,
+      isMasterAdmin,
+      profileSedeId: profile?.sede_id,
+    })
     const { count: ctot, error: countErr } = await countQ
     if (countErr) return NextResponse.json({ error: countErr.message }, { status: 500 })
     totalMatching = typeof ctot === 'number' && Number.isFinite(ctot) ? ctot : 0
@@ -456,7 +494,7 @@ export async function GET(req: NextRequest) {
     .select('*, fornitore:fornitori(nome, email)')
     .in('stato', stati)
     .order('created_at', { ascending: false })
-    .limit(200)
+    .limit(fornitoreId ? 500 : 200)
 
   if (fornitoreId) {
     // Fornitore-specific filter (fornitore detail page)
@@ -470,14 +508,12 @@ export async function GET(req: NextRequest) {
     query = query.lt('created_at', toDate) as typeof query
   }
 
-  if (sedeId) {
-    // Explicit sede filter (sede-specific pages)
-    query = query.eq('sede_id', sedeId) as typeof query
-  } else if (!isMasterAdmin && profile?.sede_id) {
-    // Operators only see their sede's docs + docs with no sede (NULL)
-    query = query.or(`sede_id.eq.${profile.sede_id},sede_id.is.null`) as typeof query
-  }
-  // Admin Master with no sedeId filter sees everything
+  query = applyPendingQueueSedeScope(query, {
+    sedeId,
+    fornitoreId,
+    isMasterAdmin,
+    profileSedeId: profile?.sede_id,
+  }) as typeof query
 
   if (fornitoreId) {
     const cleanupSede =

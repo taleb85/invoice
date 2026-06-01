@@ -1301,7 +1301,10 @@ export function PendingMatchesTab({
     }
     if (sedeId && !fornitoreId) params.set('sede_id', sedeId)
     if (fornitoreId) params.set('fornitore_id', fornitoreId)
-    if (!fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+    if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+      params.set('from', ledgerDateFrom)
+      params.set('to', ledgerDateToExclusive)
+    } else if (!fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
       params.set('from', ledgerDateFrom)
       params.set('to', ledgerDateToExclusive)
     } else if (!fornitoreId && year && month) {
