@@ -218,6 +218,66 @@ function confermaTitleLooksLikeNoise(primary: string): boolean {
   )
 }
 
+function titleCaseDocumentTypePhrase(raw: string): string {
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+}
+
+/** Normalizza l’intestazione tipo documento (es. «Sales Order Confirmation» → «Sales Order»). */
+export function normalizeConfermaOrdineTipoPhrase(phrase: string): string {
+  const p = phrase.trim()
+  if (/^sales\s+order(\s+confirmation)?$/i.test(p)) return 'Sales Order'
+  if (/^purchase\s+order(\s+confirmation)?$/i.test(p)) return 'Purchase Order'
+  if (/^work\s+order(\s+confirmation)?$/i.test(p)) return 'Work Order'
+  if (/\s+confirmation$/i.test(p) && !/^order\s+confirmation$/i.test(p)) {
+    return p.replace(/\s+confirmation$/i, '').trim()
+  }
+  return p
+}
+
+/**
+ * Tipo documento dall’intestazione nel nome file PDF (prima del suffisso numerico).
+ * Es. `Sales Order Confirmation-543585.pdf` → `Sales Order`.
+ */
+export function extractConfermaOrdineTipoFromFileName(
+  fileName: string | null | undefined,
+): string | null {
+  if (!fileName?.trim()) return null
+  const stem = fileNameStem(fileName)
+  const withoutNum = stem.replace(/[-_\s#:]+\d{3,}[A-Z0-9/-]*\s*$/i, '').trim()
+  if (!withoutNum || !/[a-z]/i.test(withoutNum)) return null
+  return normalizeConfermaOrdineTipoPhrase(titleCaseDocumentTypePhrase(withoutNum))
+}
+
+/** Etichetta tipo per tab Conferme ordine (PDF / oggetto mail / fallback generico). */
+export function extractConfermaOrdineTipoLabel(input: {
+  fileName?: string | null
+  titolo?: string | null
+  oggettoMail?: string | null
+  /** Eventuale etichetta OCR salvata in metadata (futuro / backfill). */
+  tipoDocumentoLabel?: string | null
+}): string {
+  const fromFile = extractConfermaOrdineTipoFromFileName(input.fileName)
+  if (fromFile) return fromFile
+
+  if (input.tipoDocumentoLabel?.trim()) {
+    return normalizeConfermaOrdineTipoPhrase(input.tipoDocumentoLabel.trim())
+  }
+
+  const cleanedOggetto = cleanConfermaOrdineTitleText(input.oggettoMail ?? '')
+  const tipoInOggetto = cleanedOggetto.match(
+    /\b(sales\s+order|purchase\s+order|work\s+order|order\s+confirmation|conferma\s+ordine)(?:\s+confirmation)?\b/i,
+  )
+  if (tipoInOggetto?.[1]) {
+    return normalizeConfermaOrdineTipoPhrase(titleCaseDocumentTypePhrase(tipoInOggetto[1]))
+  }
+
+  return extractDocTypeLabel(input.titolo, input.fileName, input.oggettoMail) ?? 'Order Confirmation'
+}
+
 /** Miglior numero ordine commerciale per archiviazione / tabella conferme. */
 export function resolveConfermaOrdineNumero(input: {
   titolo?: string | null
@@ -261,9 +321,9 @@ export function confermaOrdineDisplayLabel(input: {
   numeroOrdine?: string | null
   numeroFatturaMetadata?: string | null
   oggettoMail?: string | null
+  tipoDocumentoLabel?: string | null
 }): { primary: string; secondary: string | null } {
-  const docType =
-    extractDocTypeLabel(input.titolo, input.fileName, input.oggettoMail) ?? 'Order Confirmation'
+  const docType = extractConfermaOrdineTipoLabel(input)
 
   const primary = resolveConfermaOrdineNumero(input)
   if (primary) {

@@ -13,7 +13,7 @@ import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR 
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
-import { confermaOrdineDisplayLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
+import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
 import { confermeOrdineTableMissingFromApiError } from '@/lib/conferme-ordine-schema'
 
 /**
@@ -363,7 +363,7 @@ export default function FornitoreConfermeOrdineTab({
                       confermaOrdineId={r.id}
                       fileUrl={r.file_url}
                       className={CONFERME_OPEN_PILL}
-                      categoria={extractDocTypeLabel(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
+                      categoria={confermaRowLabel(r).secondary ?? t.fornitori.tabConfermeOrdine}
                     >
                       {pdfOpenTrigger}
                     </OpenDocumentInAppButton>
@@ -431,7 +431,7 @@ export default function FornitoreConfermeOrdineTab({
                           className="block max-w-[22rem] text-left hover:underline underline-offset-2 font-medium text-app-fg hover:text-app-cyan-300 transition-colors"
                           title={r.titolo?.trim() || r.file_name || undefined}
                           stopTriggerPropagation
-                          categoria={extractDocTypeLabel(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
+                          categoria={confermaRowLabel(r).secondary ?? t.fornitori.tabConfermeOrdine}
                         >
                           {(() => {
                             const { primary, secondary } = confermaRowLabel(r)

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   cleanConfermaOrdineTitleText,
   confermaOrdineDisplayLabel,
+  extractConfermaOrdineTipoFromFileName,
+  extractConfermaOrdineTipoLabel,
   extractOrderReferenceFromFileName,
   extractOrderReferenceFromText,
 } from '@/lib/extract-doc-type'
@@ -19,6 +21,14 @@ describe('cleanConfermaOrdineTitleText', () => {
 describe('extractOrderReferenceFromFileName', () => {
   it('reads Sales Order Confirmation suffix from PDF name', () => {
     expect(extractOrderReferenceFromFileName('Sales Order Confirmation-543585.pdf')).toBe('543585')
+  })
+})
+
+describe('extractConfermaOrdineTipoFromFileName', () => {
+  it('returns Sales Order from Sales Order Confirmation PDF name', () => {
+    expect(extractConfermaOrdineTipoFromFileName('Sales Order Confirmation-543585.pdf')).toBe(
+      'Sales Order',
+    )
   })
 })
 
@@ -51,7 +61,16 @@ describe('confermaOrdineDisplayLabel', () => {
         fileName: 'Sales Order Confirmation-543585.pdf',
         numeroFatturaMetadata: '14697598',
       }),
-    ).toEqual({ primary: '543585', secondary: 'Order Confirmation' })
+    ).toEqual({ primary: '543585', secondary: 'Sales Order' })
+  })
+
+  it('uses tipo from PDF filename not generic Order Confirmation', () => {
+    expect(
+      extractConfermaOrdineTipoLabel({
+        fileName: 'Sales Order Confirmation-459253.pdf',
+        oggettoMail: '**DO NOT REPLY EMAIL** La Tua Pasta Order Confirmation',
+      }),
+    ).toBe('Sales Order')
   })
 
   it('extracts reference from oggetto mail', () => {
