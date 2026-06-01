@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -14,6 +15,11 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
 import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
+
+const SupplierDocumentOcrToolbar = dynamic(
+  () => import('@/components/SupplierDocumentOcrToolbar'),
+  { ssr: false, loading: () => null },
+)
 import { confermeOrdineTableMissingFromApiError } from '@/lib/conferme-ordine-schema'
 
 /**
@@ -116,6 +122,7 @@ export default function FornitoreConfermeOrdineTab({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [convertingId, setConvertingId] = useState<string | null>(null)
   const [convertingAll, setConvertingAll] = useState(false)
+  const [toolbarConfermaId, setToolbarConfermaId] = useState('')
 
   const confermeTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.conferme
   const migrationTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti
@@ -187,6 +194,57 @@ export default function FornitoreConfermeOrdineTab({
   useEffect(() => {
     void load()
   }, [load])
+
+  const toolbarChoices = useMemo(
+    () =>
+      rows.map((r) => {
+        const { primary } = confermaRowLabel(r)
+        const datePart = (r.data_ordine_display ?? r.data_ordine)
+          ? fmt(r.data_ordine_display ?? r.data_ordine!)
+          : null
+        return {
+          id: r.id,
+          label: [primary, datePart].filter(Boolean).join(' · '),
+          hasFile: Boolean(r.file_url?.trim()),
+        }
+      }),
+    [rows, fmt],
+  )
+
+  const rowsWithFile = useMemo(() => toolbarChoices.filter((c) => c.hasFile), [toolbarChoices])
+
+  useEffect(() => {
+    if (!rowsWithFile.length) {
+      setToolbarConfermaId('')
+      return
+    }
+    setToolbarConfermaId((prev) =>
+      rowsWithFile.some((c) => c.id === prev) ? prev : rowsWithFile[0]!.id,
+    )
+  }, [rowsWithFile])
+
+  const refreshBatch = useMemo(
+    () =>
+      rows
+        .filter((r) => r.file_url?.trim())
+        .map((r) => ({
+          kind: 'conferma' as const,
+          confermaId: r.id,
+          onDataOrdineUpdated: (d: string) => {
+            setRows((prev) =>
+              prev.map((row) =>
+                row.id === r.id ? { ...row, data_ordine: d, data_ordine_display: d } : row,
+              ),
+            )
+          },
+          onNumeroOrdineUpdated: (n: string) => {
+            setRows((prev) =>
+              prev.map((row) => (row.id === r.id ? { ...row, numero_ordine: n } : row)),
+            )
+          },
+        })),
+    [rows],
+  )
 
   const handleDelete = async (row: ConfermaOrdineRow) => {
     if (!window.confirm(t.fornitori.confermeOrdineDeleteConfirm)) return
@@ -261,6 +319,19 @@ export default function FornitoreConfermeOrdineTab({
   }
 
   return (
+    <>
+      {!readOnly && rowsWithFile.length > 0 && toolbarConfermaId ? (
+        <div className="mb-4">
+          <SupplierDocumentOcrToolbar
+            choices={rowsWithFile}
+            selectedId={toolbarConfermaId}
+            onSelectedIdChange={setToolbarConfermaId}
+            refreshBatch={refreshBatch}
+            readOnly={readOnly}
+            onLedgerMutated={() => void load()}
+          />
+        </div>
+      ) : null}
     <div className={`supplier-detail-tab-shell mt-4 flex flex-col overflow-hidden ${confermeTheme.border}`}>
       <div className={`app-card-bar-accent ${confermeTheme.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
@@ -498,5 +569,6 @@ export default function FornitoreConfermeOrdineTab({
         )}
       </div>
     </div>
+    </>
   )
 }

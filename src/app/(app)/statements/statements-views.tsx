@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { Fragment, useEffect, useState, useCallback, useRef, useMemo, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -22,6 +23,11 @@ import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import DocumentActionsButton from '@/components/DocumentActionsButton'
+
+const SupplierDocumentOcrToolbar = dynamic(
+  () => import('@/components/SupplierDocumentOcrToolbar'),
+  { ssr: false, loading: () => null },
+)
 import {
   findUniqueFornitoreForPendingDoc,
   MATCH_BOLLA_DATE_WINDOW_DAYS,
@@ -2195,6 +2201,46 @@ export function PendingMatchesTab({
     [docs, potentialSupplierByDocId],
   )
 
+  const formatDocDate = useFmt()
+  const [toolbarDocId, setToolbarDocId] = useState('')
+
+  const pendingOcrToolbarChoices = useMemo(
+    () =>
+      docs
+        .filter((d) => docNeedsManualProcessing(d.stato) && d.file_url?.trim())
+        .map((d) => {
+          const nf = d.metadata?.numero_fattura?.trim()
+          const dateIso = statementOfficialDateIso(d) ?? d.data_documento ?? null
+          const parts: string[] = []
+          if (dateIso) parts.push(formatDocDate(dateIso))
+          if (nf) parts.push(`#${nf}`)
+          if (!parts.length) {
+            const fallback = (d.oggetto_mail ?? d.mittente ?? d.file_name ?? '').trim()
+            if (fallback) parts.push(fallback.length > 48 ? `${fallback.slice(0, 48)}…` : fallback)
+          }
+          return { id: d.id, label: parts.join(' · ') || d.id.slice(0, 8), hasFile: true }
+        }),
+    [docs, formatDocDate],
+  )
+
+  const pendingRefreshBatch = useMemo(
+    () =>
+      docs
+        .filter((d) => docNeedsManualProcessing(d.stato) && d.file_url?.trim())
+        .map((d) => ({ kind: 'pending' as const, documentoId: d.id })),
+    [docs],
+  )
+
+  useEffect(() => {
+    if (!pendingOcrToolbarChoices.length) {
+      setToolbarDocId('')
+      return
+    }
+    setToolbarDocId((prev) =>
+      pendingOcrToolbarChoices.some((c) => c.id === prev) ? prev : pendingOcrToolbarChoices[0]!.id,
+    )
+  }, [pendingOcrToolbarChoices])
+
   /** Documenti in lista con tipo già scelto e fornitore collegato: pronti per `finalizza_da_tipo` come sulla riga. */
   const finalizeReadyIdsByKind = useMemo(() => {
     const out: Record<'ordine' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'statement', string[]> = {
@@ -2568,6 +2614,20 @@ export function PendingMatchesTab({
         </div>
       ) : (
         <div className="space-y-2">
+          {pendingOcrToolbarChoices.length > 0 && toolbarDocId ? (
+            <div className={supplierDocShell ? 'mb-1' : 'mb-3'}>
+              <SupplierDocumentOcrToolbar
+                choices={pendingOcrToolbarChoices}
+                selectedId={toolbarDocId}
+                onSelectedIdChange={setToolbarDocId}
+                refreshBatch={pendingRefreshBatch}
+                onLedgerMutated={() => {
+                  void fetchDocs()
+                  void fetchBolleAperte()
+                }}
+              />
+            </div>
+          ) : null}
           {docs.map(doc => {
             const stato          = actions[doc.id] ?? 'idle'
             const isImage        = doc.content_type?.startsWith('image/')
@@ -2973,11 +3033,11 @@ export function PendingMatchesTab({
                         <button
                           type="button"
                           disabled={reanalyzingDocId === doc.id}
-                          title={t.statements.reanalyzeDocTitle}
+                          title={t.fatture.refreshDateFromDocTitle}
                           onClick={() => void reanalyzeDocOcr(doc.id)}
                           className="border-0 bg-transparent p-0 text-xs font-semibold text-amber-200/95 hover:text-amber-100 hover:underline disabled:opacity-45"
                         >
-                          {reanalyzingDocId === doc.id ? t.common.loading : t.statements.reanalyzeDocButton}
+                          {reanalyzingDocId === doc.id ? t.common.loading : t.fatture.refreshDateFromDoc}
                         </button>
                       )}
                       {doc.stato === 'bozza_creata' && doc.metadata?.bozza_id && (

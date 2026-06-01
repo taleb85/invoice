@@ -919,6 +919,7 @@ export type Translations = {
     duplicatePairBadgeAria: string
     toolbarDocActionsTitle: string
     toolbarDocActionsDesc: string
+    toolbarDocActionsDescOcrOnly: string
     toolbarSelectDocument: string
     refreshDateFromDoc: string
     refreshDateFromDocTitle: string

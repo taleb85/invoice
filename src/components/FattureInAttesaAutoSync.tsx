@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
-import FatturaRefreshDateButton, { type FatturaRefreshBatchItem } from '@/components/FatturaRefreshDateButton'
+import DocumentOcrRefreshButton, { type DocumentOcrRefreshBatchItem } from '@/components/DocumentOcrRefreshButton'
 
 interface LineItem {
   prodotto: string
@@ -65,7 +65,7 @@ export default function FattureInAttesaAutoSync({
   onFatturaIdChange: (id: string) => void
   showListinoSync?: boolean
   /** Tutti i documenti con allegato nell’elenco — rilettura OCR in cascata. */
-  refreshBatch?: FatturaRefreshBatchItem[]
+  refreshBatch?: DocumentOcrRefreshBatchItem[]
   onLedgerMutated?: () => void
   onComplete?: () => void
 }) {
@@ -79,7 +79,6 @@ export default function FattureInAttesaAutoSync({
   const selected = fattureChoices.find((c) => c.id === fatturaId) ?? fattureChoices[0]
   const canRefresh = Boolean(refreshBatch?.length)
   const canListino = showListinoSync && Boolean(selected?.senzaBolla)
-  const refreshFallback = refreshBatch?.[0]
 
   const handleAutoSync = async () => {
     if (!fatturaId) return
@@ -152,14 +151,10 @@ export default function FattureInAttesaAutoSync({
             </label>
           ) : null}
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {canRefresh && refreshFallback ? (
-              <FatturaRefreshDateButton
+            {canRefresh && refreshBatch?.length ? (
+              <DocumentOcrRefreshButton
                 hasFile
                 batch={refreshBatch}
-                onDataUpdated={refreshFallback.onDataUpdated}
-                onImportoUpdated={refreshFallback.onImportoUpdated}
-                onNumeroFatturaUpdated={refreshFallback.onNumeroFatturaUpdated}
-                onTipoDocumentoUpdated={refreshFallback.onTipoDocumentoUpdated}
                 onLedgerMutated={onLedgerMutated}
               />
             ) : null}

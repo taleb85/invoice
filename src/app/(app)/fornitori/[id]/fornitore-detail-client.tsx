@@ -100,6 +100,10 @@ const FattureInAttesaAutoSync = dynamic(
   () => import('@/components/FattureInAttesaAutoSync'),
   { ssr: false, loading: () => null },
 )
+const SupplierDocumentOcrToolbar = dynamic(
+  () => import('@/components/SupplierDocumentOcrToolbar'),
+  { ssr: false, loading: () => null },
+)
 const FornitoreAnomalieTab = dynamic(
   () => import('@/components/FornitoreAnomalieTab'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
@@ -2357,6 +2361,60 @@ function BolleTab({
     })()
   }, [loading, readOnly, canRianalizzaOcr, bollaExcessIds, onBollaDuplicateRemoved])
 
+  const bolleToolbarChoices = useMemo(
+    () =>
+      bolle.map((b) => {
+        const parts = [formatDate(b.data)]
+        const num = numeroInElenco(b)
+        if (num) parts.push(`#${num}`)
+        return {
+          id: b.id,
+          label: parts.join(' · '),
+          hasFile: Boolean(b.file_url?.trim()),
+        }
+      }),
+    [bolle, formatDate, numeroInElenco],
+  )
+
+  const bolleWithFile = useMemo(
+    () => bolleToolbarChoices.filter((c) => c.hasFile),
+    [bolleToolbarChoices],
+  )
+
+  const [toolbarBollaId, setToolbarBollaId] = useState('')
+
+  useEffect(() => {
+    if (!bolleWithFile.length) {
+      setToolbarBollaId('')
+      return
+    }
+    setToolbarBollaId((prev) =>
+      bolleWithFile.some((c) => c.id === prev) ? prev : bolleWithFile[0]!.id,
+    )
+  }, [bolleWithFile])
+
+  const bolleRefreshBatch = useMemo(
+    () =>
+      bolle
+        .filter((b) => b.file_url?.trim())
+        .map((b) => ({
+          kind: 'bolla' as const,
+          bollaId: b.id,
+          onDataUpdated: (d: string) => {
+            setBolle((prev) => prev.map((r) => (r.id === b.id ? { ...r, data: d } : r)))
+          },
+          onNumeroBollaUpdated: (n: string) => {
+            setBolle((prev) => prev.map((r) => (r.id === b.id ? { ...r, numero_bolla: n } : r)))
+          },
+          onQuantitaUpdated: (q: number) => {
+            const fu = b.file_url?.trim()
+            if (fu) setQuantitaByFileUrl((prev) => ({ ...prev, [fu]: q }))
+            setBolle((prev) => prev.map((r) => (r.id === b.id ? { ...r, quantita: q } : r)))
+          },
+        })),
+    [bolle],
+  )
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -2409,6 +2467,20 @@ function BolleTab({
 
   return (
     <>
+      {!readOnly && bolleWithFile.length > 0 && toolbarBollaId ? (
+        <div className="mb-4 px-4">
+          <SupplierDocumentOcrToolbar
+            choices={bolleWithFile}
+            selectedId={toolbarBollaId}
+            onSelectedIdChange={setToolbarBollaId}
+            refreshBatch={bolleRefreshBatch}
+            onLedgerMutated={() => {
+              onLedgerMutated?.()
+              setOcrEpoch((e) => e + 1)
+            }}
+          />
+        </div>
+      ) : null}
     <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}>
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
       {ocrBusyId && ocrProgressStep > 0 ? (
@@ -3012,6 +3084,7 @@ function FattureTab({
       fatture
         .filter((f) => f.file_url?.trim())
         .map((f) => ({
+          kind: 'fattura' as const,
           fatturaId: f.id,
           onDataUpdated: (d: string) => onFatturaDataRefreshed(f.id, d),
           onImportoUpdated: (imp: number) => onFatturaImportoRefreshed(f.id, imp),

@@ -1954,6 +1954,7 @@ const translations: Translations = {
     duplicatePairBadgeAria: 'Evidenzia le fatture gemelle duplicate',
     toolbarDocActionsTitle: 'Documenti in elenco',
     toolbarDocActionsDesc: 'Rileggi i dati dal PDF e analizza le righe prodotto rispetto al listino.',
+    toolbarDocActionsDescOcrOnly: 'Rileggi data, numero e altri campi dal PDF allegato.',
     toolbarSelectDocument: 'Documento',
     refreshDateFromDoc: 'Rileggi documento',
     refreshDateFromDocTitle: 'Rileggi i dati dal documento (OCR): data, numero fattura e importo',
