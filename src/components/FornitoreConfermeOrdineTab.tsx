@@ -14,6 +14,7 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
 import { confermaOrdineDisplayLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
+import { confermeOrdineTableMissingFromApiError } from '@/lib/conferme-ordine-schema'
 
 /**
  * Riga prodotto come salvata in `conferme_ordine.righe` (jsonb).
@@ -160,7 +161,7 @@ export default function FornitoreConfermeOrdineTab({
         } catch {
           /* ignore */
         }
-        if (msg.includes('conferme_ordine') || msg.includes('42P01')) {
+        if (confermeOrdineTableMissingFromApiError(msg)) {
           setTableMissing(true)
           setRows([])
         } else {

@@ -5,6 +5,11 @@ import {
 } from '@/lib/conferme-ordine-fornitore-match'
 import { confermeOrdineLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
 import { numeroFatturaFromDocMetadata } from '@/lib/fattura-duplicate-check'
+import { isConfermeOrdineMissingNumeroOrdineColumn } from '@/lib/conferme-ordine-schema'
+
+const CONFERME_ORDINE_SELECT_BASE =
+  'id, file_url, file_name, titolo, data_ordine, note, created_at, righe, fornitore_id'
+const CONFERME_ORDINE_SELECT_WITH_NUMERO = `${CONFERME_ORDINE_SELECT_BASE}, numero_ordine`
 
 export type ConfermaOrdineListRow = {
   id: string
@@ -69,23 +74,29 @@ export async function fetchFilteredConfermeOrdine(
   const { fornitoreId, from, toExclusive } = opts
   const sedeFornitori = await loadSedeFornitoriForMatch(service, fornitoreId)
 
-  let q = service
-    .from('conferme_ordine')
-    .select(
-      'id, file_url, file_name, titolo, numero_ordine, data_ordine, note, created_at, righe, fornitore_id',
-    )
-    .eq('fornitore_id', fornitoreId)
-    .order('created_at', { ascending: false })
-    .limit(500)
-
-  if (from && toExclusive) {
-    q = q.or(confermeOrdineLedgerPeriodOrFilter(from, toExclusive))
+  function buildQuery(select: string) {
+    let q = service
+      .from('conferme_ordine')
+      .select(select)
+      .eq('fornitore_id', fornitoreId)
+      .order('created_at', { ascending: false })
+      .limit(500)
+    if (from && toExclusive) {
+      q = q.or(confermeOrdineLedgerPeriodOrFilter(from, toExclusive))
+    }
+    return q
   }
 
-  const { data, error } = await q
+  let { data, error } = await buildQuery(CONFERME_ORDINE_SELECT_WITH_NUMERO)
+  if (error && isConfermeOrdineMissingNumeroOrdineColumn(error)) {
+    ;({ data, error } = await buildQuery(CONFERME_ORDINE_SELECT_BASE))
+  }
   if (error) throw new Error(error.message)
 
-  const raw = (data ?? []) as ConfermaOrdineListRow[]
+  const raw = (data ?? []).map((r) => ({
+    ...(r as Omit<ConfermaOrdineListRow, 'numero_ordine' | 'numero_fattura_doc' | 'oggetto_mail'>),
+    numero_ordine: (r as ConfermaOrdineListRow).numero_ordine ?? null,
+  })) as ConfermaOrdineListRow[]
   if (raw.length === 0) return { rows: [], sedeFornitori }
 
   const urls = [...new Set(raw.map((r) => r.file_url).filter(Boolean))]

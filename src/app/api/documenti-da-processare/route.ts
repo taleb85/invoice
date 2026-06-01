@@ -21,6 +21,7 @@ import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reproce
 import { safeDate } from '@/lib/safe-date'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
+import { confermeOrdineTableUnavailable } from '@/lib/conferme-ordine-schema'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -32,22 +33,6 @@ type DocRowFinalizza = {
   mittente?: string | null
   is_statement: boolean
   metadata: unknown
-}
-
-/**
- * Migrazione `conferme_ordine` non applicata o tabella non in cache PostgREST:
- * non restituire 500 (evita toast/banner rossi); il documento viene comunque segnato associato.
- */
-function confermeOrdineTableUnavailable(err: { message?: string; code?: string }): boolean {
-  if (err.code === '42P01') return true
-  const m = (err.message ?? '').toLowerCase()
-  if (!m.includes('conferme_ordine')) return false
-  return (
-    m.includes('schema cache') ||
-    m.includes('could not find') ||
-    m.includes('does not exist') ||
-    m.includes('not found')
-  )
 }
 
 /** Crea fattura senza bolla, bolla da allegato, o archivia estratto — dopo scelta tipo in coda. */
