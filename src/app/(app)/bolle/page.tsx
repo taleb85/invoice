@@ -16,7 +16,12 @@ import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_PAGE_HEADER_STRIP_H1_CLASS,
 } from '@/lib/app-shell-layout'
-import { analyzeBolleDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload, autoDeleteExcessDuplicates } from '@/lib/check-duplicates'
+import {
+  analyzeBolleDuplicatesForDeletion,
+  bollaExcessIdsForAutoDeletion,
+  serializeFatturaDuplicateDeletionPayload,
+  autoDeleteExcessDuplicates,
+} from '@/lib/check-duplicates'
 import { ExportButton } from '@/components/export-button'
 import type { ExportRow } from '@/lib/export-report'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
@@ -127,18 +132,17 @@ export default async function BollePage(props: {
         : await getBolleForToday(tz, sedeId)
   const bolle = bolleRaw as BollaListRow[]
   const todayYmd = calendarDateInTimeZone(tz)
-  const dupAnalysis = analyzeBolleDuplicatesForDeletion(
-    bolle.map((b) => ({
-      id: b.id,
-      numero_bolla: b.numero_bolla ?? null,
-      fornitore_id: b.fornitore_id,
-      data: (b.data ?? '').trim().slice(0, 10),
-      file_url: b.file_url ?? null,
-      sede_id: sedeId,
-      email_sync_auto_saved_at: b.email_sync_auto_saved_at ?? null,
-    })),
-  )
-  const excessIds = [...dupAnalysis.excessIds]
+  const bolleDupRows = bolle.map((b) => ({
+    id: b.id,
+    numero_bolla: b.numero_bolla ?? null,
+    fornitore_id: b.fornitore_id,
+    data: (b.data ?? '').trim().slice(0, 10),
+    file_url: b.file_url ?? null,
+    sede_id: sedeId,
+    email_sync_auto_saved_at: b.email_sync_auto_saved_at ?? null,
+  }))
+  const dupAnalysis = analyzeBolleDuplicatesForDeletion(bolleDupRows)
+  const excessIds = bollaExcessIdsForAutoDeletion(bolleDupRows)
   if (excessIds.length > 0) {
     const service = createServiceClient()
     const deleted = await autoDeleteExcessDuplicates(service, 'bolle', excessIds)

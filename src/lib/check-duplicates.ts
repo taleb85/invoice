@@ -337,6 +337,31 @@ function fatturaDateAmountSortFn(a: FatturaDupListRow, b: FatturaDupListRow): nu
   return fattureSortFn(a, b)
 }
 
+function analyzeFatturaSameFileUrlDuplicates(rows: FatturaDupListRow[]): FatturaDuplicateDeletionAnalysis {
+  const byUrl = new Map<string, FatturaDupListRow[]>()
+  for (const r of rows) {
+    const u = r.file_url?.trim()
+    if (!u) continue
+    const arr = byUrl.get(u) ?? []
+    arr.push(r)
+    byUrl.set(u, arr)
+  }
+
+  let merged = emptyDuplicateDeletionAnalysis()
+  for (const [url, arr] of byUrl) {
+    if (arr.length <= 1) continue
+    const slice = analyzeDuplicatesForDeletion(
+      arr,
+      () => `fileurl\u0000${url}`,
+      fatturaDateAmountSortFn,
+      true,
+      fatturaImporto,
+    )
+    merged = mergeDuplicateAnalyses(merged, slice)
+  }
+  return merged
+}
+
 /** Duplicati per stesso fornitore + numero + importo: mantiene la fattura con **data più vecchia**
  * (a parità di data, `id` lessicografico minore). Le altre righe sono `excessIds`.
  * Include anche stesso fornitore + data + importo (numeri OCR diversi). */
@@ -350,6 +375,24 @@ export function analyzeFatturaDuplicatesForDeletion(rows: FatturaDupListRow[]): 
     fatturaImporto,
   )
   return mergeDuplicateAnalyses(byNumero, byDateAmount)
+}
+
+/**
+ * Duplicati fatture con confidenza alta per cancellazione automatica:
+ * - stesso fornitore + numero fattura + importo
+ * - stesso `file_url` (stesso PDF registrato due volte)
+ * Escluso il gruppo «stessa data + importo» con numeri OCR diversi (revisione manuale).
+ */
+export function analyzeHighConfidenceFatturaDuplicatesForDeletion(
+  rows: FatturaDupListRow[],
+): FatturaDuplicateDeletionAnalysis {
+  const byNumero = analyzeDuplicatesForDeletion(rows, fatturaDupKey, fattureSortFn, true, fatturaImporto)
+  const byFile = analyzeFatturaSameFileUrlDuplicates(rows)
+  return mergeDuplicateAnalyses(byFile, byNumero)
+}
+
+export function fatturaExcessIdsForAutoDeletion(rows: FatturaDupListRow[]): string[] {
+  return [...analyzeHighConfidenceFatturaDuplicatesForDeletion(rows).excessIds]
 }
 
 /** Raggruppa per fornitore + numero fattura normalizzato + importo (centesimi). */
@@ -482,6 +525,19 @@ export function analyzeBolleDuplicatesForDeletion(
   return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumero, byOrphan), byFile)
 }
 
+/**
+ * Bolle: tutti i criteri attuali sono ad alta confidenza (numero+data, orfana+numero, stesso PDF).
+ */
+export function analyzeHighConfidenceBolleDuplicatesForDeletion(
+  rows: BollaDupListRow[],
+): FatturaDuplicateDeletionAnalysis {
+  return analyzeBolleDuplicatesForDeletion(rows)
+}
+
+export function bollaExcessIdsForAutoDeletion(rows: BollaDupListRow[]): string[] {
+  return [...analyzeHighConfidenceBolleDuplicatesForDeletion(rows).excessIds]
+}
+
 /** Raggruppa per fornitore + numero bolla normalizzato (senza importo). */
 export function analyzeBolleDuplicateGroups(rows: BollaDupProbe[]): DuplicateGroupAnalysis {
   return analyzeDuplicateGroups(rows, bollaDupKey, false)
@@ -543,7 +599,7 @@ export async function cleanupDuplicateBolle(
     if (chunk.length < PAGE_SIZE) break
   }
 
-  const analysis = analyzeBolleDuplicatesForDeletion(rows.slice(0, DUPLICATE_SCAN_MAX_ROWS))
+  const analysis = analyzeHighConfidenceBolleDuplicatesForDeletion(rows.slice(0, DUPLICATE_SCAN_MAX_ROWS))
   const excessIds = [...analysis.excessIds]
   const deleted =
     opts.dryRun || excessIds.length === 0

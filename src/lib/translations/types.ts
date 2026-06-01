@@ -1167,6 +1167,7 @@ export type Translations = {
     confermeOrdineOcrAutoProgress: string
     confermeOrdineOcrAutoDone: string
     confermeOrdineAutoDedupeDone: string
+    ledgerAutoDedupeDone: string
     syncEmailNeedSede: string
     ocrControllaFornitore: string
     ocrControllaFornitoreTitle: string

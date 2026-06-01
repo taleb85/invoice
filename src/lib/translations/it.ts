@@ -1806,6 +1806,8 @@ const translations: Translations = {
     confermeOrdineOcrAutoDone: 'Riletti {ok} conferme su {total}.',
     confermeOrdineAutoDedupeDone:
       'Rimosse {n} copie duplicate sicure (stesso PDF o stesso ordine con data). Le altre segnalate restano in revisione.',
+    ledgerAutoDedupeDone:
+      'Rimosse {n} copie duplicate sicure. Le altre segnalate restano in revisione.',
   },
   bolle: {
     title: 'Bolle',

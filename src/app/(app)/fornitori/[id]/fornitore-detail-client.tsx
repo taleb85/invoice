@@ -137,6 +137,8 @@ import {
 import {
   analyzeBolleDuplicatesForDeletion,
   analyzeFatturaDuplicatesForDeletion,
+  bollaExcessIdsForAutoDeletion,
+  fatturaExcessIdsForAutoDeletion,
   serializeFatturaDuplicateDeletionPayload,
 } from '@/lib/check-duplicates'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
@@ -2306,6 +2308,22 @@ function BolleTab({
     return serializeFatturaDuplicateDeletionPayload(analysis)
   }, [bolle, fornitoreId, fornitoreSedeId, numeroInElenco])
 
+  const bollaSafeAutoDeleteIds = useMemo(
+    () =>
+      bollaExcessIdsForAutoDeletion(
+        bolle.map((b) => ({
+          id: b.id,
+          numero_bolla: numeroInElenco(b) || b.numero_bolla || null,
+          fornitore_id: fornitoreId,
+          data: (b.data ?? '').trim().slice(0, 10),
+          file_url: b.file_url ?? null,
+          sede_id: b.sede_id ?? fornitoreSedeId ?? null,
+          email_sync_auto_saved_at: b.email_sync_auto_saved_at ?? null,
+        })),
+      ),
+    [bolle, fornitoreId, fornitoreSedeId, numeroInElenco],
+  )
+
   const bollaExcessIds = useMemo(
     () => new Set(bollaDupPayload.excessIds),
     [bollaDupPayload.excessIds],
@@ -2339,11 +2357,11 @@ function BolleTab({
     [onBollaDuplicateRemoved],
   )
 
-  /** Auto-delete excess same-file-url bolle once per load (admin only). */
+  /** Auto-delete duplicati bolle ad alta confidenza (admin). */
   const autoDeleteDoneRef = useRef<Set<string>>(new Set())
   useEffect(() => {
-    if (loading || readOnly || !canRianalizzaOcr || bollaExcessIds.size === 0) return
-    const toDelete = [...bollaExcessIds].filter((id) => !autoDeleteDoneRef.current.has(id))
+    if (loading || readOnly || !canRianalizzaOcr || bollaSafeAutoDeleteIds.length === 0) return
+    const toDelete = bollaSafeAutoDeleteIds.filter((id) => !autoDeleteDoneRef.current.has(id))
     if (!toDelete.length) return
     for (const id of toDelete) autoDeleteDoneRef.current.add(id)
     void (async () => {
@@ -2359,7 +2377,7 @@ function BolleTab({
         } catch { /* ignore */ }
       }
     })()
-  }, [loading, readOnly, canRianalizzaOcr, bollaExcessIds, onBollaDuplicateRemoved])
+  }, [loading, readOnly, canRianalizzaOcr, bollaSafeAutoDeleteIds, onBollaDuplicateRemoved])
 
   const bolleToolbarChoices = useMemo(
     () =>
@@ -3010,6 +3028,23 @@ function FattureTab({
     [onLedgerMutated],
   )
 
+  const fatturaSafeAutoDeleteIds = useMemo(
+    () =>
+      fatturaExcessIdsForAutoDeletion(
+        fatture.map((f) => ({
+          id: f.id,
+          numero_fattura: f.numero_fattura,
+          fornitore_id: f.fornitore_id,
+          importo: f.importo,
+          data: f.data,
+          file_url: f.file_url,
+        })),
+      ),
+    [fatture],
+  )
+
+  const fatturaAutoDedupeDoneRef = useRef<string | null>(null)
+
   const onFatturaDataRefreshed = useCallback(
     (fatturaId: string, newData: string) => {
       setFatture((prev) => {
@@ -3108,6 +3143,45 @@ function FattureTab({
   )
 
   const { showToast } = useToast()
+
+  useEffect(() => {
+    if (loading || readOnly || fatturaSafeAutoDeleteIds.length === 0) return
+    const runKey = `${fornitoreId}|${dateFrom}|${dateToExclusive}|${fatturaSafeAutoDeleteIds.join(',')}`
+    if (fatturaAutoDedupeDoneRef.current === runKey) return
+    fatturaAutoDedupeDoneRef.current = runKey
+
+    void (async () => {
+      let deleted = 0
+      for (const id of fatturaSafeAutoDeleteIds) {
+        try {
+          const res = await fetch('/api/delete-record', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ table: 'fatture', id }),
+          })
+          if (res.ok) {
+            deleted++
+            onDuplicateRemoved(id)
+          }
+        } catch { /* ignore */ }
+      }
+      if (deleted > 0) {
+        showToast(t.fornitori.ledgerAutoDedupeDone.replace('{n}', String(deleted)), 'success')
+      }
+    })()
+  }, [
+    loading,
+    readOnly,
+    fatturaSafeAutoDeleteIds,
+    fornitoreId,
+    dateFrom,
+    dateToExclusive,
+    onDuplicateRemoved,
+    showToast,
+    t,
+  ])
+
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'numero_fattura' | 'importo' } | null>(null)
   const [editValue, setEditValue] = useState('')
 

@@ -25,6 +25,7 @@ import {
 } from '@/lib/app-shell-layout'
 import {
   analyzeFatturaDuplicatesForDeletion,
+  fatturaExcessIdsForAutoDeletion,
   serializeFatturaDuplicateDeletionPayload,
   autoDeleteExcessDuplicates,
 } from '@/lib/check-duplicates'
@@ -127,16 +128,16 @@ export default async function FatturePage(props: {
     fatture = await getFatture(supabase, fornitoreIds, fiscal?.bounds ?? null)
   }
   const formatDate = (d: string) => fmtDate(d, locale, tz)
-  const dupDel = analyzeFatturaDuplicatesForDeletion(
-    fatture.map((f) => ({
-      id: f.id,
-      numero_fattura: f.numero_fattura,
-      fornitore_id: f.fornitore_id ?? '',
-      importo: f.importo,
-      data: f.data,
-    })),
-  )
-  const excessIds = [...dupDel.excessIds]
+  const fattureDupRows = fatture.map((f) => ({
+    id: f.id,
+    numero_fattura: f.numero_fattura,
+    fornitore_id: f.fornitore_id ?? '',
+    importo: f.importo,
+    data: f.data,
+    file_url: f.file_url ?? null,
+  }))
+  const dupDel = analyzeFatturaDuplicatesForDeletion(fattureDupRows)
+  const excessIds = fatturaExcessIdsForAutoDeletion(fattureDupRows)
   if (excessIds.length > 0) {
     const service = createServiceClient()
     const deleted = await autoDeleteExcessDuplicates(service, 'fatture', excessIds)
@@ -149,6 +150,7 @@ export default async function FatturePage(props: {
           fornitore_id: f.fornitore_id ?? '',
           importo: f.importo,
           data: f.data,
+          file_url: f.file_url ?? null,
         })),
       )
       dupDel.memberIds = cleanDel.memberIds

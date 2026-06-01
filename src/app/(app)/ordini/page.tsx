@@ -31,7 +31,12 @@ import {
   APP_SECTION_TABLE_TD_NUMERIC,
 } from '@/lib/app-shell-layout'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
-import { analyzeOrdineDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload, autoDeleteExcessDuplicates } from '@/lib/check-duplicates'
+import {
+  analyzeOrdineDuplicatesForDeletion,
+  ordineExcessIdsForAutoDeletion,
+  serializeFatturaDuplicateDeletionPayload,
+  autoDeleteExcessDuplicates,
+} from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
@@ -76,17 +81,18 @@ export default async function OrdiniOverviewPage(props: {
   const formatDate = (d: string) => fmtDate(d, locale, tz)
   const fyForLinks = fiscal?.labelYear ?? null
 
-  const ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(
-    rows.map((r) => ({
-      id: r.id,
-      fornitore_id: r.fornitore_id,
-      data_ordine: r.data_ordine,
-      numero_ordine: r.numero_ordine,
-      titolo: r.titolo,
-      created_at: r.created_at,
-    })),
-  )
-  const ordExcessIds = [...ordDupAnalysis.excessIds]
+  const ordiniDupRows = rows.map((r) => ({
+    id: r.id,
+    fornitore_id: r.fornitore_id,
+    data_ordine: r.data_ordine,
+    numero_ordine: r.numero_ordine,
+    titolo: r.titolo,
+    created_at: r.created_at,
+    file_url: r.file_url ?? null,
+    file_name: r.file_name ?? null,
+  }))
+  const ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(ordiniDupRows)
+  const ordExcessIds = ordineExcessIdsForAutoDeletion(ordiniDupRows)
   if (ordExcessIds.length > 0) {
     const service = createServiceClient()
     const deleted = await autoDeleteExcessDuplicates(service, 'conferme_ordine', ordExcessIds)
@@ -100,6 +106,8 @@ export default async function OrdiniOverviewPage(props: {
           numero_ordine: r.numero_ordine,
           titolo: r.titolo,
           created_at: r.created_at,
+          file_url: r.file_url ?? null,
+          file_name: r.file_name ?? null,
         })),
       )
       ordDupAnalysis.memberIds = cleanAnalysis.memberIds
