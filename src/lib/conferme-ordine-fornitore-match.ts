@@ -21,11 +21,26 @@ export function normalizeCompanyKey(s: string | null | undefined): string {
     .replace(/\s+/g, ' ')
 }
 
+function looksLikeOrderReferenceTitle(labelKey: string): boolean {
+  if (!labelKey) return true
+  if (looksLikeSupplierCompanyName(labelKey)) return false
+  return (
+    /\b(order|ordine|confirmation|conferma|rekki|purchase)\b/.test(labelKey) ||
+    /\b[a-z]{0,8}\d{3,}\b/.test(labelKey)
+  )
+}
+
 export function confermeOrdineVendorLabel(row: {
   titolo?: string | null
   file_name?: string | null
+  ragione_sociale?: string | null
 }): string {
-  return row.titolo?.trim() || row.file_name?.trim() || ''
+  const titolo = row.titolo?.trim() ?? ''
+  const rs = row.ragione_sociale?.trim() ?? ''
+  const file = row.file_name?.trim() ?? ''
+  const titoloKey = normalizeCompanyKey(titolo)
+  if (rs && looksLikeOrderReferenceTitle(titoloKey)) return rs
+  return titolo || rs || file
 }
 
 function companyKeysForFornitore(f: FornitoreNameRow): string[] {
@@ -46,34 +61,52 @@ function labelMatchesCompanyKey(labelKey: string, companyKey: string): boolean {
   return false
 }
 
-/** Fornitore univoco il cui nome compare nel titolo/file; `null` se ambiguo o assente. */
-export function resolveFornitoreIdFromCompanyLabel(
-  label: string,
-  fornitori: FornitoreNameRow[],
-): string | null {
-  const labelKey = normalizeCompanyKey(label)
-  if (!labelKey || labelKey.length < 3) return null
-  const matched = new Set<string>()
-  for (const f of fornitori) {
-    for (const fk of companyKeysForFornitore(f)) {
-      if (labelMatchesCompanyKey(labelKey, fk)) {
-        matched.add(f.id)
-        break
-      }
-    }
+/** Esclude titoli tipo «Order confirmation #123» (non ragione sociale). */
+function looksLikeSupplierCompanyName(labelKey: string): boolean {
+  if (!labelKey || labelKey.length < 8) return false
+  if (
+    /\b(order|ordine|confirmation|conferma|rekki|delivery|invoice|fattura|purchase)\b/i.test(
+      labelKey,
+    ) &&
+    !/\b(ltd|limited|company|srl|spa|gmbh|inc|llc|plc)\b/i.test(labelKey)
+  ) {
+    return false
   }
-  if (matched.size === 1) return [...matched][0]!
-  return null
+  const words = labelKey.split(' ').filter((w) => w.length > 1 && !/^\d+$/.test(w))
+  return words.length >= 2
 }
 
-/** Mostra la conferma in scheda fornitore solo se il nome documento coincide (o non è riconoscibile). */
+function matchesAnyFornitoreKey(labelKey: string, keys: string[]): boolean {
+  return keys.some((fk) => labelMatchesCompanyKey(labelKey, fk))
+}
+
+/** Mostra la conferma in scheda fornitore solo se il nome documento coincide con questo fornitore. */
 export function confermeOrdineBelongsToFornitore(
-  row: { titolo?: string | null; file_name?: string | null; fornitore_id: string },
+  row: {
+    titolo?: string | null
+    file_name?: string | null
+    ragione_sociale?: string | null
+    fornitore_id: string
+  },
   fornitoreId: string,
   fornitori: FornitoreNameRow[],
 ): boolean {
   if (row.fornitore_id !== fornitoreId) return false
-  const resolved = resolveFornitoreIdFromCompanyLabel(confermeOrdineVendorLabel(row), fornitori)
-  if (!resolved) return true
-  return resolved === fornitoreId
+
+  const labelKey = normalizeCompanyKey(confermeOrdineVendorLabel(row))
+  if (!labelKey || labelKey.length < 3) return true
+
+  const current = fornitori.find((f) => f.id === fornitoreId)
+  const currentKeys = current ? companyKeysForFornitore(current) : []
+  const matchesCurrent = matchesAnyFornitoreKey(labelKey, currentKeys)
+
+  for (const f of fornitori) {
+    if (f.id === fornitoreId) continue
+    const peerKeys = companyKeysForFornitore(f)
+    if (matchesAnyFornitoreKey(labelKey, peerKeys)) return false
+  }
+
+  if (!matchesCurrent && looksLikeSupplierCompanyName(labelKey)) return false
+
+  return true
 }

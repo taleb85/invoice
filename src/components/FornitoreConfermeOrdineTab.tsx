@@ -6,11 +6,6 @@ import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib, formatCurrency } from '@/lib/locale'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
-import { confermeOrdineLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
-import {
-  confermeOrdineBelongsToFornitore,
-  type FornitoreNameRow,
-} from '@/lib/conferme-ordine-fornitore-match'
 
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
@@ -132,58 +127,47 @@ export default function FornitoreConfermeOrdineTab({
 
   const load = useCallback(async () => {
     setLoading(true)
-    const supabase = createClient()
-
-    let fornitoriPeers: FornitoreNameRow[] = []
-    if (sedeId) {
-      const { data: peerRows } = await supabase
-        .from('fornitori')
-        .select('id, nome, display_name')
-        .eq('sede_id', sedeId)
-      fornitoriPeers = (peerRows ?? []) as FornitoreNameRow[]
-    } else {
-      const { data: selfRow } = await supabase
-        .from('fornitori')
-        .select('id, nome, display_name')
-        .eq('id', fornitoreId)
-        .maybeSingle()
-      if (selfRow) fornitoriPeers = [selfRow as FornitoreNameRow]
-    }
-    let q = supabase
-      .from('conferme_ordine')
-      .select('id, file_url, file_name, titolo, data_ordine, note, created_at, righe, fornitore_id')
-      .eq('fornitore_id', fornitoreId)
-    if (dateFrom && dateToExclusive) {
-      q = q.or(confermeOrdineLedgerPeriodOrFilter(dateFrom, dateToExclusive))
-    }
-    const { data, error: qErr } = await q.order('created_at', { ascending: false })
-
-    if (qErr) {
-      if (qErr.message?.includes('conferme_ordine') || qErr.code === '42P01') {
-        setTableMissing(true)
-        setRows([])
-      } else {
-        setError(qErr.message)
-        setRows([])
+    setError(null)
+    try {
+      const params = new URLSearchParams()
+      if (dateFrom && dateToExclusive) {
+        params.set('from', dateFrom)
+        params.set('to', dateToExclusive)
       }
+      const qs = params.toString()
+      const res = await fetch(
+        `/api/fornitori/${encodeURIComponent(fornitoreId)}/conferme-ordine${qs ? `?${qs}` : ''}`,
+        { credentials: 'include', cache: 'no-store' },
+      )
+      if (!res.ok) {
+        let msg = res.statusText
+        try {
+          const j = (await res.json()) as { error?: string }
+          if (j.error?.trim()) msg = j.error.trim()
+        } catch {
+          /* ignore */
+        }
+        if (msg.includes('conferme_ordine') || msg.includes('42P01')) {
+          setTableMissing(true)
+          setRows([])
+        } else {
+          setTableMissing(false)
+          setError(msg)
+          setRows([])
+        }
+        return
+      }
+      setTableMissing(false)
+      const data = (await res.json()) as ConfermaOrdineRow[]
+      setRows(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setTableMissing(false)
+      setError(e instanceof Error ? e.message : String(e))
+      setRows([])
+    } finally {
       setLoading(false)
-      return
     }
-    setTableMissing(false)
-    const raw = (data ?? []) as ConfermaOrdineRow[]
-    const filtered =
-      fornitoriPeers.length > 0
-        ? raw.filter((r) =>
-            confermeOrdineBelongsToFornitore(
-              { titolo: r.titolo, file_name: r.file_name, fornitore_id: fornitoreId },
-              fornitoreId,
-              fornitoriPeers,
-            ),
-          )
-        : raw
-    setRows(filtered)
-    setLoading(false)
-  }, [fornitoreId, sedeId, dateFrom, dateToExclusive])
+  }, [fornitoreId, dateFrom, dateToExclusive])
 
   useEffect(() => {
     void load()

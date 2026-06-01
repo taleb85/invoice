@@ -9,14 +9,8 @@ import {
   countRekkiUnitAnomaliesFromStatements,
 } from '@/lib/rekki-price-anomalies'
 import { findSameDomainPeersForFornitore } from '@/lib/fornitore-same-domain'
-import {
-  confermeOrdineBelongsToFornitore,
-  type FornitoreNameRow,
-} from '@/lib/conferme-ordine-fornitore-match'
-import {
-  confermeOrdineLedgerPeriodOrFilter,
-  pendingDocLedgerPeriodOrFilter,
-} from '@/lib/documenti-queue-period'
+import { fetchFilteredConfermeOrdine } from '@/lib/conferme-ordine-query'
+import { pendingDocLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,28 +32,6 @@ export async function GET(req: NextRequest) {
 
     const service = createServiceClient()
 
-    const { data: fornitoreRow } = await service
-      .from('fornitori')
-      .select('sede_id')
-      .eq('id', fornitoreId)
-      .maybeSingle()
-
-    let sedeFornitori: FornitoreNameRow[] = []
-    if (fornitoreRow?.sede_id) {
-      const { data: peerRows } = await service
-        .from('fornitori')
-        .select('id, nome, display_name')
-        .eq('sede_id', fornitoreRow.sede_id)
-      sedeFornitori = (peerRows ?? []) as FornitoreNameRow[]
-    } else {
-      const { data: selfRow } = await service
-        .from('fornitori')
-        .select('id, nome, display_name')
-        .eq('id', fornitoreId)
-        .maybeSingle()
-      if (selfRow) sedeFornitori = [selfRow as FornitoreNameRow]
-    }
-
     const [
       bolleCountRes,
       bolleAperteRes,
@@ -67,9 +39,9 @@ export async function GET(req: NextRequest) {
       bolleRowsRes,
       listinoRes,
       stmtsRes,
-      ordiniRowsRes,
       anomalieRes,
       pendingRes,
+      ordiniFilteredP,
     ] = await Promise.all([
       service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
       service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('stato', 'in attesa').gte('data', from).lt('data', to),
@@ -87,11 +59,7 @@ export async function GET(req: NextRequest) {
         .lt('data', to),
       service.from('listino_prezzi').select('prodotto').eq('fornitore_id', fornitoreId).gte('data_prezzo', from).lt('data_prezzo', to).limit(8000),
       service.from('statements').select('missing_rows, received_at, extracted_pdf_dates').eq('fornitore_id', fornitoreId).order('received_at', { ascending: false }).limit(800),
-      service
-        .from('conferme_ordine')
-        .select('id, titolo, file_name, fornitore_id')
-        .eq('fornitore_id', fornitoreId)
-        .or(confermeOrdineLedgerPeriodOrFilter(from, to)),
+      fetchFilteredConfermeOrdine(service, { fornitoreId, from, toExclusive: to }),
       service.from('price_anomalies').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('resolved', false),
       service
         .from('documenti_da_processare')
@@ -157,15 +125,7 @@ export async function GET(req: NextRequest) {
       return d && d >= from && d < to && (s.missing_rows ?? 0) > 0
     }).length
 
-    const ordiniRows = (ordiniRowsRes.data ?? []) as {
-      titolo: string | null
-      file_name: string | null
-      fornitore_id: string
-    }[]
-    const ordiniNelPeriodo =
-      sedeFornitori.length > 0
-        ? ordiniRows.filter((r) => confermeOrdineBelongsToFornitore(r, fornitoreId, sedeFornitori)).length
-        : ordiniRows.length
+    const ordiniNelPeriodo = ordiniFilteredP.rows.length
 
     return NextResponse.json({
       bolleTotal: bolleCountRes.count ?? 0,
