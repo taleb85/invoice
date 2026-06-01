@@ -277,8 +277,11 @@ async function finalizePendingByTipo(
   }
 
   if (tipo === 'ordine') {
+    const numeroOrdineRaw =
+      typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null
+    const numeroOrdine = numeroOrdineRaw ? normalizeNumeroFattura(numeroOrdineRaw) : null
     const titoloOrdine =
-      (typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null) ||
+      numeroOrdineRaw ||
       (typeof doc.oggetto_mail === 'string' && doc.oggetto_mail.trim() ? doc.oggetto_mail.trim() : null)
 
     // Righe prodotto salvate durante la scansione IMAP in metadata.rekki_lines
@@ -293,6 +296,7 @@ async function finalizePendingByTipo(
         file_url: doc.file_url,
         file_name: doc.file_name ?? null,
         titolo: titoloOrdine,
+        numero_ordine: numeroOrdine,
         data_ordine: dataDoc,
         note: null,
         ...(righe ? { righe } : {}),

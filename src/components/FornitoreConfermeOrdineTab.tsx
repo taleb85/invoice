@@ -13,7 +13,7 @@ import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR 
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
-import { extractDocTypeLabel, splitDocTitleForDisplay } from '@/lib/extract-doc-type'
+import { confermaOrdineDisplayLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
 
 /**
  * Riga prodotto come salvata in `conferme_ordine.righe` (jsonb).
@@ -31,10 +31,23 @@ export type ConfermaOrdineRow = {
   file_url: string
   file_name: string | null
   titolo: string | null
+  numero_ordine?: string | null
+  numero_fattura_doc?: string | null
+  oggetto_mail?: string | null
   data_ordine: string | null
   note: string | null
   created_at: string
   righe: ConfermaOrdineRiga[] | null
+}
+
+function confermaRowLabel(r: ConfermaOrdineRow) {
+  return confermaOrdineDisplayLabel({
+    titolo: r.titolo,
+    fileName: r.file_name,
+    numeroOrdine: r.numero_ordine,
+    numeroFatturaMetadata: r.numero_fattura_doc,
+    oggettoMail: r.oggetto_mail,
+  })
 }
 
 /**
@@ -315,7 +328,7 @@ export default function FornitoreConfermeOrdineTab({
                 >
                   <div className="min-w-0">
                     {(() => {
-                      const { primary, secondary } = splitDocTitleForDisplay(r.titolo, r.file_name)
+                      const { primary, secondary } = confermaRowLabel(r)
                       return (
                         <>
                           <p className="font-medium text-app-fg">{primary}</p>
@@ -420,7 +433,7 @@ export default function FornitoreConfermeOrdineTab({
                           categoria={extractDocTypeLabel(r.titolo, r.file_name) ?? t.fornitori.tabConfermeOrdine}
                         >
                           {(() => {
-                            const { primary, secondary } = splitDocTitleForDisplay(r.titolo, r.file_name)
+                            const { primary, secondary } = confermaRowLabel(r)
                             return (
                               <>
                                 <span className="block truncate" title={r.titolo?.trim() || r.file_name || undefined}>
