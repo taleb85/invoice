@@ -7,6 +7,10 @@ import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib, formatCurrency } from '@/lib/locale'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 import { confermeOrdineLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
+import {
+  confermeOrdineBelongsToFornitore,
+  type FornitoreNameRow,
+} from '@/lib/conferme-ordine-fornitore-match'
 
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
@@ -129,9 +133,25 @@ export default function FornitoreConfermeOrdineTab({
   const load = useCallback(async () => {
     setLoading(true)
     const supabase = createClient()
+
+    let fornitoriPeers: FornitoreNameRow[] = []
+    if (sedeId) {
+      const { data: peerRows } = await supabase
+        .from('fornitori')
+        .select('id, nome, display_name')
+        .eq('sede_id', sedeId)
+      fornitoriPeers = (peerRows ?? []) as FornitoreNameRow[]
+    } else {
+      const { data: selfRow } = await supabase
+        .from('fornitori')
+        .select('id, nome, display_name')
+        .eq('id', fornitoreId)
+        .maybeSingle()
+      if (selfRow) fornitoriPeers = [selfRow as FornitoreNameRow]
+    }
     let q = supabase
       .from('conferme_ordine')
-      .select('id, file_url, file_name, titolo, data_ordine, note, created_at, righe')
+      .select('id, file_url, file_name, titolo, data_ordine, note, created_at, righe, fornitore_id')
       .eq('fornitore_id', fornitoreId)
     if (dateFrom && dateToExclusive) {
       q = q.or(confermeOrdineLedgerPeriodOrFilter(dateFrom, dateToExclusive))
@@ -150,9 +170,20 @@ export default function FornitoreConfermeOrdineTab({
       return
     }
     setTableMissing(false)
-    setRows((data ?? []) as ConfermaOrdineRow[])
+    const raw = (data ?? []) as ConfermaOrdineRow[]
+    const filtered =
+      fornitoriPeers.length > 0
+        ? raw.filter((r) =>
+            confermeOrdineBelongsToFornitore(
+              { titolo: r.titolo, file_name: r.file_name, fornitore_id: fornitoreId },
+              fornitoreId,
+              fornitoriPeers,
+            ),
+          )
+        : raw
+    setRows(filtered)
     setLoading(false)
-  }, [fornitoreId, dateFrom, dateToExclusive])
+  }, [fornitoreId, sedeId, dateFrom, dateToExclusive])
 
   useEffect(() => {
     void load()

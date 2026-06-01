@@ -10,6 +10,10 @@ import {
 } from '@/lib/rekki-price-anomalies'
 import { findSameDomainPeersForFornitore } from '@/lib/fornitore-same-domain'
 import {
+  confermeOrdineBelongsToFornitore,
+  type FornitoreNameRow,
+} from '@/lib/conferme-ordine-fornitore-match'
+import {
   confermeOrdineLedgerPeriodOrFilter,
   pendingDocLedgerPeriodOrFilter,
 } from '@/lib/documenti-queue-period'
@@ -34,6 +38,28 @@ export async function GET(req: NextRequest) {
 
     const service = createServiceClient()
 
+    const { data: fornitoreRow } = await service
+      .from('fornitori')
+      .select('sede_id')
+      .eq('id', fornitoreId)
+      .maybeSingle()
+
+    let sedeFornitori: FornitoreNameRow[] = []
+    if (fornitoreRow?.sede_id) {
+      const { data: peerRows } = await service
+        .from('fornitori')
+        .select('id, nome, display_name')
+        .eq('sede_id', fornitoreRow.sede_id)
+      sedeFornitori = (peerRows ?? []) as FornitoreNameRow[]
+    } else {
+      const { data: selfRow } = await service
+        .from('fornitori')
+        .select('id, nome, display_name')
+        .eq('id', fornitoreId)
+        .maybeSingle()
+      if (selfRow) sedeFornitori = [selfRow as FornitoreNameRow]
+    }
+
     const [
       bolleCountRes,
       bolleAperteRes,
@@ -41,7 +67,7 @@ export async function GET(req: NextRequest) {
       bolleRowsRes,
       listinoRes,
       stmtsRes,
-      ordiniRes,
+      ordiniRowsRes,
       anomalieRes,
       pendingRes,
     ] = await Promise.all([
@@ -63,7 +89,7 @@ export async function GET(req: NextRequest) {
       service.from('statements').select('missing_rows, received_at, extracted_pdf_dates').eq('fornitore_id', fornitoreId).order('received_at', { ascending: false }).limit(800),
       service
         .from('conferme_ordine')
-        .select('id', { count: 'exact', head: true })
+        .select('id, titolo, file_name, fornitore_id')
         .eq('fornitore_id', fornitoreId)
         .or(confermeOrdineLedgerPeriodOrFilter(from, to)),
       service.from('price_anomalies').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('resolved', false),
@@ -131,11 +157,21 @@ export async function GET(req: NextRequest) {
       return d && d >= from && d < to && (s.missing_rows ?? 0) > 0
     }).length
 
+    const ordiniRows = (ordiniRowsRes.data ?? []) as {
+      titolo: string | null
+      file_name: string | null
+      fornitore_id: string
+    }[]
+    const ordiniNelPeriodo =
+      sedeFornitori.length > 0
+        ? ordiniRows.filter((r) => confermeOrdineBelongsToFornitore(r, fornitoreId, sedeFornitori)).length
+        : ordiniRows.length
+
     return NextResponse.json({
       bolleTotal: bolleCountRes.count ?? 0,
       bolleAperte: bolleAperteRes.count ?? 0,
       fattureTotal: fattureRes.data?.length ?? 0,
-      ordiniNelPeriodo: ordiniRes.count ?? 0,
+      ordiniNelPeriodo,
       pending: pendingRes.count ?? 0,
       totaleSpesaLordo,
       totaleSpesa,
