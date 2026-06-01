@@ -41,7 +41,6 @@ export async function GET(req: NextRequest) {
       stmtsRes,
       anomalieRes,
       pendingRes,
-      ordiniFilteredP,
     ] = await Promise.all([
       service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
       service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('stato', 'in attesa').gte('data', from).lt('data', to),
@@ -66,8 +65,22 @@ export async function GET(req: NextRequest) {
         .eq('fornitore_id', fornitoreId)
         .in('stato', ['in_attesa', 'da_processare', 'da_associare'])
         .or(pendingDocLedgerPeriodOrFilter(from, to)),
-      fetchFilteredConfermeOrdine(service, { fornitoreId, from, toExclusive: to }),
     ])
+
+    let ordiniNelPeriodo = 0
+    try {
+      const ordiniFiltered = await fetchFilteredConfermeOrdine(service, {
+        fornitoreId,
+        from,
+        toExclusive: to,
+      })
+      ordiniNelPeriodo = ordiniFiltered.rows?.length ?? 0
+    } catch (confermeErr) {
+      console.warn(
+        '[GET /api/fornitori/stats] conferme ordine:',
+        confermeErr instanceof Error ? confermeErr.message : confermeErr,
+      )
+    }
 
     const fattureRows = (fattureRes.data ?? []) as { importo: number | null; is_credit_note?: boolean | null }[]
     const totaleSpesaLordo = fattureRows.reduce((s, f) => s + (f.importo ?? 0), 0)
@@ -124,8 +137,6 @@ export async function GET(req: NextRequest) {
       const d = s.received_at?.slice(0, 10)
       return d && d >= from && d < to && (s.missing_rows ?? 0) > 0
     }).length
-
-    const ordiniNelPeriodo = ordiniFilteredP.rows.length
 
     return NextResponse.json({
       bolleTotal: bolleCountRes.count ?? 0,
