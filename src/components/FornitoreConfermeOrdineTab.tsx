@@ -15,6 +15,7 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
 import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
+import { sortConfermeOrdineByDocumentDateDesc } from '@/lib/conferme-ordine-query'
 
 const SupplierDocumentOcrToolbar = dynamic(
   () => import('@/components/SupplierDocumentOcrToolbar'),
@@ -124,6 +125,20 @@ export default function FornitoreConfermeOrdineTab({
   const [convertingAll, setConvertingAll] = useState(false)
   const [toolbarConfermaId, setToolbarConfermaId] = useState('')
 
+  const sortedRows = useMemo(
+    () =>
+      sortConfermeOrdineByDocumentDateDesc(
+        rows.map((r) => ({
+          ...r,
+          fornitore_id: fornitoreId,
+          numero_fattura_doc: r.numero_fattura_doc ?? null,
+          oggetto_mail: r.oggetto_mail ?? null,
+          data_ordine_display: r.data_ordine_display ?? null,
+        })),
+      ),
+    [rows, fornitoreId],
+  )
+
   const confermeTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.conferme
   const migrationTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti
   const confermeSecondaryClass = 'text-app-fg-muted'
@@ -197,7 +212,7 @@ export default function FornitoreConfermeOrdineTab({
 
   const toolbarChoices = useMemo(
     () =>
-      rows.map((r) => {
+      sortedRows.map((r) => {
         const { primary } = confermaRowLabel(r)
         const datePart = (r.data_ordine_display ?? r.data_ordine)
           ? fmt(r.data_ordine_display ?? r.data_ordine!)
@@ -208,7 +223,7 @@ export default function FornitoreConfermeOrdineTab({
           hasFile: Boolean(r.file_url?.trim()),
         }
       }),
-    [rows, fmt],
+    [sortedRows, fmt],
   )
 
   const rowsWithFile = useMemo(() => toolbarChoices.filter((c) => c.hasFile), [toolbarChoices])
@@ -225,7 +240,7 @@ export default function FornitoreConfermeOrdineTab({
 
   const refreshBatch = useMemo(
     () =>
-      rows
+      sortedRows
         .filter((r) => r.file_url?.trim())
         .map((r) => ({
           kind: 'conferma' as const,
@@ -243,7 +258,7 @@ export default function FornitoreConfermeOrdineTab({
             )
           },
         })),
-    [rows],
+    [sortedRows],
   )
 
   const handleDelete = async (row: ConfermaOrdineRow) => {
@@ -292,7 +307,7 @@ export default function FornitoreConfermeOrdineTab({
   }
 
   const handleConvertAll = async () => {
-    if (rows.length === 0) return
+    if (sortedRows.length === 0) return
     setConvertingAll(true)
     setError(null)
     try {
@@ -337,7 +352,7 @@ export default function FornitoreConfermeOrdineTab({
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-2 border-b border-app-line-20 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-relaxed text-app-fg">{t.fornitori.confermeOrdineIntro}</p>
-          {!readOnly && rows.length > 0 ? (
+          {!readOnly && sortedRows.length > 0 ? (
             <button
               type="button"
               disabled={convertingAll}
@@ -370,7 +385,7 @@ export default function FornitoreConfermeOrdineTab({
               aria-hidden
             />
           </div>
-        ) : rows.length === 0 ? (
+        ) : sortedRows.length === 0 ? (
           <AppSectionEmptyState
             message={t.fornitori.confermeOrdineEmpty}
             messageClassName={confermeSecondaryClass}
@@ -394,7 +409,7 @@ export default function FornitoreConfermeOrdineTab({
         ) : (
           <>
             <div className={APP_SECTION_MOBILE_LIST}>
-              {rows.map((r) => (
+              {sortedRows.map((r) => (
                 <div
                   key={r.id}
                   className="flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-app-line-5"
@@ -492,7 +507,7 @@ export default function FornitoreConfermeOrdineTab({
                   </tr>
                 </thead>
                 <tbody className={APP_SECTION_TABLE_TBODY}>
-                  {rows.map((r) => (
+                  {sortedRows.map((r) => (
                     <tr key={r.id} className={APP_SECTION_TABLE_TR}>
                       <td className={`px-5 py-3 ${confermeSecondaryClass}`}>
                         {r.data_ordine_display ?? r.data_ordine

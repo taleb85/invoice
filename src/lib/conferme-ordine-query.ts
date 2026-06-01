@@ -34,6 +34,26 @@ export type ConfermaOrdineListRow = {
   data_ordine_display: string | null
 }
 
+/** Giorno per ordinamento elenco: data documento (display/OCR o DB), poi ricezione. */
+export function confermaOrdineSortDayIso(row: Pick<ConfermaOrdineListRow, 'data_ordine_display' | 'data_ordine' | 'created_at'>): string {
+  const display = row.data_ordine_display?.trim()
+  if (display && /^\d{4}-\d{2}-\d{2}$/.test(display)) return display
+  const col = row.data_ordine ? safeDate(row.data_ordine) : null
+  if (col) return col
+  const recv = row.created_at?.trim()
+  if (recv && /^\d{4}-\d{2}-\d{2}/.test(recv)) return recv.slice(0, 10)
+  return ''
+}
+
+/** Conferme in tab fornitore: data documento decrescente (come fatture/bolle). */
+export function sortConfermeOrdineByDocumentDateDesc(rows: ConfermaOrdineListRow[]): ConfermaOrdineListRow[] {
+  return [...rows].sort((a, b) => {
+    const dayCmp = confermaOrdineSortDayIso(b).localeCompare(confermaOrdineSortDayIso(a))
+    if (dayCmp !== 0) return dayCmp
+    return (b.created_at ?? '').localeCompare(a.created_at ?? '')
+  })
+}
+
 export async function loadSedeFornitoriForMatch(
   service: SupabaseClient,
   fornitoreId: string,
@@ -182,7 +202,7 @@ export async function fetchFilteredConfermeOrdine(
     })
   }
 
-  return { rows, sedeFornitori }
+  return { rows: sortConfermeOrdineByDocumentDateDesc(rows), sedeFornitori }
 }
 
 async function tryOrderDateFromConfermaPdf(
