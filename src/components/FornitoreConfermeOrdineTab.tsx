@@ -462,7 +462,7 @@ export default function FornitoreConfermeOrdineTab({
       <div className={`app-card-bar-accent ${confermeTheme.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-2 border-b border-app-line-20 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm leading-relaxed text-app-fg">{t.fornitori.confermeOrdineIntro}</p>
+          <p className="text-xs leading-snug text-app-fg-muted">{t.fornitori.confermeOrdineIntro}</p>
           {!readOnly && sortedRows.length > 0 ? (
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
               {refreshBatch.length > 0 ? (

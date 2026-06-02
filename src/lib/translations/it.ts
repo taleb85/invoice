@@ -1781,7 +1781,7 @@ const translations: Translations = {
     logoUrlHint:
       'Indirizzo HTTPS di un’immagine (PNG, JPG o SVG). Se il link non è valido o non si carica, restano le iniziali del nome.',
     confermeOrdineIntro:
-      'Conferme d’ordine nel periodo (es. da Rekki o sync). «→ Bolla» o «Converti tutti in bolle» le porta nel flusso DDT; non sostituiscono le fatture.',
+      'Ordini confermati nel periodo. «→ Bolla» crea un DDT; non sono fatture.',
     confermeOrdineOptionalTitle: 'Titolo (opz.)',
     confermeOrdineOptionalTitlePh: 'es. Ordine 4582',
     confermeOrdineOptionalOrderDate: 'Data ordine',
