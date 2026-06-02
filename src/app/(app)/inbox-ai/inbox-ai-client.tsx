@@ -57,6 +57,7 @@ type PendingDocRow = {
   fornitore_id: string | null
   fornitore?: { nome?: string | null } | null
   mittente?: string | null
+  oggetto_mail?: string | null
   metadata?: unknown
 }
 
@@ -446,7 +447,10 @@ export default function InboxAiClient(props: {
   /** Quanti documenti analizzati possono essere confermati in un colpo solo (tipo riconosciuto + fornitore). */
   const confirmAllEligibleCount = useMemo(() => {
     return docsNewestFirst.filter((d) => {
-      const kind = resolveInboxSuggestedKind(d.metadata, suggestions[d.id]?.tipo_suggerito)
+      const kind = resolveInboxSuggestedKind(d.metadata, suggestions[d.id]?.tipo_suggerito, {
+        file_name: d.file_name,
+        oggetto_mail: d.oggetto_mail,
+      })
       return !!(kind && d.fornitore_id)
     }).length
   }, [docsNewestFirst, suggestions])
@@ -493,6 +497,34 @@ export default function InboxAiClient(props: {
         for (const s of list) next[s.doc_id] = s
         return next
       })
+      if (list.length > 0) {
+        setDocs((prev) =>
+          prev.map((d) => {
+            const s = list.find((x) => x.doc_id === d.id)
+            if (!s) return d
+            const pk = mapInboxTipoToPendingKind(s.tipo_suggerito)
+            const base =
+              d.metadata && typeof d.metadata === 'object' && !Array.isArray(d.metadata)
+                ? { ...(d.metadata as Record<string, unknown>) }
+                : {}
+            return {
+              ...d,
+              metadata: {
+                ...base,
+                ai_tipo_suggerito: s.tipo_suggerito,
+                ai_confidenza: s.confidenza,
+                ai_fornitore_suggerito: s.fornitore_suggerito,
+                ai_azione_consigliata: s.azione_consigliata,
+                ...(pk === 'ordine'
+                  ? { pending_kind: 'ordine', tipo_documento: base.tipo_documento ?? 'ordine' }
+                  : pk && pk !== 'comunicazione'
+                    ? { pending_kind: pk }
+                    : {}),
+              },
+            }
+          }),
+        )
+      }
 
       /** Stessa copia lista usata dall’analisi dopo ogni finalize (stato aggiorna in modo asincrono). */
       let workingDocs = [...docs]
@@ -636,7 +668,10 @@ export default function InboxAiClient(props: {
     const queued: { row: PendingDocRow; kind: InboxFinalizeKind }[] = []
     for (const d of docsNewestFirst) {
       const sug = suggestions[d.id]
-      const kind = resolveInboxSuggestedKind(d.metadata, sug?.tipo_suggerito)
+      const kind = resolveInboxSuggestedKind(d.metadata, sug?.tipo_suggerito, {
+        file_name: d.file_name,
+        oggetto_mail: d.oggetto_mail,
+      })
       if (!kind || !d.fornitore_id) continue
       queued.push({ row: d, kind })
     }
@@ -1157,9 +1192,13 @@ export default function InboxAiClient(props: {
                   const sessionSug = suggestions[d.id]
                   const sug =
                     sessionSug ?? geminiSuggestionFromMetadata(d.id, d.metadata)
+                  const rowCtx = {
+                    file_name: d.file_name,
+                    oggetto_mail: d.oggetto_mail,
+                  }
                   const sessionTipo = sessionSug?.tipo_suggerito ?? sug?.tipo_suggerito
-                  const suggestedKind = resolveInboxSuggestedKind(d.metadata, sessionTipo)
-                  const docTypeKind = resolveInboxDocTypeKind(d.metadata, sessionTipo)
+                  const suggestedKind = resolveInboxSuggestedKind(d.metadata, sessionTipo, rowCtx)
+                  const docTypeKind = resolveInboxDocTypeKind(d.metadata, sessionTipo, rowCtx)
                   const docTypeLabel = labelPendingKind(docTypeKind, pendingKindLabels)
                   const supplier =
                     d.fornitore?.nome ??

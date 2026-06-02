@@ -12,11 +12,12 @@ import { validateDocument, logValidationWarnings } from '@/lib/document-validato
 import { logger } from '@/lib/logger'
 import { ocrInvoice, OcrInvoiceConfigurationError, OcrTransientError } from '@/lib/ocr-invoice'
 import {
+  documentOcrContextSuggestsOrdine,
   inferPendingDocumentKindForQueueRow,
-  scanContextLooksLikeOrderConfirmationDoc,
 } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { coerceInboxTipoFromSignals } from '@/lib/inbox-ai-tipo-coerce'
+import { mapInboxTipoToPendingKind } from '@/lib/inbox-ai-suggested-kind'
 import type { GeminiInboxClassification } from '@/lib/inbox-ai-classify-shared'
 
 export type { GeminiInboxClassification } from '@/lib/inbox-ai-classify-shared'
@@ -120,6 +121,49 @@ type ClassifyRow = {
   oggetto_mail?: string | null
 }
 
+async function persistInboxClassificationMetadata(
+  service: SupabaseClient,
+  docId: string,
+  classification: GeminiInboxClassification,
+  extras?: { tipo_documento?: string | null },
+): Promise<void> {
+  const { data } = await service
+    .from('documenti_da_processare')
+    .select('metadata')
+    .eq('id', docId)
+    .maybeSingle()
+
+  const base =
+    data?.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+      ? { ...(data.metadata as Record<string, unknown>) }
+      : {}
+
+  const pendingKind = mapInboxTipoToPendingKind(classification.tipo_suggerito)
+  const tipoDoc =
+    extras?.tipo_documento?.trim() ||
+    (pendingKind === 'ordine' ? 'ordine' : null)
+
+  const next: Record<string, unknown> = {
+    ...base,
+    ai_tipo_suggerito: classification.tipo_suggerito,
+    ai_confidenza: classification.confidenza,
+    ai_fornitore_suggerito: classification.fornitore_suggerito,
+    ai_azione_consigliata: classification.azione_consigliata,
+  }
+  if (tipoDoc) next.tipo_documento = tipoDoc
+  if (pendingKind && pendingKind !== 'comunicazione') {
+    next.pending_kind = pendingKind
+  }
+
+  const { error } = await service
+    .from('documenti_da_processare')
+    .update({ metadata: next })
+    .eq('id', docId)
+  if (error) {
+    logger.warn(`[Classify] persist metadata ${docId}: ${error.message}`)
+  }
+}
+
 /**
  * Stessa pipeline OCR delle tabelle fornitori / reprocess legacy (`ocrInvoice` + routing coda).
  */
@@ -143,20 +187,25 @@ async function classifyFromOcrInvoice(
       },
     })
 
+    const ocrMeta = {
+      tipo_documento: ocr.tipo_documento,
+      ragione_sociale: ocr.ragione_sociale,
+      numero_fattura: ocr.numero_fattura,
+      totale_iva_inclusa: ocr.totale_iva_inclusa ?? null,
+      note_corpo_mail: ocr.note_corpo_mail,
+    }
+
     let inferred = inferPendingDocumentKindForQueueRow({
       oggetto_mail: row.oggetto_mail,
       file_name: row.file_name,
-      metadata: {
-        tipo_documento: ocr.tipo_documento,
-        ragione_sociale: ocr.ragione_sociale,
-        numero_fattura: ocr.numero_fattura,
-        totale_iva_inclusa: ocr.totale_iva_inclusa ?? null,
-      },
+      metadata: ocrMeta,
     })
 
     if (
-      (!inferred || inferred === 'comunicazione') &&
-      scanContextLooksLikeOrderConfirmationDoc(row.oggetto_mail, row.file_name)
+      documentOcrContextSuggestsOrdine(ocrMeta, {
+        oggetto_mail: row.oggetto_mail,
+        file_name: row.file_name,
+      })
     ) {
       inferred = 'ordine'
     }
@@ -184,13 +233,17 @@ async function classifyFromOcrInvoice(
       `[Classify] OCR ${ctxLabel}: tipo=${coerced.tipo_suggerito} ocr_tipo=${ocr.tipo_documento ?? '—'} inferred=${inferred ?? '—'}`,
     )
 
-    return {
+    const result: GeminiInboxClassification = {
       doc_id: row.id,
       tipo_suggerito: coerced.tipo_suggerito,
       fornitore_suggerito: ocr.ragione_sociale?.trim() || null,
       azione_consigliata: azioneForInboxTipo(coerced.tipo_suggerito),
       confidenza: clamp01(coerced.confidenza),
     }
+    await persistInboxClassificationMetadata(service, row.id, result, {
+      tipo_documento: ocr.tipo_documento ?? (coerced.tipo_suggerito === 'ordine' ? 'ordine' : null),
+    })
+    return result
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) throw e
     if (e instanceof OcrTransientError) {
@@ -325,13 +378,15 @@ export async function classifyDocumentWithGemini(
       azione,
       row.oggetto_mail,
     )
-    return {
+    const result: GeminiInboxClassification = {
       doc_id: row.id,
       tipo_suggerito: coerced.tipo_suggerito,
       fornitore_suggerito: strOrNull(obj.fornitore_suggerito),
       azione_consigliata: azione,
       confidenza: clamp01(coerced.confidenza),
     }
+    await persistInboxClassificationMetadata(service, row.id, result)
+    return result
   } catch (e) {
     if (e instanceof GeminiConfigurationError) {
       return {

@@ -1,3 +1,5 @@
+import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
+
 /** Tipi registrabili dal pulsante primario in AI Inbox (allineato a `finalizza_tipo`). */
 export type InboxFinalizeKind =
   | 'fattura'
@@ -7,6 +9,11 @@ export type InboxFinalizeKind =
   | 'listino'
   | 'statement'
   | 'ordine'
+
+export type InboxDocRowContext = {
+  file_name?: string | null
+  oggetto_mail?: string | null
+}
 
 const INBOX_FINALIZE_KINDS = new Set<InboxFinalizeKind>([
   'fattura',
@@ -60,6 +67,45 @@ function docMetadataRecord(metadata: unknown): Record<string, unknown> {
   return metadata as Record<string, unknown>
 }
 
+function hasExplicitDocMetadata(meta: Record<string, unknown>): boolean {
+  return !!(
+    meta.tipo_documento != null ||
+    meta.ocr_tipo != null ||
+    meta.pending_kind != null ||
+    meta.ai_tipo_suggerito != null ||
+    (typeof meta.ragione_sociale === 'string' && meta.ragione_sociale.trim())
+  )
+}
+
+function metadataForQueueInfer(metadata: Record<string, unknown>) {
+  return {
+    ragione_sociale:
+      typeof metadata.ragione_sociale === 'string' ? metadata.ragione_sociale : null,
+    note_corpo_mail:
+      typeof metadata.note_corpo_mail === 'string' ? metadata.note_corpo_mail : null,
+    tipo_documento: metadata.tipo_documento,
+    ocr_tipo: metadata.ocr_tipo,
+    numero_fattura:
+      typeof metadata.numero_fattura === 'string' ? metadata.numero_fattura : null,
+    totale_iva_inclusa:
+      typeof metadata.totale_iva_inclusa === 'number' ? metadata.totale_iva_inclusa : null,
+  }
+}
+
+/** Stessa euristica della coda fornitori / scan email (`inferPendingDocumentKindForQueueRow`). */
+export function inferInboxKindFromDocument(
+  metadata: unknown,
+  ctx?: InboxDocRowContext,
+): InboxFinalizeKind | null {
+  const kind = inferPendingDocumentKindForQueueRow({
+    oggetto_mail: ctx?.oggetto_mail,
+    file_name: ctx?.file_name,
+    metadata: metadataForQueueInfer(docMetadataRecord(metadata)),
+  })
+  if (!kind) return null
+  return kind
+}
+
 /** Suggerimento Gemini persistito in `metadata` dopo classificazione o reclassify. */
 export function geminiSuggestionFromMetadata(
   docId: string,
@@ -101,47 +147,50 @@ export function geminiSuggestionFromMetadata(
 }
 
 /**
- * Categoria da usare per etichetta e azione del pulsante primario:
- * 1) suggerimento sessione (ultima analisi), 2) metadata AI, 3) `pending_kind` in coda.
+ * Categoria per pulsante primario: prima contenuto documento (OCR/coda), poi sessione/AI,
+ * così un vecchio `altro` non maschera un Sales Order letto nel PDF.
  */
 export function resolveInboxSuggestedKind(
   metadata: unknown,
   sessionTipoSuggerito?: string | null,
+  ctx?: InboxDocRowContext,
 ): InboxFinalizeKind | null {
-  if (sessionTipoSuggerito) {
-    const fromSession = mapInboxTipoToPendingKind(sessionTipoSuggerito)
-    if (fromSession) return fromSession
-  }
+  const fromDocument = inferInboxKindFromDocument(metadata, ctx)
+  if (fromDocument === 'ordine') return 'ordine'
+  if (fromDocument && fromDocument !== 'comunicazione') return fromDocument
+
+  const sessionKind = sessionTipoSuggerito
+    ? mapInboxTipoToPendingKind(sessionTipoSuggerito)
+    : null
+  if (sessionKind && sessionKind !== 'comunicazione') return sessionKind
+
   const meta = docMetadataRecord(metadata)
   const fromAi = mapInboxTipoToPendingKind(
     typeof meta.ai_tipo_suggerito === 'string' ? meta.ai_tipo_suggerito : null,
   )
-  if (fromAi) return fromAi
+  if (fromAi && fromAi !== 'comunicazione') return fromAi
+
   const pk = meta.pending_kind
+  if (typeof pk === 'string' && isInboxFinalizeKind(pk) && pk !== 'comunicazione') return pk
+
+  if (fromDocument && fromDocument !== 'comunicazione') return fromDocument
+  if (sessionKind) return sessionKind
+  if (fromAi) return fromAi
   if (typeof pk === 'string' && isInboxFinalizeKind(pk)) return pk
+  if (fromDocument === 'comunicazione' && hasExplicitDocMetadata(meta)) return 'comunicazione'
+
   return null
 }
 
 export type InboxDocTypeKind = InboxFinalizeKind | 'da_determinare'
 
-/**
- * Tipo documento da mostrare in coda (badge): suggerimento AI/sessione, poi OCR/metadata, infine «da determinare».
- */
+/** Badge tipo in lista: allineato a `resolveInboxSuggestedKind` + fallback «da determinare». */
 export function resolveInboxDocTypeKind(
   metadata: unknown,
   sessionTipoSuggerito?: string | null,
+  ctx?: InboxDocRowContext,
 ): InboxDocTypeKind {
-  const suggested = resolveInboxSuggestedKind(metadata, sessionTipoSuggerito)
+  const suggested = resolveInboxSuggestedKind(metadata, sessionTipoSuggerito, ctx)
   if (suggested) return suggested
-
-  const meta = docMetadataRecord(metadata)
-  const fromTipoDoc = mapInboxTipoToPendingKind(
-    typeof meta.tipo_documento === 'string' ? meta.tipo_documento : null,
-  )
-  if (fromTipoDoc) return fromTipoDoc
-
-  const pk = meta.pending_kind
-  if (typeof pk === 'string' && isInboxFinalizeKind(pk)) return pk
-
   return 'da_determinare'
 }

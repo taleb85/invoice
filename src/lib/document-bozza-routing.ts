@@ -150,6 +150,39 @@ export function inferAutoPendingKindFromEmailScan(
 /**
  * Conferma ordine (oggetto o nome file) → coda “Ordine” (`pending_kind` ordine), senza bozza bolla/fattura.
  */
+const SALES_OR_ORDER_IN_TEXT_HINT =
+  /\bsales\s+order\b|\bpurchase\s+order\b|\bwork\s+order\b|\border\s+confirmation\b|\bpo\s+acknowledg|\bconferma\s+(d['’])?ordine\b|\bauftragsbestätigung\b/i
+
+type OcrContextForOrdine = {
+  tipo_documento?: unknown
+  ragione_sociale?: string | null
+  numero_fattura?: string | null
+  note_corpo_mail?: string | null
+  ocr_tipo?: unknown
+}
+
+/**
+ * Segnali testuali da metadata/OCR (come audit pass1): Sales Order nel PDF anche se
+ * `normalizeTipoDocumento` ha restituito `comunicazione` o il filename è solo numerico.
+ */
+export function documentOcrContextSuggestsOrdine(
+  metadata: OcrContextForOrdine | null | undefined,
+  opts?: { oggetto_mail?: string | null; file_name?: string | null },
+): boolean {
+  if (scanContextLooksLikeOrderConfirmationDoc(opts?.oggetto_mail, opts?.file_name)) return true
+
+  const rawTipo = metadata?.tipo_documento ?? metadata?.ocr_tipo
+  if (normalizeTipoDocumento(rawTipo) === 'ordine') return true
+
+  const blob = [
+    typeof rawTipo === 'string' ? rawTipo : rawTipo != null ? String(rawTipo) : '',
+    metadata?.ragione_sociale ?? '',
+    metadata?.numero_fattura ?? '',
+    metadata?.note_corpo_mail ?? '',
+  ].join('\n')
+  return SALES_OR_ORDER_IN_TEXT_HINT.test(blob)
+}
+
 export function scanContextLooksLikeOrderConfirmationDoc(
   subject: string | null | undefined,
   fileName: string | null | undefined,
@@ -275,6 +308,15 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   const md = opts.metadata
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
 
+  if (
+    documentOcrContextSuggestsOrdine(md, {
+      oggetto_mail: opts.oggetto_mail,
+      file_name: opts.file_name,
+    })
+  ) {
+    return 'ordine'
+  }
+
   if (tipo === 'comunicazione') return 'comunicazione'
   if (tipo === 'bolla_ddt') return 'bolla'
   if (tipo === 'fattura') return 'fattura'
@@ -327,7 +369,14 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   if (ctxFat) return 'fattura'
   if (ctxBol) return 'bolla'
 
-  // Tutto ciò che non è classificabile come ordine, bolla, fattura, nota credito, estratto conto, listino
-  // viene salvato come comunicazione
+  if (
+    documentOcrContextSuggestsOrdine(md, {
+      oggetto_mail: opts.oggetto_mail,
+      file_name: opts.file_name,
+    })
+  ) {
+    return 'ordine'
+  }
+
   return 'comunicazione'
 }
