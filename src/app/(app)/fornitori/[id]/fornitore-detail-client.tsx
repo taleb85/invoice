@@ -3235,6 +3235,23 @@ function FattureTab({
     }
   }, [editingCell, editValue, onLedgerMutated, showToast, t])
 
+  const reloadFattureAfterListino = useCallback(() => {
+    onLedgerMutated?.()
+    setLoading(true)
+    const supabase = createClient()
+    void supabase
+      .from('fatture')
+      .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id, is_credit_note')
+      .eq('fornitore_id', fornitoreId)
+      .gte('data', dateFrom)
+      .lt('data', dateToExclusive)
+      .order('data', { ascending: false })
+      .then(({ data, error }: { data: Fattura[] | null; error: unknown }) => {
+        if (!error) setFatture(data ?? [])
+        setLoading(false)
+      })
+  }, [onLedgerMutated, fornitoreId, dateFrom, dateToExclusive])
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -3289,23 +3306,6 @@ function FattureTab({
       </div>
     )
   }
-
-  const reloadFattureAfterListino = useCallback(() => {
-    onLedgerMutated?.()
-    setLoading(true)
-    const supabase = createClient()
-    void supabase
-      .from('fatture')
-      .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id, is_credit_note')
-      .eq('fornitore_id', fornitoreId)
-      .gte('data', dateFrom)
-      .lt('data', dateToExclusive)
-      .order('data', { ascending: false })
-      .then(({ data, error }: { data: Fattura[] | null; error: unknown }) => {
-        if (!error) setFatture(data ?? [])
-        setLoading(false)
-      })
-  }, [onLedgerMutated, fornitoreId, dateFrom, dateToExclusive])
 
   const fatturaToolbarRowClass = (id: string, hasFile: boolean) => {
     if (!hasFile || toolbarFatturaId !== id) return ''
