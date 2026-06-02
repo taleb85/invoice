@@ -6194,13 +6194,13 @@ function FornitoreDetailClient({
     ) {
       return p
     }
-    return 'verifica'
+    return 'dashboard'
   }, [tabParam])
 
   const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const mdUp = useMinMdViewport()
   const displayTab = useMemo((): Tab => {
-    if (supplierReadOnlyMobile && MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return 'listino'
+    if (supplierReadOnlyMobile && MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return 'dashboard'
     return tab
   }, [supplierReadOnlyMobile, tab])
 
@@ -6566,9 +6566,11 @@ function FornitoreDetailClient({
   }, [todayYmd])
 
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
-    // Primary nav: 3 tabs only. bolle/fatture/dashboard remain accessible via KPI cards.
-    const primary: { id: Tab; label: string; badge?: number }[] = [
-      { id: 'anomalie', label: t.fornitori.tabAnomalie, badge: anomalieTabBadge },
+    const all: { id: Tab; label: string; badge?: number }[] = [
+      { id: 'dashboard', label: t.fornitori.tabRiepilogo },
+      { id: 'bolle', label: t.nav.bolle, badge: bolleTabBadge },
+      { id: 'fatture', label: t.nav.fatture, badge: fattureTabBadge },
+      { id: 'conferme', label: t.fornitori.tabConfermeOrdine },
       { id: 'verifica', label: t.statements.tabVerifica, badge: verificaTabBadge },
       {
         id: 'documenti',
@@ -6580,14 +6582,23 @@ function FornitoreDetailClient({
               ? pendingCount
               : undefined,
       },
+      { id: 'anomalie', label: t.fornitori.tabAnomalie, badge: anomalieTabBadge },
       { id: 'listino', label: t.fornitori.tabListino },
     ]
     if (supplierReadOnlyMobile) {
-      return primary.filter((tb) => tb.id === 'listino' || tb.id === 'documenti' || tb.id === 'anomalie')
+      return all.filter(
+        (tb) =>
+          tb.id === 'dashboard' ||
+          tb.id === 'listino' ||
+          tb.id === 'documenti' ||
+          tb.id === 'anomalie',
+      )
     }
-    return primary
+    return all
   }, [
     t,
+    bolleTabBadge,
+    fattureTabBadge,
     anomalieTabBadge,
     verificaTabBadge,
     pendingCount,
