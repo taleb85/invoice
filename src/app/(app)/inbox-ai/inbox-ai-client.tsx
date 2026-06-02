@@ -7,10 +7,7 @@ import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { createClient } from '@/utils/supabase/client'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
-import {
-  GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF,
-  inboxClassificationShouldAutoDiscard,
-} from '@/lib/gemini-inbox-classify'
+import { inboxClassificationShouldAutoDiscard } from '@/lib/inbox-ai-classify-shared'
 import {
   geminiSuggestionFromMetadata,
   mapInboxTipoToPendingKind,

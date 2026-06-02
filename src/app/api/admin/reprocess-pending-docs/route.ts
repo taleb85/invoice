@@ -6,7 +6,8 @@ import {
   type LegacyPendingDocRow,
 } from '@/lib/reprocess-pending-docs-ocr'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
-import { classifyDocumentWithGemini, type GeminiInboxClassification } from '@/lib/gemini-inbox-classify'
+import { classifyDocumentWithGemini } from '@/lib/gemini-inbox-classify'
+import type { GeminiInboxClassification } from '@/lib/inbox-ai-classify-shared'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 
 export const dynamic = 'force-dynamic'

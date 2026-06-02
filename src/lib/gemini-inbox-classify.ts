@@ -1,3 +1,5 @@
+import 'server-only'
+
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   geminiGenerateVision,
@@ -15,6 +17,13 @@ import {
 } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { coerceInboxTipoFromSignals } from '@/lib/inbox-ai-tipo-coerce'
+import type { GeminiInboxClassification } from '@/lib/inbox-ai-classify-shared'
+
+export type { GeminiInboxClassification } from '@/lib/inbox-ai-classify-shared'
+export {
+  GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF,
+  inboxClassificationShouldAutoDiscard,
+} from '@/lib/inbox-ai-classify-shared'
 
 const CLASSIFY_SYSTEM = `Sei un assistente per documenti contabili italiani (ristorazione / fornitori).
 Analizza il documento allegato e rispondi SOLO con un oggetto JSON valido, senza markdown, senza testo fuori dal JSON.
@@ -79,37 +88,6 @@ function azioneForInboxTipo(tipo: string): string {
     altro: 'Documento non fiscale — verifica o scarta',
   }
   return labels[tipo] ?? `Tipo letto: ${tipo}`
-}
-
-function clamp01InboxLike(n: unknown): number {
-  const x = typeof n === 'number' ? n : parseFloat(String(n))
-  if (!Number.isFinite(x)) return 0.5
-  return Math.min(1, Math.max(0, x))
-}
-
-export type GeminiInboxClassification = {
-  doc_id: string
-  tipo_suggerito: string
-  fornitore_suggerito: string | null
-  azione_consigliata: string
-  confidenza: number
-  error?: string
-}
-
-/**
- * Suggerisce di scartare la riga dall’AI Inbox senza revisione umana: contenuto dichiarato
- * non pertinente alla contabilità (CV, memo, ecc.) con confidenza sufficiente.
- */
-export const GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF = 0.9
-
-export function inboxClassificationShouldAutoDiscard(
-  suggestion: GeminiInboxClassification,
-): boolean {
-  if (suggestion.error) return false
-  const tipo = (suggestion.tipo_suggerito ?? '').toLowerCase().trim()
-  if (tipo !== 'altro') return false
-  const c = clamp01InboxLike(suggestion.confidenza)
-  return c >= GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF
 }
 
 function parseJsonObject(raw: string): Record<string, unknown> {

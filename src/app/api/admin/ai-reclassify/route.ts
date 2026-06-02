@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/utils/supabase/server'
 import { requireAdmin } from '@/lib/api-auth'
-import { classifyDocumentWithGemini, type GeminiInboxClassification } from '@/lib/gemini-inbox-classify'
+import { classifyDocumentWithGemini } from '@/lib/gemini-inbox-classify'
+import type { GeminiInboxClassification } from '@/lib/inbox-ai-classify-shared'
 import { scanContextSuggestsFattura, scanContextSuggestsBolla, scanContextSuggestsListino, scanContextLooksLikeOrderConfirmationDoc } from '@/lib/document-bozza-routing'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 
