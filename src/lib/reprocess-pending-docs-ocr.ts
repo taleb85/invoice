@@ -475,7 +475,10 @@ export async function processLegacyPendingDoc(
         options?.ignoreLinkedFornitore === true ? (fornitore?.id ?? null) : (fornitore?.id ?? row.fornitore_id),
       metadata,
       stato: normalizeDocumentoQueueStatoForDb(rowStato),
-      data_documento: processingDocumentDateYmdFromOcr(ocr, docContext),
+      data_documento: processingDocumentDateYmdFromOcr(
+        ocr,
+        documentContextText(row.file_name, row.oggetto_mail),
+      ),
       note: noteFromEmailBody,
       is_statement: isStatementDoc || row.is_statement === true,
       ...(registratoAutoFatturaId ? { fattura_id: registratoAutoFatturaId } : {}),

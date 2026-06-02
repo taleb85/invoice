@@ -162,7 +162,7 @@ export async function fetchFilteredConfermeOrdine(
   if (error) throw new Error(error.message)
 
   const raw = (data ?? []).map((r) => {
-    const row = r as ConfermaOrdineListRow & { importo_totale?: number | null }
+    const row = r as unknown as ConfermaOrdineListRow & { importo_totale?: number | null }
     return {
       ...(row as Omit<ConfermaOrdineListRow, 'numero_ordine' | 'numero_fattura_doc' | 'oggetto_mail'>),
       numero_ordine: row.numero_ordine ?? null,

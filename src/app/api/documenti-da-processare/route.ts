@@ -140,6 +140,16 @@ async function finalizePendingByTipo(
   }
 
   if (tipo === 'fattura' || tipo === 'nota_credito') {
+    if (!dataDoc) {
+      return NextResponse.json(
+        {
+          error:
+            'Data documento non disponibile: rileggi il PDF (OCR) o inserisci la data prima di finalizzare.',
+          code: 'document_date_required',
+        },
+        { status: 400 },
+      )
+    }
     const numeroNorm =
       typeof m.numero_fattura === 'string' && m.numero_fattura.trim()
         ? normalizeNumeroFattura(m.numero_fattura)

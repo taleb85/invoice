@@ -2207,7 +2207,7 @@ export function PendingMatchesTab({
         .filter((d) => docNeedsManualProcessing(d.stato) && d.file_url?.trim())
         .map((d) => {
           const nf = d.metadata?.numero_fattura?.trim()
-          const dateIso = statementOfficialDateIso(d) ?? d.data_documento ?? null
+          const dateIso = effectivePendingDocDayIso(d) ?? d.data_documento ?? null
           const parts: string[] = []
           if (dateIso) parts.push(formatDocDate(dateIso))
           if (nf) parts.push(`#${nf}`)
