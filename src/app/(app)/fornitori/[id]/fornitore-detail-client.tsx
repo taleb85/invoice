@@ -6521,47 +6521,26 @@ function FornitoreDetailClient({
     setPeriodLedgerEpoch((e) => e + 1)
   }, [todayYmd])
 
+  const documentiTabBadge = useMemo(() => {
+    if (!periodStatsLoading && (periodStats?.pending ?? 0) > 0) return periodStats!.pending
+    return pendingCount > 0 ? pendingCount : undefined
+  }, [periodStats, periodStatsLoading, pendingCount])
+
+  /** Tab bar: solo Riepilogo + Anomalie; Bolle/Fatture/Conferme/Estratti/Documenti/Listino via KPI. */
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
-    const all: { id: Tab; label: string; badge?: number }[] = [
+    const primary: { id: Tab; label: string; badge?: number }[] = [
       { id: 'dashboard', label: t.fornitori.tabRiepilogo },
-      { id: 'bolle', label: t.nav.bolle, badge: bolleTabBadge },
-      { id: 'fatture', label: t.nav.fatture, badge: fattureTabBadge },
-      { id: 'conferme', label: t.fornitori.tabConfermeOrdine },
-      { id: 'verifica', label: t.statements.tabVerifica, badge: verificaTabBadge },
-      {
-        id: 'documenti',
-        label: t.statements.tabDocumenti,
-        badge:
-          !periodStatsLoading && (periodStats?.pending ?? 0) > 0
-            ? periodStats!.pending
-            : pendingCount > 0
-              ? pendingCount
-              : undefined,
-      },
       { id: 'anomalie', label: t.fornitori.tabAnomalie, badge: anomalieTabBadge },
-      { id: 'listino', label: t.fornitori.tabListino },
     ]
     if (supplierReadOnlyMobile) {
-      return all.filter(
-        (tb) =>
-          tb.id === 'dashboard' ||
-          tb.id === 'listino' ||
-          tb.id === 'documenti' ||
-          tb.id === 'anomalie',
-      )
+      return [
+        { id: 'dashboard', label: t.fornitori.tabRiepilogo },
+        { id: 'documenti', label: t.statements.tabDocumenti, badge: documentiTabBadge },
+        { id: 'anomalie', label: t.fornitori.tabAnomalie, badge: anomalieTabBadge },
+      ]
     }
-    return all
-  }, [
-    t,
-    bolleTabBadge,
-    fattureTabBadge,
-    anomalieTabBadge,
-    verificaTabBadge,
-    pendingCount,
-    periodStats,
-    periodStatsLoading,
-    supplierReadOnlyMobile,
-  ])
+    return primary
+  }, [t, anomalieTabBadge, documentiTabBadge, supplierReadOnlyMobile])
 
   const TabContent = ({ variant }: { variant: 'mobile' | 'desktop' }) => (
     <>
