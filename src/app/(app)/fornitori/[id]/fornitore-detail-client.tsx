@@ -6245,48 +6245,6 @@ function FornitoreDetailClient({
     }
   }, [displayTab])
 
-  /** Desktop: fascia header+tab incollata al bordo alto della viewport del main (position fixed + geometria misurata). */
-  const supplierDesktopFixedHeaderRef = useRef<HTMLDivElement>(null)
-  const [supplierDesktopHeaderDock, setSupplierDesktopHeaderDock] = useState<{
-    left: number
-    width: number
-    top: number
-    height: number
-  } | null>(null)
-
-  useLayoutEffect(() => {
-    if (!mdUp) {
-      setSupplierDesktopHeaderDock(null)
-      return
-    }
-    const header = supplierDesktopFixedHeaderRef.current
-    if (!header || typeof window === 'undefined') return
-
-    const sync = () => {
-      const main = document.getElementById('app-main')
-      if (!main) return
-      const hr = header.getBoundingClientRect()
-      const mr = main.getBoundingClientRect()
-      setSupplierDesktopHeaderDock({
-        left: hr.left,
-        width: hr.width,
-        top: mr.top,
-        height: hr.height,
-      })
-    }
-
-    sync()
-    const postLayout = requestAnimationFrame(() => sync())
-    const ro = new ResizeObserver(sync)
-    ro.observe(header)
-    window.addEventListener('resize', sync)
-    return () => {
-      cancelAnimationFrame(postLayout)
-      ro.disconnect()
-      window.removeEventListener('resize', sync)
-    }
-  }, [mdUp, fornitore.id])
-
   /** Sede attiva utente se il fornitore non ha ancora `sede_id` — necessario per API statement/bolle in Verifica. */
   const effectiveSedeId = fornitore.sede_id?.trim() || me?.sede_id?.trim() || undefined
   const fornitoreNomeVisual = useMemo(
@@ -6891,23 +6849,10 @@ function FornitoreDetailClient({
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
-        {/* Intestazione + tab — bordo/fill allineati alla card «Attività recente». */}
+        {/* Intestazione + tab — sticky nel flusso pagina (niente spacer vuoto sotto header fixed). */}
         <div
-          ref={supplierDesktopFixedHeaderRef}
           data-supplier-docked-header
-          className={`isolate w-full max-w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1 backdrop-blur-md ${
-            mdUp && supplierDesktopHeaderDock != null ? 'fixed' : 'sticky top-0 z-30'
-          }`}
-          style={
-            mdUp && supplierDesktopHeaderDock != null
-              ? {
-                  left: supplierDesktopHeaderDock.left,
-                  width: supplierDesktopHeaderDock.width,
-                  top: supplierDesktopHeaderDock.top,
-                  zIndex: 40,
-                }
-              : undefined
-          }
+          className="sticky top-0 z-30 isolate w-full max-w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1 backdrop-blur-md"
         >
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
@@ -7205,17 +7150,6 @@ function FornitoreDetailClient({
             </div>
           </div>
         </div>
-
-        {mdUp && supplierDesktopHeaderDock != null ? (
-          <div
-            aria-hidden
-            className="w-full shrink-0"
-            style={{
-              /* Header fisso include tab + periodo: min 7.5rem se misura ancora 0 (evita KPI sotto l’overlay). */
-              height: Math.max(supplierDesktopHeaderDock.height, 120),
-            }}
-          />
-        ) : null}
 
         {/* Tab content — altezza = contenuto; niente viewport min‑h che taglia il pannello vetro. */}
         <div className="w-full min-w-0">
