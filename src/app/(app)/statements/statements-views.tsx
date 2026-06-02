@@ -1331,7 +1331,7 @@ export function PendingMatchesTab({
         ({ ...d, is_statement: (d.is_statement as boolean | null) ?? false }) as Documento,
     )
     if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
-      mapped = mapped.filter((d) => {
+      mapped = mapped.filter((d: Documento) => {
         const day = effectivePendingDocDayIso(d)
         return day != null && isYmdInHalfOpenRange(day, ledgerDateFrom, ledgerDateToExclusive)
       })
