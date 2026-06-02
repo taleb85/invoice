@@ -1,5 +1,6 @@
 'use client'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { GlyphWarningTriangle } from '@/components/ui/glyph-icons'
 import { useT } from '@/lib/use-t'
 
@@ -21,6 +22,10 @@ type QuickScanModalProps = {
 function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
   const t = useT()
   const q = t.quickScan
+  const [portalReady, setPortalReady] = useState(false)
+  useLayoutEffect(() => {
+    setPortalReady(true)
+  }, [])
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -117,8 +122,10 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+  if (!portalReady) return null
+
+  return createPortal(
+    <div className="fixed inset-0 z-[215] flex flex-col bg-black">
       {phase === 'camera' && (
         <>
           <div className="relative flex-1 overflow-hidden">
@@ -135,7 +142,7 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
             </div>
           </div>
 
-          <div className="bg-black pb-safe px-6 py-6 flex items-center justify-between">
+          <div className="flex items-center justify-between bg-black px-6 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
             {/* File upload fallback */}
             <label className="flex flex-col items-center gap-1 cursor-pointer">
               <div className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center">
@@ -253,7 +260,7 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
             ))}
           </div>
 
-          <div className="px-6 pb-safe py-6 flex gap-3">
+          <div className="flex gap-3 px-6 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
             <button
               onClick={() => startCamera()}
               className="flex-1 py-3 rounded-xl border border-white/20 text-app-fg-muted text-sm"
@@ -303,7 +310,8 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
           </label>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 

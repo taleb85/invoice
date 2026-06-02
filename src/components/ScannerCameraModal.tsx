@@ -1,6 +1,7 @@
 'use client'
 
-import { type RefObject } from 'react'
+import { useLayoutEffect, useState, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ScannerCameraModalProps {
   open: boolean
@@ -19,11 +20,20 @@ export default function ScannerCameraModal({
   cancelLabel,
   captureLabel,
 }: ScannerCameraModalProps) {
-  if (!open) return null
+  const [portalReady, setPortalReady] = useState(false)
+  useLayoutEffect(() => {
+    setPortalReady(true)
+  }, [])
 
-  return (
+  if (!open || !portalReady) return null
+
+  /**
+   * `DashboardMobileBottomNav` è sibling di `AppShellMain` (z-100): un `fixed` dentro
+   * `#app-main` non può coprire il dock. Portal su `body`, z tra dock (100) e OperatorSwitchModal (220).
+   */
+  return createPortal(
     <div
-      className="app-workspace-overlay fixed inset-0 z-[130] flex flex-col p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+      className="app-workspace-overlay fixed inset-0 z-[215] flex flex-col p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="scanner-camera-title"
@@ -54,6 +64,7 @@ export default function ScannerCameraModal({
           {captureLabel}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
