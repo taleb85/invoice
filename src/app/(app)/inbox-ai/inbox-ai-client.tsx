@@ -14,9 +14,12 @@ import {
 import {
   geminiSuggestionFromMetadata,
   mapInboxTipoToPendingKind,
+  resolveInboxDocTypeKind,
   resolveInboxSuggestedKind,
+  type InboxDocTypeKind,
   type InboxFinalizeKind,
 } from '@/lib/inbox-ai-suggested-kind'
+import { labelPendingKind, type PendingKindLabels } from '@/lib/command-system/utils'
 import { translateDocumentiDaProcessareError } from '@/lib/documenti-da-processare-errors'
 import { useT } from '@/lib/use-t'
 import { MoreHorizontal } from 'lucide-react'
@@ -225,6 +228,27 @@ const KIND_BTN_CLASS: Record<InboxFinalizeKind, string> = {
   ordine: 'border-amber-500/40 bg-amber-500/15 text-amber-100',
 }
 
+function pendingKindLabelsFromT(t: Translations): PendingKindLabels {
+  const s = t.strumentiCentroControllo
+  return {
+    da_determinare: s.pendingKindDaDeterminare,
+    fattura: s.pendingKindFattura,
+    bolla: s.pendingKindBolla,
+    nota_credito: s.pendingKindNotaCredito,
+    statement: s.pendingKindStatement,
+    ordine: s.pendingKindOrdine,
+    comunicazione: s.pendingKindComunicazione,
+    listino: s.pendingKindListino,
+  }
+}
+
+function docTypePillClass(kind: InboxDocTypeKind): string {
+  if (kind === 'da_determinare') {
+    return 'border-white/15 bg-white/10 text-app-fg-muted'
+  }
+  return KIND_BTN_CLASS[kind]
+}
+
 const SECONDARY_KINDS: InboxFinalizeKind[] = [
   'fattura',
   'bolla',
@@ -248,6 +272,7 @@ export default function InboxAiClient(props: {
   const { showToast } = useToast()
   const router = useRouter()
   const { show: showContextMenu } = useContextMenu()
+  const pendingKindLabels = useMemo(() => pendingKindLabelsFromT(t), [t])
   const { openActions } = useDocumentActions()
   const [tab, setTab] = useState<TabId>(() => parseInitialTab(initialTab ?? undefined))
   const [docs, setDocs] = useState<PendingDocRow[]>([])
@@ -1135,10 +1160,10 @@ export default function InboxAiClient(props: {
                   const sessionSug = suggestions[d.id]
                   const sug =
                     sessionSug ?? geminiSuggestionFromMetadata(d.id, d.metadata)
-                  const suggestedKind = resolveInboxSuggestedKind(
-                    d.metadata,
-                    sessionSug?.tipo_suggerito ?? sug?.tipo_suggerito,
-                  )
+                  const sessionTipo = sessionSug?.tipo_suggerito ?? sug?.tipo_suggerito
+                  const suggestedKind = resolveInboxSuggestedKind(d.metadata, sessionTipo)
+                  const docTypeKind = resolveInboxDocTypeKind(d.metadata, sessionTipo)
+                  const docTypeLabel = labelPendingKind(docTypeKind, pendingKindLabels)
                   const supplier =
                     d.fornitore?.nome ??
                     (d.fornitore_id ? t.log.inboxAiSupplierIdPlaceholder : t.log.inboxAiSupplierUnknown)
@@ -1188,8 +1213,14 @@ export default function InboxAiClient(props: {
                           <div className="min-w-0 flex-1">
                             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
                               <p className="min-w-0 flex-1 truncate text-sm font-semibold text-app-fg">
-                                {d.file_name ?? t.log.inboxAiNoFileName}
+                                {pendingDocFileLabel(d)}
                               </p>
+                              <span
+                                className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight ${docTypePillClass(docTypeKind)}`}
+                                title={t.documentActions.groupTipo}
+                              >
+                                {docTypeLabel}
+                              </span>
                               {d.file_url ? (
                                 <OpenDocumentInAppButton
                                   documentoId={d.id}

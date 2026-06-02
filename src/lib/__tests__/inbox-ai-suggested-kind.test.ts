@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   mapInboxTipoToPendingKind,
+  resolveInboxDocTypeKind,
   resolveInboxSuggestedKind,
 } from '@/lib/inbox-ai-suggested-kind'
 
@@ -22,5 +23,18 @@ describe('inbox-ai-suggested-kind', () => {
     expect(
       resolveInboxSuggestedKind({ pending_kind: 'listino', ai_tipo_suggerito: 'listino' }, null),
     ).toBe('listino')
+  })
+
+  it('maps bolla_ddt OCR tipo to bolla for display', () => {
+    expect(mapInboxTipoToPendingKind('bolla_ddt')).toBe('bolla')
+  })
+
+  it('resolveInboxDocTypeKind uses tipo_documento when no AI suggestion', () => {
+    expect(resolveInboxDocTypeKind({ tipo_documento: 'fattura' }, null)).toBe('fattura')
+    expect(resolveInboxDocTypeKind({ tipo_documento: 'bolla_ddt' }, null)).toBe('bolla')
+  })
+
+  it('resolveInboxDocTypeKind falls back to da_determinare', () => {
+    expect(resolveInboxDocTypeKind({}, null)).toBe('da_determinare')
   })
 })

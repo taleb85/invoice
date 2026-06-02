@@ -26,6 +26,7 @@ const INBOX_TIPO_TO_PENDING_KIND: Record<string, InboxFinalizeKind> = {
   nota_credito: 'nota_credito',
   credit_note: 'nota_credito',
   bolla: 'bolla',
+  bolla_ddt: 'bolla',
   ddt: 'bolla',
   delivery_note: 'bolla',
   estratto_conto: 'statement',
@@ -116,4 +117,28 @@ export function resolveInboxSuggestedKind(
   const pk = meta.pending_kind
   if (typeof pk === 'string' && isInboxFinalizeKind(pk)) return pk
   return null
+}
+
+export type InboxDocTypeKind = InboxFinalizeKind | 'da_determinare'
+
+/**
+ * Tipo documento da mostrare in coda (badge): suggerimento AI/sessione, poi OCR/metadata, infine «da determinare».
+ */
+export function resolveInboxDocTypeKind(
+  metadata: unknown,
+  sessionTipoSuggerito?: string | null,
+): InboxDocTypeKind {
+  const suggested = resolveInboxSuggestedKind(metadata, sessionTipoSuggerito)
+  if (suggested) return suggested
+
+  const meta = docMetadataRecord(metadata)
+  const fromTipoDoc = mapInboxTipoToPendingKind(
+    typeof meta.tipo_documento === 'string' ? meta.tipo_documento : null,
+  )
+  if (fromTipoDoc) return fromTipoDoc
+
+  const pk = meta.pending_kind
+  if (typeof pk === 'string' && isInboxFinalizeKind(pk)) return pk
+
+  return 'da_determinare'
 }
