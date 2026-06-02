@@ -58,6 +58,7 @@ import {
   maxListinoDateForExactProduct,
 } from '@/lib/listino-document-date'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import DocumentOcrRefreshButton from '@/components/DocumentOcrRefreshButton'
 import FornitoreDocDetailLayer from '@/components/FornitoreDocDetailLayer'
 import { createClient } from '@/utils/supabase/client'
 import {
@@ -96,8 +97,8 @@ const StatoSincronizzazioneIntelligente = dynamic(
   () => import('@/components/StatoSincronizzazioneIntelligente'),
   { ssr: false, loading: () => <div className="h-32 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
-const FattureInAttesaAutoSync = dynamic(
-  () => import('@/components/FattureInAttesaAutoSync'),
+const FatturaListinoAutoSync = dynamic(
+  () => import('@/components/FatturaListinoAutoSync'),
   { ssr: false, loading: () => null },
 )
 const SupplierDocumentOcrToolbar = dynamic(
@@ -3112,6 +3113,19 @@ function FattureTab({
     [fatture, toolbarFatturaId],
   )
 
+  const toolbarSelectedLabel = useMemo(
+    () => fattureToolbarChoices.find((c) => c.id === toolbarFatturaId)?.label ?? '',
+    [fattureToolbarChoices, toolbarFatturaId],
+  )
+
+  const selectToolbarFattura = useCallback(
+    (id: string) => {
+      if (!fattureWithFile.some((c) => c.id === id)) return
+      setToolbarFatturaId(id)
+    },
+    [fattureWithFile],
+  )
+
   const toolbarRefreshBatch = useMemo(
     () =>
       fatture
@@ -3276,50 +3290,88 @@ function FattureTab({
     )
   }
 
+  const reloadFattureAfterListino = useCallback(() => {
+    onLedgerMutated?.()
+    setLoading(true)
+    const supabase = createClient()
+    void supabase
+      .from('fatture')
+      .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id, is_credit_note')
+      .eq('fornitore_id', fornitoreId)
+      .gte('data', dateFrom)
+      .lt('data', dateToExclusive)
+      .order('data', { ascending: false })
+      .then(({ data, error }: { data: Fattura[] | null; error: unknown }) => {
+        if (!error) setFatture(data ?? [])
+        setLoading(false)
+      })
+  }, [onLedgerMutated, fornitoreId, dateFrom, dateToExclusive])
+
+  const fatturaToolbarRowClass = (id: string, hasFile: boolean) => {
+    if (!hasFile || toolbarFatturaId !== id) return ''
+    return 'bg-cyan-500/8 ring-1 ring-inset ring-cyan-400/25'
+  }
+
   return (
     <>
-      {!readOnly && fattureWithFile.length > 0 && toolbarFatturaId ? (
-        <div className="mb-4 px-4">
-          <FattureInAttesaAutoSync
-            fatturaId={toolbarFatturaId}
-            fattureChoices={fattureWithFile}
-            onFatturaIdChange={setToolbarFatturaId}
-            showListinoSync={Boolean(toolbarSelectedFattura && !toolbarSelectedFattura.bolla_id)}
-            refreshBatch={toolbarRefreshBatch}
-            onLedgerMutated={onLedgerMutated}
-            onComplete={() => {
-              onLedgerMutated?.()
-              setLoading(true)
-              const supabase = createClient()
-              supabase
-                .from('fatture')
-                .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id, is_credit_note')
-                .eq('fornitore_id', fornitoreId)
-                .gte('data', dateFrom)
-                .lt('data', dateToExclusive)
-                .order('data', { ascending: false })
-                .then(({ data, error }: { data: Fattura[] | null; error: unknown }) => {
-                  if (!error) setFatture(data ?? [])
-                  setLoading(false)
-                })
-            }}
-          />
-        </div>
-      ) : null}
-      
       <ErrorBoundary sectionName="lista fatture">
       <div
         className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}
       >
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
+        {!readOnly && fattureWithFile.length > 0 && toolbarFatturaId ? (
+          <FatturaListinoAutoSync
+            fatturaId={toolbarFatturaId}
+            enabled={Boolean(toolbarSelectedFattura && !toolbarSelectedFattura.bolla_id)}
+            onLedgerMutated={onLedgerMutated}
+            onComplete={reloadFattureAfterListino}
+            renderActions={(listinoButton) => (
+              <div className="flex flex-col gap-2 border-b border-app-line-20 px-5 py-3.5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs leading-snug text-app-fg-muted">{t.fatture.toolbarDocActionsDesc}</p>
+                  {fattureWithFile.length > 1 ? (
+                    <p className="mt-1 text-[11px] text-app-fg-muted">
+                      <span className="font-semibold uppercase tracking-wide text-[10px]">
+                        {t.fatture.toolbarSelectDocument}
+                      </span>{' '}
+                      <span className="text-app-fg">{toolbarSelectedLabel}</span>
+                      <span className="text-app-fg-subtle"> — {t.fatture.toolbarSelectRowHint}</span>
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                  {toolbarRefreshBatch.length > 0 ? (
+                    <DocumentOcrRefreshButton
+                      hasFile
+                      batch={toolbarRefreshBatch}
+                      onLedgerMutated={onLedgerMutated}
+                    />
+                  ) : null}
+                  {listinoButton}
+                </div>
+              </div>
+            )}
+          />
+        ) : null}
         <div className={APP_SECTION_MOBILE_LIST}>
           {fatture.map((f) => {
             const fileKind = attachmentKindFromFileUrl(f.file_url)
             return (
               <div
                 key={f.id}
-                className="min-h-[56px] px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation"
+                role={!readOnly && f.file_url?.trim() ? 'button' : undefined}
+                tabIndex={!readOnly && f.file_url?.trim() ? 0 : undefined}
+                onClick={() => {
+                  if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
+                  }
+                }}
+                className={`min-h-[56px] px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation ${fatturaToolbarRowClass(f.id, Boolean(f.file_url?.trim()))}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <Link href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)} scroll={false} className="min-w-0 flex-1">
@@ -3405,7 +3457,13 @@ function FattureTab({
               {fatture.map((f) => {
                 const fileKind = attachmentKindFromFileUrl(f.file_url)
                 return (
-                  <tr key={f.id} className={APP_SECTION_TABLE_TR}>
+                  <tr
+                    key={f.id}
+                    className={`${APP_SECTION_TABLE_TR} ${!readOnly && f.file_url?.trim() ? 'cursor-pointer' : ''} ${fatturaToolbarRowClass(f.id, Boolean(f.file_url?.trim()))}`}
+                    onClick={() => {
+                      if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
+                    }}
+                  >
                     <td className="px-5 py-3 font-medium text-app-fg-muted">
                       <span className="tabular-nums">{formatDate(f.data)}</span>
                     </td>

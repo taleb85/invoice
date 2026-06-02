@@ -1965,6 +1965,7 @@ const translations: Translations = {
     toolbarDocActionsDesc: 'Rileggi i dati dal PDF e analizza le righe prodotto rispetto al listino.',
     toolbarDocActionsDescOcrOnly: 'Rileggi data, numero e altri campi dal PDF allegato.',
     toolbarSelectDocument: 'Documento',
+    toolbarSelectRowHint: 'clicca una riga in elenco per cambiare',
     refreshDateFromDoc: 'Rileggi documento',
     refreshDateFromDocTitle: 'Rileggi i dati dal documento (OCR): data, numero fattura e importo',
     refreshAllFromDocTitle: 'Rileggi in sequenza tutti i documenti con allegato nell’elenco sotto',

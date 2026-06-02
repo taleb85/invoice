@@ -1,5 +1,8 @@
 'use client'
 
+/**
+ * @deprecated Usare `FatturaListinoAutoSync` + `DocumentOcrRefreshButton` nella tab Fatture (layout come Conferme ordine).
+ */
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'

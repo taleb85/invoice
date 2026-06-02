@@ -921,6 +921,7 @@ export type Translations = {
     toolbarDocActionsDesc: string
     toolbarDocActionsDescOcrOnly: string
     toolbarSelectDocument: string
+    toolbarSelectRowHint: string
     refreshDateFromDoc: string
     refreshDateFromDocTitle: string
     refreshAllFromDocTitle: string
