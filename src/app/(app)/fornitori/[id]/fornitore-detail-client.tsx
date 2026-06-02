@@ -157,8 +157,6 @@ import {
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { ActivityFeed } from '@/components/activity/activity-feed'
-
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica' | 'audit' | 'anomalie'
 
 /** Tab nascosti su mobile per utenti senza permessi di modifica (magazziniere/operatore). */
@@ -7256,24 +7254,6 @@ function FornitoreDetailClient({
                     setTab(nextTab)
                   }}
                 />
-                {/* Mini activity feed for this fornitore */}
-                <div className={`mt-4 relative overflow-hidden rounded-lg border border-app-line-35 bg-white/[0.025]`}>
-                  <div className={`app-card-bar-accent shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
-                  <div className="p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <svg className="h-4 w-4 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-sm font-semibold text-app-fg">{t.appStrings.attivitaRecentTitle}</p>
-                    </div>
-                    <ActivityFeed
-                      sedeId={fornitore.sede_id ?? me?.sede_id ?? undefined}
-                      fornitoreId={fornitore.id}
-                      limit={5}
-                      compact={true}
-                    />
-                  </div>
-                </div>
                 <ErrorBoundary sectionName="risultati sincronizzazione email">
                   <div className="mt-6">
                     <StatoSincronizzazioneIntelligente
