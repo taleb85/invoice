@@ -1,4 +1,7 @@
-import { scanContextLooksLikeOrderConfirmationDoc } from '@/lib/document-bozza-routing'
+import {
+  documentOcrContextSuggestsQuotation,
+  scanContextLooksLikeOrderConfirmationDoc,
+} from '@/lib/document-bozza-routing'
 
 /** Strong signals this is a CV / job application — must not be coerced or left as listino. */
 const CV_OR_JOB_APPLICATION_HINT =
@@ -48,11 +51,21 @@ export function coerceInboxTipoFromSignals(
 ): { tipo_suggerito: string; confidenza: number } {
   const r = coerceListinoFromSignals(fileName, tipo_raw, confidenza, azione_consigliata)
   const tipo = (r.tipo_suggerito || 'altro').toLowerCase().trim()
-  if (tipo !== 'altro') return r
+  const blob = `${fileName ?? ''}\n${oggetto_mail ?? ''}\n${azione_consigliata ?? ''}`
+
+  if (documentOcrContextSuggestsQuotation(null, { oggetto_mail, file_name: fileName }) || /\bquotation\b|preventivo/i.test(blob)) {
+    return { tipo_suggerito: 'altro', confidenza: Math.min(1, Math.max(r.confidenza, 0.9)) }
+  }
+
+  if (tipo === 'ordine' && /\bquotation\b|preventivo/i.test(blob)) {
+    return { tipo_suggerito: 'altro', confidenza: Math.min(r.confidenza, 0.88) }
+  }
+
+  if (tipo !== 'altro' && tipo !== 'ordine') return r
 
   if (
     scanContextLooksLikeOrderConfirmationDoc(oggetto_mail, fileName) ||
-    SALES_OR_PO_DOC_HINT.test(`${fileName ?? ''}\n${oggetto_mail ?? ''}\n${azione_consigliata ?? ''}`)
+    SALES_OR_PO_DOC_HINT.test(blob)
   ) {
     return {
       tipo_suggerito: 'ordine',

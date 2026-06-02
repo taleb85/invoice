@@ -19,6 +19,19 @@ describe('inbox-ai-suggested-kind', () => {
     expect(kind).toBe('bolla')
   })
 
+  it('quotation batte sessione ordine', () => {
+    const kind = resolveInboxSuggestedKind(
+      {
+        ai_tipo_suggerito: 'ordine',
+        pending_kind: 'ordine',
+        tipo_documento: 'Quotation',
+      },
+      'ordine',
+      { file_name: 'UntitledDocument.pdf' },
+    )
+    expect(kind).toBe('comunicazione')
+  })
+
   it('ordine da OCR nel PDF batte sessione altro/comunicazione', () => {
     const kind = resolveInboxSuggestedKind(
       {

@@ -503,6 +503,9 @@ export default function InboxAiClient(props: {
             const s = list.find((x) => x.doc_id === d.id)
             if (!s) return d
             const pk = mapInboxTipoToPendingKind(s.tipo_suggerito)
+            const isQuotationTipo = /\bquotation\b|preventivo/i.test(
+              `${s.tipo_suggerito}\n${s.azione_consigliata}`,
+            )
             const base =
               d.metadata && typeof d.metadata === 'object' && !Array.isArray(d.metadata)
                 ? { ...(d.metadata as Record<string, unknown>) }
@@ -515,11 +518,16 @@ export default function InboxAiClient(props: {
                 ai_confidenza: s.confidenza,
                 ai_fornitore_suggerito: s.fornitore_suggerito,
                 ai_azione_consigliata: s.azione_consigliata,
-                ...(pk === 'ordine'
-                  ? { pending_kind: 'ordine', tipo_documento: base.tipo_documento ?? 'ordine' }
-                  : pk && pk !== 'comunicazione'
-                    ? { pending_kind: pk }
-                    : {}),
+                ...(isQuotationTipo
+                  ? {
+                      pending_kind: 'comunicazione',
+                      tipo_documento: 'quotation',
+                    }
+                  : pk === 'ordine'
+                    ? { pending_kind: 'ordine', tipo_documento: base.tipo_documento ?? 'ordine' }
+                    : pk && pk !== 'comunicazione'
+                      ? { pending_kind: pk }
+                      : {}),
               },
             }
           }),

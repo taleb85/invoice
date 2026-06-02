@@ -13,6 +13,7 @@ import { logger } from '@/lib/logger'
 import { ocrInvoice, OcrInvoiceConfigurationError, OcrTransientError } from '@/lib/ocr-invoice'
 import {
   documentOcrContextSuggestsOrdine,
+  documentOcrContextSuggestsQuotation,
   inferPendingDocumentKindForQueueRow,
 } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
@@ -36,6 +37,8 @@ When to choose each type — read carefully (English hints for common filenames/
 
 • Use "ordine" for purchase orders, sales orders, order confirmations, PO acknowledgements — titles like "Sales Order", "Sales Order Confirmation", "Purchase Order", "Order Confirmation", "Conferma ordine", "Auftragsbestätigung". NOT a tax invoice and NOT a delivery note (DDT).
 
+• NEVER use "ordine" for quotations / quotes / preventivi — documents titled "Quotation", "Sales Quotation", "Preventivo", "Price Quotation", "Offerta" are offers, not confirmed orders. Use "altro" even if the PDF shows line totals or an "Order Date" field.
+
 • Use "listino" ONLY for supplier PRICE COMMUNICATIONS (prices, catalogue lines, tariffs for products you buy). Never use "listino" for personal documents.
 
 • NEVER use "listino" for: CV / curriculum vitae / résumé / resume, job applications, cover letters, «modulo di candidatura», recruitment, staff hiring documents — those are always "altro".
@@ -49,7 +52,7 @@ When to choose each type — read carefully (English hints for common filenames/
 • Use "altro" for CVs, resumes, contracts that are not invoices, internal memos, or anything that does not match the types above.
 
 Also in Italian:
-- "ordine" per ordini d'acquisto, sales order, conferme ordine (non fattura, non DDT).
+- "ordine" per ordini d'acquisto, sales order, conferme ordine (non fattura, non DDT). Mai per Quotation / Preventivo / Offerta.
 - "listino" SOLO per comunicazioni prezzi fornitori / listini acquisto. Mai per CV, curriculum, candidature lavoro, lettere di presentazione: per quelli usa "altro".
 - "nota_credito" per Note di Credito, documenti con importi negativi che rettificano una fattura precedente. Mai classificarle come "fattura".
 
@@ -77,7 +80,10 @@ function pendingKindToInboxTipo(kind: InferredPendingKind): string {
   return map[kind] ?? 'altro'
 }
 
-function azioneForInboxTipo(tipo: string): string {
+function azioneForInboxTipo(tipo: string, quotation = false): string {
+  if (quotation) {
+    return 'Preventivo/quotazione — non è un ordine; verifica o scarta'
+  }
   const labels: Record<string, string> = {
     ordine: 'Registra come ordine / conferma ordine',
     fattura: 'Registra come fattura',
@@ -195,37 +201,33 @@ async function classifyFromOcrInvoice(
       note_corpo_mail: ocr.note_corpo_mail,
     }
 
+    const isQuotation = documentOcrContextSuggestsQuotation(ocrMeta, {
+      oggetto_mail: row.oggetto_mail,
+      file_name: row.file_name,
+    })
+
     let inferred = inferPendingDocumentKindForQueueRow({
       oggetto_mail: row.oggetto_mail,
       file_name: row.file_name,
       metadata: ocrMeta,
     })
 
-    if (
-      documentOcrContextSuggestsOrdine(ocrMeta, {
-        oggetto_mail: row.oggetto_mail,
-        file_name: row.file_name,
-      })
-    ) {
-      inferred = 'ordine'
-    }
-
     const ocrNorm = normalizeTipoDocumento(ocr.tipo_documento)
-    if (!inferred && ocrNorm === 'ordine') inferred = 'ordine'
+    if (!inferred && ocrNorm === 'ordine' && !isQuotation) inferred = 'ordine'
 
-    let tipo_suggerito = pendingKindToInboxTipo(inferred)
-    if (tipo_suggerito === 'altro' && ocrNorm === 'ordine') tipo_suggerito = 'ordine'
+    let tipo_suggerito = isQuotation ? 'altro' : pendingKindToInboxTipo(inferred)
+    if (!isQuotation && tipo_suggerito === 'altro' && ocrNorm === 'ordine') tipo_suggerito = 'ordine'
 
-    let confidenza = 0.88
-    if (ocrNorm && inferred) confidenza = 0.94
-    else if (inferred) confidenza = 0.91
-    else if (ocrNorm) confidenza = 0.9
+    let confidenza = isQuotation ? 0.92 : 0.88
+    if (!isQuotation && ocrNorm && inferred) confidenza = 0.94
+    else if (!isQuotation && inferred) confidenza = 0.91
+    else if (!isQuotation && ocrNorm) confidenza = 0.9
 
     const coerced = coerceInboxTipoFromSignals(
       row.file_name,
       tipo_suggerito,
       confidenza,
-      azioneForInboxTipo(tipo_suggerito),
+      azioneForInboxTipo(tipo_suggerito, isQuotation),
       row.oggetto_mail,
     )
 
@@ -237,11 +239,13 @@ async function classifyFromOcrInvoice(
       doc_id: row.id,
       tipo_suggerito: coerced.tipo_suggerito,
       fornitore_suggerito: ocr.ragione_sociale?.trim() || null,
-      azione_consigliata: azioneForInboxTipo(coerced.tipo_suggerito),
+      azione_consigliata: azioneForInboxTipo(coerced.tipo_suggerito, isQuotation),
       confidenza: clamp01(coerced.confidenza),
     }
     await persistInboxClassificationMetadata(service, row.id, result, {
-      tipo_documento: ocr.tipo_documento ?? (coerced.tipo_suggerito === 'ordine' ? 'ordine' : null),
+      tipo_documento: isQuotation
+        ? 'quotation'
+        : ocr.tipo_documento ?? (coerced.tipo_suggerito === 'ordine' ? 'ordine' : null),
     })
     return result
   } catch (e) {
@@ -357,6 +361,7 @@ export async function classifyDocumentWithGemini(
     (row.oggetto_mail?.trim() ? `Oggetto email: ${row.oggetto_mail.trim()}\n` : '') +
     `\nRULES:\n` +
     `- Use "ordine" for Sales Order, Sales Order Confirmation, Purchase Order, Order Confirmation (not invoice, not DDT).\n` +
+    `- Use "altro" for Quotation, Preventivo, Price Quotation, Offerta — never "ordine".\n` +
     `- NEVER use tipo_suggerito "listino" for a CV, curriculum vitae, résumé / resume, job application or hiring paper — those must be "altro".\n` +
     `- Use "listino" only for supplier PRICE communications (e.g. "Price Update", price list with products/prices for purchasing).\n` +
     `- Use "nota_credito" for CREDIT NOTES / Credit Memos / Note di Credito / Avoir / Gutschrift with negative amounts or credit wording.\n` +

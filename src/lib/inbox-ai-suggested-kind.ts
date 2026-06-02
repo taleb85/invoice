@@ -1,4 +1,7 @@
-import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
+import {
+  documentOcrContextSuggestsQuotation,
+  inferPendingDocumentKindForQueueRow,
+} from '@/lib/document-bozza-routing'
 
 /** Tipi registrabili dal pulsante primario in AI Inbox (allineato a `finalizza_tipo`). */
 export type InboxFinalizeKind =
@@ -50,6 +53,9 @@ const INBOX_TIPO_TO_PENDING_KIND: Record<string, InboxFinalizeKind> = {
   comunicazione: 'comunicazione',
   altro: 'comunicazione',
   other: 'comunicazione',
+  quotation: 'comunicazione',
+  preventivo: 'comunicazione',
+  quote: 'comunicazione',
 }
 
 export function mapInboxTipoToPendingKind(rawTipo: string | null | undefined): InboxFinalizeKind | null {
@@ -155,16 +161,20 @@ export function resolveInboxSuggestedKind(
   sessionTipoSuggerito?: string | null,
   ctx?: InboxDocRowContext,
 ): InboxFinalizeKind | null {
+  const meta = docMetadataRecord(metadata)
+  const isQuotation = documentOcrContextSuggestsQuotation(metadataForQueueInfer(meta), ctx)
+
   const fromDocument = inferInboxKindFromDocument(metadata, ctx)
+  if (isQuotation) return 'comunicazione'
   if (fromDocument === 'ordine') return 'ordine'
   if (fromDocument && fromDocument !== 'comunicazione') return fromDocument
 
   const sessionKind = sessionTipoSuggerito
     ? mapInboxTipoToPendingKind(sessionTipoSuggerito)
     : null
+  if (sessionKind === 'ordine' && isQuotation) return 'comunicazione'
   if (sessionKind && sessionKind !== 'comunicazione') return sessionKind
 
-  const meta = docMetadataRecord(metadata)
   const fromAi = mapInboxTipoToPendingKind(
     typeof meta.ai_tipo_suggerito === 'string' ? meta.ai_tipo_suggerito : null,
   )

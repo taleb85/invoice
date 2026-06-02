@@ -19,6 +19,17 @@ describe('coerceInboxTipoFromSignals', () => {
     expect(r.tipo_suggerito).toBe('fattura')
   })
 
+  it('does not coerce quotation to ordine', () => {
+    const r = coerceInboxTipoFromSignals(
+      'UntitledDocument.pdf',
+      'ordine',
+      0.9,
+      'Sales Quotation for customer',
+      null,
+    )
+    expect(r.tipo_suggerito).toBe('altro')
+  })
+
   it('does not coerce CV to ordine', () => {
     const r = coerceInboxTipoFromSignals(
       'Mario_Rossi_CV.pdf',

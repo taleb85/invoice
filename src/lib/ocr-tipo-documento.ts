@@ -218,7 +218,7 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     /conferma[\s_-]?ordine/.test(s) ||
     /auftragsbestätigung/.test(s) ||
     /confirmation[\s_-]?de[\s_-]?commande/.test(s) ||
-    /sales[\s_-]?order/.test(s) ||
+    (/sales[\s_-]?order/.test(s) && !/quotation/.test(s)) ||
     /\bso\d{5,}/.test(s)
   ) {
     return 'ordine'

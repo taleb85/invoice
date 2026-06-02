@@ -153,12 +153,42 @@ export function inferAutoPendingKindFromEmailScan(
 const SALES_OR_ORDER_IN_TEXT_HINT =
   /\bsales\s+order\b|\bpurchase\s+order\b|\bwork\s+order\b|\border\s+confirmation\b|\bpo\s+acknowledg|\bconferma\s+(d['’])?ordine\b|\bauftragsbestätigung\b/i
 
+/** Preventivo / quotation / offerta — non ordine né fattura (Donovan e fornitori UK). */
+const QUOTATION_DOC_HINT =
+  /\bquotation\b|\bquotations\b|\bpreventivo\b|\bpreventiva\b|offerta\s+commerciale|price\s+quotation|\bquote\s+for\b|sales\s+quotation/i
+
 type OcrContextForOrdine = {
   tipo_documento?: unknown
   ragione_sociale?: string | null
   numero_fattura?: string | null
   note_corpo_mail?: string | null
   ocr_tipo?: unknown
+}
+
+function ocrContextBlob(
+  metadata: OcrContextForOrdine | null | undefined,
+  opts?: { oggetto_mail?: string | null; file_name?: string | null },
+): string {
+  const rawTipo = metadata?.tipo_documento ?? metadata?.ocr_tipo
+  return [
+    opts?.oggetto_mail ?? '',
+    opts?.file_name ?? '',
+    typeof rawTipo === 'string' ? rawTipo : rawTipo != null ? String(rawTipo) : '',
+    metadata?.ragione_sociale ?? '',
+    metadata?.numero_fattura ?? '',
+    metadata?.note_corpo_mail ?? '',
+  ].join('\n')
+}
+
+export function documentOcrContextSuggestsQuotation(
+  metadata: OcrContextForOrdine | null | undefined,
+  opts?: { oggetto_mail?: string | null; file_name?: string | null },
+): boolean {
+  const blob = ocrContextBlob(metadata, opts)
+  if (QUOTATION_DOC_HINT.test(blob)) return true
+  const rawTipo = metadata?.tipo_documento ?? metadata?.ocr_tipo
+  if (typeof rawTipo === 'string' && QUOTATION_DOC_HINT.test(rawTipo)) return true
+  return false
 }
 
 /**
@@ -169,18 +199,14 @@ export function documentOcrContextSuggestsOrdine(
   metadata: OcrContextForOrdine | null | undefined,
   opts?: { oggetto_mail?: string | null; file_name?: string | null },
 ): boolean {
+  if (documentOcrContextSuggestsQuotation(metadata, opts)) return false
+
   if (scanContextLooksLikeOrderConfirmationDoc(opts?.oggetto_mail, opts?.file_name)) return true
 
   const rawTipo = metadata?.tipo_documento ?? metadata?.ocr_tipo
   if (normalizeTipoDocumento(rawTipo) === 'ordine') return true
 
-  const blob = [
-    typeof rawTipo === 'string' ? rawTipo : rawTipo != null ? String(rawTipo) : '',
-    metadata?.ragione_sociale ?? '',
-    metadata?.numero_fattura ?? '',
-    metadata?.note_corpo_mail ?? '',
-  ].join('\n')
-  return SALES_OR_ORDER_IN_TEXT_HINT.test(blob)
+  return SALES_OR_ORDER_IN_TEXT_HINT.test(ocrContextBlob(metadata, opts))
 }
 
 export function scanContextLooksLikeOrderConfirmationDoc(
@@ -307,6 +333,15 @@ export function inferPendingDocumentKindForQueueRow(opts: {
 }): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | 'listino' | null {
   const md = opts.metadata
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
+
+  if (
+    documentOcrContextSuggestsQuotation(md, {
+      oggetto_mail: opts.oggetto_mail,
+      file_name: opts.file_name,
+    })
+  ) {
+    return 'comunicazione'
+  }
 
   if (
     documentOcrContextSuggestsOrdine(md, {
