@@ -6,14 +6,15 @@ import {
 } from '@/lib/check-duplicates'
 
 function row(partial: Partial<OrdineDupListRow> & { id: string }): OrdineDupListRow {
+  const { id, ...rest } = partial
   return {
-    id: partial.id,
     fornitore_id: 'f1',
     data_ordine: null,
     numero_ordine: null,
     titolo: null,
     created_at: '2026-06-01T10:00:00Z',
-    ...partial,
+    ...rest,
+    id,
   }
 }
 

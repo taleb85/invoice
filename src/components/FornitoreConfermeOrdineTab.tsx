@@ -22,6 +22,7 @@ import { confermeFileUrlsInUse, deleteConfermaOrdineRow } from '@/lib/conferme-o
 import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
 import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
 import {
+  type ConfermaOrdineListRow,
   confermaOrdineRowToOrdineDupProbe,
   sortConfermeOrdineByDocumentDateDesc,
 } from '@/lib/conferme-ordine-query'
@@ -45,23 +46,15 @@ export type ConfermaOrdineRiga = {
   importo_linea?: number | null
 }
 
-export type ConfermaOrdineRow = {
-  id: string
-  file_url: string
-  file_name: string | null
-  titolo: string | null
-  numero_ordine?: string | null
-  numero_fattura_doc?: string | null
-  oggetto_mail?: string | null
-  data_ordine: string | null
-  data_ordine_display?: string | null
-  note: string | null
-  created_at: string
-  righe: ConfermaOrdineRiga[] | null
-  importo_totale?: number | null
-}
+/** Alias per compatibilità export; allineato a `ConfermaOrdineListRow`. */
+export type ConfermaOrdineRow = ConfermaOrdineListRow
 
-function confermaRowLabel(r: ConfermaOrdineRow) {
+function confermaRowLabel(
+  r: Pick<
+    ConfermaOrdineListRow,
+    'titolo' | 'file_name' | 'numero_ordine' | 'numero_fattura_doc' | 'oggetto_mail'
+  >,
+) {
   return confermaOrdineDisplayLabel({
     titolo: r.titolo,
     fileName: r.file_name,
@@ -104,7 +97,7 @@ export default function FornitoreConfermeOrdineTab({
   const t = useT()
   const { locale, timezone, currency } = useLocale()
   const { showToast } = useToast()
-  const [rows, setRows] = useState<ConfermaOrdineRow[]>([])
+  const [rows, setRows] = useState<ConfermaOrdineListRow[]>([])
   const [loading, setLoading] = useState(true)
   const [tableMissing, setTableMissing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -249,8 +242,19 @@ export default function FornitoreConfermeOrdineTab({
         return
       }
       setTableMissing(false)
-      const data = (await res.json()) as ConfermaOrdineRow[]
-      setRows(Array.isArray(data) ? data : [])
+      const data = (await res.json()) as ConfermaOrdineListRow[]
+      setRows(
+        Array.isArray(data)
+          ? data.map((r) => ({
+              ...r,
+              fornitore_id: r.fornitore_id ?? fornitoreId,
+              numero_fattura_doc: r.numero_fattura_doc ?? null,
+              oggetto_mail: r.oggetto_mail ?? null,
+              data_ordine_display: r.data_ordine_display ?? null,
+              importo_totale: r.importo_totale ?? null,
+            }))
+          : [],
+      )
     } catch (e) {
       setTableMissing(false)
       setError(e instanceof Error ? e.message : String(e))
@@ -393,7 +397,7 @@ export default function FornitoreConfermeOrdineTab({
     })
     if (delErr) {
       setDeletingId(null)
-      setError(`${t.fornitori.confermeOrdineErrDelete}: ${delErr.message}`)
+      setError(`${t.fornitori.confermeOrdineErrDelete}: ${delErr}`)
       return
     }
     setDeletingId(null)
