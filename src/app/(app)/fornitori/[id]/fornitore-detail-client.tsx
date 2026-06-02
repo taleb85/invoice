@@ -337,17 +337,30 @@ function scrollSupplierTabPanelIntoView() {
   if (main) {
     const rect = panel.getBoundingClientRect()
     const mainRect = main.getBoundingClientRect()
-    // When the desktop supplier header is fixed-docked, it overlays the scroll container from
-    // the top. We need to add its height to the padding so the tab region scrolls below it.
+    const margin = 12
+    const viewportTop = mainRect.top + margin
+    const viewportBottom = mainRect.bottom - margin
+    const visibleHeight =
+      Math.min(rect.bottom, viewportBottom) - Math.max(rect.top, viewportTop)
+    // Tab già visibile sotto header sticky/KPI — non forzare scroll (evita salto in su all’apertura Fatture ecc.).
+    if (visibleHeight >= 48 && rect.top <= viewportTop + 96) return
+    if (rect.top >= viewportTop - 4 && rect.bottom <= viewportBottom + 24) return
+
     const dockedHeader = document.querySelector<HTMLElement>('[data-supplier-docked-header]')
     const dockedOffset =
       dockedHeader && getComputedStyle(dockedHeader).position === 'fixed'
         ? dockedHeader.getBoundingClientRect().height
         : 0
-    const padding = 8 + dockedOffset
-    const delta = rect.top - mainRect.top - padding
-    const nextTop = main.scrollTop + delta
-    main.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' })
+    const targetTop = viewportTop + dockedOffset
+    if (rect.top < targetTop - 2) {
+      const delta = rect.top - targetTop
+      main.scrollTo({ top: Math.max(0, main.scrollTop + delta), behavior: 'smooth' })
+      return
+    }
+    if (rect.top > viewportBottom - 80) {
+      const delta = rect.top - targetTop
+      main.scrollTo({ top: Math.max(0, main.scrollTop + delta), behavior: 'smooth' })
+    }
     return
   }
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -6293,14 +6306,13 @@ function FornitoreDetailClient({
   const t = useT()
   const { locale, timezone } = useLocale()
   const { me } = useMe()
+  const prevDisplayTabRef = useRef(displayTab)
   useLayoutEffect(() => {
-    if (displayTab === 'dashboard') return
+    const prev = prevDisplayTabRef.current
+    prevDisplayTabRef.current = displayTab
+    if (displayTab === 'dashboard' || prev === displayTab) return
     const id = requestAnimationFrame(() => scrollSupplierTabPanelIntoView())
-    const tmo = window.setTimeout(scrollSupplierTabPanelIntoView, 350)
-    return () => {
-      cancelAnimationFrame(id)
-      window.clearTimeout(tmo)
-    }
+    return () => cancelAnimationFrame(id)
   }, [displayTab])
 
   /** Sede attiva utente se il fornitore non ha ancora `sede_id` — necessario per API statement/bolle in Verifica. */
