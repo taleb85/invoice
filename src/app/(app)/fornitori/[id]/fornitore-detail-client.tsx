@@ -695,7 +695,7 @@ function buildSupplierKpiItems(
   ]
 }
 
-/** Griglia KPI desktop: sempre visibile sotto le tab (tutte le sezioni). */
+/** Griglia KPI desktop: nel blocco header sticky (tab + periodo + KPI). */
 function SupplierDesktopKpiGrid({
   loading,
   stats,
@@ -7149,12 +7149,15 @@ function FornitoreDetailClient({
             </div>
             </div>
           </div>
+
+          <div className="border-t border-app-line-35 px-2 pb-2 pt-2 sm:px-2.5 md:pb-2.5 md:pt-2.5">
+            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
+          </div>
         </div>
 
         {/* Tab content — altezza = contenuto; niente viewport min‑h che taglia il pannello vetro. */}
         <div className="w-full min-w-0">
-          <div className="w-full min-w-0 py-3 sm:py-3.5 md:py-5 lg:py-6 xl:py-8">
-            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
+          <div className="w-full min-w-0 py-3 sm:py-3.5 md:pt-4 md:pb-5 lg:py-6 xl:py-8">
             {displayTab === 'dashboard' ? (
               <>
                 {/* ── Spesa per periodo (riepilogo) ── */}
