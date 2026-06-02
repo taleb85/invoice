@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     )
     let q = service
       .from('documenti_da_processare')
-      .select('id, file_url, file_name, content_type, stato, created_at, data_documento')
+      .select('id, file_url, file_name, content_type, stato, created_at, data_documento, oggetto_mail')
       .in('stato', ['da_associare', 'da_revisionare'])
 
     if (sedeFilterOrNull) {
@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
       stato?: string | null
       created_at?: string | null
       data_documento?: string | null
+      oggetto_mail?: string | null
     }
     const sorted = ((rawRows ?? []) as GemRow[]).slice().sort(compareInboxQueueNewestFirst)
 

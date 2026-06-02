@@ -8,6 +8,13 @@ import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { inferContentTypeFromBuffer } from '@/lib/fix-ocr-dates-helpers'
 import { validateDocument, logValidationWarnings } from '@/lib/document-validator'
 import { logger } from '@/lib/logger'
+import { ocrInvoice, OcrInvoiceConfigurationError, OcrTransientError } from '@/lib/ocr-invoice'
+import {
+  inferPendingDocumentKindForQueueRow,
+  scanContextLooksLikeOrderConfirmationDoc,
+} from '@/lib/document-bozza-routing'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { coerceInboxTipoFromSignals } from '@/lib/inbox-ai-tipo-coerce'
 
 const CLASSIFY_SYSTEM = `Sei un assistente per documenti contabili italiani (ristorazione / fornitori).
 Analizza il documento allegato e rispondi SOLO con un oggetto JSON valido, senza markdown, senza testo fuori dal JSON.
@@ -17,6 +24,8 @@ Chiavi obbligatorie:
 
 When to choose each type — read carefully (English hints for common filenames/emails):
 
+• Use "ordine" for purchase orders, sales orders, order confirmations, PO acknowledgements — titles like "Sales Order", "Sales Order Confirmation", "Purchase Order", "Order Confirmation", "Conferma ordine", "Auftragsbestätigung". NOT a tax invoice and NOT a delivery note (DDT).
+
 • Use "listino" ONLY for supplier PRICE COMMUNICATIONS (prices, catalogue lines, tariffs for products you buy). Never use "listino" for personal documents.
 
 • NEVER use "listino" for: CV / curriculum vitae / résumé / resume, job applications, cover letters, «modulo di candidatura», recruitment, staff hiring documents — those are always "altro".
@@ -25,9 +34,12 @@ When to choose each type — read carefully (English hints for common filenames/
 
 • Use "nota_credito" for CREDIT NOTES / credit memos / note di credito / credit note documents. These are documents that reduce or cancel a previous invoice — they typically have negative amounts, the heading "Credit Note" / "Nota di Credito" / "Avoir" / "Gutschrift", and reference the original invoice number. Never classify a credit note as "fattura".
 
+• Use "bolla" or "ddt" for delivery notes / transport documents without full tax invoice layout.
+
 • Use "altro" for CVs, resumes, contracts that are not invoices, internal memos, or anything that does not match the types above.
 
 Also in Italian:
+- "ordine" per ordini d'acquisto, sales order, conferme ordine (non fattura, non DDT).
 - "listino" SOLO per comunicazioni prezzi fornitori / listini acquisto. Mai per CV, curriculum, candidature lavoro, lettere di presentazione: per quelli usa "altro".
 - "nota_credito" per Note di Credito, documenti con importi negativi che rettificano una fattura precedente. Mai classificarle come "fattura".
 
@@ -37,40 +49,36 @@ Also in Italian:
 
 Se il file non è leggibile: tipo_suggerito "altro", fornitore_suggerito null, confidenza bassa.`
 
-/** Strong signals this is a CV / job application — must not be coerced or left as listino. */
-const CV_OR_JOB_APPLICATION_HINT =
-  /\.cv[\._]|_[\._]cv\b|\bcv\s*[_\.\-]?\s*\d|curriculum\s*vitae|\bcurriculum\b|résumé|\bresume\b|modulo\s+di\s+candidatura|candidatura\s+di\s+lavoro|job\s*application|lettera\s+(di\s+)?(presentazione|motivazione)|domanda\s+di\s+impiego|employment\s+application|application\s+for\s+(the\s+)?position/i
+export { coerceInboxTipoFromSignals, coerceListinoFromSignals } from '@/lib/inbox-ai-tipo-coerce'
 
-/** Filename / caption signals (EN+IT): supplier price communiques often mis-labelled as altro. */
-const LISTINO_PRICE_DOC_HINT =
-  /price\s*update|price\s*list|pricelist|price\s*sheet|\bpricing\b|new\s*prices?|supplier\s+(price|prices|list)|listino|aggiornam\w*\s*(prezzi|tariffe)|tariff(ar)?io|riferimento\s+prezzi|articoli\s*[&+]?\s*prices?/iu
+type InferredPendingKind = ReturnType<typeof inferPendingDocumentKindForQueueRow>
 
-export function coerceListinoFromSignals(
-  fileName: string | null | undefined,
-  tipo_raw: string,
-  confidenza: number,
-  azione_consigliata: string,
-): { tipo_suggerito: string; confidenza: number } {
-  const tipo = (tipo_raw || 'altro').toLowerCase().trim()
-  const blobCheck = `${fileName ?? ''}\n${azione_consigliata ?? ''}`
-
-  /** CV / recruitment: never treat as supplier price list. */
-  if (CV_OR_JOB_APPLICATION_HINT.test(blobCheck)) {
-    return { tipo_suggerito: 'altro', confidenza: Math.min(confidenza, 0.92) }
+function pendingKindToInboxTipo(kind: InferredPendingKind): string {
+  if (!kind) return 'altro'
+  const map: Record<NonNullable<InferredPendingKind>, string> = {
+    fattura: 'fattura',
+    bolla: 'bolla',
+    nota_credito: 'nota_credito',
+    ordine: 'ordine',
+    statement: 'estratto_conto',
+    listino: 'listino',
+    comunicazione: 'altro',
   }
+  return map[kind] ?? 'altro'
+}
 
-  if (tipo === 'listino') {
-    return { tipo_suggerito: 'listino', confidenza }
+function azioneForInboxTipo(tipo: string): string {
+  const labels: Record<string, string> = {
+    ordine: 'Registra come ordine / conferma ordine',
+    fattura: 'Registra come fattura',
+    nota_credito: 'Registra come nota di credito',
+    bolla: 'Registra come bolla / DDT',
+    ddt: 'Registra come bolla / DDT',
+    estratto_conto: 'Registra come estratto conto',
+    listino: 'Registra come listino prezzi',
+    altro: 'Documento non fiscale — verifica o scarta',
   }
-
-  const blob = `${fileName ?? ''}\n${azione_consigliata ?? ''}`
-  if (LISTINO_PRICE_DOC_HINT.test(blob) && tipo === 'altro') {
-    return {
-      tipo_suggerito: 'listino',
-      confidenza: Math.min(1, Math.max(confidenza, 0.93)),
-    }
-  }
-  return { tipo_suggerito: tipo_raw || 'altro', confidenza }
+  return labels[tipo] ?? `Tipo letto: ${tipo}`
 }
 
 function clamp01InboxLike(n: unknown): number {
@@ -126,14 +134,101 @@ function strOrNull(v: unknown): string | null {
 
 const MAX_BYTES = 18 * 1024 * 1024
 
+type ClassifyRow = {
+  id: string
+  file_url: string | null
+  file_name?: string | null
+  content_type?: string | null
+  oggetto_mail?: string | null
+}
+
+/**
+ * Stessa pipeline OCR delle tabelle fornitori / reprocess legacy (`ocrInvoice` + routing coda).
+ */
+async function classifyFromOcrInvoice(
+  service: SupabaseClient,
+  row: ClassifyRow,
+  data: Buffer,
+  mime: string,
+): Promise<GeminiInboxClassification | null> {
+  const ctxLabel = row.file_name ?? row.id ?? 'unknown'
+  try {
+    const ocr = await ocrInvoice(data, mime, undefined, {
+      logContext: {
+        supabase: service,
+        mittente: 'inbox-ai-classify',
+        oggetto_mail: row.oggetto_mail ?? null,
+        file_name: row.file_name ?? null,
+        file_url: row.file_url,
+        fornitore_id: null,
+        sede_id: null,
+      },
+    })
+
+    let inferred = inferPendingDocumentKindForQueueRow({
+      oggetto_mail: row.oggetto_mail,
+      file_name: row.file_name,
+      metadata: {
+        tipo_documento: ocr.tipo_documento,
+        ragione_sociale: ocr.ragione_sociale,
+        numero_fattura: ocr.numero_fattura,
+        totale_iva_inclusa: ocr.totale_iva_inclusa ?? null,
+      },
+    })
+
+    if (
+      (!inferred || inferred === 'comunicazione') &&
+      scanContextLooksLikeOrderConfirmationDoc(row.oggetto_mail, row.file_name)
+    ) {
+      inferred = 'ordine'
+    }
+
+    const ocrNorm = normalizeTipoDocumento(ocr.tipo_documento)
+    if (!inferred && ocrNorm === 'ordine') inferred = 'ordine'
+
+    let tipo_suggerito = pendingKindToInboxTipo(inferred)
+    if (tipo_suggerito === 'altro' && ocrNorm === 'ordine') tipo_suggerito = 'ordine'
+
+    let confidenza = 0.88
+    if (ocrNorm && inferred) confidenza = 0.94
+    else if (inferred) confidenza = 0.91
+    else if (ocrNorm) confidenza = 0.9
+
+    const coerced = coerceInboxTipoFromSignals(
+      row.file_name,
+      tipo_suggerito,
+      confidenza,
+      azioneForInboxTipo(tipo_suggerito),
+      row.oggetto_mail,
+    )
+
+    logger.info(
+      `[Classify] OCR ${ctxLabel}: tipo=${coerced.tipo_suggerito} ocr_tipo=${ocr.tipo_documento ?? '—'} inferred=${inferred ?? '—'}`,
+    )
+
+    return {
+      doc_id: row.id,
+      tipo_suggerito: coerced.tipo_suggerito,
+      fornitore_suggerito: ocr.ragione_sociale?.trim() || null,
+      azione_consigliata: azioneForInboxTipo(coerced.tipo_suggerito),
+      confidenza: clamp01(coerced.confidenza),
+    }
+  } catch (e) {
+    if (e instanceof OcrInvoiceConfigurationError) throw e
+    if (e instanceof OcrTransientError) {
+      logger.warn(`[Classify] OCR transient ${ctxLabel}: ${e.message}`)
+      return null
+    }
+    logger.warn(
+      `[Classify] OCR fallback ${ctxLabel}: ${e instanceof Error ? e.message : String(e)}`,
+    )
+    return null
+  }
+}
+
 export async function classifyDocumentWithGemini(
   service: SupabaseClient,
-  row: {
-    id: string
-    file_url: string | null
-    file_name?: string | null
-    content_type?: string | null
-  },
+  row: ClassifyRow,
 ): Promise<GeminiInboxClassification> {
   const fileUrl = (row.file_url ?? '').trim()
   if (!fileUrl) {
@@ -208,16 +303,35 @@ export async function classifyDocumentWithGemini(
     }
   }
 
+  try {
+    const fromOcr = await classifyFromOcrInvoice(service, row, data, mime)
+    if (fromOcr) return fromOcr
+  } catch (e) {
+    if (e instanceof OcrInvoiceConfigurationError) {
+      return {
+        doc_id: row.id,
+        tipo_suggerito: 'altro',
+        fornitore_suggerito: null,
+        azione_consigliata: e.message,
+        confidenza: 0,
+        error: e.message,
+      }
+    }
+    throw e
+  }
+
   const base64 = data.toString('base64')
   const userPrompt =
-    `Nome file: ${row.file_name ?? 'sconosciuto'}\n\n` +
-    `RULES:\n` +
+    `Nome file: ${row.file_name ?? 'sconosciuto'}\n` +
+    (row.oggetto_mail?.trim() ? `Oggetto email: ${row.oggetto_mail.trim()}\n` : '') +
+    `\nRULES:\n` +
+    `- Use "ordine" for Sales Order, Sales Order Confirmation, Purchase Order, Order Confirmation (not invoice, not DDT).\n` +
     `- NEVER use tipo_suggerito "listino" for a CV, curriculum vitae, résumé / resume, job application or hiring paper — those must be "altro".\n` +
     `- Use "listino" only for supplier PRICE communications (e.g. "Price Update", price list with products/prices for purchasing).\n` +
     `- Use "nota_credito" for CREDIT NOTES / Credit Memos / Note di Credito / Avoir / Gutschrift with negative amounts or credit wording.\n` +
     `Return only the requested JSON.`
 
-  logger.info(`[Classify] Invio a Gemini Vision: ${ctxLabel}, sizeKB: ${(data.length / 1024).toFixed(1)}, mime: ${mime}`)
+  logger.info(`[Classify] Gemini Vision fallback: ${ctxLabel}, sizeKB: ${(data.length / 1024).toFixed(1)}, mime: ${mime}`)
 
   try {
     const { text } = await geminiGenerateVision(CLASSIFY_SYSTEM, mime, base64, userPrompt, 700)
@@ -226,7 +340,13 @@ export async function classifyDocumentWithGemini(
     const confRaw = clamp01(obj.confidenza)
     const azione = strOrNull(obj.azione_consigliata) ?? '—'
 
-    const coerced = coerceListinoFromSignals(row.file_name, tipoRaw, confRaw, azione)
+    const coerced = coerceInboxTipoFromSignals(
+      row.file_name,
+      tipoRaw,
+      confRaw,
+      azione,
+      row.oggetto_mail,
+    )
     return {
       doc_id: row.id,
       tipo_suggerito: coerced.tipo_suggerito,
