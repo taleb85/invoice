@@ -157,12 +157,54 @@ function ordineDupKeyByFileUrl(r: OrdineDupListRow): string | null {
   return `${r.fornitore_id}\u0000fileurl\u0000${u}`
 }
 
-/** Stesso numero ordine commerciale senza data allineata (es. una riga senza `data_ordine`). */
-function ordineDupKeyByNumeroOnly(r: OrdineDupListRow): string | null {
-  const num = ordineResolvedNumero(r)
-  if (!num || !r.fornitore_id) return null
-  if (!/^\d{4,}$/.test(num)) return null
-  return `${r.fornitore_id}\u0000numonly\u0000${num.toLowerCase()}`
+function ordineHasDocumentDate(r: OrdineDupListRow): boolean {
+  const d = (r.data_ordine ?? '').trim().slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(d)
+}
+
+function ordineRowsLookLikeMultiDocInSamePdf(arr: OrdineDupListRow[]): boolean {
+  return rowsLookLikeMultiDocInSamePdf(
+    arr.map((r) => ({
+      file_url: r.file_url,
+      documentDate: r.data_ordine,
+      documentNumero: ordineResolvedNumero(r),
+    })),
+  )
+}
+
+/**
+ * Stesso fornitore + numero ordine: una conferma senza `data_ordine` e una+ con data
+ * (doppio passaggio scan). Esclude più date sullo stesso PDF (documenti distinti).
+ */
+function analyzeOrdineOrphanDateDuplicates(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
+  const byNumero = new Map<string, OrdineDupListRow[]>()
+  for (const r of rows) {
+    if (!r.fornitore_id) continue
+    const num = ordineResolvedNumero(r)
+    if (!num || !/^\d{4,}$/.test(num)) continue
+    const k = `${r.fornitore_id}\u0000${num.toLowerCase()}`
+    const arr = byNumero.get(k) ?? []
+    arr.push(r)
+    byNumero.set(k, arr)
+  }
+
+  let merged = emptyDuplicateDeletionAnalysis()
+  for (const [bucketKey, arr] of byNumero) {
+    const orphans = arr.filter((r) => !ordineHasDocumentDate(r))
+    const withDate = arr.filter((r) => ordineHasDocumentDate(r))
+    if (orphans.length !== 1 || withDate.length === 0) continue
+    const dates = new Set(withDate.map((r) => r.data_ordine!.trim().slice(0, 10)))
+    if (dates.size !== 1) continue
+    if (ordineRowsLookLikeMultiDocInSamePdf(arr)) continue
+    const slice = analyzeDuplicatesForDeletion(
+      arr,
+      () => `${bucketKey}\u0000orphan-date`,
+      ordineCanonicalSort,
+      false,
+    )
+    merged = mergeDuplicateAnalyses(merged, slice)
+  }
+  return merged
 }
 
 // ── Helpers generici ──────────────────────────────────────────
@@ -356,7 +398,18 @@ function analyzeFatturaSameFileUrlDuplicates(rows: FatturaDupListRow[]): Fattura
   let merged = emptyDuplicateDeletionAnalysis()
   for (const [url, arr] of byUrl) {
     if (arr.length <= 1) continue
-    if (rowsLookLikeMultiDocInSamePdf(arr, 'numero_fattura')) continue
+    if (
+      rowsLookLikeMultiDocInSamePdf(
+        arr.map((r) => ({
+          file_url: r.file_url,
+          documentDate: r.data,
+          documentNumero: r.numero_fattura,
+          importo: r.importo,
+        })),
+      )
+    ) {
+      continue
+    }
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,
@@ -524,7 +577,18 @@ function analyzeBolleSameFileUrlDuplicates(rows: BollaDupListRow[]): FatturaDupl
   let merged = emptyDuplicateDeletionAnalysis()
   for (const [url, arr] of byUrl) {
     if (arr.length <= 1) continue
-    if (rowsLookLikeMultiDocInSamePdf(arr, 'numero_bolla')) continue
+    if (
+      rowsLookLikeMultiDocInSamePdf(
+        arr.map((r) => ({
+          file_url: r.file_url,
+          documentDate: r.data,
+          documentNumero: r.numero_bolla,
+          importo: r.importo,
+        })),
+      )
+    ) {
+      continue
+    }
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,
@@ -667,8 +731,8 @@ function ordineCanonicalSort(a: OrdineDupListRow, b: OrdineDupListRow): number {
 export function analyzeOrdineDuplicatesForDeletion(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
   const byNumeroData = analyzeDuplicatesForDeletion(rows, ordineDupKey, ordineCanonicalSort, false)
   const byFile = analyzeOrdineSameFileUrlDuplicates(rows)
-  const byNumOnly = analyzeDuplicatesForDeletion(rows, ordineDupKeyByNumeroOnly, ordineCanonicalSort, false)
-  return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumeroData, byFile), byNumOnly)
+  const byOrphanDate = analyzeOrdineOrphanDateDuplicates(rows)
+  return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumeroData, byFile), byOrphanDate)
 }
 
 /**
@@ -701,6 +765,7 @@ function analyzeOrdineSameFileUrlDuplicates(rows: OrdineDupListRow[]): FatturaDu
   let merged = emptyDuplicateDeletionAnalysis()
   for (const [url, arr] of byUrl) {
     if (arr.length <= 1) continue
+    if (ordineRowsLookLikeMultiDocInSamePdf(arr)) continue
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,

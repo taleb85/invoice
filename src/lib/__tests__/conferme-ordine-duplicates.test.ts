@@ -38,6 +38,27 @@ describe('analyzeOrdineDuplicatesForDeletion (conferme)', () => {
     expect([...a.excessIds][0]).toBe('a')
   })
 
+  it('non segna duplicato stesso PDF con date ordine diverse (multi-documento)', () => {
+    const url = 'https://x/multi.pdf'
+    const a = analyzeOrdineDuplicatesForDeletion([
+      row({
+        id: 'a',
+        data_ordine: '2025-06-02',
+        numero_ordine: '533422',
+        file_url: url,
+        file_name: 'Orders.pdf',
+      }),
+      row({
+        id: 'b',
+        data_ordine: '2025-07-08',
+        numero_ordine: '533422',
+        file_url: url,
+        file_name: 'Orders.pdf',
+      }),
+    ])
+    expect(a.excessIds.size).toBe(0)
+  })
+
   it('auto-delete solo per file_url o numero+data (non solo numero)', () => {
     const url = 'https://x/dup.pdf'
     const rows = [

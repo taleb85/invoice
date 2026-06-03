@@ -35,22 +35,18 @@ export function fatturaDuplicateGroupKey(r: {
   return r.is_credit_note ? `cn:${base}` : `inv:${base}`
 }
 
-type SameFileRow = {
+export type SamePdfDocumentRow = {
   file_url?: string | null
-  data?: string | null
+  documentDate?: string | null
+  documentNumero?: string | null
   importo?: number | null
-  numero_bolla?: string | null
-  numero_fattura?: string | null
 }
 
 /**
  * Più registrazioni sullo stesso PDF con date, numeri o importi distinti
  * (es. estratto + fattura nello stesso file) — non sono duplicati da eliminare.
  */
-export function rowsLookLikeMultiDocInSamePdf(
-  rows: SameFileRow[],
-  numeroField: 'numero_bolla' | 'numero_fattura',
-): boolean {
+export function rowsLookLikeMultiDocInSamePdf(rows: SamePdfDocumentRow[]): boolean {
   if (rows.length < 2) return false
   const url = rows[0]!.file_url?.trim()
   if (!url) return false
@@ -58,13 +54,13 @@ export function rowsLookLikeMultiDocInSamePdf(
 
   const dates = new Set(
     rows
-      .map((r) => (r.data ?? '').trim().slice(0, 10))
+      .map((r) => (r.documentDate ?? '').trim().slice(0, 10))
       .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)),
   )
   if (dates.size > 1) return true
 
   const numeros = new Set(
-    rows.map((r) => normalizeNumeroFattura(r[numeroField])).filter(Boolean),
+    rows.map((r) => normalizeNumeroFattura(r.documentNumero)).filter(Boolean),
   )
   if (numeros.size > 1) return true
 

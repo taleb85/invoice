@@ -20,26 +20,20 @@ describe('duplicate-group-keys', () => {
   it('rowsLookLikeMultiDocInSamePdf con stesso PDF e date diverse', () => {
     const url = 'https://x/multi.pdf'
     expect(
-      rowsLookLikeMultiDocInSamePdf(
-        [
-          { file_url: url, data: '2025-06-02', numero_bolla: 'A' },
-          { file_url: url, data: '2025-07-08', numero_bolla: 'A' },
-        ],
-        'numero_bolla',
-      ),
+      rowsLookLikeMultiDocInSamePdf([
+        { file_url: url, documentDate: '2025-06-02', documentNumero: 'A' },
+        { file_url: url, documentDate: '2025-07-08', documentNumero: 'A' },
+      ]),
     ).toBe(true)
   })
 
   it('rowsLookLikeMultiDocInSamePdf con stesso PDF stessa data e numero → non multi-doc', () => {
     const url = 'https://x/dup.pdf'
     expect(
-      rowsLookLikeMultiDocInSamePdf(
-        [
-          { file_url: url, data: '2025-06-02', numero_bolla: 'A' },
-          { file_url: url, data: '2025-06-02', numero_bolla: 'A' },
-        ],
-        'numero_bolla',
-      ),
+      rowsLookLikeMultiDocInSamePdf([
+        { file_url: url, documentDate: '2025-06-02', documentNumero: 'A' },
+        { file_url: url, documentDate: '2025-06-02', documentNumero: 'A' },
+      ]),
     ).toBe(false)
   })
 })

@@ -142,7 +142,18 @@ export async function fetchEnrichedDuplicateFattureGroups(
       fornitore_nome: f.fornitori?.nome ?? null,
       is_credit_note: f.is_credit_note,
     }))
-    if (rowsLookLikeMultiDocInSamePdf(fatture, 'numero_fattura')) continue
+    if (
+      rowsLookLikeMultiDocInSamePdf(
+        fatture.map((f) => ({
+          file_url: f.file_url,
+          documentDate: f.data,
+          documentNumero: f.numero_fattura,
+          importo: f.importo,
+        })),
+      )
+    ) {
+      continue
+    }
 
     const withBolla = fatture.filter((x) => x.bolla_id)
     const keep = pickKeepFattura(fatture)
@@ -248,7 +259,18 @@ export async function fetchEnrichedDuplicateBolleGroups(
     if (items.length < 2) continue
     items.forEach((b) => usedIds.add(b.id))
     const bolle = items.map(rowToDup)
-    if (rowsLookLikeMultiDocInSamePdf(bolle, 'numero_bolla')) continue
+    if (
+      rowsLookLikeMultiDocInSamePdf(
+        bolle.map((b) => ({
+          file_url: b.file_url,
+          documentDate: b.data,
+          documentNumero: b.numero_bolla,
+          importo: b.importo,
+        })),
+      )
+    ) {
+      continue
+    }
 
     const withF = bolle.filter((x) => x.ha_fattura_collegata)
     const keep = pickKeepBolla(bolle)
