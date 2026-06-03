@@ -830,6 +830,14 @@ export type Translations = {
     ordiniOverviewEmpty: string
     ordiniOverviewOpenSupplier: string
     ordiniOverviewLimitNote: string
+    ordiniOverviewShowAll: string
+    ordiniDupViewTitle: string
+    ordiniDupViewHint: string
+    ordiniDupViewCountLabel: string
+    ordiniDupViewSub: string
+    ordiniDupViewEmpty: string
+    ordiniDupViewBadgeHint: string
+    ordiniDupViewLink: string
     ordiniColSupplier: string
     ordiniColTitle: string
     ordiniColOrderDate: string

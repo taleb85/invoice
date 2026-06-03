@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import { getProfile, getRequestAuth, createServiceClient } from '@/utils/supabase/server'
-import { fetchOrdiniOverviewRows, fornitoreIdsForSede, type OrdineOverviewRow } from '@/lib/dashboard-operator-kpis'
+import {
+  fetchOrdiniOverviewRows,
+  fetchOrdiniDuplicateOverviewRows,
+  fornitoreIdsForSede,
+  type OrdineOverviewRow,
+} from '@/lib/dashboard-operator-kpis'
 import { enrichOrdiniDupRowsFromDocumenti } from '@/lib/conferme-ordine-query'
 import {
   getT,
@@ -37,6 +42,7 @@ import {
   ordineExcessIdsForAutoDeletion,
   serializeFatturaDuplicateDeletionPayload,
   autoDeleteExcessDuplicates,
+  type FatturaDuplicateDeletionAnalysis,
 } from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
@@ -45,10 +51,26 @@ import { isMasterAdminRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
+function ordiniOverviewRowToDupProbe(
+  rows: OrdineOverviewRow[],
+): Parameters<typeof enrichOrdiniDupRowsFromDocumenti>[1] {
+  return rows.map((r) => ({
+    id: r.id,
+    fornitore_id: r.fornitore_id,
+    data_ordine: r.data_ordine,
+    numero_ordine: r.numero_ordine,
+    titolo: r.titolo,
+    created_at: r.created_at,
+    file_url: r.file_url ?? null,
+    file_name: r.file_name ?? null,
+  }))
+}
+
 export default async function OrdiniOverviewPage(props: {
-  searchParams?: Promise<{ fy?: string }>
+  searchParams?: Promise<{ fy?: string; dup?: string }>
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
+  const dupOnly = searchParams.dup === '1'
   const [t, locale, tz, cookieStore] = await Promise.all([
     getT(),
     getLocale(),
@@ -68,15 +90,36 @@ export default async function OrdiniOverviewPage(props: {
 
   let rows: OrdineOverviewRow[] = []
   let fiscal: Awaited<ReturnType<typeof resolveFiscalFilterForSede>> | null = null
+  let ordDupAnalysis: FatturaDuplicateDeletionAnalysis | null = null
+
   if (!sedeId && !isMasterAdmin) {
     rows = []
   } else if (!sedeId && isMasterAdmin) {
-    rows = await fetchOrdiniOverviewRows(supabase, null, null)
+    if (dupOnly) {
+      rows = []
+      ordDupAnalysis = {
+        memberIds: new Set(),
+        excessIds: new Set(),
+        canonicalIdByGroupKey: new Map(),
+        groupMembers: new Map(),
+        surplusCount: 0,
+        surplusImporto: 0,
+      }
+    } else {
+      rows = await fetchOrdiniOverviewRows(supabase, null, null)
+    }
   } else if (sedeId && fornitoreIds.length === 0) {
     rows = []
   } else {
     fiscal = await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy)
-    rows = await fetchOrdiniOverviewRows(supabase, fornitoreIds, fiscal?.bounds ?? null)
+    const bounds = fiscal?.bounds ?? null
+    if (dupOnly) {
+      const dupPack = await fetchOrdiniDuplicateOverviewRows(supabase, fornitoreIds, bounds)
+      rows = dupPack.rows
+      ordDupAnalysis = dupPack.analysis
+    } else {
+      rows = await fetchOrdiniOverviewRows(supabase, fornitoreIds, bounds)
+    }
   }
 
   const formatDate = (d: string) => fmtDate(d, locale, tz)
@@ -84,54 +127,47 @@ export default async function OrdiniOverviewPage(props: {
 
   const ordiniDupRows = await enrichOrdiniDupRowsFromDocumenti(
     supabase,
-    rows.map((r) => ({
-      id: r.id,
-      fornitore_id: r.fornitore_id,
-      data_ordine: r.data_ordine,
-      numero_ordine: r.numero_ordine,
-      titolo: r.titolo,
-      created_at: r.created_at,
-      file_url: r.file_url ?? null,
-      file_name: r.file_name ?? null,
-    })),
+    ordiniOverviewRowToDupProbe(rows),
   )
-  const ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(ordiniDupRows)
+  if (!ordDupAnalysis) {
+    ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(ordiniDupRows)
+  }
   const ordExcessIds = ordineExcessIdsForAutoDeletion(ordiniDupRows)
   if (ordExcessIds.length > 0) {
     const service = createServiceClient()
     const deleted = await autoDeleteExcessDuplicates(service, 'conferme_ordine', ordExcessIds)
     if (deleted > 0) {
-      rows = rows.filter(r => !ordExcessIds.includes(r.id))
-      const cleanAnalysis = analyzeOrdineDuplicatesForDeletion(
-        await enrichOrdiniDupRowsFromDocumenti(
-          supabase,
-          rows.map((r) => ({
-            id: r.id,
-            fornitore_id: r.fornitore_id,
-            data_ordine: r.data_ordine,
-            numero_ordine: r.numero_ordine,
-            titolo: r.titolo,
-            created_at: r.created_at,
-            file_url: r.file_url ?? null,
-            file_name: r.file_name ?? null,
-          })),
-        ),
+      rows = rows.filter((r) => !ordExcessIds.includes(r.id))
+      const cleanRows = await enrichOrdiniDupRowsFromDocumenti(
+        supabase,
+        ordiniOverviewRowToDupProbe(rows),
       )
-      ordDupAnalysis.memberIds = cleanAnalysis.memberIds
-      ordDupAnalysis.excessIds = cleanAnalysis.excessIds
-      ordDupAnalysis.surplusCount = cleanAnalysis.surplusCount
+      ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(cleanRows)
     }
   }
   const ordDupPayload = serializeFatturaDuplicateDeletionPayload(ordDupAnalysis)
+  const excessVisible = rows.filter((r) => ordDupPayload.excessIds.includes(r.id)).length
 
-  const ordiniMergedSummary = {
-    label: t.common.total,
-    primary: rows.length,
-    secondary:
-      rows.length === 0
-        ? t.dashboard.kpiOrdiniSub
-        : t.dashboard.ordiniOverviewLimitNote.replace(/\{n\}/g, String(rows.length)),
-  }
+  const ordiniMergedSummary = dupOnly
+    ? {
+        label: t.dashboard.ordiniDupViewCountLabel,
+        primary: rows.length,
+        secondary:
+          rows.length === 0
+            ? t.dashboard.ordiniDupViewEmpty
+            : t.dashboard.ordiniDupViewSub.replace(/\{excess\}/g, String(excessVisible)),
+      }
+    : {
+        label: t.common.total,
+        primary: rows.length,
+        secondary:
+          rows.length === 0
+            ? t.dashboard.kpiOrdiniSub
+            : t.dashboard.ordiniOverviewLimitNote.replace(/\{n\}/g, String(rows.length)),
+      }
+
+  const allOrdiniHref = withFiscalYearQuery('/ordini', fyForLinks)
+  const dupOrdiniHref = withFiscalYearQuery('/ordini', fyForLinks, { dup: '1' })
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -146,21 +182,32 @@ export default async function OrdiniOverviewPage(props: {
         }
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.nav.ordini}</h1>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>
+            {dupOnly ? t.dashboard.ordiniDupViewTitle : t.nav.ordini}
+          </h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>
 
       <AppSectionFiltersBar aria-label={t.nav.cerca}>
         <p className={`min-w-0 flex-1 basis-full sm:basis-auto ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS}`}>
-          {t.dashboard.ordiniOverviewHint}
+          {dupOnly ? t.dashboard.ordiniDupViewHint : t.dashboard.ordiniOverviewHint}
         </p>
-        <Link
-          href={withFiscalYearQuery('/inbox-ai', fyForLinks, { tab: 'panoramica' })}
-          className="text-xs font-semibold text-app-cyan-500 transition-colors hover:text-app-fg sm:ml-auto"
-        >
-          {t.dashboard.inboxUrgenteNavOrdini} →
-        </Link>
+        {dupOnly ? (
+          <Link
+            href={allOrdiniHref}
+            className="text-xs font-semibold text-app-cyan-500 transition-colors hover:text-app-fg sm:ml-auto"
+          >
+            {t.dashboard.ordiniOverviewShowAll} →
+          </Link>
+        ) : (
+          <Link
+            href={withFiscalYearQuery('/inbox-ai', fyForLinks, { tab: 'panoramica' })}
+            className="text-xs font-semibold text-app-cyan-500 transition-colors hover:text-app-fg sm:ml-auto"
+          >
+            {t.dashboard.inboxUrgenteNavOrdini} →
+          </Link>
+        )}
       </AppSectionFiltersBar>
 
       {!sedeId && !isMasterAdmin ? (
@@ -169,14 +216,27 @@ export default async function OrdiniOverviewPage(props: {
         </div>
       ) : rows.length === 0 ? (
         <div className="min-w-0">
-          <AppSectionEmptyState message={t.dashboard.ordiniOverviewEmpty}>
-            <ActionLink href="/fornitori" intent="nav" size="sm" className="mt-4">
-              {t.nav.fornitori} →
-            </ActionLink>
+          <AppSectionEmptyState
+            message={dupOnly ? t.dashboard.ordiniDupViewEmpty : t.dashboard.ordiniOverviewEmpty}
+          >
+            {dupOnly ? (
+              <ActionLink href={allOrdiniHref} intent="nav" size="sm" className="mt-4">
+                {t.dashboard.ordiniOverviewShowAll} →
+              </ActionLink>
+            ) : (
+              <ActionLink href="/fornitori" intent="nav" size="sm" className="mt-4">
+                {t.nav.fornitori} →
+              </ActionLink>
+            )}
           </AppSectionEmptyState>
         </div>
       ) : (
         <div className="min-w-0">
+          {dupOnly ? (
+            <p className="mb-3 text-xs leading-relaxed text-app-fg-muted">
+              {t.dashboard.ordiniDupViewBadgeHint}
+            </p>
+          ) : null}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
@@ -230,6 +290,13 @@ export default async function OrdiniOverviewPage(props: {
               </tbody>
             </table>
           </div>
+          {!dupOnly && ordDupPayload.memberIds.length > 0 ? (
+            <p className="mt-4 text-xs text-app-fg-muted">
+              <Link href={dupOrdiniHref} className="font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline">
+                {t.dashboard.ordiniDupViewLink.replace(/\{n\}/g, String(ordDupPayload.memberIds.length))}
+              </Link>
+            </p>
+          ) : null}
         </div>
       )}
     </div>

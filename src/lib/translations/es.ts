@@ -1157,6 +1157,16 @@ const translations: Translations = {
     ordiniOverviewEmpty: 'No hay confirmaciones de pedido en este ámbito.',
     ordiniOverviewOpenSupplier: 'Abrir proveedor →',
     ordiniOverviewLimitNote: 'Se muestran las últimas {n} confirmaciones.',
+    ordiniOverviewShowAll: 'Todas las confirmaciones',
+    ordiniDupViewTitle: 'Pedidos — duplicados',
+    ordiniDupViewHint:
+      'Solo confirmaciones en grupos duplicados en el ejercicio fiscal. La insignia «Duplicado» marca copias a revisar.',
+    ordiniDupViewCountLabel: 'En grupos duplicados',
+    ordiniDupViewSub: '{excess} copias en exceso a revisar en la lista',
+    ordiniDupViewEmpty: 'Sin pedidos duplicados en el ejercicio fiscal seleccionado.',
+    ordiniDupViewBadgeHint:
+      'Cada grupo es el mismo proveedor con mismo número y fecha de pedido (o el mismo PDF registrado dos veces).',
+    ordiniDupViewLink: 'Ver solo duplicados del periodo ({n}) →',
     ordiniColSupplier: 'Proveedor',
     ordiniColTitle: 'Título',
     ordiniColOrderDate: 'Fecha pedido',

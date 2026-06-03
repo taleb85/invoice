@@ -57,7 +57,7 @@ export function buildInboxOperationalHubItems(opts: BuildHubItemsOpts): InboxHub
       key: 'dup-ord',
       label: labels.dupOrdini,
       count: kpis.duplicatiOrdiniCount,
-      href: withFiscalYearQuery('/ordini', fy),
+      href: withFiscalYearQuery('/ordini', fy, { dup: '1' }),
     },
   ]
 }

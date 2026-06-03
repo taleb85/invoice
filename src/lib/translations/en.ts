@@ -1212,6 +1212,16 @@ const translations: Translations = {
     ordiniOverviewEmpty: 'No order confirmations in this scope.',
     ordiniOverviewOpenSupplier: 'Open supplier →',
     ordiniOverviewLimitNote: 'Showing the latest {n} confirmations.',
+    ordiniOverviewShowAll: 'All confirmations',
+    ordiniDupViewTitle: 'Orders — duplicates',
+    ordiniDupViewHint:
+      'Order confirmations in duplicate groups for the selected fiscal year. The duplicate badge marks copies to review; remove only excess rows.',
+    ordiniDupViewCountLabel: 'In duplicate groups',
+    ordiniDupViewSub: '{excess} excess copies to review in this list',
+    ordiniDupViewEmpty: 'No duplicate orders in the selected fiscal year.',
+    ordiniDupViewBadgeHint:
+      'Each group is the same supplier with the same order number and date (or the same PDF registered twice). Distinct documents in one file are not listed here.',
+    ordiniDupViewLink: 'View duplicates in period only ({n}) →',
     ordiniColSupplier: 'Supplier',
     ordiniColTitle: 'Title',
     ordiniColOrderDate: 'Order date',

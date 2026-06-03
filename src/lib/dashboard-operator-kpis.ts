@@ -12,10 +12,14 @@ import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 import {
   analyzeBolleDuplicatesForDeletion,
   analyzeFatturaDuplicateGroups,
+  analyzeOrdineDuplicatesForDeletion,
   DUPLICATE_SCAN_MAX_ROWS,
+  fetchOrdiniDupListRows,
   getDuplicateOrdiniCount,
   type BollaDupProbe,
+  type FatturaDuplicateDeletionAnalysis,
   type FatturaDupProbe,
+  type OrdineDupListRow,
 } from '@/lib/check-duplicates'
 
 export type ListinoOverviewRow = {
@@ -164,6 +168,51 @@ export type OrdineOverviewRow = {
 }
 
 const ORDINI_OVERVIEW_LIMIT = 200
+
+/** Conferme ordine in gruppi duplicato (intero periodo fiscale, stesso criterio KPI). */
+export async function fetchOrdiniDuplicateOverviewRows(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null,
+  fiscalBounds: FiscalPgBounds | null,
+): Promise<{
+  rows: OrdineOverviewRow[]
+  dupRows: OrdineDupListRow[]
+  analysis: FatturaDuplicateDeletionAnalysis
+}> {
+  const dupRows = await fetchOrdiniDupListRows(supabase, { fornitoreIds, fiscalBounds })
+  const analysis = analyzeOrdineDuplicatesForDeletion(dupRows)
+  const members = dupRows.filter((r) => analysis.memberIds.has(r.id))
+  if (members.length === 0) {
+    return { rows: [], dupRows, analysis }
+  }
+
+  const fornitoreIdSet = [...new Set(members.map((m) => m.fornitore_id))]
+  const { data: fornitori } = await supabase
+    .from('fornitori')
+    .select('id, nome, display_name')
+    .in('id', fornitoreIdSet)
+  const nameById = new Map<string, string>()
+  for (const f of fornitori ?? []) {
+    const row = f as { id: string; nome?: string | null; display_name?: string | null }
+    nameById.set(row.id, row.display_name?.trim() || row.nome?.trim() || '—')
+  }
+
+  const rows: OrdineOverviewRow[] = members
+    .map((m) => ({
+      id: m.id,
+      fornitore_id: m.fornitore_id,
+      fornitore_nome: nameById.get(m.fornitore_id) ?? '—',
+      titolo: m.titolo ?? null,
+      numero_ordine: m.numero_ordine ?? null,
+      data_ordine: m.data_ordine != null ? String(m.data_ordine) : null,
+      created_at: String(m.created_at ?? ''),
+      file_url: String(m.file_url ?? ''),
+      file_name: m.file_name ?? null,
+    }))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+
+  return { rows, dupRows, analysis }
+}
 
 /** Conferme ordine con nome fornitore, per la pagina /ordini. */
 export async function fetchOrdiniOverviewRows(

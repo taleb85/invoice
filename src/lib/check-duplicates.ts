@@ -910,11 +910,18 @@ export async function cleanupSafeDuplicatesForFornitore(
   }
 }
 
+export async function fetchOrdiniDupListRows(
+  supabase: SupabaseClient,
+  opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null },
+): Promise<OrdineDupListRow[]> {
+  return fetchAllOrdiniDupRows(supabase, opts.fornitoreIds, opts.fiscalBounds)
+}
+
 export async function getDuplicateOrdiniCount(
   supabase: SupabaseClient,
   opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null },
 ): Promise<number> {
-  const rows = await fetchAllOrdiniDupRows(supabase, opts.fornitoreIds, opts.fiscalBounds)
+  const rows = await fetchOrdiniDupListRows(supabase, opts)
   return analyzeOrdineDuplicatesForDeletion(rows).surplusCount
 }
 

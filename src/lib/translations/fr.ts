@@ -1157,6 +1157,16 @@ const translations: Translations = {
     ordiniOverviewEmpty: 'Aucune confirmation de commande dans ce périmètre.',
     ordiniOverviewOpenSupplier: 'Ouvrir fournisseur →',
     ordiniOverviewLimitNote: 'Affichage des {n} dernières confirmations.',
+    ordiniOverviewShowAll: 'Toutes les confirmations',
+    ordiniDupViewTitle: 'Commandes — doublons',
+    ordiniDupViewHint:
+      'Uniquement les confirmations en groupes de doublons sur l’exercice fiscal. Le badge « Doublon » signale les copies à examiner.',
+    ordiniDupViewCountLabel: 'Dans des groupes doublons',
+    ordiniDupViewSub: '{excess} copies en excès à examiner dans la liste',
+    ordiniDupViewEmpty: 'Aucun doublon commande sur l’exercice fiscal sélectionné.',
+    ordiniDupViewBadgeHint:
+      'Chaque groupe : même fournisseur, même numéro et date de commande (ou même PDF enregistré deux fois).',
+    ordiniDupViewLink: 'Voir uniquement les doublons de la période ({n}) →',
     ordiniColSupplier: 'Fournisseur',
     ordiniColTitle: 'Titre',
     ordiniColOrderDate: 'Date commande',

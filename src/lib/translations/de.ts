@@ -1157,6 +1157,16 @@ const translations: Translations = {
     ordiniOverviewEmpty: 'Keine Auftragsbestätigungen in diesem Bereich.',
     ordiniOverviewOpenSupplier: 'Lieferant öffnen →',
     ordiniOverviewLimitNote: 'Die letzten {n} Bestätigungen werden angezeigt.',
+    ordiniOverviewShowAll: 'Alle Bestätigungen',
+    ordiniDupViewTitle: 'Bestellungen — Duplikate',
+    ordiniDupViewHint:
+      'Nur Bestätigungen in Duplikatgruppen im Geschäftsjahr. Das Badge «Duplikat» kennzeichnet zu prüfende Kopien.',
+    ordiniDupViewCountLabel: 'In Duplikatgruppen',
+    ordiniDupViewSub: '{excess} überzählige Kopien in dieser Liste',
+    ordiniDupViewEmpty: 'Keine Bestellduplikate im gewählten Geschäftsjahr.',
+    ordiniDupViewBadgeHint:
+      'Jede Gruppe: gleicher Lieferant, gleiche Bestellnummer und -datum (oder gleiches PDF zweimal erfasst).',
+    ordiniDupViewLink: 'Nur Duplikate im Zeitraum ({n}) →',
     ordiniColSupplier: 'Lieferant',
     ordiniColTitle: 'Titel',
     ordiniColOrderDate: 'Auftragsdatum',

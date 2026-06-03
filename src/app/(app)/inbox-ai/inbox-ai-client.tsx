@@ -1685,7 +1685,7 @@ export default function InboxAiClient(props: {
                   type="button"
                   onClick={() => {
                     if (id === 'ordini') {
-                      router.push(withFiscalYearQuery('/ordini', fiscalYear))
+                      router.push(withFiscalYearQuery('/ordini', fiscalYear, { dup: '1' }))
                       return
                     }
                     navigateInApp('duplicati', id)
@@ -1712,7 +1712,7 @@ export default function InboxAiClient(props: {
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-app-fg-muted">
                 <p>{t.dashboard.inboxHubOrdiniDupHint}</p>
                 <Link
-                  href={withFiscalYearQuery('/ordini', fiscalYear)}
+                  href={withFiscalYearQuery('/ordini', fiscalYear, { dup: '1' })}
                   className="mt-3 inline-block font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline"
                 >
                   {t.dashboard.inboxUrgenteNavOrdini}

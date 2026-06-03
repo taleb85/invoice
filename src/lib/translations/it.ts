@@ -1497,6 +1497,16 @@ const translations: Translations = {
     ordiniOverviewEmpty: 'Nessuna conferma ordine in questo ambito.',
     ordiniOverviewOpenSupplier: 'Apri fornitore →',
     ordiniOverviewLimitNote: 'Mostrate le ultime {n} conferme.',
+    ordiniOverviewShowAll: 'Tutte le conferme',
+    ordiniDupViewTitle: 'Ordini — duplicati',
+    ordiniDupViewHint:
+      'Solo conferme in gruppi duplicato nel periodo fiscale. Il badge «Duplicato» segnala le copie da valutare; «Rimuovi copia» solo sulle righe in eccesso.',
+    ordiniDupViewCountLabel: 'In gruppi duplicato',
+    ordiniDupViewSub: '{excess} copie in eccesso da valutare in elenco',
+    ordiniDupViewEmpty: 'Nessun duplicato ordine nel periodo fiscale selezionato.',
+    ordiniDupViewBadgeHint:
+      'Ogni gruppo è lo stesso fornitore con stesso numero e data ordine (o stesso PDF registrato due volte). I documenti distinti nello stesso file non compaiono qui.',
+    ordiniDupViewLink: 'Vedi solo duplicati nel periodo ({n}) →',
     ordiniColSupplier: 'Fornitore',
     ordiniColTitle: 'Titolo',
     ordiniColOrderDate: 'Data ordine',
