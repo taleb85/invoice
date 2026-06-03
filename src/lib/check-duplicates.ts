@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { confermeFileUrlsInUse, deleteConfermaOrdineRow } from '@/lib/conferme-ordine-delete'
-import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
+import {
+  extractOrderReferenceFromFileName,
+  extractOrderReferenceFromText,
+} from '@/lib/extract-doc-type'
+import { enrichOrdiniDupRowsFromDocumenti } from '@/lib/conferme-ordine-query'
 import {
   bollaDuplicateGroupKey,
   fatturaDuplicateGroupKey,
@@ -131,21 +135,39 @@ function bollaDupKey(r: BollaDupProbe): string | null {
   })
 }
 
-function ordineResolvedNumero(r: OrdineDupListRow): string | null {
-  const resolved = resolveConfermaOrdineNumero({
-    titolo: r.titolo,
-    fileName: r.file_name,
-    numeroOrdine: r.numero_ordine,
-    numeroFatturaMetadata: r.numero_fattura_doc ?? null,
-    oggettoMail: r.oggetto_mail ?? null,
-  })
-  return normalizeNumeroFattura(resolved ?? r.numero_ordine ?? r.titolo ?? null)
+function looksLikeRekkiEmailMessageId(value: string): boolean {
+  return /^\d{7,9}$/.test(value.trim())
+}
+
+/** Numero ordine per duplicati: evita titolo/metadata fattura (troppi falsi positivi). */
+function ordineDupResolvedNumero(r: OrdineDupListRow): string | null {
+  const col = r.numero_ordine?.trim()
+  if (col) {
+    const n = normalizeNumeroFattura(col)
+    if (n && !looksLikeRekkiEmailMessageId(n)) return n
+  }
+  const fileRef = extractOrderReferenceFromFileName(r.file_name)
+  if (fileRef) {
+    const n = normalizeNumeroFattura(fileRef)
+    if (n) return n
+  }
+  const textRef = extractOrderReferenceFromText(r.oggetto_mail, r.titolo)
+  if (textRef && /[A-Z]{2,}/i.test(textRef)) {
+    const n = normalizeNumeroFattura(textRef)
+    if (n && !looksLikeRekkiEmailMessageId(n)) return n
+  }
+  return null
+}
+
+function ordineDupDocumentDate(r: OrdineDupListRow): string | null {
+  const d = (r.data_ordine ?? '').trim().slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null
 }
 
 function ordineDupKey(r: OrdineDupListRow): string | null {
-  const num = ordineResolvedNumero(r)
+  const num = ordineDupResolvedNumero(r)
   if (!num || !r.fornitore_id) return null
-  const d = (r.data_ordine ?? '').trim().slice(0, 10)
+  const d = ordineDupDocumentDate(r)
   if (!d) return null
   return `${r.fornitore_id}\u0000${d}\u0000${num.toLowerCase()}`
 }
@@ -158,16 +180,15 @@ function ordineDupKeyByFileUrl(r: OrdineDupListRow): string | null {
 }
 
 function ordineHasDocumentDate(r: OrdineDupListRow): boolean {
-  const d = (r.data_ordine ?? '').trim().slice(0, 10)
-  return /^\d{4}-\d{2}-\d{2}$/.test(d)
+  return ordineDupDocumentDate(r) != null
 }
 
 function ordineRowsLookLikeMultiDocInSamePdf(arr: OrdineDupListRow[]): boolean {
   return rowsLookLikeMultiDocInSamePdf(
     arr.map((r) => ({
       file_url: r.file_url,
-      documentDate: r.data_ordine,
-      documentNumero: ordineResolvedNumero(r),
+      documentDate: ordineDupDocumentDate(r),
+      documentNumero: ordineDupResolvedNumero(r),
     })),
   )
 }
@@ -180,7 +201,7 @@ function analyzeOrdineOrphanDateDuplicates(rows: OrdineDupListRow[]): FatturaDup
   const byNumero = new Map<string, OrdineDupListRow[]>()
   for (const r of rows) {
     if (!r.fornitore_id) continue
-    const num = ordineResolvedNumero(r)
+    const num = ordineDupResolvedNumero(r)
     if (!num || !/^\d{4,}$/.test(num)) continue
     const k = `${r.fornitore_id}\u0000${num.toLowerCase()}`
     const arr = byNumero.get(k) ?? []
@@ -721,8 +742,8 @@ function ordineCanonicalSort(a: OrdineDupListRow, b: OrdineDupListRow): number {
   const aDate = (a.data_ordine ?? '').trim().length >= 10 ? 1 : 0
   const bDate = (b.data_ordine ?? '').trim().length >= 10 ? 1 : 0
   if (aDate !== bDate) return bDate - aDate
-  const aNum = ordineResolvedNumero(a) ? 1 : 0
-  const bNum = ordineResolvedNumero(b) ? 1 : 0
+  const aNum = ordineDupResolvedNumero(a) ? 1 : 0
+  const bNum = ordineDupResolvedNumero(b) ? 1 : 0
   if (aNum !== bNum) return bNum - aNum
   return ordiniSortFn(a, b)
 }
@@ -766,13 +787,24 @@ function analyzeOrdineSameFileUrlDuplicates(rows: OrdineDupListRow[]): FatturaDu
   for (const [url, arr] of byUrl) {
     if (arr.length <= 1) continue
     if (ordineRowsLookLikeMultiDocInSamePdf(arr)) continue
-    const slice = analyzeDuplicatesForDeletion(
-      arr,
-      () => `fileurl\u0000${url}`,
-      ordineCanonicalSort,
-      false,
-    )
-    merged = mergeDuplicateAnalyses(merged, slice)
+    const byDupKey = new Map<string, OrdineDupListRow[]>()
+    for (const r of arr) {
+      const k = ordineDupKey(r)
+      if (!k) continue
+      const bucket = byDupKey.get(k) ?? []
+      bucket.push(r)
+      byDupKey.set(k, bucket)
+    }
+    for (const keyed of byDupKey.values()) {
+      if (keyed.length < 2) continue
+      const slice = analyzeDuplicatesForDeletion(
+        keyed,
+        () => `fileurl\u0000${url}\u0000${ordineDupKey(keyed[0]!)}`,
+        ordineCanonicalSort,
+        false,
+      )
+      merged = mergeDuplicateAnalyses(merged, slice)
+    }
   }
   return merged
 }
@@ -785,7 +817,7 @@ async function fetchAllOrdiniDupRows(
   fornitoreIds: string[] | null,
   fiscalBounds: FiscalPgBounds | null,
 ): Promise<OrdineDupListRow[]> {
-  return fetchAllDupRows<OrdineDupListRow>(
+  const rows = await fetchAllDupRows<OrdineDupListRow>(
     supabase,
     'conferme_ordine',
     ORDINI_DUP_SELECT,
@@ -794,6 +826,7 @@ async function fetchAllOrdiniDupRows(
     fiscalBounds,
     'created_at',
   )
+  return enrichOrdiniDupRowsFromDocumenti(supabase, rows)
 }
 
 export type CleanupSafeDuplicatesSlice = {

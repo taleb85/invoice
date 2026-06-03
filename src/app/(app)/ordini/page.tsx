@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getProfile, getRequestAuth, createServiceClient } from '@/utils/supabase/server'
 import { fetchOrdiniOverviewRows, fornitoreIdsForSede, type OrdineOverviewRow } from '@/lib/dashboard-operator-kpis'
+import { enrichOrdiniDupRowsFromDocumenti } from '@/lib/conferme-ordine-query'
 import {
   getT,
   getLocale,
@@ -81,16 +82,19 @@ export default async function OrdiniOverviewPage(props: {
   const formatDate = (d: string) => fmtDate(d, locale, tz)
   const fyForLinks = fiscal?.labelYear ?? null
 
-  const ordiniDupRows = rows.map((r) => ({
-    id: r.id,
-    fornitore_id: r.fornitore_id,
-    data_ordine: r.data_ordine,
-    numero_ordine: r.numero_ordine,
-    titolo: r.titolo,
-    created_at: r.created_at,
-    file_url: r.file_url ?? null,
-    file_name: r.file_name ?? null,
-  }))
+  const ordiniDupRows = await enrichOrdiniDupRowsFromDocumenti(
+    supabase,
+    rows.map((r) => ({
+      id: r.id,
+      fornitore_id: r.fornitore_id,
+      data_ordine: r.data_ordine,
+      numero_ordine: r.numero_ordine,
+      titolo: r.titolo,
+      created_at: r.created_at,
+      file_url: r.file_url ?? null,
+      file_name: r.file_name ?? null,
+    })),
+  )
   const ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(ordiniDupRows)
   const ordExcessIds = ordineExcessIdsForAutoDeletion(ordiniDupRows)
   if (ordExcessIds.length > 0) {
@@ -99,16 +103,19 @@ export default async function OrdiniOverviewPage(props: {
     if (deleted > 0) {
       rows = rows.filter(r => !ordExcessIds.includes(r.id))
       const cleanAnalysis = analyzeOrdineDuplicatesForDeletion(
-        rows.map((r) => ({
-          id: r.id,
-          fornitore_id: r.fornitore_id,
-          data_ordine: r.data_ordine,
-          numero_ordine: r.numero_ordine,
-          titolo: r.titolo,
-          created_at: r.created_at,
-          file_url: r.file_url ?? null,
-          file_name: r.file_name ?? null,
-        })),
+        await enrichOrdiniDupRowsFromDocumenti(
+          supabase,
+          rows.map((r) => ({
+            id: r.id,
+            fornitore_id: r.fornitore_id,
+            data_ordine: r.data_ordine,
+            numero_ordine: r.numero_ordine,
+            titolo: r.titolo,
+            created_at: r.created_at,
+            file_url: r.file_url ?? null,
+            file_name: r.file_name ?? null,
+          })),
+        ),
       )
       ordDupAnalysis.memberIds = cleanAnalysis.memberIds
       ordDupAnalysis.excessIds = cleanAnalysis.excessIds

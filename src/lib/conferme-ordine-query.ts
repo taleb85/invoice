@@ -60,10 +60,14 @@ export function confermaOrdineSortDayIso(row: Pick<ConfermaOrdineListRow, 'data_
 /** Mappa riga elenco → probe duplicati (numero da filename/OCR, data display). */
 export function confermaOrdineRowToOrdineDupProbe(row: ConfermaOrdineListRow): OrdineDupListRow {
   const day = confermaOrdineSortDayIso(row)
+  const dataOrdine =
+    row.data_ordine_display && /^\d{4}-\d{2}-\d{2}$/.test(row.data_ordine_display.trim())
+      ? row.data_ordine_display.trim().slice(0, 10)
+      : day || row.data_ordine
   return {
     id: row.id,
     fornitore_id: row.fornitore_id,
-    data_ordine: day || row.data_ordine,
+    data_ordine: dataOrdine,
     numero_ordine: row.numero_ordine,
     titolo: row.titolo,
     created_at: row.created_at,
@@ -111,7 +115,7 @@ export async function loadSedeFornitoriForMatch(
   ]
 }
 
-function orderDateYmdFromDocMetadata(metadata: unknown): string | null {
+export function orderDateYmdFromDocMetadata(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
   const m = metadata as { data_ordine?: unknown; data_fattura?: unknown; pending_kind?: unknown }
   if (m.pending_kind != null && m.pending_kind !== 'ordine') return null
@@ -125,6 +129,49 @@ function ragioneSocialeFromMetadata(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
   const rs = (metadata as { ragione_sociale?: unknown }).ragione_sociale
   return typeof rs === 'string' && rs.trim() ? rs.trim() : null
+}
+
+/** Arricchisce righe duplicati ordini con data/oggetto da `documenti_da_processare` (stesso `file_url`). */
+export async function enrichOrdiniDupRowsFromDocumenti(
+  supabase: SupabaseClient,
+  rows: OrdineDupListRow[],
+): Promise<OrdineDupListRow[]> {
+  const urls = [...new Set(rows.map((r) => r.file_url?.trim()).filter(Boolean))] as string[]
+  if (urls.length === 0) return rows
+
+  const metaByUrl = new Map<
+    string,
+    { date: string | null; oggetto: string | null }
+  >()
+  const chunk = 100
+  for (let i = 0; i < urls.length; i += chunk) {
+    const slice = urls.slice(i, i + chunk)
+    const { data } = await supabase
+      .from('documenti_da_processare')
+      .select('file_url, metadata, oggetto_mail')
+      .in('file_url', slice)
+    for (const d of data ?? []) {
+      const url = (d as { file_url?: string }).file_url?.trim()
+      if (!url) continue
+      const meta = (d as { metadata?: unknown }).metadata
+      const oggetto = (d as { oggetto_mail?: string | null }).oggetto_mail
+      metaByUrl.set(url, {
+        date: orderDateYmdFromDocMetadata(meta),
+        oggetto: typeof oggetto === 'string' && oggetto.trim() ? oggetto.trim() : null,
+      })
+    }
+  }
+
+  return rows.map((r) => {
+    const u = r.file_url?.trim()
+    const m = u ? metaByUrl.get(u) : undefined
+    const colDate = r.data_ordine ? safeDate(r.data_ordine) : null
+    return {
+      ...r,
+      data_ordine: m?.date ?? colDate ?? r.data_ordine,
+      oggetto_mail: r.oggetto_mail ?? m?.oggetto ?? null,
+    }
+  })
 }
 
 /** Conferme ordine del fornitore nel periodo, filtrate sul nome fornitore nel documento. */
