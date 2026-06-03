@@ -1,6 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { confermeFileUrlsInUse, deleteConfermaOrdineRow } from '@/lib/conferme-ordine-delete'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
+import {
+  bollaDuplicateGroupKey,
+  fatturaDuplicateGroupKey,
+  rowsLookLikeMultiDocInSamePdf,
+} from '@/lib/duplicate-group-keys'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { logger } from '@/lib/logger'
@@ -95,11 +100,11 @@ function importoCents(v: number | null | undefined): number | null {
 }
 
 function fatturaDupKey(r: FatturaDupProbe): string | null {
-  const num = normalizeNumeroFattura(r.numero_fattura)
-  if (!num || !r.fornitore_id) return null
-  const cents = importoCents(r.importo)
-  if (cents == null) return null
-  return `${r.fornitore_id}\u0000${cents}\u0000${num.toLowerCase()}`
+  return fatturaDuplicateGroupKey({
+    fornitore_id: r.fornitore_id,
+    numero_fattura: r.numero_fattura,
+    importo: r.importo,
+  })
 }
 
 /** Stesso fornitore + data documento + importo (OCR numero diverso). */
@@ -119,11 +124,11 @@ function numeroMatchesFileUrl(numero: string | null | undefined, fileUrl: string
 }
 
 function bollaDupKey(r: BollaDupProbe): string | null {
-  const num = normalizeNumeroFattura(r.numero_bolla)
-  if (!num || !r.fornitore_id) return null
-  const d = (r.data ?? '').trim().slice(0, 10)
-  if (!d) return null
-  return `${r.fornitore_id}\u0000${d}\u0000${num.toLowerCase()}`
+  return bollaDuplicateGroupKey({
+    fornitore_id: r.fornitore_id,
+    data: r.data,
+    numero_bolla: r.numero_bolla,
+  })
 }
 
 function ordineResolvedNumero(r: OrdineDupListRow): string | null {
@@ -351,6 +356,7 @@ function analyzeFatturaSameFileUrlDuplicates(rows: FatturaDupListRow[]): Fattura
   let merged = emptyDuplicateDeletionAnalysis()
   for (const [url, arr] of byUrl) {
     if (arr.length <= 1) continue
+    if (rowsLookLikeMultiDocInSamePdf(arr, 'numero_fattura')) continue
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,
@@ -504,7 +510,7 @@ function analyzeBolleOrphanNumeroDuplicates(rows: BollaDupListRow[]): FatturaDup
   return merged
 }
 
-/** Stesso `file_url` su più righe bolle (stesso PDF registrato due volte). */
+/** Stesso `file_url` su più righe bolle — solo se stesso documento (esclude PDF multi-documento). */
 function analyzeBolleSameFileUrlDuplicates(rows: BollaDupListRow[]): FatturaDuplicateDeletionAnalysis {
   const byUrl = new Map<string, BollaDupListRow[]>()
   for (const r of rows) {
@@ -518,6 +524,7 @@ function analyzeBolleSameFileUrlDuplicates(rows: BollaDupListRow[]): FatturaDupl
   let merged = emptyDuplicateDeletionAnalysis()
   for (const [url, arr] of byUrl) {
     if (arr.length <= 1) continue
+    if (rowsLookLikeMultiDocInSamePdf(arr, 'numero_bolla')) continue
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,

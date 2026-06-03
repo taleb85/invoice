@@ -228,10 +228,13 @@ export async function detectDuplicateBolle(
   const groups: DuplicateGroup[] = []
   const usedIds = new Set<string>()
 
-  // Group 1: same numero_bolla (normalised) + fornitore_id
+  // Group 1: stesso fornitore + data + numero bolla (normalizzato)
   const byNumero = groupBy(
-    all.filter((b) => b.fornitore_id && normalizeNumeroFattura(b.numero_bolla)),
-    (b) => `${b.fornitore_id}\0${normalizeNumeroFattura(b.numero_bolla).toLowerCase()}`,
+    all.filter((b) => b.fornitore_id && normalizeNumeroFattura(b.numero_bolla) && b.data),
+    (b) => {
+      const d = String(b.data).slice(0, 10)
+      return `${b.fornitore_id}\0${d}\0${normalizeNumeroFattura(b.numero_bolla)!.toLowerCase()}`
+    },
   )
   for (const items of byNumero.values()) {
     if (items.length < 2) continue

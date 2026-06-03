@@ -1,4 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  bollaDuplicateGroupKey,
+  fatturaDuplicateGroupKey,
+  rowsLookLikeMultiDocInSamePdf,
+} from '@/lib/duplicate-group-keys'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 
 const PAGE_SIZE = 2_000
@@ -114,10 +119,13 @@ export async function fetchEnrichedDuplicateFattureGroups(
   const groups: DupFatturaGroup[] = []
   const usedIds = new Set<string>()
 
-  const byNumero = groupBy(
-    all.filter((f) => f.fornitore_id && normalizeNumeroFattura(f.numero_fattura)),
-    (f) =>
-      `${f.is_credit_note ? 'cn:' : 'inv:'}${f.fornitore_id}\0${normalizeNumeroFattura(f.numero_fattura)!.toLowerCase()}`,
+  const byNumero = groupBy(all, (f) =>
+    fatturaDuplicateGroupKey({
+      fornitore_id: f.fornitore_id,
+      numero_fattura: f.numero_fattura,
+      importo: f.importo,
+      is_credit_note: f.is_credit_note,
+    }),
   )
   for (const items of byNumero.values()) {
     if (items.length < 2) continue
@@ -134,6 +142,8 @@ export async function fetchEnrichedDuplicateFattureGroups(
       fornitore_nome: f.fornitori?.nome ?? null,
       is_credit_note: f.is_credit_note,
     }))
+    if (rowsLookLikeMultiDocInSamePdf(fatture, 'numero_fattura')) continue
+
     const withBolla = fatture.filter((x) => x.bolla_id)
     const keep = pickKeepFattura(fatture)
     const reason =
@@ -227,15 +237,19 @@ export async function fetchEnrichedDuplicateBolleGroups(
   const groups: DupBollaGroup[] = []
   const usedIds = new Set<string>()
 
-  const byNumero = groupBy(
-    all.filter((b) => b.fornitore_id && normalizeNumeroFattura(b.numero_bolla)),
-    (b) =>
-      `${b.fornitore_id}\0${normalizeNumeroFattura(b.numero_bolla)!.toLowerCase()}`,
+  const byNumero = groupBy(all, (b) =>
+    bollaDuplicateGroupKey({
+      fornitore_id: b.fornitore_id,
+      data: b.data,
+      numero_bolla: b.numero_bolla,
+    }),
   )
   for (const items of byNumero.values()) {
     if (items.length < 2) continue
     items.forEach((b) => usedIds.add(b.id))
     const bolle = items.map(rowToDup)
+    if (rowsLookLikeMultiDocInSamePdf(bolle, 'numero_bolla')) continue
+
     const withF = bolle.filter((x) => x.ha_fattura_collegata)
     const keep = pickKeepBolla(bolle)
     const reason =
@@ -243,7 +257,7 @@ export async function fetchEnrichedDuplicateBolleGroups(
         ? 'Mantieni la bolla collegata a una fattura (o la più recente se più candidate).'
         : 'Suggerita la più recente per data.'
     groups.push({
-      group_key: `bn:${bolle[0]!.fornitore_id}:${normalizeNumeroFattura(items[0]!.numero_bolla)}`,
+      group_key: `bn:${bolle[0]!.fornitore_id}:${bolle[0]!.data}:${normalizeNumeroFattura(items[0]!.numero_bolla)}`,
       fornitore_id: bolle[0]!.fornitore_id,
       fornitore_nome: bolle[0]!.fornitore_nome,
       numero_display: bolle[0]!.numero_bolla ?? '—',

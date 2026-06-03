@@ -73,7 +73,7 @@ describe('analyzeFatturaDuplicatesForDeletion', () => {
     expect(fatturaExcessIdsForAutoDeletion(rows)).toEqual([])
   })
 
-  it('auto-delete include stesso file_url', () => {
+  it('auto-delete non include stesso file_url se PDF multi-documento', () => {
     const url = 'https://x/same.pdf'
     const rows = [
       {
@@ -93,6 +93,29 @@ describe('analyzeFatturaDuplicatesForDeletion', () => {
         file_url: url,
       },
     ]
-    expect(fatturaExcessIdsForAutoDeletion(rows)).toEqual(['new'])
+    expect(fatturaExcessIdsForAutoDeletion(rows)).toEqual([])
+  })
+
+  it('auto-delete include stesso file_url con stesso numero, data e importo', () => {
+    const url = 'https://x/dup.pdf'
+    const rows = [
+      {
+        id: 'old',
+        fornitore_id: 'f1',
+        data: '2026-04-01',
+        importo: 10,
+        numero_fattura: '853955',
+        file_url: url,
+      },
+      {
+        id: 'new',
+        fornitore_id: 'f1',
+        data: '2026-04-01',
+        importo: 10,
+        numero_fattura: '853955',
+        file_url: url,
+      },
+    ]
+    expect(fatturaExcessIdsForAutoDeletion(rows)).toEqual(['old'])
   })
 })

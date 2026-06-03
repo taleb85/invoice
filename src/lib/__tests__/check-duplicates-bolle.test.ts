@@ -26,7 +26,7 @@ describe('analyzeBolleDuplicatesForDeletion', () => {
     expect(analysis.excessIds.has('numbered')).toBe(false)
   })
 
-  it('segna excess per stesso file_url su due righe', () => {
+  it('non segna excess per stesso file_url se date o numeri diversi (PDF multi-documento)', () => {
     const url = 'https://x/same.pdf'
     const analysis = analyzeBolleDuplicatesForDeletion([
       {
@@ -41,6 +41,27 @@ describe('analyzeBolleDuplicatesForDeletion', () => {
         fornitore_id: 'f1',
         data: '2025-10-30',
         numero_bolla: '2',
+        file_url: url,
+      },
+    ])
+    expect(analysis.excessIds.size).toBe(0)
+  })
+
+  it('segna excess per stesso file_url, stessa data e stesso numero', () => {
+    const url = 'https://x/dup.pdf'
+    const analysis = analyzeBolleDuplicatesForDeletion([
+      {
+        id: 'a',
+        fornitore_id: 'f1',
+        data: '2025-10-29',
+        numero_bolla: '50221659',
+        file_url: url,
+      },
+      {
+        id: 'b',
+        fornitore_id: 'f1',
+        data: '2025-10-29',
+        numero_bolla: '50221659',
         file_url: url,
       },
     ])
