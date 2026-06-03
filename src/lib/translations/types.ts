@@ -760,6 +760,17 @@ export type Translations = {
     kpiDocumentiDaRevisionareGlassExplain: string
     inboxUrgentePageTitle: string
     inboxUrgentePageIntro: string
+    inboxHubTabPanoramica: string
+    inboxHubTabEmail: string
+    inboxHubTabDuplicates: string
+    inboxHubEmailQueue: string
+    inboxHubDupSubFatture: string
+    inboxHubDupSubBolle: string
+    inboxHubDupSubOrdini: string
+    inboxHubOrdiniDupHint: string
+    inboxHubEmptyAll: string
+    inboxHubAdvancedControlCentre: string
+    inboxHubAdvancedHint: string
     inboxUrgenteNavDocQueue: string
     inboxUrgenteNavPriceAnomalies: string
     inboxUrgenteNavInvoices: string

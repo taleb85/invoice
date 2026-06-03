@@ -40,6 +40,8 @@ import {
   metadataNumeroFattura,
   resolvePendingDocNumeroFattura,
 } from '@/lib/extract-numero-from-doc'
+import { InboxOperationalHub, type InboxHubNavItem } from '@/components/inbox/InboxOperationalHub'
+import { withFiscalYearQuery } from '@/lib/fiscal-link'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -65,7 +67,8 @@ type PendingDocRow = {
   metadata?: unknown
 }
 
-type TabId = 'docs' | 'fatture' | 'bolle' | 'rekki' | 'audit'
+type TabId = 'panoramica' | 'docs' | 'duplicati' | 'audit'
+type DupSubTab = 'fatture' | 'bolle' | 'ordini'
 
 type AuditMatchRow = {
   id: string
@@ -132,10 +135,26 @@ function fmtDate(iso: string, locale: Locale) {
   }
 }
 
-function parseInitialTab(raw: string | undefined): TabId {
-  const p = raw?.trim().toLowerCase()
-  if (p === 'audit' || p === 'docs' || p === 'fatture' || p === 'bolle' || p === 'rekki') return p
-  return 'docs'
+function parseInitialTabState(
+  tabRaw: string | undefined,
+  dupRaw: string | undefined,
+): { tab: TabId; dupSub: DupSubTab } {
+  const p = tabRaw?.trim().toLowerCase()
+  const d = dupRaw?.trim().toLowerCase()
+  const dupFromParam: DupSubTab =
+    d === 'bolle' ? 'bolle' : d === 'ordini' ? 'ordini' : 'fatture'
+  if (p === 'docs' || p === 'email') return { tab: 'docs', dupSub: dupFromParam }
+  if (p === 'audit') return { tab: 'audit', dupSub: dupFromParam }
+  if (p === 'duplicati' || p === 'fatture' || p === 'bolle' || p === 'ordini') {
+    if (p === 'bolle') return { tab: 'duplicati', dupSub: 'bolle' }
+    if (p === 'ordini') return { tab: 'duplicati', dupSub: 'ordini' }
+    if (p === 'fatture') return { tab: 'duplicati', dupSub: 'fatture' }
+    return { tab: 'duplicati', dupSub: dupFromParam }
+  }
+  if (p === 'panoramica' || p === 'overview' || p === 'revisione' || p === 'rekki') {
+    return { tab: 'panoramica', dupSub: dupFromParam }
+  }
+  return { tab: 'panoramica', dupSub: dupFromParam }
 }
 
 /** Conferma automatica dopo la risposta Gemini (stesso criterio visivo del %. mostrato). */
@@ -280,10 +299,28 @@ export default function InboxAiClient(props: {
   sedeId: string | null
   /** Nessuna sede operativa per operatore — blocco totale */
   blockedNoSede: boolean
-  /** Deep-link dalla pagina Centro operazioni o bookmark (`?tab=audit`). */
   initialTab?: string | null
+  initialDup?: string | null
+  fiscalYear?: number | null
+  hubItems?: InboxHubNavItem[]
+  hubIntro?: string
+  hubEmptyMessage?: string
+  hubAdvancedLabel?: string
+  hubAdvancedHint?: string
 }) {
-  const { sedeId, blockedNoSede, initialTab } = props
+  const {
+    sedeId,
+    blockedNoSede,
+    initialTab,
+    initialDup,
+    fiscalYear = null,
+    hubItems = [],
+    hubIntro = '',
+    hubEmptyMessage = '',
+    hubAdvancedLabel = '',
+    hubAdvancedHint = '',
+  } = props
+  const initial = parseInitialTabState(initialTab ?? undefined, initialDup ?? undefined)
   const t = useT()
   const { locale } = useLocale()
   const { showToast } = useToast()
@@ -291,7 +328,8 @@ export default function InboxAiClient(props: {
   const { show: showContextMenu } = useContextMenu()
   const pendingKindLabels = useMemo(() => pendingKindLabelsFromT(t), [t])
   const { openActions } = useDocumentActions()
-  const [tab, setTab] = useState<TabId>(() => parseInitialTab(initialTab ?? undefined))
+  const [tab, setTab] = useState<TabId>(() => initial.tab)
+  const [dupSubTab, setDupSubTab] = useState<DupSubTab>(() => initial.dupSub)
   const [docs, setDocs] = useState<PendingDocRow[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
   const [dupFat, setDupFat] = useState<DupFatturaGroup[]>([])
@@ -443,13 +481,31 @@ export default function InboxAiClient(props: {
     void loadDocs()
   }, [loadDocs])
 
+  const navigateInApp = useCallback(
+    (nextTab: TabId, dup?: DupSubTab) => {
+      const dupNext = dup ?? dupSubTab
+      setTab(nextTab)
+      if (dup) setDupSubTab(dup)
+      const extra: Record<string, string | undefined> = { tab: nextTab }
+      if (nextTab === 'duplicati') extra.dup = dupNext
+      router.replace(withFiscalYearQuery('/inbox-ai', fiscalYear, extra), { scroll: false })
+    },
+    [router, fiscalYear, dupSubTab],
+  )
+
   useEffect(() => {
-    if (tab === 'fatture' || tab === 'bolle') void loadDuplicates()
-  }, [tab, loadDuplicates])
+    if (tab === 'duplicati' && (dupSubTab === 'fatture' || dupSubTab === 'bolle')) {
+      void loadDuplicates()
+    }
+  }, [tab, dupSubTab, loadDuplicates])
 
   // Ricarica automaticamente i duplicati quando il tipo documento viene cambiato
   useEffect(() => {
-    const handler = () => { if (tab === 'fatture' || tab === 'bolle') void loadDuplicates() }
+    const handler = () => {
+      if (tab === 'duplicati' && (dupSubTab === 'fatture' || dupSubTab === 'bolle')) {
+        void loadDuplicates()
+      }
+    }
     if (typeof window !== 'undefined') {
       window.addEventListener('document-type-changed', handler)
       return () => window.removeEventListener('document-type-changed', handler)
@@ -917,12 +973,15 @@ export default function InboxAiClient(props: {
     }
   }
 
+  const ordiniDupCount = hubItems.find((i) => i.key === 'dup-ord')?.count ?? 0
+
   const tabBadge = (id: TabId) => {
+    if (id === 'panoramica') {
+      return hubItems.reduce((n, i) => n + (i.count > 0 ? i.count : 0), 0)
+    }
     if (id === 'docs') return docsTotal ?? docs.length
-    if (id === 'fatture') return dupFattureRigheCount
-    if (id === 'bolle') return dupBolleRigheCount
+    if (id === 'duplicati') return dupFattureRigheCount + dupBolleRigheCount + ordiniDupCount
     if (id === 'audit') return auditRows.length
-    if (id === 'rekki') return 0
     return 0
   }
 
@@ -936,15 +995,15 @@ export default function InboxAiClient(props: {
   const tabLabelFor = (id: TabId): string => {
     const n = String(tabBadge(id))
     const tpl =
-      id === 'docs'
-        ? t.log.inboxAiTabDocs
-        : id === 'audit'
-          ? t.log.inboxAiTabAudit
-          : id === 'fatture'
-            ? t.log.inboxAiTabDupInvoices
-            : id === 'bolle'
-              ? t.log.inboxAiTabDupBolle
-              : t.log.inboxAiTabRekki
+      id === 'panoramica'
+        ? t.dashboard.inboxHubTabPanoramica
+        : id === 'docs'
+          ? t.dashboard.inboxHubTabEmail
+          : id === 'audit'
+            ? t.log.inboxAiTabAudit
+            : id === 'duplicati'
+              ? t.dashboard.inboxHubTabDuplicates
+              : ''
     return tpl.replace(/\{n\}/g, n)
   }
 
@@ -1078,17 +1137,16 @@ export default function InboxAiClient(props: {
         <div className="flex flex-wrap gap-1">
           {(
             [
+              ['panoramica', tabLabelFor('panoramica')] as const,
               ['docs', tabLabelFor('docs')] as const,
+              ['duplicati', tabLabelFor('duplicati')] as const,
               ['audit', tabLabelFor('audit')] as const,
-              ['fatture', tabLabelFor('fatture')] as const,
-              ['bolle', tabLabelFor('bolle')] as const,
-              ['rekki', tabLabelFor('rekki')] as const,
             ] as const
           ).map(([id, label]) => (
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => navigateInApp(id)}
               title={id === 'docs' ? docsTabTruncatedTooltip : undefined}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 tab === id
@@ -1100,6 +1158,18 @@ export default function InboxAiClient(props: {
             </button>
           ))}
         </div>
+
+        {tab === 'panoramica' ? (
+          <InboxOperationalHub
+            intro={hubIntro}
+            items={hubItems}
+            emptyMessage={hubEmptyMessage}
+            advancedLabel={hubAdvancedLabel}
+            advancedHint={hubAdvancedHint}
+            advancedHref="/strumenti/centro-controllo"
+            onInAppNavigate={(nextTab, dup) => navigateInApp(nextTab, dup)}
+          />
+        ) : null}
 
         {tab === 'docs' ? (
           <div className="space-y-6">
@@ -1600,7 +1670,58 @@ export default function InboxAiClient(props: {
           </section>
         ) : null}
 
-        {tab === 'fatture' ? (
+        {tab === 'duplicati' ? (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-1 border-b border-white/10 pb-2">
+              {(
+                [
+                  ['fatture', t.dashboard.inboxHubDupSubFatture] as const,
+                  ['bolle', t.dashboard.inboxHubDupSubBolle] as const,
+                  ['ordini', t.dashboard.inboxHubDupSubOrdini] as const,
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    if (id === 'ordini') {
+                      router.push(withFiscalYearQuery('/ordini', fiscalYear))
+                      return
+                    }
+                    navigateInApp('duplicati', id)
+                  }}
+                  className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
+                    dupSubTab === id
+                      ? 'bg-violet-500/20 text-violet-100 ring-1 ring-violet-400/35'
+                      : 'bg-white/[0.05] text-app-fg-muted hover:bg-white/10'
+                  }`}
+                >
+                  {label}
+                  {id === 'fatture' && dupFattureRigheCount > 0
+                    ? ` (${dupFattureRigheCount})`
+                    : id === 'bolle' && dupBolleRigheCount > 0
+                      ? ` (${dupBolleRigheCount})`
+                      : id === 'ordini' && ordiniDupCount > 0
+                        ? ` (${ordiniDupCount})`
+                        : ''}
+                </button>
+              ))}
+            </div>
+
+            {dupSubTab === 'ordini' ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-app-fg-muted">
+                <p>{t.dashboard.inboxHubOrdiniDupHint}</p>
+                <Link
+                  href={withFiscalYearQuery('/ordini', fiscalYear)}
+                  className="mt-3 inline-block font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline"
+                >
+                  {t.dashboard.inboxUrgenteNavOrdini}
+                  {ordiniDupCount > 0 ? ` (${ordiniDupCount})` : ''} →
+                </Link>
+              </div>
+            ) : null}
+
+            {dupSubTab === 'fatture' ? (
           <section className="space-y-3">
             {dupLoading ? (
               <ul className="space-y-2">
@@ -1689,9 +1810,9 @@ export default function InboxAiClient(props: {
               </ul>
             )}
           </section>
-        ) : null}
+            ) : null}
 
-        {tab === 'bolle' ? (
+            {dupSubTab === 'bolle' ? (
           <section className="space-y-3">
             {dupLoading ? (
               <ul className="space-y-2">
@@ -1780,14 +1901,7 @@ export default function InboxAiClient(props: {
               </ul>
             )}
           </section>
-        ) : null}
-
-        {tab === 'rekki' ? (
-          <div className="rounded-lg border border-emerald-500/25 bg-emerald-950/15 px-4 py-8 text-center text-sm text-emerald-100/95">
-            <span className="inline-flex items-center justify-center gap-1.5">
-              {t.log.inboxAiNoRekkiAnomalies}
-              <GlyphCheck className="h-4 w-4 text-emerald-300" aria-hidden />
-            </span>
+            ) : null}
           </div>
         ) : null}
       </div>

@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { getCookieStore, getT } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -14,10 +13,19 @@ import { BackButton } from '@/components/BackButton'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 import { isMasterAdminRole } from '@/lib/roles'
+import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
+import {
+  DEFAULT_OPERATOR_DASHBOARD_KPIS,
+  fetchOperatorDashboardKpis,
+  fornitoreIdsForSede,
+} from '@/lib/dashboard-operator-kpis'
+import { buildInboxOperationalHubItems } from '@/lib/inbox-operational-hub'
 
 export const dynamic = 'force-dynamic'
 
-export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?: string; tab?: string }> }) {
+export default async function InboxAiPage(props: {
+  searchParams?: Promise<{ fy?: string; tab?: string; dup?: string }>
+}) {
   const searchParams = await unwrapSearchParams(props.searchParams)
   const [cookieStore, profile, { supabase }, t] = await Promise.all([
     getCookieStore(),
@@ -33,6 +41,51 @@ export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?:
     (n) => cookieStore.get(n),
   )
   const blockedNoSede = !isMasterAdmin && !sedeId
+  const fiscal = sedeId ? await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy) : null
+  const fy = fiscal?.labelYear
+
+  let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
+  let emailQueueCount = 0
+  const hubVisible = !!(sedeId || isMasterAdmin)
+  if (hubVisible) {
+    try {
+      if (sedeId) {
+        const fornitoreIds = await fornitoreIdsForSede(supabase, sedeId)
+        kpis = await fetchOperatorDashboardKpis(
+          supabase,
+          sedeId,
+          fornitoreIds,
+          fiscal ? { countryCode: fiscal.countryCode, labelYear: fiscal.labelYear } : null,
+        )
+        const { count } = await supabase
+          .from('documenti_da_processare')
+          .select('*', { count: 'exact', head: true })
+          .eq('sede_id', sedeId)
+          .in('stato', ['da_associare', 'da_revisionare'])
+        emailQueueCount = count ?? 0
+      } else {
+        kpis = await fetchOperatorDashboardKpis(supabase, null, undefined, null)
+      }
+    } catch (e) {
+      console.error('[InboxAiPage] KPI fetch', e)
+    }
+  }
+
+  const hubItems = hubVisible
+    ? buildInboxOperationalHubItems({
+        fy,
+        kpis,
+        emailQueueCount,
+        labels: {
+          emailQueue: t.dashboard.inboxHubEmailQueue,
+          docQueue: t.dashboard.inboxUrgenteNavDocQueue,
+          priceAnomalies: t.dashboard.inboxUrgenteNavPriceAnomalies,
+          dupInvoices: t.dashboard.inboxUrgenteNavInvoices,
+          dupBolle: t.dashboard.inboxUrgenteNavBolle,
+          dupOrdini: t.dashboard.inboxUrgenteNavOrdini,
+        },
+      })
+    : []
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -41,16 +94,6 @@ export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?:
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <nav className="text-[10px] leading-tight text-app-fg-muted" aria-label="Percorso">
-            <Link
-              href="/revisione"
-              className="text-app-fg-muted hover:text-teal-300 underline-offset-4 hover:underline focus:outline-none focus-visible:underline"
-            >
-              {t.dashboard.inboxUrgentePageTitle}
-            </Link>
-            <span className="mx-2 text-[rgba(226,232,240,0.35)] select-none">&rsaquo;</span>
-            <span className="text-app-fg-muted">{t.dashboard.inboxAiBreadcrumbLabel}</span>
-          </nav>
           <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.dashboard.inboxAiPageTitle}</h1>
           <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} max-w-xl`}>
             {t.dashboard.inboxAiPageSubtitle}
@@ -65,6 +108,13 @@ export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?:
         sedeId={sedeId}
         blockedNoSede={Boolean(blockedNoSede)}
         initialTab={searchParams.tab ?? null}
+        initialDup={searchParams.dup ?? null}
+        fiscalYear={fy ?? null}
+        hubItems={hubItems}
+        hubIntro={t.dashboard.inboxUrgentePageIntro}
+        hubEmptyMessage={t.dashboard.inboxHubEmptyAll}
+        hubAdvancedLabel={t.dashboard.inboxHubAdvancedControlCentre}
+        hubAdvancedHint={t.dashboard.inboxHubAdvancedHint}
       />
     </div>
   )

@@ -216,7 +216,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const inboxAiNavItem = {
     label: t.nav.aiInbox,
-    href: '/inbox-ai',
+    href: pendingInboxCount > 0 ? '/inbox-ai?tab=docs' : '/inbox-ai?tab=panoramica',
     count: pendingInboxCount,
     iconColor: 'text-violet-400',
     icon: <Brain className="h-5 w-5 text-violet-400" strokeWidth={2} aria-hidden />,

@@ -312,7 +312,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: withFiscalYearQuery('/revisione', fy),
+      href: withFiscalYearQuery('/inbox-ai', fy, { tab: 'panoramica' }),
       label: t.dashboard.kpiDocumentiDaRevisionareTitle,
       value: k.documentiDaRevisionare,
       sub: t.dashboard.kpiDocumentiDaRevisionareSub,

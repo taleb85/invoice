@@ -1126,16 +1126,30 @@ const translations: Translations = {
     kpiDocumentiDaRevisionareGlassExplain:
       'GJ {fyLabel}: E-Mail noch „zu verknüpfen“ = {da_associare}. Gesamt {total} enthält zusätzlich Dubletten und Rekki-Anomalien für dieses Jahr.',
     inboxUrgentePageTitle: 'Dringendes Postfach',
-    inboxUrgentePageIntro: 'Zentral für Vorgänge: zuzuordnende Dokumente, Preisanomalien und Duplikate in Ihren Listen.',
+    inboxUrgentePageIntro:
+      'Wählen Sie die Aufgabe: E-Mail-Warteschlange mit KI, Duplikate, Rekki-Anomalien. Für Kontoauszüge, Sync-Fehler und erweiterte Befehle → Steuerzentrale.',
+    inboxHubTabPanoramica: 'Übersicht ({n})',
+    inboxHubTabEmail: 'E-Mail-Warteschlange ({n})',
+    inboxHubTabDuplicates: 'Duplikate ({n})',
+    inboxHubEmailQueue: 'E-Mail-Warteschlange — KI-Analyse & Erfassung',
+    inboxHubDupSubFatture: 'Rechnungen',
+    inboxHubDupSubBolle: 'Lieferscheine',
+    inboxHubDupSubOrdini: 'Bestellungen',
+    inboxHubOrdiniDupHint:
+      'Doppelte Auftragsbestätigungen in der Bestellliste (Auto-Löschung nur bei gleichem PDF oder Bestellnr.+Datum).',
+    inboxHubEmptyAll: 'Keine offenen Punkte im gewählten Geschäftsjahr.',
+    inboxHubAdvancedControlCentre: 'Steuerzentrale',
+    inboxHubAdvancedHint:
+      'Einheitliche Warteschlange, Kontoauszüge, Sync-Fehler, Auto-Auflösung und KI-Lernen.',
     inboxUrgenteNavDocQueue: 'E-Mail-Dokumentwarteschlange',
     inboxUrgenteNavPriceAnomalies: 'Prüfung — Rekki-Preisanomalien',
     inboxUrgenteNavInvoices: 'Rechnungen (Duplikate)',
     inboxUrgenteNavBolle: 'Lieferscheine (Duplikate)',
     inboxUrgenteNavOrdini: 'Bestellungen (Duplikate)',
     inboxUrgenteNavAiInbox: 'KI-Posteingang (Warteschlange + Duplikate)',
-    inboxAiPageTitle: 'KI-Posteingang',
+    inboxAiPageTitle: 'Operativer Posteingang',
     inboxAiPageSubtitle:
-      'KI-gestützte Bearbeitung von Warteschlangen-Dokumenten, doppelten Rechnungen/Lieferscheinen und Rekki-Anomalien — ein Standort jeweils (gleicher Sicherheitsbereich wie andere operative Ansichten).',
+      'Übersicht, E-Mail-Warteschlange mit KI, Duplikate und Absender-Zuordnung — ein Ort für den Tagesbetrieb.',
     inboxAiBreadcrumbLabel: 'KI-Posteingang',
     errorCountSuffix: 'Fehler', manualReceiptLabel: 'Eingang (ohne Lieferschein)', manualReceiptPlaceholder: 'z. B. 5 kg Tintenfisch, 2 Kisten Zitronen', manualReceiptRegister: 'Lieferung erfassen', manualReceiptRegistering: 'Wird gespeichert…', manualReceiptSaved: 'Lieferung erfasst.', manualReceiptNeedTextOrPhoto: 'Beschreibung eingeben oder Foto anhängen.', manualReceiptRemovePhoto: 'Foto entfernen', manualReceiptNeedSupplier: 'Bitte einen Lieferanten wählen.', manualReceiptRegisterFailed: 'Registrierung fehlgeschlagen.', manualReceiptEmailSupplierLabel: 'E-Mail an Lieferanten: Bestellung und Lieferschein anfordern', manualReceiptEmailSupplierHint: 'E-Mail des Lieferanten im Profil hinterlegen.', manualReceiptEmailSent: 'Anfrage-E-Mail an Lieferanten gesendet.', manualReceiptEmailFailed: 'Eingang gespeichert, E-Mail konnte nicht gesendet werden.', manualReceiptEmailDescPhotoOnly: 'Foto zur Eingangsregistrierung beigefügt (ohne Text).', adminGlobalTitle: 'Globales Dashboard', adminGlobalSubtitle: 'Überblick Standorte und technischer Status (E-Mail, Sync-Protokoll, OCR). Keine kaufmännischen Daten über Filialen hinweg aggregiert.', adminGlobalTotalsLabel: 'Netzwerk-Gesamtwerte', adminOpenBranchDashboard: 'Operative Ansicht', adminSedeSettingsLink: 'Standort-Seite', adminDocQueueShort: 'In Warteschlange', adminGlobalHealthOk: 'In Ordnung', adminGlobalHealthAttention: 'Prüfen', adminGlobalHealthImapNotConfigured: 'Eingangs-E-Mail nicht eingerichtet', adminGlobalHealthLastImapError: 'Letzte E-Mail-Synchronisierung fehlgeschlagen', adminGlobalHealthSyncLogErrors: '{n} Fehler im E-Mail-Protokoll (24h)', adminGlobalHealthOcrFailures: '{n} OCR-Fehler im Protokoll (48h)', rekkiOrder: 'Bei Rekki bestellen', manualDeliveryNeedSede: 'Wählen Sie einen aktiven Operator oder stellen Sie sicher, dass Ihr Profil mit einem Standort verknüpft ist, um eine Lieferung zu erfassen.', kpiPriceListSub: 'Zeilen in der Preisliste', listinoOverviewHint: 'Preislistenzeilen für Lieferanten in Ihrem Bereich. Lieferant öffnen zum Bearbeiten oder Import aus Rechnung.', listinoOverviewEmpty: 'Keine Preislistenzeilen in diesem Bereich.', listinoOverviewOpenSupplier: 'Lieferant öffnen →', listinoOverviewLimitNote: 'Die letzten {n} Zeilen.', fattureRiepilogoTitle: 'Rechnungssummen', fattureRiepilogoHint: 'Summe der Beträge in Ihrem Bereich. Die Tabelle zeigt die neuesten Rechnungen nach Datum; öffnen Sie eine für Anhang und Verknüpfungen.', fattureRiepilogoEmpty: 'Keine Rechnungen in diesem Bereich.', fattureRiepilogoLimitNote: 'Die letzten {n} Rechnungen (nach Datum).', fattureRiepilogoOpenInvoice: 'Rechnung öffnen →', fattureRiepilogoCountLabel: '{n} Rechnungen', fattureRiepilogoLinkAll: 'Alle Rechnungen →', kpiStatementNone: 'Kein Kontoauszug', kpiStatementAllOk: 'Keine Auffälligkeiten', kpiStatementIssuesFooter: 'von {t} geprüften Auszügen', kpiDaProcessareSub: 'Dokumente in Warteschlange',
     kpiOrdiniSub: 'gespeicherte Auftragsbestätigungen',

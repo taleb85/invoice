@@ -149,7 +149,7 @@ export default async function OrdiniOverviewPage(props: {
           {t.dashboard.ordiniOverviewHint}
         </p>
         <Link
-          href={withFiscalYearQuery('/revisione', fyForLinks)}
+          href={withFiscalYearQuery('/inbox-ai', fyForLinks, { tab: 'panoramica' })}
           className="text-xs font-semibold text-app-cyan-500 transition-colors hover:text-app-fg sm:ml-auto"
         >
           {t.dashboard.inboxUrgenteNavOrdini} →
