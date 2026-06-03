@@ -1426,6 +1426,7 @@ export type Translations = {
     inboxAiApplyNewSupplier: string
     inboxAiNoDupInvoices: string
     inboxAiNoDupBolle: string
+    inboxAiDupLoadFailed: string
     inboxAiLinkedBolla: string
     inboxAiAiSuggested: string
     inboxAiDetail: string

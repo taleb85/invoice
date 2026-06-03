@@ -43,3 +43,14 @@ export function isProfilesBranchDeskRole(raw: string | null | undefined): boolea
 export function isSedePrivilegedRole(raw: string | null | undefined): boolean {
   return isMasterAdminRole(raw) || isBranchSedeStaffRole(raw)
 }
+
+/** Inbox duplicati / eliminazione copie: master (sede selezionata), admin sede o operatore sulla propria sede. */
+export function canAccessSedeDuplicateTools(
+  profile: { role?: string | null; sede_id?: string | null } | null | undefined,
+  sedeId: string | null,
+): boolean {
+  if (!sedeId?.trim() || !profile) return false
+  if (isMasterAdminRole(profile.role)) return true
+  if (profile.sede_id !== sedeId) return false
+  return isSedePrivilegedRole(profile.role) || normRole(profile.role) === 'operatore'
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { canAccessSedeDuplicateTools, isMasterAdminRole } from '@/lib/roles'
 import { cookies } from 'next/headers'
 import {
   fetchEnrichedDuplicateBolleGroups,
@@ -16,11 +16,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isSedePrivilegedRole(profile?.role)
-
-  if (!isMaster && !isAdminSede) {
-    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
-  }
+  const isAdminSede = profile?.role === 'admin_sede' || profile?.role === 'admin_tecnico'
 
   const url = new URL(req.url)
   let sedeId = url.searchParams.get('sede_id')?.trim() || null
@@ -40,6 +36,10 @@ export async function GET(req: NextRequest) {
 
   if (!sedeId) {
     return NextResponse.json({ error: 'Sede non selezionata' }, { status: 400 })
+  }
+
+  if (!canAccessSedeDuplicateTools(profile, sedeId)) {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 
   const service = createServiceClient()

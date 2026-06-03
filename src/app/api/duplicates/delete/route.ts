@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { canAccessSedeDuplicateTools, isMasterAdminRole } from '@/lib/roles'
 import { logActivity } from '@/lib/activity-logger'
 import { cookies } from 'next/headers'
 
@@ -16,11 +16,6 @@ const VALID_ENTITIES = new Set(['fatture', 'bolle', 'fornitori'])
 export async function POST(req: NextRequest) {
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isSedePrivilegedRole(profile?.role)
-
-  if (!isMaster && !isAdminSede) {
-    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
-  }
 
   let body: DeleteBody
   try {
@@ -48,6 +43,10 @@ export async function POST(req: NextRequest) {
     const cookieStore = await cookies()
     const adminPick = cookieStore.get('admin-sede-id')?.value?.trim() || null
     if (adminPick) sedeId = adminPick
+  }
+
+  if (!sedeId || !canAccessSedeDuplicateTools(profile, sedeId)) {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 
   const service = createServiceClient()

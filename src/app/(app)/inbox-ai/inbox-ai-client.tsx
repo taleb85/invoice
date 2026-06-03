@@ -335,6 +335,7 @@ export default function InboxAiClient(props: {
   const [dupFat, setDupFat] = useState<DupFatturaGroup[]>([])
   const [dupBol, setDupBol] = useState<DupBollaGroup[]>([])
   const [dupLoading, setDupLoading] = useState(false)
+  const [dupLoadError, setDupLoadError] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<Record<string, GeminiSuggestion>>({})
   const [analyzeBusy, setAnalyzeBusy] = useState(false)
   /** ID documenti del batch corrente (evidenza UI durante la POST + post-elaborazioni). */
@@ -455,6 +456,7 @@ export default function InboxAiClient(props: {
   const loadDuplicates = useCallback(async () => {
     if (!sedeId || blockedNoSede) return
     setDupLoading(true)
+    setDupLoadError(null)
     try {
       const res = await fetch(`/api/admin/inbox-ai/duplicates?sede_id=${encodeURIComponent(sedeId)}`, {
         credentials: 'include',
@@ -468,14 +470,19 @@ export default function InboxAiClient(props: {
       if (!res.ok) {
         setDupFat([])
         setDupBol([])
+        setDupLoadError(j.error ?? t.log.inboxAiDupLoadFailed)
         return
       }
       setDupFat(j.fatture_groups ?? [])
       setDupBol(j.bolle_groups ?? [])
+    } catch {
+      setDupFat([])
+      setDupBol([])
+      setDupLoadError(t.log.inboxAiDupLoadFailed)
     } finally {
       setDupLoading(false)
     }
-  }, [blockedNoSede, sedeId])
+  }, [blockedNoSede, sedeId, t.log.inboxAiDupLoadFailed])
 
   useEffect(() => {
     void loadDocs()
@@ -1723,6 +1730,11 @@ export default function InboxAiClient(props: {
 
             {dupSubTab === 'fatture' ? (
           <section className="space-y-3">
+            {dupLoadError ? (
+              <p className="rounded-lg border border-rose-500/30 bg-rose-950/20 px-3 py-2 text-sm text-rose-100">
+                {dupLoadError}
+              </p>
+            ) : null}
             {dupLoading ? (
               <ul className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -1814,6 +1826,11 @@ export default function InboxAiClient(props: {
 
             {dupSubTab === 'bolle' ? (
           <section className="space-y-3">
+            {dupLoadError ? (
+              <p className="rounded-lg border border-rose-500/30 bg-rose-950/20 px-3 py-2 text-sm text-rose-100">
+                {dupLoadError}
+              </p>
+            ) : null}
             {dupLoading ? (
               <ul className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (

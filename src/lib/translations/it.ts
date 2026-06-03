@@ -2297,6 +2297,7 @@ const translations: Translations = {
     inboxAiApplyNewSupplier: 'Applica nuovo fornitore',
     inboxAiNoDupInvoices: 'Nessun gruppo di fatture duplicate per questa sede.',
     inboxAiNoDupBolle: 'Nessun gruppo di bolle duplicate per questa sede.',
+    inboxAiDupLoadFailed: 'Impossibile caricare l’elenco duplicati. Ricarica la pagina o contatta l’amministratore.',
     inboxAiLinkedBolla: 'bolla collegata',
     inboxAiAiSuggested: 'suggerita AI',
     inboxAiDetail: 'Dettaglio',

@@ -4,6 +4,7 @@ import {
   fatturaDuplicateGroupKey,
   rowsLookLikeMultiDocInSamePdf,
 } from '@/lib/duplicate-group-keys'
+import { analyzeBolleDuplicatesForDeletion, type BollaDupListRow } from '@/lib/check-duplicates'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 
 const PAGE_SIZE = 2_000
@@ -210,6 +211,7 @@ export async function fetchEnrichedDuplicateBolleGroups(
     data: string | null
     file_url: string | null
     sede_id: string | null
+    email_sync_auto_saved_at: string | null
     fornitori: { nome: string | null } | null
   }
 
@@ -217,7 +219,9 @@ export async function fetchEnrichedDuplicateBolleGroups(
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('bolle')
-      .select('id, numero_bolla, fornitore_id, importo, data, file_url, sede_id, fornitori(nome)')
+      .select(
+        'id, numero_bolla, fornitore_id, importo, data, file_url, sede_id, email_sync_auto_saved_at, fornitori(nome)',
+      )
       .eq('sede_id', sedeId)
       .order('data', { ascending: true })
       .order('id', { ascending: true })
@@ -245,20 +249,32 @@ export async function fetchEnrichedDuplicateBolleGroups(
     }
   }
 
-  const groups: DupBollaGroup[] = []
-  const usedIds = new Set<string>()
-
-  const byNumero = groupBy(all, (b) =>
-    bollaDuplicateGroupKey({
-      fornitore_id: b.fornitore_id,
-      data: b.data,
+  const rowById = new Map<string, DupBollaRow>()
+  const listRows: BollaDupListRow[] = []
+  for (const b of all) {
+    if (!b.fornitore_id) continue
+    const dup = rowToDup(b)
+    rowById.set(b.id, dup)
+    listRows.push({
+      id: b.id,
       numero_bolla: b.numero_bolla,
-    }),
-  )
-  for (const items of byNumero.values()) {
-    if (items.length < 2) continue
-    items.forEach((b) => usedIds.add(b.id))
-    const bolle = items.map(rowToDup)
+      fornitore_id: b.fornitore_id,
+      data: String(b.data ?? ''),
+      file_url: b.file_url ?? null,
+      sede_id: b.sede_id,
+      email_sync_auto_saved_at: b.email_sync_auto_saved_at,
+    })
+  }
+
+  const analysis = analyzeBolleDuplicatesForDeletion(listRows)
+  const groups: DupBollaGroup[] = []
+
+  for (const [groupKey, memberIds] of analysis.groupMembers) {
+    if (memberIds.length < 2) continue
+    const bolle = memberIds
+      .map((id) => rowById.get(id))
+      .filter((x): x is DupBollaRow => x != null)
+    if (bolle.length < 2) continue
     if (
       rowsLookLikeMultiDocInSamePdf(
         bolle.map((b) => ({
@@ -273,24 +289,27 @@ export async function fetchEnrichedDuplicateBolleGroups(
     }
 
     const withF = bolle.filter((x) => x.ha_fattura_collegata)
-    const keep = pickKeepBolla(bolle)
+    const keepId = analysis.canonicalIdByGroupKey.get(groupKey) ?? pickKeepBolla(bolle).id
     const reason =
       withF.length > 0
-        ? 'Mantieni la bolla collegata a una fattura (o la più recente se più candidate).'
-        : 'Suggerita la più recente per data.'
+        ? 'Mantieni la bolla collegata a una fattura (o la più recente se più di una col bolla).'
+        : 'Nessuna fattura collegata: suggerita la più recente per data documento.'
+    const head = bolle[0]!
     groups.push({
-      group_key: `bn:${bolle[0]!.fornitore_id}:${bolle[0]!.data}:${normalizeNumeroFattura(items[0]!.numero_bolla)}`,
-      fornitore_id: bolle[0]!.fornitore_id,
-      fornitore_nome: bolle[0]!.fornitore_nome,
-      numero_display: bolle[0]!.numero_bolla ?? '—',
+      group_key: groupKey,
+      fornitore_id: head.fornitore_id,
+      fornitore_nome: head.fornitore_nome,
+      numero_display: head.numero_bolla ?? '—',
       bolle,
-      ai_keep_id: keep.id,
+      ai_keep_id: keepId,
       ai_keep_reason: reason,
     })
   }
 
-  // Criterio "stesso fornitore + stesso importo + 3 giorni" rimosso (stessa ragione delle fatture).
-  // I veri duplicati bolla sono già catturati dal criterio "stesso numero + stesso fornitore".
-
   return groups
+}
+
+/** Copie in eccesso (stesso criterio KPI / Inbox). */
+export function countDupBolleSurplusFromGroups(groups: DupBollaGroup[]): number {
+  return groups.reduce((s, g) => s + Math.max(0, g.bolle.length - 1), 0)
 }
