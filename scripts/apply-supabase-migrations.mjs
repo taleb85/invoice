@@ -85,6 +85,7 @@ const MIGRATIONS = [
   'supabase/migrations/20260605000001_revoke_public_execute_on_rpc.sql',
   'supabase/migrations/20260605000002_function_search_path.sql',
   'supabase/migrations/20260605000003_action_learning_rpc_service_only.sql',
+  'supabase/migrations/20260605000004_restore_rls_helper_execute_authenticated.sql',
 ]
 
 function loadEnvLocal() {
