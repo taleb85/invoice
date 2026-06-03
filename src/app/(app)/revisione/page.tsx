@@ -9,5 +9,7 @@ export default async function RevisioneRedirectPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
-  redirect(withFiscalYearQuery('/inbox-ai', searchParams.fy, { tab: 'panoramica' }))
+  const fyParsed = searchParams.fy ? Number.parseInt(searchParams.fy, 10) : NaN
+  const fy = Number.isFinite(fyParsed) ? fyParsed : undefined
+  redirect(withFiscalYearQuery('/inbox-ai', fy, { tab: 'panoramica' }))
 }

@@ -8,7 +8,7 @@ import DocumentActionsButton from '@/components/DocumentActionsButton'
 import { DocumentModalFooter } from '@/components/DocumentModalFooter'
 import type { DocumentActionItem } from '@/components/DocumentActionsModal'
 import { documentActionItemFromEntity } from '@/lib/document-action-item'
-import { openDocumentUrl } from '@/lib/open-document-url'
+import { openDocumentUrl, resolveOpenDocumentHrefs } from '@/lib/open-document-url'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useT } from '@/lib/use-t'
 import { CYAN_TABLE_PILL_LINK_CLASSNAME } from '@/components/CyanTablePillLink'
@@ -80,27 +80,6 @@ type Props = {
   fornitoreId?: string | null
 }
 
-function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId' | 'confermaOrdineId'>): {
-  jsonHref: string
-  tabHref: string
-} | null {
-  const b = p.bollaId?.trim()
-  const f = p.fatturaId?.trim()
-  const l = p.logId?.trim()
-  const d = p.documentoId?.trim()
-  const s = p.statementId?.trim()
-  const co = p.confermaOrdineId?.trim()
-  const count = [b, f, l, d, s, co].filter(Boolean).length
-  if (count !== 1) return null
-  if (b) return { jsonHref: openDocumentUrl({ bollaId: b, json: true }), tabHref: openDocumentUrl({ bollaId: b }) }
-  if (f) return { jsonHref: openDocumentUrl({ fatturaId: f, json: true }), tabHref: openDocumentUrl({ fatturaId: f }) }
-  if (l) return { jsonHref: openDocumentUrl({ logId: l, json: true }), tabHref: openDocumentUrl({ logId: l }) }
-  if (d) return { jsonHref: openDocumentUrl({ documentoId: d, json: true }), tabHref: openDocumentUrl({ documentoId: d }) }
-  if (s) return { jsonHref: openDocumentUrl({ statementId: s, json: true }), tabHref: openDocumentUrl({ statementId: s }) }
-  if (co) return { jsonHref: openDocumentUrl({ confermaOrdineId: co, json: true }), tabHref: openDocumentUrl({ confermaOrdineId: co }) }
-  return null
-}
-
 const VIEWER_Z_MIN = 0.5
 const VIEWER_Z_MAX = 3
 const VIEWER_Z_STEP = 0.25
@@ -153,7 +132,7 @@ export function OpenDocumentInAppButton({
   /** Tracks the current blob: URL so we can revoke it when no longer needed. */
   const blobUrlRef = useRef<string | null>(null)
 
-  const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId, confermaOrdineId })
+  const hrefs = resolveOpenDocumentHrefs({ bollaId, fatturaId, logId, documentoId, statementId, confermaOrdineId })
   const jsonHref = hrefs?.jsonHref ?? ''
   const tabHref = hrefs?.tabHref ?? ''
   const canOpen = Boolean(hrefs)

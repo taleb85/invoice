@@ -22,6 +22,61 @@ export function openDocumentUrl(params: {
   return `/api/open-document?${q.toString()}`
 }
 
+export function resolveOpenDocumentHrefs(params: {
+  bollaId?: string
+  fatturaId?: string
+  logId?: string
+  documentoId?: string
+  statementId?: string
+  confermaOrdineId?: string
+}): { jsonHref: string; tabHref: string } | null {
+  const b = params.bollaId?.trim()
+  const f = params.fatturaId?.trim()
+  const l = params.logId?.trim()
+  const d = params.documentoId?.trim()
+  const s = params.statementId?.trim()
+  const co = params.confermaOrdineId?.trim()
+  const count = [b, f, l, d, s, co].filter(Boolean).length
+  if (count !== 1) return null
+  if (b) {
+    return {
+      jsonHref: openDocumentUrl({ bollaId: b, json: true }),
+      tabHref: openDocumentUrl({ bollaId: b }),
+    }
+  }
+  if (f) {
+    return {
+      jsonHref: openDocumentUrl({ fatturaId: f, json: true }),
+      tabHref: openDocumentUrl({ fatturaId: f }),
+    }
+  }
+  if (l) {
+    return {
+      jsonHref: openDocumentUrl({ logId: l, json: true }),
+      tabHref: openDocumentUrl({ logId: l }),
+    }
+  }
+  if (d) {
+    return {
+      jsonHref: openDocumentUrl({ documentoId: d, json: true }),
+      tabHref: openDocumentUrl({ documentoId: d }),
+    }
+  }
+  if (s) {
+    return {
+      jsonHref: openDocumentUrl({ statementId: s, json: true }),
+      tabHref: openDocumentUrl({ statementId: s }),
+    }
+  }
+  if (co) {
+    return {
+      jsonHref: openDocumentUrl({ confermaOrdineId: co, json: true }),
+      tabHref: openDocumentUrl({ confermaOrdineId: co }),
+    }
+  }
+  return null
+}
+
 function decodeStoragePath(pathSegment: string): string {
   try {
     return decodeURIComponent(pathSegment)

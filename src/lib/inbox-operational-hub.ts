@@ -13,7 +13,6 @@ type BuildHubItemsOpts = {
     dupInvoices: string
     dupBolle: string
     dupOrdini: string
-    advancedControlCentre: string
   }
 }
 
