@@ -36,6 +36,7 @@ import {
 } from '@/lib/auto-resolve-pending-doc'
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { extractNumeroFromDocStrings } from '@/lib/extract-numero-from-doc'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { sortStatementsByDocumentDateDesc } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
@@ -109,26 +110,12 @@ async function parsePendingQueueMutationError(res: Response): Promise<string> {
 
 function extractNumeroFromDoc(doc: Documento | undefined): string | null {
   if (!doc) return null
-  const s = `${doc.file_name ?? ''} ${doc.oggetto_mail ?? ''}`
-  if (!s.trim()) return null
-  const patterns = [
-    /fattura[\s._\-:]*n[°o]?\.?\s*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
-    /(?:ft|fattura|invoice|inv)[\s._\-]*(\d[\d\-/._a-zA-Z]{2,30})/i,
-    /(\d{4,20})[\s._\-]*(?:fattura|ft|invoice|inv)/i,
-    /numero\s*(?:fattura|documento|doc)[\s:_\-]*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
-    /n[°o]?\.?\s*(?:fattura|doc)[\s._\-:]*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
-    /([A-Z]{2,5}[\s._\-]\d{3,10}(?:[\s._\-]\d{2,4})?)/,
-    /(\d{5,20})/,
-  ]
-  for (const p of patterns) {
-    const m = s.match(p)
-    if (m?.[1]) {
-      let v = m[1].replace(/[^a-zA-Z0-9\-/._]/g, '').trim()
-      if (v.length > 30) v = v.slice(0, 30)
-      if (v.length >= 2) return v
-    }
-  }
-  return null
+  return (
+    (typeof doc.metadata?.numero_fattura === 'string' && doc.metadata.numero_fattura.trim()
+      ? doc.metadata.numero_fattura.trim()
+      : null) ??
+    extractNumeroFromDocStrings(doc.file_name, doc.oggetto_mail)
+  )
 }
 
 /* ── Types ──────────────────────────────────────────────────── */

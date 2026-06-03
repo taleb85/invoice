@@ -36,6 +36,10 @@ import {
   type InboxGeminiHistoryLine,
   type InboxGeminiHistoryOutcome,
 } from '@/lib/inbox-ai-gemini-history-storage'
+import {
+  metadataNumeroFattura,
+  resolvePendingDocNumeroFattura,
+} from '@/lib/extract-numero-from-doc'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -257,6 +261,21 @@ const SECONDARY_KINDS: InboxFinalizeKind[] = [
   'ordine',
 ]
 
+function inboxKindNeedsInvoiceNumber(kind: InboxFinalizeKind): boolean {
+  return kind === 'fattura' || kind === 'nota_credito'
+}
+
+function resolveInboxFinalizeNumero(
+  row: PendingDocRow,
+  kind: InboxFinalizeKind,
+  manualById: Record<string, string>,
+): string | null {
+  if (!inboxKindNeedsInvoiceNumber(kind)) return null
+  const manual = (manualById[row.id] ?? '').trim()
+  if (manual) return manual
+  return resolvePendingDocNumeroFattura(row)
+}
+
 export default function InboxAiClient(props: {
   sedeId: string | null
   /** Nessuna sede operativa per operatore — blocco totale */
@@ -286,6 +305,8 @@ export default function InboxAiClient(props: {
   const [resolvedToday, setResolvedToday] = useState(0)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [dupBusy, setDupBusy] = useState<string | null>(null)
+  /** Numero documento inserito a mano prima di finalizzare fattura / nota credito. */
+  const [manualNumeroFattura, setManualNumeroFattura] = useState<Record<string, string>>({})
 
   const [auditRows, setAuditRows] = useState<AuditMatchRow[]>([])
   const [auditLoading, setAuditLoading] = useState(false)
@@ -576,7 +597,9 @@ export default function InboxAiClient(props: {
         const minConf =
           kind === 'listino' ? AUTO_FINALIZE_LISTINO_CONF_MIN : AUTO_FINALIZE_AI_CONF_MIN
         if (conf < minConf) continue
-        const ok = await finalizeWithKind(row.id, kind)
+        const numero = resolveInboxFinalizeNumero(row, kind, manualNumeroFattura)
+        if (inboxKindNeedsInvoiceNumber(kind) && !numero) continue
+        const ok = await finalizeWithKind(row.id, kind, { numeroFattura: numero })
         if (!ok) break
         finalizedKindByDoc.set(row.id, kind)
         didMutateQueue = true
@@ -640,11 +663,29 @@ export default function InboxAiClient(props: {
     }
   }
 
-  const finalizeWithKind = async (docId: string, kind: InboxFinalizeKind): Promise<boolean> => {
+  const finalizeWithKind = async (
+    docId: string,
+    kind: InboxFinalizeKind,
+    opts?: { numeroFattura?: string | null },
+  ): Promise<boolean> => {
     setActionBusy(docId)
     try {
-      await postDoc({ id: docId, azione: 'finalizza_tipo', kind })
+      const body: Record<string, unknown> = { id: docId, azione: 'finalizza_tipo', kind }
+      if (inboxKindNeedsInvoiceNumber(kind)) {
+        const numero = (opts?.numeroFattura ?? '').trim()
+        if (!numero) {
+          showToast(t.documentActions.errInvoiceNumberRequired, 'error')
+          return false
+        }
+        body.numero_fattura = numero
+      }
+      await postDoc(body)
       setDocs((d) => d.filter((x) => x.id !== docId))
+      setManualNumeroFattura((prev) => {
+        const next = { ...prev }
+        delete next[docId]
+        return next
+      })
       setSuggestions((s) => {
         const n = { ...s }
         delete n[docId]
@@ -667,7 +708,10 @@ export default function InboxAiClient(props: {
 
   /** Registra con il tipo scelto (pulsante primario o menu secondario). */
   const finalizeAs = async (docId: string, kind: InboxFinalizeKind) => {
-    const ok = await finalizeWithKind(docId, kind)
+    const row = docs.find((d) => d.id === docId)
+    if (!row) return
+    const numero = resolveInboxFinalizeNumero(row, kind, manualNumeroFattura)
+    const ok = await finalizeWithKind(docId, kind, { numeroFattura: numero })
     if (ok) await loadDocs({ silent: true })
   }
 
@@ -681,6 +725,9 @@ export default function InboxAiClient(props: {
         oggetto_mail: d.oggetto_mail,
       })
       if (!kind || !d.fornitore_id) continue
+      if (inboxKindNeedsInvoiceNumber(kind) && !resolveInboxFinalizeNumero(d, kind, manualNumeroFattura)) {
+        continue
+      }
       queued.push({ row: d, kind })
     }
     if (queued.length === 0) {
@@ -690,7 +737,8 @@ export default function InboxAiClient(props: {
     setConfirmAllBusy(true)
     try {
       for (const { row, kind } of queued) {
-        const ok = await finalizeWithKind(row.id, kind)
+        const numero = resolveInboxFinalizeNumero(row, kind, manualNumeroFattura)
+        const ok = await finalizeWithKind(row.id, kind, { numeroFattura: numero })
         if (!ok) break
       }
       await loadDocs({ silent: true })
@@ -1208,12 +1256,22 @@ export default function InboxAiClient(props: {
                   const suggestedKind = resolveInboxSuggestedKind(d.metadata, sessionTipo, rowCtx)
                   const docTypeKind = resolveInboxDocTypeKind(d.metadata, sessionTipo, rowCtx)
                   const docTypeLabel = labelPendingKind(docTypeKind, pendingKindLabels)
+                  const ocrDocNumero = metadataNumeroFattura(d.metadata)
                   const supplier =
                     d.fornitore?.nome ??
                     (d.fornitore_id ? t.log.inboxAiSupplierIdPlaceholder : t.log.inboxAiSupplierUnknown)
                   const busyRow = actionBusy === d.id
                   const needsSupplier = !d.fornitore_id
                   const inGeminiAnalyze = analyzeBusy && analyzeTargetIds.includes(d.id)
+                  const isCreditNoteRow =
+                    suggestedKind === 'nota_credito' || docTypeKind === 'nota_credito'
+                  const needsDocNumberInput =
+                    !ocrDocNumero &&
+                    !!d.fornitore_id &&
+                    (suggestedKind === 'fattura' ||
+                      suggestedKind === 'nota_credito' ||
+                      docTypeKind === 'fattura' ||
+                      docTypeKind === 'nota_credito')
                   return (
                     <li
                       key={d.id}
@@ -1278,10 +1336,43 @@ export default function InboxAiClient(props: {
                             </div>
                           <p className="text-xs text-app-fg-muted">
                             {t.log.inboxAiSupplierLabel}{' '}
-                            <span className="text-app-fg">{supplier}</span> · {t.log.inboxAiReceivedLabel}{' '}
+                            <span className="text-app-fg">{supplier}</span>
+                            {ocrDocNumero ? (
+                              <>
+                                {' '}
+                                · {t.log.inboxAiDocNumberLabel}{' '}
+                                <span className="font-mono text-app-fg">{ocrDocNumero}</span>
+                              </>
+                            ) : null}{' '}
+                            · {t.log.inboxAiReceivedLabel}{' '}
                             {fmtDate(d.created_at, locale)} ·{' '}
                             <span className="rounded bg-white/10 px-1 font-mono text-[10px]">{d.stato}</span>
                           </p>
+                          {needsDocNumberInput ? (
+                            <div className="mt-2 flex w-full max-w-md items-center gap-2">
+                              <label
+                                htmlFor={`inbox-doc-num-${d.id}`}
+                                className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted"
+                              >
+                                {isCreditNoteRow
+                                  ? t.log.inboxAiDocNumberFieldLabelCreditNote
+                                  : t.log.inboxAiDocNumberFieldLabel}
+                              </label>
+                              <input
+                                id={`inbox-doc-num-${d.id}`}
+                                type="text"
+                                value={manualNumeroFattura[d.id] ?? ''}
+                                onChange={(e) =>
+                                  setManualNumeroFattura((prev) => ({
+                                    ...prev,
+                                    [d.id]: e.target.value,
+                                  }))
+                                }
+                                placeholder={t.log.inboxAiDocNumberPlaceholder}
+                                className="min-w-0 flex-1 rounded-md border border-amber-500/35 bg-amber-950/15 px-2 py-1 text-xs text-app-fg placeholder:text-app-fg-muted/50 focus:border-amber-400/55 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
+                              />
+                            </div>
+                          ) : null}
                           {sug ? (
                             <div className="mt-2 rounded-lg border border-teal-500/20 bg-teal-950/20 px-2 py-2 text-[11px] leading-snug text-teal-100/95">
                               <span className="font-semibold text-teal-200">AI</span>:{' '}
@@ -1357,7 +1448,8 @@ export default function InboxAiClient(props: {
                                 origine: 'documento_da_processare',
                                 fornitore_id: d.fornitore_id,
                                 fornitore_nome: d.fornitore?.nome ?? null,
-                                numero_documento: null,
+                                numero_documento:
+                                  ocrDocNumero ?? manualNumeroFattura[d.id]?.trim() ?? null,
                                 file_url: d.file_url ?? null,
                                 mittente: d.mittente ?? null,
                               }),

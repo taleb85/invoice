@@ -1367,6 +1367,10 @@ export type Translations = {
     inboxAiSupplierIdPlaceholder: string
     inboxAiSupplierLabel: string
     inboxAiReceivedLabel: string
+    inboxAiDocNumberLabel: string
+    inboxAiDocNumberFieldLabel: string
+    inboxAiDocNumberFieldLabelCreditNote: string
+    inboxAiDocNumberPlaceholder: string
     inboxAiAiAnalyzedTitle: string
     inboxAiAiAnalyzingTitle: string
     inboxAiAiPendingTitle: string
