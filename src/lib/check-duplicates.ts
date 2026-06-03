@@ -604,7 +604,6 @@ function analyzeBolleSameFileUrlDuplicates(rows: BollaDupListRow[]): FatturaDupl
           file_url: r.file_url,
           documentDate: r.data,
           documentNumero: r.numero_bolla,
-          importo: r.importo,
         })),
       )
     ) {

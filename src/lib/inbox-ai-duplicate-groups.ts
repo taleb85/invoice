@@ -1,9 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import {
-  bollaDuplicateGroupKey,
-  fatturaDuplicateGroupKey,
-  rowsLookLikeMultiDocInSamePdf,
-} from '@/lib/duplicate-group-keys'
+import { fatturaDuplicateGroupKey, rowsLookLikeMultiDocInSamePdf } from '@/lib/duplicate-group-keys'
 import { analyzeBolleDuplicatesForDeletion, type BollaDupListRow } from '@/lib/check-duplicates'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 

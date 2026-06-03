@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { canAccessSedeDuplicateTools, isMasterAdminRole } from '@/lib/roles'
+import { canAccessSedeDuplicateTools, isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { cookies } from 'next/headers'
 import {
   fetchEnrichedDuplicateBolleGroups,
@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = profile?.role === 'admin_sede' || profile?.role === 'admin_tecnico'
+  const isAdminSede = isBranchSedeStaffRole(profile?.role)
 
   const url = new URL(req.url)
   let sedeId = url.searchParams.get('sede_id')?.trim() || null
