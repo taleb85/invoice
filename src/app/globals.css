@@ -1596,7 +1596,7 @@ body:has([data-deep-aurora-integration])
 }
 
 /**
- * Pannello fullscreen documenti (viewer in-app `PublicPdfOpenMenu`, `OpenDocumentInAppButton`, `GmailSetupModal`,
+ * Pannello fullscreen documenti (viewer in-app `OpenDocumentInAppButton`, `GmailSetupModal`,
  * sheet bolla/fornitore, `AppSheet`, …): vetro satinato unificato.
  */
 body:has([data-deep-aurora-integration]) .app-aurora-doc-modal-shell {

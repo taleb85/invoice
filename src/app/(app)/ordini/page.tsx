@@ -12,7 +12,7 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
@@ -210,17 +210,13 @@ export default async function OrdiniOverviewPage(props: {
                       {formatDate(r.created_at)}
                     </td>
                     <td className={`${APP_SECTION_TABLE_TD} text-right`}>
-                      <PublicPdfOpenMenu
+                      <OpenDocumentInAppButton
                         confermaOrdineId={r.id}
                         fileUrl={r.file_url}
-                        triggerLabel={t.dashboard.ordiniOpenPdf}
-                        triggerClassName="text-xs font-semibold text-app-cyan-500 transition-colors hover:text-app-fg"
-                        labels={{
-                          preview: t.dashboard.ordiniPdfPreview,
-                          copyLink: t.dashboard.ordiniPdfCopyLink,
-                          linkCopied: t.dashboard.ordiniPdfLinkCopied,
-                        }}
-                      />
+                        className="text-xs font-semibold text-app-cyan-500 transition-colors hover:text-app-fg"
+                      >
+                        {t.dashboard.ordiniOpenPdf}
+                      </OpenDocumentInAppButton>
                     </td>
                   </tr>
                 ))}
