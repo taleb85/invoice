@@ -10,7 +10,6 @@ import {
   RotateCw,
   Ban,
   CheckCircle,
-  Trash2,
   ExternalLink,
   Save,
   Archive,

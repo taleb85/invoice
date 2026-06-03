@@ -65,8 +65,10 @@ function serviceMockBollaToFattura() {
           select: () => ({
             eq: (col: string) => {
               if (col === 'id') {
+                const rowResult = Promise.resolve({ data: bollaRow, error: null })
                 return {
-                  single: () => Promise.resolve({ data: bollaRow, error: null }),
+                  single: () => rowResult,
+                  maybeSingle: () => rowResult,
                 }
               }
               return {

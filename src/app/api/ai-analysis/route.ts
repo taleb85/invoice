@@ -317,7 +317,7 @@ async function analyzeEntityStreaming(
 
 export async function POST(req: NextRequest) {
   try {
-    const { supabase, user } = await getRequestAuth()
+    const { user } = await getRequestAuth()
     if (!user) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
     }

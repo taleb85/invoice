@@ -62,7 +62,7 @@ export function CategoriaDropdown({ categoria, documentoId, onCategoriaChange }:
       minWidth: `${Math.max(150, rect.width)}px`,
       zIndex: 9999,
     })
-  }, [categoriaDropdownOpen])
+  }, [categoriaDropdownOpen, categoria])
 
   async function handleCategoriaChange(nuovaCategoria: string) {
     if (!onCategoriaChange || !documentoId) return
@@ -75,7 +75,7 @@ export function CategoriaDropdown({ categoria, documentoId, onCategoriaChange }:
         body: JSON.stringify({ documento_id: documentoId, categoria: nuovaCategoria }),
       })
       if (res.ok) {
-        const data = await res.json()
+        await res.json()
         onCategoriaChange(nuovaCategoria)
       }
     } catch {

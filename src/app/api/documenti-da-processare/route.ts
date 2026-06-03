@@ -18,7 +18,6 @@ import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
 import { pendingDocLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reprocess-pending-docs-ocr'
-import { safeDate } from '@/lib/safe-date'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { cleanupPendingStatementDuplicates } from '@/lib/statement-pending-queue-cleanup'
 import { totaleFromDocMetadata } from '@/lib/conferme-ordine-importo'
@@ -27,11 +26,7 @@ import {
   isConfermeOrdineMissingImportoTotaleColumn,
 } from '@/lib/conferme-ordine-schema'
 import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
-import {
-  documentContextText,
-  processingDocumentDateYmdFromMetadata,
-  processingDocumentDateYmdFromOcr,
-} from '@/lib/safe-date'
+import { processingDocumentDateYmdFromMetadata } from '@/lib/safe-date'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -88,7 +83,6 @@ async function finalizePendingByTipo(
     return NextResponse.json({ error: 'Associa un fornitore prima di finalizzare.' }, { status: 400 })
   }
 
-  const oggi = new Date().toISOString().split('T')[0]
   const { data: fornitoreRow } = await supabase
     .from('fornitori')
     .select('sede_id')
@@ -393,9 +387,10 @@ async function finalizePendingByTipo(
     }
     let { error: coErr } = await supabase.from('conferme_ordine').insert([confermaPayload])
     if (coErr && isConfermeOrdineMissingImportoTotaleColumn(coErr)) {
-      const { importo_totale: _i, ...withoutImporto } = confermaPayload as typeof confermaPayload & {
+      const withoutImporto = { ...confermaPayload } as typeof confermaPayload & {
         importo_totale?: number
       }
+      delete withoutImporto.importo_totale
       ;({ error: coErr } = await supabase.from('conferme_ordine').insert([withoutImporto]))
     }
     if (coErr && !confermeOrdineTableUnavailable(coErr)) {
@@ -1060,7 +1055,6 @@ export async function POST(req: NextRequest) {
     }
 
     const primaBolla  = bolleRows[0]
-    const oggi        = new Date().toISOString().split('T')[0]
     const sedeDefinitiva  = primaBolla.sede_id ?? doc.sede_id ?? null
     const importoTotale   = bolleRows.reduce((s, b) => s + (b.importo ?? 0), 0)
     const dataFatturaAssocia =

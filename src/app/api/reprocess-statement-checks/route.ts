@@ -3,7 +3,6 @@ import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
 import { runTripleCheck, type StatementLine } from '@/lib/triple-check'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
-import { logger } from '@/lib/logger'
 
 /**
  * POST /api/reprocess-statement-checks

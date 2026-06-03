@@ -38,7 +38,7 @@ function mockSupabaseWithBolle(initial: BollaRow[]): {
       eq(column: string, value: unknown) {
         return buildSelectChain({ ...filters, [column]: value })
       },
-      limit(_n: number) {
+      limit() {
         return chain
       },
       maybeSingle() {

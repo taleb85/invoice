@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import type { CodaItem } from '@/lib/command-system/types'
 
 interface Props {

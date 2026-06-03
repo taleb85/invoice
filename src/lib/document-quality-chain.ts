@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isStaleRelativeToReceipt } from '@/lib/fix-ocr-dates-helpers'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { tokenOverlapRatio, normalizeRagioneSocialeForComparison } from '@/lib/fornitore-cross-check'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
-import { logger } from '@/lib/logger'
 
 /**
  * Catena di fiducia a 3 segnali per ogni campo critico.
@@ -125,7 +125,7 @@ async function lookupLearnedSupplier(
 ): Promise<string | null> {
   if (!mittente?.includes('@') && !ragioneSocialeNorm) return null
 
-  let q = supabase
+  const q = supabase
     .from('documenti_da_processare')
     .select('fornitore_id, mittente, metadata')
     .eq('stato', 'associato')
@@ -187,19 +187,22 @@ export function qualityValidateDate(
 ): QualityDecision<string> {
   const signals: { value: string; source: string }[] = []
 
-  // Segnale 1: OCR
+  const recvYmd = receivedAt?.slice(0, 10)
+  const dateNotStale = (ymd: string) => !recvYmd || !isStaleRelativeToReceipt(ymd, recvYmd)
+
+  // Segnale 1: OCR (escluso se periodo di fatturazione troppo vecchio vs ricezione)
   const dOcr = ocrDate?.trim()
-  if (dOcr && /^\d{4}-\d{2}-\d{2}$/.test(dOcr)) {
+  if (dOcr && /^\d{4}-\d{2}-\d{2}$/.test(dOcr) && dateNotStale(dOcr)) {
     signals.push({ value: dOcr, source: 'ocr' })
   }
 
   // Segnale 2: Data da nome file (es. "Fattura_2026-03-31.pdf", "INV-20260415.pdf")
   const fnDate = extractDateFromText(fileName)
-  if (fnDate) signals.push({ value: fnDate, source: 'nome_file' })
+  if (fnDate && dateNotStale(fnDate)) signals.push({ value: fnDate, source: 'nome_file' })
 
   // Segnale 3: Data da oggetto email
   const subjDate = extractDateFromText(emailSubject)
-  if (subjDate) signals.push({ value: subjDate, source: 'oggetto_mail' })
+  if (subjDate && dateNotStale(subjDate)) signals.push({ value: subjDate, source: 'oggetto_mail' })
 
   // Segnale 4 (fallback): Data righe (per estratti conto)
   if (rowDates?.length) {

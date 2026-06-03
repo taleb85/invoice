@@ -12,7 +12,6 @@ import { validateDocument, logValidationWarnings } from '@/lib/document-validato
 import { logger } from '@/lib/logger'
 import { ocrInvoice, OcrInvoiceConfigurationError, OcrTransientError } from '@/lib/ocr-invoice'
 import {
-  documentOcrContextSuggestsOrdine,
   documentOcrContextSuggestsQuotation,
   inferPendingDocumentKindForQueueRow,
 } from '@/lib/document-bozza-routing'

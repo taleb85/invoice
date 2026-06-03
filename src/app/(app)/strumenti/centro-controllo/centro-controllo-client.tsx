@@ -86,14 +86,6 @@ function SectionCard({ title, badge, action, children, className }: {
   )
 }
 
-const AUTO_RISOLVI_PHASES = [
-  'Carico gli estratti conto…',
-  'Chiudo falsi allarmi con fattura già presente…',
-  'Verifico importi riga per riga…',
-  'Ricalcolo il triple-check sui casi aperti…',
-  'Aggiorno il conteggio anomalie…',
-] as const
-
 export default function CentroControlloClient({ sedeId }: Props) {
   const { showToast } = useToast()
   const t = useT()
@@ -162,17 +154,17 @@ export default function CentroControlloClient({ sedeId }: Props) {
   // ── Reprocess triple-check ────────────────────────────────────────────────
   const [reprocessingChecks, setReprocessingChecks] = useState(false)
   const [reprocessChecksResult, setReprocessChecksResult] = useState<string | null>(null)
-  const [autoResolving, setAutoResolving] = useState(false)
-  const [autoRisolviElapsed, setAutoRisolviElapsed] = useState(0)
-  const [autoRisolviOffset, setAutoRisolviOffset] = useState(0)
-  const [autoRisolviTotal, setAutoRisolviTotal] = useState<number | null>(null)
-  const [autoRisolviResults, setAutoRisolviResults] = useState<Array<{
+  const [, setAutoResolving] = useState(false)
+  const [, setAutoRisolviElapsed] = useState(0)
+  const [, setAutoRisolviOffset] = useState(0)
+  const [, setAutoRisolviTotal] = useState<number | null>(null)
+  const [, setAutoRisolviResults] = useState<Array<{
     fornitoreId: string | null
     fornitoreNome: string | null
     righeOk: number
     righeAnomale: number
   }>>([])
-  const [autoRisolviSummary, setAutoRisolviSummary] = useState<{
+  const [, setAutoRisolviSummary] = useState<{
     fastFixed: number
     falseErrorsOk: number
     remainingAnomalies: number
@@ -202,40 +194,16 @@ export default function CentroControlloClient({ sedeId }: Props) {
   }
   const [pipelinePhase, setPipelinePhase] = useState<PipelinePhase>('idle')
   const [pipelineActive, setPipelineActive] = useState(false)
-  const [pipelineElapsed, setPipelineElapsed] = useState(0)
-  const [pipelineFornitori, setPipelineFornitori] = useState<PipelineFornitore[]>([])
+  const [, setPipelineElapsed] = useState(0)
+  const [, setPipelineFornitori] = useState<PipelineFornitore[]>([])
   const [pipelineCurrentFornitore, setPipelineCurrentFornitore] = useState<string | null>(null)
-  const [pipelineFastFixed, setPipelineFastFixed] = useState(0)
+  const [, setPipelineFastFixed] = useState(0)
   const [pipelineSummary, setPipelineSummary] = useState<{
     totalFornitori: number
     totalResolved: number
     remaining: number
   } | null>(null)
   const pipelineTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // ── AI cerca fatture mancanti ────────────────────────────────────────────
-  type AiScanChunkResult = {
-    fornitoreId: string
-    fornitoreNome: string | null
-    fattureMancanti: number
-    ricevuti: number
-    bozzeCreate: number
-    attachmentsProcessed: number
-    ok: boolean
-    error?: string
-  }
-  const [aiScanActive, setAiScanActive] = useState(false)
-  const [aiScanOffset, setAiScanOffset] = useState(0)
-  const [aiScanTotal, setAiScanTotal] = useState<number | null>(null)
-  const [aiScanResults, setAiScanResults] = useState<AiScanChunkResult[]>([])
-  const [aiScanSummary, setAiScanSummary] = useState<{
-    initialAnomalies: number
-    remainingAnomalies: number
-    resolved: number
-    fornitoriFailed: string[]
-  } | null>(null)
-  const [aiScanElapsed, setAiScanElapsed] = useState(0)
-  const aiScanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Monitoraggio sistema ─────────────────────────────────────────────────
   const [sysMonitor, setSysMonitor] = useState<{
@@ -372,64 +340,6 @@ export default function CentroControlloClient({ sedeId }: Props) {
       }
     } catch { /* non-critical */ }
   }, [sedeId])
-
-  // ── AI cerca fatture mancanti ────────────────────────────────────────────
-  const handleAiCercaFattureMancanti = useCallback(async () => {
-    if (!sedeId) return
-    setAiScanActive(true)
-    setAiScanOffset(0)
-    setAiScanTotal(null)
-    setAiScanResults([])
-    setAiScanSummary(null)
-    setAiScanElapsed(0)
-    const startMs = Date.now()
-    if (aiScanTimerRef.current) clearInterval(aiScanTimerRef.current)
-    aiScanTimerRef.current = setInterval(() => {
-      setAiScanElapsed(Math.floor((Date.now() - startMs) / 1000))
-    }, 1000)
-    try {
-      let currentOffset = 0
-      for (;;) {
-        const res = await fetch('/api/centro-controllo/ai-cerca-fatture-mancanti', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sede_id: sedeId, offset: currentOffset, chunk_size: 3 }),
-        })
-        const data = await res.json() as {
-          done: boolean
-          offset: number
-          total: number
-          results: AiScanChunkResult[]
-          summary?: {
-            initialAnomalies: number
-            remainingAnomalies: number
-            resolved: number
-            fornitoriFailed: string[]
-          }
-          error?: string
-        }
-        if (!res.ok) {
-          showToast(data.error ?? `Errore ${res.status}`, 'error')
-          break
-        }
-        currentOffset = data.offset
-        setAiScanOffset(currentOffset)
-        setAiScanTotal(data.total)
-        setAiScanResults((prev) => [...prev, ...data.results])
-        if (data.done) {
-          if (data.summary) setAiScanSummary(data.summary)
-          await Promise.all([caricaCoda(1), caricaStatement()])
-          break
-        }
-        await new Promise((r) => setTimeout(r, 1500))
-      }
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : t.common.networkError, 'error')
-    } finally {
-      if (aiScanTimerRef.current) { clearInterval(aiScanTimerRef.current); aiScanTimerRef.current = null }
-      setAiScanActive(false)
-    }
-  }, [sedeId, caricaCoda, caricaStatement, showToast])
 
   // ── Pipeline AI (Analisi → Ricerca email → Associazione) ────────────────
   const handlePipeline = useCallback(async () => {
@@ -581,7 +491,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
       setPipelineActive(false)
       setPipelineCurrentFornitore(null)
     }
-  }, [sedeId, caricaCoda, caricaStatement, showToast])
+  }, [sedeId, caricaCoda, caricaStatement, showToast, t])
 
   // ── Elaborazione statement ──────────────────────────────────────────────
   const handleProcessaStatement = async () => {
@@ -686,7 +596,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
       if (autoRisolviTimerRef.current) { clearInterval(autoRisolviTimerRef.current); autoRisolviTimerRef.current = null }
       setAutoResolving(false)
     }
-  }, [sedeId, caricaCoda, caricaStatement, showToast])
+  }, [sedeId, caricaCoda, caricaStatement, showToast, t])
 
   // ── Reprocess triple-check su statement esistenti ─────────────────────
   const handleReprocessChecks = async () => {

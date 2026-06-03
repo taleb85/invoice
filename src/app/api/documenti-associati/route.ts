@@ -211,7 +211,7 @@ export async function GET(req: NextRequest) {
     query = query.order(sortColumn, { ascending: sortOrder === 'asc' })
 
     if (reportMode) {
-      const { data: allDocs, error, count } = await query
+      const { data: allDocs, error } = await query
 
       if (error) {
         logger.error('Errore recupero documenti per report', error)

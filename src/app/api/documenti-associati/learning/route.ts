@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/utils/supabase/server'
 import { logger } from '@/lib/logger'
 
@@ -20,7 +20,7 @@ type PatternAnomalia = {
   azione_piu_frequente: { action: string; percentuale: number } | null
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const supabase = createServiceClient()
 

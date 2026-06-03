@@ -128,7 +128,7 @@ export default function FattureDuplicatesByFileCleanup({ fornitoreId, className 
           <p className="mt-0.5 text-[11px] text-rose-100/80">
             {sameFileCount > 0 && (<>{sameFileCount} con stesso file PDF · </>)}
             {sameNumeroCount > 0 && (<>{sameNumeroCount} con stesso numero fattura · </>)}
-            {shellCount > 0 && (<>{shellCount} "shell" (senza numero né importo) · </>)}
+            {shellCount > 0 && (<>{shellCount} &quot;shell&quot; (senza numero né importo) · </>)}
             {clusterCount > 0 && (<>{clusterCount} cluster sospetti (≥3 fatture stesso giorno) · </>)}
             Per ogni gruppo verrà tenuta una sola fattura (con bolla, numero o importo se presenti).
           </p>

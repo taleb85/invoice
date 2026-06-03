@@ -231,10 +231,11 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
  * Delivery notes (bolla_ddt) usually have no fiscal document total; Gemini often
  * still fills `totale_iva_inclusa` from line sums or unrelated sections.
  */
-export function importoForBollaFromOcr(_ocr: {
+export function importoForBollaFromOcr(ocr?: {
   tipo_documento?: unknown
   totale_iva_inclusa?: number | null
 }): number | null {
+  void ocr
   return null
 }
 

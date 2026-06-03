@@ -16,10 +16,7 @@ import {
 } from '@/lib/statement-anomaly-preview'
 import { hideSupersededStatementsForList } from '@/lib/statement-content-dedup'
 import { dedupeStatementsForList, type StatementListRow } from '@/lib/statement-list-dedup'
-import {
-  statementOfficialDateIso,
-  type StatementExtractedPdfDates,
-} from '@/lib/statement-official-date'
+import type { StatementExtractedPdfDates } from '@/lib/statement-official-date'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestAuth()

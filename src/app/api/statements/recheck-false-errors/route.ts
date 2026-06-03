@@ -4,7 +4,7 @@ import { isSedePrivilegedRole } from '@/lib/roles'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 import { TRIPLE_CHECK_TOLERANCE } from '@/lib/triple-check'
 
-export async function POST(req: Request) {
+export async function POST() {
   const auth = await getRequestAuth()
   if (!auth.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -172,13 +172,6 @@ function ordineDupKey(r: OrdineDupListRow): string | null {
   return `${r.fornitore_id}\u0000${d}\u0000${num.toLowerCase()}`
 }
 
-/** Stesso PDF registrato più volte (doppio finalize / sync email). */
-function ordineDupKeyByFileUrl(r: OrdineDupListRow): string | null {
-  const u = r.file_url?.trim()
-  if (!u || !r.fornitore_id) return null
-  return `${r.fornitore_id}\u0000fileurl\u0000${u}`
-}
-
 function ordineHasDocumentDate(r: OrdineDupListRow): boolean {
   return ordineDupDocumentDate(r) != null
 }

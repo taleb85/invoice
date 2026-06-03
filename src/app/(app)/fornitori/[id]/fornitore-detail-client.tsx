@@ -27,9 +27,13 @@ import { buildListLocationPath, hrefWithReturnTo, readReturnToFromGetter } from 
 import { saveScrollForListPath } from '@/lib/return-navigation-client'
 import {
   dynamicStaleThresholdDays,
+  extractListinoSrcBollaId,
+  extractListinoSrcDocument,
   extractListinoSrcFatturaId,
   filterOutliersForTrend,
   isPromoListinoRow,
+  listinoDocumentOriginLabel,
+  listinoOriginNoteWithSrc,
   LISTINO_SRC_FATTURA_MARK,
   buildListinoByProduct,
   listinoGroupAliasNames,
@@ -57,14 +61,12 @@ import {
   isDocumentDateAtLeastLatestListino,
   maxListinoDateForExactProduct,
 } from '@/lib/listino-document-date'
+import { listinoImportApiBody, listinoImportTable } from '@/lib/listino-import-document'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import DocumentOcrRefreshButton from '@/components/DocumentOcrRefreshButton'
 import FornitoreDocDetailLayer from '@/components/FornitoreDocDetailLayer'
 import { createClient } from '@/utils/supabase/client'
-import {
-  countSupplierMonthRekkiPriceAnomalies,
-  statementMatchesCalendarWindow,
-} from '@/lib/rekki-price-anomalies'
+import { statementMatchesCalendarWindow } from '@/lib/rekki-price-anomalies'
 const PendingMatchesTab = dynamic(
   () => import('@/app/(app)/statements/statements-views').then(m => ({ default: m.PendingMatchesTab })),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
@@ -121,7 +123,6 @@ const FornitoreConfermeOrdineTab = dynamic(
   () => import('@/components/FornitoreConfermeOrdineTab'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
-import DeleteButton from '@/components/DeleteButton'
 import DocumentActionsButton from '@/components/DocumentActionsButton'
 import {
   SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE,
@@ -410,7 +411,7 @@ interface Fattura {
 
 interface ListinoRow {
   data: string
-  tipo: 'bolla' | 'fattura'
+  tipo: 'bolla' | 'fattura' | 'ordine'
   numero: string | null
   importo: number | null
   id: string
@@ -520,7 +521,7 @@ function useSupplierPeriodStats(
       })
 
     return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [fornitoreId, fromInclusive, toExclusive, reloadEpoch])
 
   return { stats, loading }
@@ -1666,7 +1667,6 @@ function DashboardTab({
 
 function DashboardSpendSummary({
   fornitoreId,
-  readOnly,
 }: {
   fornitoreId: string
   readOnly?: boolean
@@ -1814,10 +1814,6 @@ function attachmentOpenFileLinkLabel(
 const FORNITORE_TABLE_CYAN_ACTION_PILL =
   'inline-flex items-center gap-1 rounded-lg border border-app-line-30 bg-app-line-10 px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-20'
 
-/** Pill elimina icon-only compatto (solo icona, nessun testo). */
-const FORNITORE_TABLE_DELETE_PILL =
-  'inline-flex h-6 w-6 items-center justify-center rounded-md border border-[rgba(34,211,238,0.15)] bg-red-950/30 text-red-300 opacity-0 transition-all group-hover:opacity-100 hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/20 hover:text-red-100 focus-visible:opacity-100'
-
 function attachmentKindText(
   kind: AttachmentKind,
   t: { bolle: { attachmentKindPdf: string; attachmentKindImage: string; attachmentKindOther: string } },
@@ -1845,7 +1841,6 @@ function BolleTab({
   searchParams,
   readOnly,
   onLedgerMutated,
-  currency,
 }: {
   fornitoreId: string
   fornitoreNome: string
@@ -1856,7 +1851,7 @@ function BolleTab({
   searchParams: ReadonlyURLSearchParams
   readOnly?: boolean
   onLedgerMutated?: () => void
-  currency: string
+  currency?: string
 }) {
   const router = useRouter()
   const t = useT()
@@ -2988,13 +2983,17 @@ function FattureTab({
 
   const [tipoEditingFatturaId, setTipoEditingFatturaId] = useState<string | null>(null)
 
-  const DOC_TYPE_OPTIONS = [
-    { label: 'Invoice', tipo: null },
-    { label: 'Credit Note', tipo: 'nota_credito' },
-    { label: 'Order Confirmation', tipo: 'ordine' },
-    { label: 'Delivery Note', tipo: 'bolla_ddt' },
-    { label: 'Statement', tipo: 'estratto_conto' },
-  ] as const
+  const DOC_TYPE_OPTIONS = useMemo(
+    () =>
+      [
+        { label: 'Invoice', tipo: null },
+        { label: 'Credit Note', tipo: 'nota_credito' },
+        { label: 'Order Confirmation', tipo: 'ordine' },
+        { label: 'Delivery Note', tipo: 'bolla_ddt' },
+        { label: 'Statement', tipo: 'estratto_conto' },
+      ] as const,
+    [],
+  )
 
   const handleTipoOverride = useCallback((fileUrl: string, label: string | null) => {
     setTipoEditingFatturaId(null)
@@ -3705,7 +3704,7 @@ function ListinoTab({
 
   // Auto-import state
   const [autoImporting, setAutoImporting]         = useState(false)
-  const [autoImportResult, setAutoImportResult]   = useState<{ inserted: number; fatture: number } | null>(null)
+  const [autoImportResult, setAutoImportResult]   = useState<{ inserted: number; documenti: number } | null>(null)
   const [autoImportError, setAutoImportError]     = useState<string | null>(null)
 
   // Price anomalies state
@@ -3782,11 +3781,21 @@ function ListinoTab({
         .eq('fornitore_id', fornitoreId).not('importo', 'is', null).order('data'),
       supabase.from('fatture').select('id, data, numero_fattura, importo')
         .eq('fornitore_id', fornitoreId).not('importo', 'is', null).order('data'),
+      supabase.from('conferme_ordine').select('id, data_ordine, created_at, numero_ordine, titolo, importo_totale')
+        .eq('fornitore_id', fornitoreId).order('created_at', { ascending: false }),
       fetch(`/api/listino/prezzi?fornitore_id=${encodeURIComponent(fornitoreId)}`, { credentials: 'include' })
         .then(r => r.ok ? r.json() : []),
-    ]).then(([bolleRes, fattureRes, listinoData]) => {
+    ]).then(([bolleRes, fattureRes, ordiniRes, listinoData]) => {
       type BollaRaw   = { id: string; data: string; numero_bolla: string | null; importo: number | null }
       type FatturaRaw = { id: string; data: string; numero_fattura: string | null; importo: number | null }
+      type OrdineRaw = {
+        id: string
+        data_ordine: string | null
+        created_at: string
+        numero_ordine?: string | null
+        titolo?: string | null
+        importo_totale?: number | null
+      }
 
       const bolleRows: ListinoRow[] = ((bolleRes.data ?? []) as BollaRaw[]).map(b => ({
         id: b.id, data: b.data, tipo: 'bolla' as const, numero: b.numero_bolla, importo: b.importo,
@@ -3794,7 +3803,20 @@ function ListinoTab({
       const fattureRows: ListinoRow[] = ((fattureRes.data ?? []) as FatturaRaw[]).map(f => ({
         id: f.id, data: f.data, tipo: 'fattura' as const, numero: f.numero_fattura, importo: f.importo,
       }))
-      const combined = [...bolleRows, ...fattureRows].sort(
+      const ordiniRows: ListinoRow[] = ((ordiniRes.data ?? []) as OrdineRaw[]).map(o => {
+        const data =
+          o.data_ordine?.slice(0, 10) ??
+          String(o.created_at ?? '').slice(0, 10) ??
+          ''
+        return {
+          id: o.id,
+          data,
+          tipo: 'ordine' as const,
+          numero: o.numero_ordine?.trim() || o.titolo?.trim() || null,
+          importo: o.importo_totale ?? null,
+        }
+      }).filter((r) => r.data)
+      const combined = [...bolleRows, ...fattureRows, ...ordiniRows].sort(
         (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
       )
       setRows(combined)
@@ -4188,8 +4210,8 @@ function ListinoTab({
   }
 
   /**
-   * Auto-importa: scansiona tutte le fatture non ancora analizzate di questo fornitore,
-   * estrae i prodotti tramite OCR/Vision e li salva nel listino senza interazione manuale.
+   * Auto-importa: scansiona fatture, bolle e conferme ordine non ancora analizzate,
+   * estrae prodotti e prezzi tramite OCR/Vision e li salva nel listino senza interazione manuale.
    * Salta righe con data anteriore all'ultimo prezzo in listino.
    */
   const handleAutoImport = async () => {
@@ -4200,25 +4222,112 @@ function ListinoTab({
     setShowForm(false)
     try {
       const supabase = createClient()
-      // Recupera tutte le fatture con file ma NON ancora analizzate
-      const { data: fattureData } = await supabase
-        .from('fatture')
-        .select('id, data, numero_fattura, file_url, analizzata')
-        .eq('fornitore_id', fornitoreId)
-        .not('file_url', 'is', null)
-        .order('data', { ascending: false })
+      const [fattureRes, bolleRes, ordiniRes] = await Promise.all([
+        supabase
+          .from('fatture')
+          .select('id, data, numero_fattura, file_url, analizzata')
+          .eq('fornitore_id', fornitoreId)
+          .not('file_url', 'is', null)
+          .order('data', { ascending: false }),
+        supabase
+          .from('bolle')
+          .select('id, data, numero_bolla, file_url, analizzata')
+          .eq('fornitore_id', fornitoreId)
+          .not('file_url', 'is', null)
+          .order('data', { ascending: false }),
+        supabase
+          .from('conferme_ordine')
+          .select('id, data_ordine, created_at, numero_ordine, titolo, file_url, analizzata')
+          .eq('fornitore_id', fornitoreId)
+          .not('file_url', 'is', null)
+          .order('created_at', { ascending: false }),
+      ])
 
-      const fattureToProcess = (fattureData ?? []).filter(
-        (f: { analizzata?: boolean | null }) => !f.analizzata
-      ) as { id: string; data: string; numero_fattura: string | null; file_url: string | null }[]
+      type PendingDoc = {
+        tipo: 'fattura' | 'bolla' | 'ordine'
+        id: string
+        data: string
+        numero: string | null
+      }
 
-      if (fattureToProcess.length === 0) {
-        setAutoImportError('Nessuna fattura nuova da analizzare.')
+      const docsToProcess: PendingDoc[] = []
+
+      for (const f of fattureRes.data ?? []) {
+        const row = f as {
+          id: string
+          data: string
+          numero_fattura: string | null
+          analizzata?: boolean | null
+        }
+        if (row.analizzata) continue
+        docsToProcess.push({
+          tipo: 'fattura',
+          id: row.id,
+          data: row.data,
+          numero: row.numero_fattura,
+        })
+      }
+
+      for (const b of bolleRes.data ?? []) {
+        const row = b as {
+          id: string
+          data: string
+          numero_bolla: string | null
+          analizzata?: boolean | null
+        }
+        if (row.analizzata) continue
+        docsToProcess.push({
+          tipo: 'bolla',
+          id: row.id,
+          data: row.data,
+          numero: row.numero_bolla,
+        })
+      }
+
+      const ordiniRows = ordiniRes.error
+        ? (
+            await supabase
+              .from('conferme_ordine')
+              .select('id, data_ordine, created_at, numero_ordine, titolo, file_url')
+              .eq('fornitore_id', fornitoreId)
+              .not('file_url', 'is', null)
+              .order('created_at', { ascending: false })
+          ).data
+        : ordiniRes.data
+
+      for (const o of ordiniRows ?? []) {
+        const row = o as {
+          id: string
+          data_ordine: string | null
+          created_at: string
+          numero_ordine?: string | null
+          titolo?: string | null
+          analizzata?: boolean | null
+        }
+        if (row.analizzata) continue
+        const data =
+          row.data_ordine?.slice(0, 10) ??
+          String(row.created_at ?? '').slice(0, 10) ??
+          ''
+        if (!data) continue
+        docsToProcess.push({
+          tipo: 'ordine',
+          id: row.id,
+          data,
+          numero: row.numero_ordine?.trim() || row.titolo?.trim() || null,
+        })
+      }
+
+      docsToProcess.sort(
+        (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
+      )
+
+      if (docsToProcess.length === 0) {
+        setAutoImportError('Nessun documento nuovo da analizzare (fatture, bolle o ordini con file).')
         setAutoImporting(false)
         return
       }
 
-      // Ricarica il listino corrente per la comparazione
       const { data: listinoFresh } = await supabase
         .from('listino_prezzi')
         .select('id, prodotto, prezzo, data_prezzo, note, rekki_product_id')
@@ -4227,19 +4336,26 @@ function ListinoTab({
       const listinoData = (listinoFresh ?? []) as ListinoProdotto[]
 
       let totalInserted = 0
-      let fattureProcessed = 0
+      let documentiProcessed = 0
 
-      for (const fattura of fattureToProcess) {
+      for (const doc of docsToProcess) {
         try {
           const res = await fetch('/api/listino/importa-da-fattura', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fattura_id: fattura.id }),
+            body: JSON.stringify(listinoImportApiBody(doc.tipo, doc.id)),
           })
           const json = await res.json()
-          if (!res.ok || !Array.isArray(json.items) || json.items.length === 0) continue
+          if (!res.ok || !Array.isArray(json.items) || json.items.length === 0) {
+            await supabase
+              .from(listinoImportTable(doc.tipo))
+              .update({ analizzata: true })
+              .eq('id', doc.id)
+            documentiProcessed++
+            continue
+          }
 
-          const docDate = String(json.data_fattura ?? fattura.data ?? '').slice(0, 10) ||
+          const docDate = String(json.data_fattura ?? doc.data ?? '').slice(0, 10) ||
             new Date().toISOString().split('T')[0]
 
           const enriched = enrichWithComparison(
@@ -4260,31 +4376,28 @@ function ListinoTab({
             return latest == null || isDocumentDateAtLeastLatestListino(docDate, latest)
           })
 
+          const originLabel = listinoDocumentOriginLabel(doc.tipo, doc.data, doc.numero)
+
           if (toSave.length === 0) {
-            // Segna comunque come analizzata
-            await supabase.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
-            fattureProcessed++
+            await supabase
+              .from(listinoImportTable(doc.tipo))
+              .update({ analizzata: true })
+              .eq('id', doc.id)
+            documentiProcessed++
             continue
           }
 
-          const fatturaLabel = fattura.numero_fattura
-            ? `Fattura ${fattura.numero_fattura} — ${fattura.data}`
-            : `Fattura · ${fattura.data}`
-
-          const rows = toSave.map(i => {
+          const rows = toSave.map((i) => {
             const base = [
               i.codice_prodotto ? `Codice: ${i.codice_prodotto}` : null,
               i.unita ? `Unità: ${i.unita}` : null,
               i.note,
             ].filter(Boolean).join(' — ') || null
-            const note = base
-              ? `${base} — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
-              : `Origine listino — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
             return {
               prodotto: i.prodotto.trim(),
               prezzo: i.prezzo,
               data_prezzo: docDate,
-              note,
+              note: listinoOriginNoteWithSrc(base, doc.tipo, doc.id, originLabel),
             }
           })
 
@@ -4297,13 +4410,16 @@ function ListinoTab({
           const saveJson = (await saveRes.json().catch(() => ({}))) as { inserted?: number }
           if (saveRes.ok) {
             totalInserted += saveJson.inserted ?? rows.length
-            await supabase.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
-            fattureProcessed++
+            await supabase
+              .from(listinoImportTable(doc.tipo))
+              .update({ analizzata: true })
+              .eq('id', doc.id)
+            documentiProcessed++
           }
-        } catch { /* continua con la prossima */ }
+        } catch { /* continua con il prossimo documento */ }
       }
 
-      setAutoImportResult({ inserted: totalInserted, fatture: fattureProcessed })
+      setAutoImportResult({ inserted: totalInserted, documenti: documentiProcessed })
       await loadListino()
     } catch (err) {
       setAutoImportError(err instanceof Error ? err.message : 'Errore sconosciuto')
@@ -4471,6 +4587,10 @@ function ListinoTab({
     () => new Set(rows.filter((r) => r.tipo === 'fattura').map((r) => r.id)),
     [rows],
   )
+  const bollaIdsInRows = useMemo(
+    () => new Set(rows.filter((r) => r.tipo === 'bolla').map((r) => r.id)),
+    [rows],
+  )
   const bollaDatesInRows = useMemo(
     () => new Set(rows.filter((r) => r.tipo === 'bolla').map((r) => r.data.slice(0, 10))),
     [rows],
@@ -4485,12 +4605,17 @@ function ListinoTab({
         const fid = extractListinoSrcFatturaId(ultimo.note)
         if (fid && fatturaIdsInRows.has(fid)) out[name] = prezzi
       } else {
-        const d = ultimo.data_prezzo.slice(0, 10)
-        if (bollaDatesInRows.has(d)) out[name] = prezzi
+        const bid = extractListinoSrcBollaId(ultimo.note)
+        if (bid && bollaIdsInRows.has(bid)) {
+          out[name] = prezzi
+        } else {
+          const d = ultimo.data_prezzo.slice(0, 10)
+          if (bollaDatesInRows.has(d)) out[name] = prezzi
+        }
       }
     }
     return out
-  }, [listinoByProduct, listinoSpendFilter, fatturaIdsInRows, bollaDatesInRows])
+  }, [listinoByProduct, listinoSpendFilter, fatturaIdsInRows, bollaIdsInRows, bollaDatesInRows])
 
   const nListinoProducts = Object.keys(listinoByProduct).length
   const nFilteredProducts = Object.keys(filteredListinoByProduct).length
@@ -4712,7 +4837,7 @@ function ListinoTab({
               <button
                 onClick={handleAutoImport}
                 disabled={autoImporting}
-                title="Importa automaticamente i prezzi da tutte le fatture non ancora analizzate"
+                title="Importa automaticamente prezzi e prodotti da fatture, bolle e ordini non ancora analizzati"
                 className="hidden md:flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
               >
                 {autoImporting ? (
@@ -4762,7 +4887,7 @@ function ListinoTab({
                     : (
                       <span className="inline-flex items-center gap-1">
                         <GlyphCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {`${autoImportResult!.inserted} prezzi importati da ${autoImportResult!.fatture} fattur${autoImportResult!.fatture === 1 ? 'a' : 'e'}`}
+                        {`${autoImportResult!.inserted} prezzi importati da ${autoImportResult!.documenti} document${autoImportResult!.documenti === 1 ? 'o' : 'i'}`}
                       </span>
                     )
                   }
@@ -5400,13 +5525,20 @@ function ListinoTab({
                   return parseListinoNoteParts(displayRow.note)
                 })()
                 const aliasNames = listinoGroupAliasNames(prezzi, prodotto)
+                const srcDoc = extractListinoSrcDocument(displayRow.note)
                 const fid = extractListinoSrcFatturaId(displayRow.note)
-                const originRow = fid ? rows.find((r) => r.tipo === 'fattura' && r.id === fid) : null
+                const originRow = srcDoc
+                  ? rows.find((r) => r.tipo === srcDoc.tipo && r.id === srcDoc.id)
+                  : null
                 const originLine = originRow
-                  ? t.fornitori.listinoOriginInvoice
-                      .replace('{inv}', originRow.numero ?? '—')
-                      .replace('{data}', formatDate(originRow.data))
-                      .replace('{supplier}', fornitoreNome)
+                  ? srcDoc?.tipo === 'bolla'
+                    ? `Bolla ${originRow.numero ?? '—'} · ${formatDate(originRow.data)} · ${fornitoreNome}`
+                    : srcDoc?.tipo === 'ordine'
+                      ? `Ordine ${originRow.numero ?? '—'} · ${formatDate(originRow.data)} · ${fornitoreNome}`
+                      : t.fornitori.listinoOriginInvoice
+                          .replace('{inv}', originRow.numero ?? '—')
+                          .replace('{data}', formatDate(originRow.data))
+                          .replace('{supplier}', fornitoreNome)
                   : parsed.humanTail?.toLowerCase().includes('origine')
                     ? parsed.humanTail
                     : null
@@ -5859,15 +5991,26 @@ function ListinoTab({
                               prevPlausibleById.get(entry.id),
                             )
                             const isDisplay = entry.id === displayRow.id
-                            const rowFid = extractListinoSrcFatturaId(entry.note)
-                            const rowOrigin = rowFid
-                              ? rows.find((r) => r.tipo === 'fattura' && r.id === rowFid)
+                            const rowSrc = extractListinoSrcDocument(entry.note)
+                            const rowOrigin = rowSrc
+                              ? rows.find((r) => r.tipo === rowSrc.tipo && r.id === rowSrc.id)
                               : null
-                            const openInvoiceHref = rowFid
+                            const openDocHref = rowSrc
                               ? (() => {
                                   const q = new URLSearchParams(searchParams.toString())
-                                  q.set('fattura', rowFid)
-                                  q.delete('bolla')
+                                  if (rowSrc.tipo === 'fattura') {
+                                    q.set('fattura', rowSrc.id)
+                                    q.delete('bolla')
+                                    q.delete('tab')
+                                  } else if (rowSrc.tipo === 'bolla') {
+                                    q.set('bolla', rowSrc.id)
+                                    q.delete('fattura')
+                                    q.delete('tab')
+                                  } else {
+                                    q.set('tab', 'conferme')
+                                    q.delete('fattura')
+                                    q.delete('bolla')
+                                  }
                                   return `${pathname}?${q.toString()}`
                                 })()
                               : null
@@ -5898,7 +6041,7 @@ function ListinoTab({
                               deltaPct,
                               isDisplay,
                               rowOrigin,
-                              openInvoiceHref,
+                              openDocHref,
                               entryDateLabel,
                               deltaLabel,
                               deltaTone,
@@ -5922,9 +6065,9 @@ function ListinoTab({
                                             </span>
                                           ) : null}
                                         </p>
-                                        {h.rowOrigin && h.openInvoiceHref ? (
+                                        {h.rowOrigin && h.openDocHref ? (
                                           <Link
-                                            href={h.openInvoiceHref}
+                                            href={h.openDocHref}
                                             scroll={false}
                                             className="mt-0.5 inline-block text-[11px] font-medium text-violet-300 underline decoration-violet-500/40 underline-offset-2"
                                           >
@@ -6003,9 +6146,9 @@ function ListinoTab({
                                           {h.deltaLabel}
                                         </td>
                                         <td className="py-2 min-w-0 text-app-fg-muted">
-                                          {h.rowOrigin && h.openInvoiceHref ? (
+                                          {h.rowOrigin && h.openDocHref ? (
                                             <Link
-                                              href={h.openInvoiceHref}
+                                              href={h.openDocHref}
                                               scroll={false}
                                               className="truncate font-medium text-violet-300 underline decoration-violet-500/40 underline-offset-2 hover:text-violet-200"
                                               title={t.fornitori.listinoOriginInvoice
@@ -6564,14 +6707,12 @@ function FornitoreDetailClient({
     if (!periodStatsLoading && !periodStats) {
       console.warn('[useSupplierPeriodStats] Errore caricamento statistiche fornitore')
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [periodStatsLoading, periodStats])
 
   /** Allineati ai KPI sopra la griglia (stesso filtro `data` sul periodo), non ai totali storici da caricamento pagina. */
   const bolleTabBadge = periodStatsLoading ? undefined : (periodStats?.bolleTotal ?? 0) > 0 ? periodStats!.bolleTotal : undefined
   const fattureTabBadge = periodStatsLoading ? undefined : (periodStats?.fattureTotal ?? 0) > 0 ? periodStats!.fattureTotal : undefined
-  const verificaTabBadge = periodStatsLoading ? undefined : (periodStats?.statementsWithIssues ?? 0) > 0 ? periodStats!.statementsWithIssues : undefined
-
   const anomalieTabBadge = useMemo(() => {
     if (periodStatsLoading || !periodStats) return undefined
     const n =
@@ -6635,7 +6776,6 @@ function FornitoreDetailClient({
             searchParams={searchParams}
             readOnly={supplierReadOnlyMobile}
             onLedgerMutated={bumpPeriodLedger}
-            currency={currency ?? 'GBP'}
           />
         ) : null)}
       {displayTab === 'fatture' &&

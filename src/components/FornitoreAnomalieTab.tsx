@@ -141,7 +141,7 @@ export default function FornitoreAnomalieTab({
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateToExclusive, fornitoreId, t.ui.networkError])
+  }, [dateFrom, dateToExclusive, fornitoreId, countryCode, t.ui.networkError])
 
   useEffect(() => {
     void load()

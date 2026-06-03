@@ -55,11 +55,14 @@ create table if not exists public.bolle (
   fornitore_id uuid not null references public.fornitori(id) on delete restrict,
   data         date not null,
   file_url     text,
+  analizzata   boolean not null default false,
   stato        text not null default 'in attesa'
                  check (stato in ('in attesa', 'completato')),
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+alter table public.bolle add column if not exists analizzata boolean not null default false;
 
 create index if not exists bolle_user_id_idx      on public.bolle(user_id);
 create index if not exists bolle_fornitore_id_idx on public.bolle(fornitore_id);

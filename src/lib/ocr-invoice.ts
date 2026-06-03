@@ -561,7 +561,7 @@ async function finalizePdfOcrResult(
 /* ─────────────────────────────────────────────────────────────
    PDF text extraction
 ───────────────────────────────────────────────────────────── */
-import { extractPdfText, extractPdfTextDetailed } from '@/lib/pdf-parse-utils'
+import { extractPdfTextDetailed } from '@/lib/pdf-parse-utils'
 import { prepareImageBufferForVision } from '@/lib/ocr-invoice-vision-prepare'
 import {
   detectPdfMultiSegments,

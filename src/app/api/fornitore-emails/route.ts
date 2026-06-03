@@ -5,6 +5,8 @@ import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
 import {
   autoProcessAfterFornitoreEmailAdded,
   realignStatementsAfterFornitoreEmailAdded,
+  syncAssociatoAuditAfterFornitoreEmailAdded,
+  type AssociatoAuditSyncResult,
   type RealignStatementsResult,
 } from '@/lib/documenti-revisione-auto'
 
@@ -55,7 +57,23 @@ export async function POST(req: NextRequest) {
   }
 
   if (await senderAlreadyLinkedToFornitore(service, emailExtracted, fornitoreId)) {
-    return NextResponse.json({ ok: true, alreadyLinked: true })
+    let associatoSync: AssociatoAuditSyncResult = {
+      documentsSynced: 0,
+      fattureSynced: 0,
+      bolleSynced: 0,
+    }
+    try {
+      associatoSync = await syncAssociatoAuditAfterFornitoreEmailAdded(
+        service,
+        fornitoreId,
+        emailExtracted,
+      )
+    } catch (e) {
+      console.warn('[POST /api/fornitore-emails] associatoSync (alreadyLinked)', e)
+    }
+    const associatoResolved =
+      associatoSync.documentsSynced + associatoSync.fattureSynced + associatoSync.bolleSynced
+    return NextResponse.json({ ok: true, alreadyLinked: true, associatoSync, associatoResolved })
   }
 
   const { error } = await service.from('fornitore_emails').insert([
@@ -88,5 +106,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, retroactive, realigned })
+  let associatoSync: AssociatoAuditSyncResult | null = null
+  try {
+    associatoSync = await syncAssociatoAuditAfterFornitoreEmailAdded(
+      service,
+      fornitoreId,
+      emailExtracted,
+    )
+  } catch (e) {
+    console.warn('[POST /api/fornitore-emails] associatoSync', e)
+    associatoSync = { documentsSynced: 0, fattureSynced: 0, bolleSynced: 0 }
+  }
+
+  const associatoResolved =
+    (associatoSync?.documentsSynced ?? 0) +
+    (associatoSync?.fattureSynced ?? 0) +
+    (associatoSync?.bolleSynced ?? 0)
+
+  return NextResponse.json({ ok: true, retroactive, realigned, associatoSync, associatoResolved })
 }

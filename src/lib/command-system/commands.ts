@@ -1,10 +1,6 @@
 import type { Command, CommandContext } from './types'
 import { registraComandiMulti } from './registry'
 
-function isDocumento(ctx: CommandContext) {
-  return ctx.item.origine === 'documento_da_processare' || ctx.item.origine === 'riga_statement'
-}
-
 function isStatement(ctx: CommandContext) {
   return ctx.item.origine === 'riga_statement'
 }
@@ -53,7 +49,7 @@ const COMANDI_DOCUMENTO: Command[] = [
     gruppo: 'documento',
     icona: 'UserPlus',
     predicato: (ctx) => ctx.item.origine === 'documento_da_processare' && !hasFornitore(ctx),
-    esegui: async (_ctx) => ({ success: true, message: 'Apri dialogo associazione' }),
+    esegui: async () => ({ success: true, message: 'Apri dialogo associazione' }),
   },
   {
     id: 'documento.finalizza_come_fattura',
@@ -175,7 +171,7 @@ const COMANDI_DOCUMENTO: Command[] = [
     gruppo: 'documento',
     icona: 'Tag',
     predicato: (ctx) => ctx.item.origine === 'documento_da_processare',
-    esegui: async (_ctx) => ({ success: true, message: 'Apri dialogo categoria' }),
+    esegui: async () => ({ success: true, message: 'Apri dialogo categoria' }),
   },
 ]
 
@@ -203,7 +199,7 @@ const COMANDI_FATTURA: Command[] = [
     gruppo: 'fattura',
     icona: 'XCircle',
     predicato: (ctx) => isFattura(ctx) && ctx.item.stato_origine === 'pending',
-    esegui: async (_ctx) => ({ success: true, message: 'Apri dialogo rifiuto' }),
+    esegui: async () => ({ success: true, message: 'Apri dialogo rifiuto' }),
   },
   {
     id: 'fattura.resetta_approvazione',
@@ -243,7 +239,7 @@ const COMANDI_STATEMENT: Command[] = [
     gruppo: 'statement',
     icona: 'Link',
     predicato: (ctx) => isStatement(ctx) && ctx.item.stato_origine !== 'ok',
-    esegui: async (_ctx) => ({ success: true, message: 'Apri dialogo selezione fattura' }),
+    esegui: async () => ({ success: true, message: 'Apri dialogo selezione fattura' }),
   },
   {
     id: 'statement.associa_fornitore',
@@ -252,7 +248,7 @@ const COMANDI_STATEMENT: Command[] = [
     gruppo: 'statement',
     icona: 'UserPlus',
     predicato: (ctx) => isStatement(ctx),
-    esegui: async (_ctx) => ({ success: true, message: 'Apri dialogo associazione' }),
+    esegui: async () => ({ success: true, message: 'Apri dialogo associazione' }),
   },
 ]
 

@@ -134,7 +134,6 @@ export async function analyzeSupplierPriceTrends(
     .order('data_prezzo', { ascending: true })
 
   if (error || !rows?.length) {
-    const fornitoreNome = ''
     const { data: f } = await supabase.from('fornitori').select('nome').eq('id', fornitoreId).maybeSingle()
     return {
       fornitore_id: fornitoreId,
@@ -202,7 +201,6 @@ export async function analyzeSupplierPriceTrends(
      */
     const sorted = filterOutliersForTrend(sortedAll)
     const prices = sorted.map((r) => r.prezzo)
-    const dates = sorted.map((r) => r.data_prezzo)
     const ultimo = sorted[sorted.length - 1]!
     const precedente = sorted.length >= 2 ? sorted[sorted.length - 2] : null
 

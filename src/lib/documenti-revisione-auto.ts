@@ -266,3 +266,105 @@ export async function realignStatementsAfterFornitoreEmailAdded(
 
   return empty
 }
+
+export type AssociatoAuditSyncResult = {
+  documentsSynced: number
+  fattureSynced: number
+  bolleSynced: number
+}
+
+/**
+ * Dopo aver registrato l’email in `fornitore_emails`: allinea tutti i documenti
+ * `associato` con lo stesso mittente e lo stesso fornitore già collegato a fattura/bolla.
+ */
+export async function syncAssociatoAuditAfterFornitoreEmailAdded(
+  service: SupabaseClient,
+  fornitoreId: string,
+  emailNormalized: string,
+): Promise<AssociatoAuditSyncResult> {
+  const empty: AssociatoAuditSyncResult = {
+    documentsSynced: 0,
+    fattureSynced: 0,
+    bolleSynced: 0,
+  }
+  const em = emailNormalized.trim().toLowerCase()
+  if (!em.includes('@')) return empty
+
+  const { data: f, error: fe } = await service
+    .from('fornitori')
+    .select('id, sede_id')
+    .eq('id', fornitoreId)
+    .maybeSingle()
+  if (fe || !f?.id) return empty
+
+  const sede = (f as { sede_id?: string | null }).sede_id ?? null
+  if (!sede) return empty
+
+  const q = service
+    .from('documenti_da_processare')
+    .select(
+      'id, mittente, fornitore_id, fattura_id, bolla_id, fatture(fornitore_id), bolle(fornitore_id)',
+    )
+    .eq('stato', 'associato')
+    .eq('sede_id', sede)
+    .not('mittente', 'is', null)
+    .or('fattura_id.not.is.null,bolla_id.not.is.null')
+    .limit(500)
+
+  const { data: rows, error: re } = await q
+  if (re || !rows?.length) return empty
+
+  type Row = {
+    id: string
+    mittente: string | null
+    fornitore_id: string | null
+    fattura_id: string | null
+    bolla_id: string | null
+    fatture: { fornitore_id: string | null } | { fornitore_id: string | null }[] | null
+    bolle: { fornitore_id: string | null } | { fornitore_id: string | null }[] | null
+  }
+
+  const pickFornitoreId = (
+    rel: { fornitore_id: string | null } | { fornitore_id: string | null }[] | null,
+  ): string | null => {
+    if (!rel) return null
+    const one = Array.isArray(rel) ? rel[0] : rel
+    return one?.fornitore_id ?? null
+  }
+
+  for (const raw of rows as Row[]) {
+    if (normalizeSenderEmailCanonical(raw.mittente) !== em) continue
+
+    const assigned =
+      pickFornitoreId(raw.fatture) ?? pickFornitoreId(raw.bolle)
+    if (assigned !== fornitoreId) continue
+
+    if (raw.fornitore_id !== fornitoreId) {
+      const { error: uDoc } = await service
+        .from('documenti_da_processare')
+        .update({ fornitore_id: fornitoreId })
+        .eq('id', raw.id)
+      if (!uDoc) empty.documentsSynced++
+    }
+
+    const fatId = pickFornitoreId(raw.fatture)
+    if (raw.fattura_id && fatId !== fornitoreId) {
+      const { error: uFat } = await service
+        .from('fatture')
+        .update({ fornitore_id: fornitoreId })
+        .eq('id', raw.fattura_id)
+      if (!uFat) empty.fattureSynced++
+    }
+
+    const bolId = pickFornitoreId(raw.bolle)
+    if (raw.bolla_id && bolId !== fornitoreId) {
+      const { error: uBol } = await service
+        .from('bolle')
+        .update({ fornitore_id: fornitoreId })
+        .eq('id', raw.bolla_id)
+      if (!uBol) empty.bolleSynced++
+    }
+  }
+
+  return empty
+}

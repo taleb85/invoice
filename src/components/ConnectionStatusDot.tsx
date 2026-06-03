@@ -7,7 +7,7 @@ import { useLocale } from '@/lib/locale-context'
  */
 export default function ConnectionStatusDot() {
   const net = useNetworkStatusOptional()
-  const { locale, t: tr } = useLocale()
+  const { t: tr } = useLocale()
   if (!net) return null
 
   const mode: 'online' | 'reconnecting' | 'offline' = !net.online

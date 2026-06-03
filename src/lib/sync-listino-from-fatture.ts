@@ -1,10 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
-import { LISTINO_SRC_FATTURA_MARK } from '@/lib/listino-display'
+import {
+  listinoDocumentOriginLabel,
+  listinoOriginNoteWithSrc,
+} from '@/lib/listino-display'
 import {
   existingListinoPricesForImport,
   normalizeListinoImportLineItem,
 } from '@/lib/listino-invoice-line-normalize'
+import {
+  listinoImportApiBody,
+  listinoImportTable,
+  type ListinoImportDocTipo,
+} from '@/lib/listino-import-document'
 
 function maxDateForProducts(
   rows: Array<{ prodotto: string; data_prezzo: string }>,
@@ -21,7 +29,127 @@ function maxDateForProducts(
   return m
 }
 
+type PendingListinoDoc = {
+  tipo: ListinoImportDocTipo
+  id: string
+  data: string
+  numero: string | null
+}
+
+function pushPendingOrdini(
+  pending: PendingListinoDoc[],
+  rows: unknown[] | null,
+): void {
+  for (const o of rows ?? []) {
+    const row = o as {
+      id: string
+      data_ordine: string | null
+      created_at: string
+      numero_ordine?: string | null
+      titolo?: string | null
+      analizzata?: boolean | null
+    }
+    if (row.analizzata) continue
+    const data =
+      row.data_ordine?.slice(0, 10) ??
+      String(row.created_at ?? '').slice(0, 10) ??
+      ''
+    if (!data) continue
+    pending.push({
+      tipo: 'ordine',
+      id: row.id,
+      data,
+      numero: row.numero_ordine?.trim() || row.titolo?.trim() || null,
+    })
+  }
+}
+
+async function pendingListinoDocsForFornitore(
+  service: SupabaseClient,
+  fornitoreId: string,
+  maxDocs: number,
+): Promise<PendingListinoDoc[]> {
+  const [fattureRes, bolleRes, ordiniRes] = await Promise.all([
+    service
+      .from('fatture')
+      .select('id, data, numero_fattura, file_url, analizzata')
+      .eq('fornitore_id', fornitoreId)
+      .not('file_url', 'is', null)
+      .order('data', { ascending: false }),
+    service
+      .from('bolle')
+      .select('id, data, numero_bolla, file_url, analizzata')
+      .eq('fornitore_id', fornitoreId)
+      .not('file_url', 'is', null)
+      .order('data', { ascending: false }),
+    service
+      .from('conferme_ordine')
+      .select('id, data_ordine, created_at, numero_ordine, titolo, file_url, analizzata')
+      .eq('fornitore_id', fornitoreId)
+      .not('file_url', 'is', null)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const pending: PendingListinoDoc[] = []
+
+  for (const f of fattureRes.data ?? []) {
+    const row = f as {
+      id: string
+      data: string
+      numero_fattura: string | null
+      analizzata?: boolean | null
+    }
+    if (row.analizzata) continue
+    pending.push({
+      tipo: 'fattura',
+      id: row.id,
+      data: row.data,
+      numero: row.numero_fattura,
+    })
+  }
+
+  for (const b of bolleRes.data ?? []) {
+    const row = b as {
+      id: string
+      data: string
+      numero_bolla: string | null
+      analizzata?: boolean | null
+    }
+    if (row.analizzata) continue
+    pending.push({
+      tipo: 'bolla',
+      id: row.id,
+      data: row.data,
+      numero: row.numero_bolla,
+    })
+  }
+
+  if (!ordiniRes.error) {
+    pushPendingOrdini(pending, ordiniRes.data)
+  } else {
+    const { data: fallback } = await service
+      .from('conferme_ordine')
+      .select('id, data_ordine, created_at, numero_ordine, titolo, file_url')
+      .eq('fornitore_id', fornitoreId)
+      .not('file_url', 'is', null)
+      .order('created_at', { ascending: false })
+    pushPendingOrdini(pending, fallback)
+  }
+
+  pending.sort((a, b) => compareIsoDateStrings(b.data, a.data))
+  return pending.slice(0, maxDocs)
+}
+
+async function markDocAnalyzed(service: SupabaseClient, doc: PendingListinoDoc): Promise<void> {
+  const { error } = await service
+    .from(listinoImportTable(doc.tipo))
+    .update({ analizzata: true })
+    .eq('id', doc.id)
+  if (error) throw error
+}
+
 export type SyncListinoFromFattureResult = {
+  /** Documenti elaborati (fatture, bolle, ordini). */
   fattureScanned: number
   righeInserite: number
   skipped?: boolean
@@ -30,7 +158,7 @@ export type SyncListinoFromFattureResult = {
 }
 
 /**
- * Importa prodotti e prezzi dal PDF delle fatture non ancora marcate `analizzata`.
+ * Importa prodotti e prezzi dai PDF di fatture, bolle e conferme ordine non ancora marcate `analizzata`.
  * Stessa logica della scheda fornitore / `analisi-completa` (solo listino).
  */
 export async function syncListinoFromFattureForFornitore(
@@ -55,23 +183,9 @@ export async function syncListinoFromFattureForFornitore(
     }
   }
 
-  const { data: fattureData } = await service
-    .from('fatture')
-    .select('id, data, numero_fattura, file_url, analizzata')
-    .eq('fornitore_id', fornitoreId)
-    .not('file_url', 'is', null)
-    .order('data', { ascending: false })
+  const docsToProcess = await pendingListinoDocsForFornitore(service, fornitoreId, maxFatture)
 
-  const fattureToProcess = (fattureData ?? [])
-    .filter((f: { analizzata?: boolean | null }) => !f.analizzata)
-    .slice(0, maxFatture) as {
-    id: string
-    data: string
-    numero_fattura: string | null
-    file_url: string | null
-  }[]
-
-  if (fattureToProcess.length === 0) {
+  if (docsToProcess.length === 0) {
     return { fattureScanned: 0, righeInserite: 0, errors }
   }
 
@@ -87,13 +201,13 @@ export async function syncListinoFromFattureForFornitore(
     note?: string | null
   }>
   let listinoInserted = 0
-  let listinoFattureScanned = 0
+  let docsScanned = 0
 
-  for (const fattura of fattureToProcess) {
+  for (const doc of docsToProcess) {
     const imp = await fetch(`${baseUrl}/api/listino/importa-da-fattura`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: cookie },
-      body: JSON.stringify({ fattura_id: fattura.id }),
+      body: JSON.stringify(listinoImportApiBody(doc.tipo, doc.id)),
     })
     const json = (await imp.json().catch(() => ({}))) as {
       items?: Array<{
@@ -108,13 +222,13 @@ export async function syncListinoFromFattureForFornitore(
       data_fattura?: string | null
     }
     if (!imp.ok || !Array.isArray(json.items) || json.items.length === 0) {
-      await service.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
-      listinoFattureScanned++
+      await markDocAnalyzed(service, doc)
+      docsScanned++
       continue
     }
 
     const docDate =
-      String(json.data_fattura ?? fattura.data ?? '').slice(0, 10) ||
+      String(json.data_fattura ?? doc.data ?? '').slice(0, 10) ||
       new Date().toISOString().split('T')[0]
 
     const products = new Set(json.items.map((i) => String(i.prodotto).trim()).filter(Boolean))
@@ -127,9 +241,7 @@ export async function syncListinoFromFattureForFornitore(
       note: string | null
     }> = []
 
-    const fatturaLabel = fattura.numero_fattura
-      ? `Fattura ${fattura.numero_fattura} — ${fattura.data}`
-      : `Fattura · ${fattura.data}`
+    const originLabel = listinoDocumentOriginLabel(doc.tipo, doc.data, doc.numero)
 
     for (const item of json.items) {
       const hist = existingListinoPricesForImport(
@@ -158,22 +270,20 @@ export async function syncListinoFromFattureForFornitore(
         normalized.codice_prodotto ? `Codice: ${normalized.codice_prodotto}` : null,
         normalized.unita ? `Unità: ${normalized.unita}` : null,
         normalized.quantita != null && normalized.quantita > 1
-          ? `Qtà fattura: ${normalized.quantita}`
+          ? `Qtà documento: ${normalized.quantita}`
           : null,
         normalized.note,
       ]
         .filter(Boolean)
         .join(' — ') || null
-      const note = baseNote
-        ? `${baseNote} — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
-        : `Origine listino — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
+      const note = listinoOriginNoteWithSrc(baseNote, doc.tipo, doc.id, originLabel)
 
       rowsOut.push({ prodotto, prezzo: normalized.prezzo, data_prezzo: docDate, note })
     }
 
     if (rowsOut.length === 0) {
-      await service.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
-      listinoFattureScanned++
+      await markDocAnalyzed(service, doc)
+      docsScanned++
       continue
     }
 
@@ -185,7 +295,7 @@ export async function syncListinoFromFattureForFornitore(
     const saveJson = (await save.json().catch(() => ({}))) as { inserted?: number; error?: string }
     if (save.ok) {
       listinoInserted += saveJson.inserted ?? rowsOut.length
-      await service.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
+      await markDocAnalyzed(service, doc)
       for (const r of rowsOut) {
         const p = r.prodotto.trim()
         const d = r.data_prezzo.slice(0, 10)
@@ -200,14 +310,14 @@ export async function syncListinoFromFattureForFornitore(
       }
     } else {
       errors.push(
-        `Listino salvataggio fattura ${fattura.id}: ${saveJson.error ?? save.status}`,
+        `Listino salvataggio ${doc.tipo} ${doc.id}: ${saveJson.error ?? save.status}`,
       )
     }
-    listinoFattureScanned++
+    docsScanned++
   }
 
   return {
-    fattureScanned: listinoFattureScanned,
+    fattureScanned: docsScanned,
     righeInserite: listinoInserted,
     errors,
   }

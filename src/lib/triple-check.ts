@@ -270,7 +270,9 @@ export async function runTripleCheck(
     }
 
     const bolle = findMatchingBolleForFattura(rawFattura, bollePool, line.importo)
-    let { status, delta } = resolveCheckStatus(line, rawFattura, bolle, emetteBolleFlag)
+    const check = resolveCheckStatus(line, rawFattura, bolle, emetteBolleFlag)
+    let status = check.status
+    const delta = check.delta
 
     if (line.rekki && fattura && bolle.length > 0) {
       const prezzoFattura = rawFattura.importo ?? 0

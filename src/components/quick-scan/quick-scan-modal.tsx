@@ -38,8 +38,10 @@ function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
   const [selectedTipo, setSelectedTipo] = useState<QuickScanResult['tipo']>('bolla')
 
   useEffect(() => {
-    startCamera()
+    void startCamera()
     return () => stopCamera()
+    // Camera lifecycle runs once on mount; startCamera is stable for this modal instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function startCamera() {

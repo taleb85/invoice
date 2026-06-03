@@ -609,9 +609,13 @@ export default function VerificaAssociazioniPage() {
     }
   }, [confirmAction, selectedDocs, loadData, t, v])
 
-  const handleCategoriaChange = useCallback((_nuovaCategoria: string) => {
+  const handleCategoriaChange = useCallback(() => {
     void loadData()
   }, [loadData])
+
+  const clearSelection = useCallback(() => {
+    setSelectedDocs(new Set())
+  }, [])
 
   const handleBatchCategoriaChange = useCallback(async (categoria: string) => {
     if (selectedDocs.size === 0) return
@@ -633,7 +637,7 @@ export default function VerificaAssociazioniPage() {
     } finally {
       setBatchCategoriaUpdating(false)
     }
-  }, [selectedDocs, loadData])
+  }, [selectedDocs, loadData, clearSelection])
 
   const handleAutoResolve = useCallback(async () => {
     setAutoResolving(true)
@@ -679,10 +683,6 @@ export default function VerificaAssociazioniPage() {
       return allIds
     })
   }, [data])
-
-  const clearSelection = useCallback(() => {
-    setSelectedDocs(new Set())
-  }, [])
 
   const resetFilters = useCallback(() => {
     setFiltroSede('')

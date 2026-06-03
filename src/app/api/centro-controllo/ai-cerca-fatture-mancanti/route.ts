@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
         remainingAnomalies: 0,
         resolved: 0,
         fornitoriFailed: [],
-      },
+      } satisfies FinalSummary,
     })
   }
 
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
         remainingAnomalies,
         resolved: Math.max(0, initialAnomalies - remainingAnomalies),
         fornitoriFailed,
-      },
+      } satisfies FinalSummary,
     })
   }
 

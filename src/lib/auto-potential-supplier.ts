@@ -25,6 +25,9 @@ function isCommercialDocument(ocrTipo: string | null, subject: string | null, fi
   for (const signal of COMMERCIAL_DOC_SIGNALS) {
     if (text.includes(signal)) return true
   }
+  for (const signal of COMMERCIAL_FILE_SIGNALS) {
+    if (fileNameLower.includes(signal)) return true
+  }
   return false
 }
 

@@ -33,14 +33,26 @@ async function fornitoreIdsWithPendingFatture(
   )
   if (allowed.size === 0) return []
 
-  const { data: fatture } = await service
-    .from('fatture')
-    .select('fornitore_id')
-    .eq('analizzata', false)
-    .not('file_url', 'is', null)
+  const [{ data: fatture }, { data: bolle }, { data: ordini }] = await Promise.all([
+    service
+      .from('fatture')
+      .select('fornitore_id')
+      .eq('analizzata', false)
+      .not('file_url', 'is', null),
+    service
+      .from('bolle')
+      .select('fornitore_id')
+      .eq('analizzata', false)
+      .not('file_url', 'is', null),
+    service
+      .from('conferme_ordine')
+      .select('fornitore_id')
+      .eq('analizzata', false)
+      .not('file_url', 'is', null),
+  ])
 
   const ids = new Set<string>()
-  for (const row of fatture ?? []) {
+  for (const row of [...(fatture ?? []), ...(bolle ?? []), ...(ordini ?? [])]) {
     const fid = (row as { fornitore_id: string }).fornitore_id
     if (allowed.has(fid)) ids.add(fid)
   }
@@ -60,18 +72,31 @@ export async function GET() {
   const fornitori = await fornitoreIdsWithPendingFatture(service, profile.sede_id, master)
 
   const pendingByFornitore = new Map<string, number>()
-  if (fornitori.length > 0) {
-    const { data: counts } = await service
-      .from('fatture')
-      .select('fornitore_id')
-      .eq('analizzata', false)
-      .not('file_url', 'is', null)
-      .in(
-        'fornitore_id',
-        fornitori.map((f) => f.id),
-      )
+  const fornitoreIds = fornitori.map((f) => f.id)
+  if (fornitoreIds.length > 0) {
+    const [{ data: fattureCounts }, { data: bolleCounts }, { data: ordiniCounts }] =
+      await Promise.all([
+        service
+          .from('fatture')
+          .select('fornitore_id')
+          .eq('analizzata', false)
+          .not('file_url', 'is', null)
+          .in('fornitore_id', fornitoreIds),
+        service
+          .from('bolle')
+          .select('fornitore_id')
+          .eq('analizzata', false)
+          .not('file_url', 'is', null)
+          .in('fornitore_id', fornitoreIds),
+        service
+          .from('conferme_ordine')
+          .select('fornitore_id')
+          .eq('analizzata', false)
+          .not('file_url', 'is', null)
+          .in('fornitore_id', fornitoreIds),
+      ])
 
-    for (const row of counts ?? []) {
+    for (const row of [...(fattureCounts ?? []), ...(bolleCounts ?? []), ...(ordiniCounts ?? [])]) {
       const fid = (row as { fornitore_id: string }).fornitore_id
       pendingByFornitore.set(fid, (pendingByFornitore.get(fid) ?? 0) + 1)
     }
@@ -173,7 +198,7 @@ export async function POST(req: NextRequest) {
       righe_inserite: 0,
       dettaglio: [],
       errors: [],
-      message: 'Nessuna fattura da importare nel listino',
+      message: 'Nessun documento da importare nel listino',
     })
   }
 

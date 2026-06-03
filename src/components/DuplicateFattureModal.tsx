@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 import { useLocale } from '@/lib/locale-context'
@@ -11,7 +10,6 @@ import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import type {
-  DuplicateFatturaReportGroup,
   DuplicateFatturaReportRow,
   DuplicateFatturaScanProgressItem,
 } from '@/lib/duplicate-fatture-report'

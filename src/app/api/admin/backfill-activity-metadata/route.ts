@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/utils/supabase/server'
 import { requireAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   const auth = await requireAdmin()
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 

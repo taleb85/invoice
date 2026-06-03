@@ -1,6 +1,12 @@
 import { qualityValidateDate, type SignalStrength } from '@/lib/document-quality-chain'
-import { isSuspiciousDocumentDate } from '@/lib/fix-ocr-dates-helpers'
+import {
+  isPlausibleStoredDocumentDate,
+  isStaleRelativeToReceipt,
+  isSuspiciousDocumentDate,
+} from '@/lib/fix-ocr-dates-helpers'
 import { documentContextText, processingDocumentDateYmdFromOcr } from '@/lib/safe-date'
+
+export { isPlausibleStoredDocumentDate, isStaleRelativeToReceipt } from '@/lib/fix-ocr-dates-helpers'
 
 export type DocumentDateRejectReason =
   | 'no_ocr_date'
@@ -14,34 +20,6 @@ export type ResolveDocumentDateFromOcrResult = {
   confidence: SignalStrength
   skipReason?: DocumentDateRejectReason
   ocrDate: string | null
-}
-
-function daysBeforeReceipt(proposed: string, receivedAt: string): number {
-  const recv = receivedAt.slice(0, 10)
-  const diffMs = new Date(recv).getTime() - new Date(proposed).getTime()
-  return diffMs / (1000 * 60 * 60 * 24)
-}
-
-/** Data troppo vecchia rispetto alla ricezione email/archiviazione (es. periodo estratto conto). */
-export function isStaleRelativeToReceipt(
-  proposed: string,
-  receivedAt: string | null | undefined,
-  maxDaysBefore = 180,
-): boolean {
-  const recv = receivedAt?.slice(0, 10)
-  if (!recv || !/^\d{4}-\d{2}-\d{2}$/.test(proposed)) return false
-  if (proposed > recv) return false
-  return daysBeforeReceipt(proposed, recv) > maxDaysBefore
-}
-
-/** Data plausibile per un documento già in archivio (non sospetta e coerente con ricezione). */
-export function isPlausibleStoredDocumentDate(
-  data: string | null | undefined,
-  receivedAt?: string | null,
-): boolean {
-  if (!data?.trim() || isSuspiciousDocumentDate(data)) return false
-  if (receivedAt && isStaleRelativeToReceipt(data, receivedAt)) return false
-  return true
 }
 
 /**
@@ -71,13 +49,23 @@ export function resolveDocumentDateFromOcrContext(opts: {
     opts.fileName,
     opts.emailSubject,
   )
-  const proposed = quality.value ?? ocrDate
-  const confidence = quality.value ? quality.confidence : ocrDate ? (2 as SignalStrength) : quality.confidence
+  const proposed = quality.value ?? null
+  const confidence = quality.value
+    ? quality.confidence
+    : ocrDate && !isStaleRelativeToReceipt(ocrDate, opts.receivedAt)
+      ? (2 as SignalStrength)
+      : quality.confidence
 
   const current = opts.currentDate?.trim() || null
 
   if (!proposed) {
+    if (ocrDate && isStaleRelativeToReceipt(ocrDate, opts.receivedAt)) {
+      return { proposedDate: null, confidence, skipReason: 'stale_vs_receipt', ocrDate }
+    }
     return { proposedDate: null, confidence, skipReason: 'no_ocr_date', ocrDate }
+  }
+  if (isStaleRelativeToReceipt(proposed, opts.receivedAt)) {
+    return { proposedDate: null, confidence, skipReason: 'stale_vs_receipt', ocrDate }
   }
   if (isSuspiciousDocumentDate(proposed)) {
     return { proposedDate: null, confidence, skipReason: 'suspicious', ocrDate }

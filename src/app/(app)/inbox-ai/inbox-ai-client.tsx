@@ -25,6 +25,7 @@ import { useDocumentActions } from '@/lib/document-actions-context'
 import DocumentActionsButton from '@/components/DocumentActionsButton'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
 import { extractEmailFromSenderHeader } from '@/lib/sender-email'
+import { auditMittenteMatchesFornitoreScope } from '@/lib/audit-fornitore-match'
 import { useToast } from '@/lib/toast-context'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
@@ -517,7 +518,7 @@ export default function InboxAiClient(props: {
       window.addEventListener('document-type-changed', handler)
       return () => window.removeEventListener('document-type-changed', handler)
     }
-  }, [tab, loadDuplicates])
+  }, [tab, dupSubTab, loadDuplicates])
 
   const excludedForNextBatch = useMemo(() => {
     return Object.keys(suggestions)
@@ -1014,9 +1015,16 @@ export default function InboxAiClient(props: {
     return tpl.replace(/\{n\}/g, n)
   }
 
+  const auditRowMatchesSenderAndFornitore = useCallback(
+    (r: AuditMatchRow, emailNorm: string, fornitoreId: string) =>
+      auditMittenteMatchesFornitoreScope(r.mittente, fornitoreId, r.assigned_fornitore_id, emailNorm),
+    [],
+  )
+
   const addEmailToFornitore = async (row: AuditMatchRow) => {
     const fid = row.assigned_fornitore_id
-    if (!fid || !row.mittente?.trim()) return
+    const emailNorm = extractEmailFromSenderHeader(row.mittente)
+    if (!fid || !emailNorm) return
     setAuditBusy(row.id)
     try {
       const res = await fetch('/api/fornitore-emails', {
@@ -1025,10 +1033,22 @@ export default function InboxAiClient(props: {
         credentials: 'include',
         body: JSON.stringify({ fornitore_id: fid, email: row.mittente }),
       })
-      const j = (await res.json()) as { error?: string }
+      const j = (await res.json()) as {
+        error?: string
+        associatoResolved?: number
+      }
       if (!res.ok) throw new Error(j.error ?? t.log.inboxAiErrorGeneric)
-      setAuditRows((r) => r.filter((x) => x.id !== row.id))
-      setResolvedToday(bumpResolved(1))
+      const batch = auditRows.filter((x) => auditRowMatchesSenderAndFornitore(x, emailNorm, fid))
+      setAuditRows((r) => r.filter((x) => !auditRowMatchesSenderAndFornitore(x, emailNorm, fid)))
+      setResolvedToday(bumpResolved(Math.max(batch.length, 1)))
+      void loadAudit()
+      const n = batch.length
+      showToast(
+        n > 1
+          ? t.log.inboxAiAddEmailBulkOk.replace(/\{n\}/g, String(n))
+          : t.log.inboxAiAddEmailSingleOk,
+        'success',
+      )
     } catch (e) {
       showToast(e instanceof Error ? e.message : t.log.inboxAiOperationFailed, 'error')
     } finally {

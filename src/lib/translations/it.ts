@@ -2292,6 +2292,8 @@ const translations: Translations = {
     inboxAiAssignedInvoice: 'Fattura: {name}',
     inboxAiAssignedBolla: 'Bolla: {name}',
     inboxAiAddEmailToSupplier: 'Aggiungi email al fornitore',
+    inboxAiAddEmailSingleOk: 'Email salvata sul fornitore: abbinamento registrato.',
+    inboxAiAddEmailBulkOk: 'Email salvata: {n} documenti con lo stesso mittente abbinati automaticamente.',
     inboxAiChangeSupplier: 'Cambia fornitore',
     inboxAiSupplierOptionPlaceholder: '— fornitore —',
     inboxAiApplyNewSupplier: 'Applica nuovo fornitore',

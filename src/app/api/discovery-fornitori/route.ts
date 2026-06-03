@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { decryptImapPasswords } from '@/lib/imap-encryption'
-import { loadEmailScanBlacklistSet } from '@/lib/email-scan-blacklist'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { ImapFlow } from 'imapflow'

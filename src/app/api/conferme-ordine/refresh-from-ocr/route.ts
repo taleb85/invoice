@@ -215,7 +215,8 @@ export async function POST(req: NextRequest) {
   if (Object.keys(updates).length > 0) {
     let { error: uErr } = await service.from('conferme_ordine').update(updates).eq('id', confermaId)
     if (uErr && isConfermeOrdineMissingImportoTotaleColumn(uErr) && updates.importo_totale != null) {
-      const { importo_totale: _drop, ...withoutImporto } = updates
+      const withoutImporto = { ...updates }
+      delete withoutImporto.importo_totale
       if (Object.keys(withoutImporto).length > 0) {
         ;({ error: uErr } = await service.from('conferme_ordine').update(withoutImporto).eq('id', confermaId))
       } else {

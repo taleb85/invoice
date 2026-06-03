@@ -1220,7 +1220,7 @@ export function PendingMatchesTab({
 
       // 3. Match parziale ragione sociale: il nome del fornitore potenziale è contenuto nella ragione sociale OCR
       if (ragSoc) {
-        for (const [key, val] of Object.entries(potenzialiFornitori)) {
+        for (const [, val] of Object.entries(potenzialiFornitori)) {
           const nome = val.nome_azienda.toLowerCase().trim()
           if (ragSoc.includes(nome) || nome.includes(ragSoc)) {
             out.set(d.id, { id: val.id, nome_azienda: val.nome_azienda })
@@ -1434,7 +1434,7 @@ export function PendingMatchesTab({
         }
       }
     })()
-  }, [loading, bulkAnalyzing])
+  }, [loading, bulkAnalyzing, docs])
 
   useEffect(() => {
     if (!sedeId) {
@@ -3766,7 +3766,7 @@ export function VerificationStatusTab({
   }
   const [aiPipelinePhase, setAiPipelinePhase] = useState<FornitoreAIPipelinePhase>('idle')
   const [aiPipelineResult, setAiPipelineResult] = useState<FornitoreAIPipelineResult | null>(null)
-  const [aiPipelineAnalisi, setAiPipelineAnalisi] = useState<FornitoreAIPipelineAnalisi | null>(null)
+  const [, setAiPipelineAnalisi] = useState<FornitoreAIPipelineAnalisi | null>(null)
   const [aiPipelineStatusMsg, setAiPipelineStatusMsg] = useState<string | null>(null)
   /** Progresso live: timestamp di partenza e step corrente (1..N) per indicatore "Fase X di Y". */
   const [aiPipelineProgress, setAiPipelineProgress] = useState<{
@@ -4666,7 +4666,7 @@ export function VerificationStatusTab({
         } catch { /* non-critical */ }
       }
     })()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [stmts.length])
 
   useEffect(() => {
@@ -5072,6 +5072,8 @@ export function VerificationStatusTab({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // loadStatementRows is intentionally omitted: stable keyboard nav without re-binding each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStmt, alsoFatturaOpen, stmtNavBusy, prevNavStmt, nextNavStmt])
 
   const stmtNavBtnCls = vsEmbeddedSupplier

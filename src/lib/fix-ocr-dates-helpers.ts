@@ -219,6 +219,34 @@ export function resolvedContentTypeFromFetch(url: string, header: string | null)
  * Quando lo storage restituisce `application/octet-stream` o header vuoto, ricava
  * il MIME dai magic bytes (scan AI / upload senza estensione nell’URL).
  */
+function daysBeforeReceipt(proposed: string, receivedAt: string): number {
+  const recv = receivedAt.slice(0, 10)
+  const diffMs = new Date(recv).getTime() - new Date(proposed).getTime()
+  return diffMs / (1000 * 60 * 60 * 24)
+}
+
+/** Data troppo vecchia rispetto alla ricezione email/archiviazione (es. periodo estratto conto). */
+export function isStaleRelativeToReceipt(
+  proposed: string,
+  receivedAt: string | null | undefined,
+  maxDaysBefore = 180,
+): boolean {
+  const recv = receivedAt?.slice(0, 10)
+  if (!recv || !/^\d{4}-\d{2}-\d{2}$/.test(proposed)) return false
+  if (proposed > recv) return false
+  return daysBeforeReceipt(proposed, recv) > maxDaysBefore
+}
+
+/** Data plausibile per un documento già in archivio (non sospetta e coerente con ricezione). */
+export function isPlausibleStoredDocumentDate(
+  data: string | null | undefined,
+  receivedAt?: string | null,
+): boolean {
+  if (!data?.trim() || isSuspiciousDocumentDate(data)) return false
+  if (receivedAt && isStaleRelativeToReceipt(data, receivedAt)) return false
+  return true
+}
+
 export function inferContentTypeFromBuffer(buf: ArrayBuffer | Buffer): string | null {
   const b = Buffer.isBuffer(buf) ? buf : Buffer.from(new Uint8Array(buf as ArrayBuffer))
   if (b.length < 12) return null

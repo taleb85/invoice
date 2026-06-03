@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  let fq = service
+  const fq = service
     .from('fatture')
     .select(
       'id, fornitore_id, sede_id, data, importo, numero_fattura, file_url, bolla_id, approval_status',

@@ -8,6 +8,23 @@ import {
   normalizeRagioneSocialeForComparison,
 } from '@/lib/fornitore-cross-check'
 import { stripEmailPlusAlias } from '@/lib/fornitore-resolve-scan-email'
+import type { OcrResult } from '@/lib/ocr-invoice'
+
+function testOcr(fields: {
+  ragione_sociale?: string | null
+  p_iva?: string | null
+  indirizzo?: string | null
+}): OcrResult {
+  return {
+    ragione_sociale: fields.ragione_sociale ?? null,
+    p_iva: fields.p_iva ?? null,
+    indirizzo: fields.indirizzo ?? null,
+    data_fattura: null,
+    numero_fattura: null,
+    tipo_documento: null,
+    totale_iva_inclusa: null,
+  }
+}
 
 describe('extractSupplierFieldsFromEmailBody', () => {
 
@@ -190,12 +207,14 @@ describe('crossCheckSupplierFields', () => {
       telefono: null,
       referente: null,
     }
-    const ocr = {
-      ragione_sociale: 'LA TUA PASTA SRL',
-      p_iva: '01234567890',
-      indirizzo: 'Via Roma 123',
-    } as any
-    const result = crossCheckSupplierFields(emailFields, ocr)
+    const result = crossCheckSupplierFields(
+      emailFields,
+      testOcr({
+        ragione_sociale: 'LA TUA PASTA SRL',
+        p_iva: '01234567890',
+        indirizzo: 'Via Roma 123',
+      }),
+    )
     expect(result.confirmed).toBe(true)
     expect(result.confidence).toBeGreaterThanOrEqual(50)
   })
@@ -209,11 +228,10 @@ describe('crossCheckSupplierFields', () => {
       telefono: null,
       referente: null,
     }
-    const ocr = {
-      ragione_sociale: 'VERDI FRUTTA SRL',
-      p_iva: null,
-    } as any
-    const result = crossCheckSupplierFields(emailFields, ocr)
+    const result = crossCheckSupplierFields(
+      emailFields,
+      testOcr({ ragione_sociale: 'VERDI FRUTTA SRL', p_iva: null }),
+    )
     expect(result.confirmed).toBe(false)
   })
 
@@ -226,11 +244,10 @@ describe('crossCheckSupplierFields', () => {
       telefono: null,
       referente: null,
     }
-    const ocr = {
-      ragione_sociale: 'FIAT AUTO SPA',
-      p_iva: null,
-    } as any
-    const result = crossCheckSupplierFields(emailFields, ocr)
+    const result = crossCheckSupplierFields(
+      emailFields,
+      testOcr({ ragione_sociale: 'FIAT AUTO SPA', p_iva: null }),
+    )
     expect(result.confirmed).toBe(false)
   })
 
@@ -243,11 +260,10 @@ describe('crossCheckSupplierFields', () => {
       telefono: null,
       referente: null,
     }
-    const ocr = {
-      ragione_sociale: 'LA TUA PASTA SRL',
-      p_iva: '01234567890',
-    } as any
-    const result = crossCheckSupplierFields(emailFields, ocr)
+    const result = crossCheckSupplierFields(
+      emailFields,
+      testOcr({ ragione_sociale: 'LA TUA PASTA SRL', p_iva: '01234567890' }),
+    )
     expect(result.confirmed).toBe(true)
     expect(result.confidence).toBeGreaterThanOrEqual(50)
   })
@@ -284,11 +300,11 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     expect(emailFields.p_iva).toBe('01234567890')
     expect(emailFields.ragione_sociale).toBe('La Tua Pasta SRL')
 
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'LA TUA PASTA SRL',
       p_iva: '01234567890',
       indirizzo: null,
-    } as any)
+    }))
     expect(result.confirmed).toBe(true)
     expect(result.confidence).toBeGreaterThanOrEqual(80)
   })
@@ -298,10 +314,10 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     allego la nota di credito per Caseificio Alpino.
     Cordiali saluti`
     const emailFields = extractSupplierFieldsFromEmailBody(emailText)
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'CASEIFICIO ALPINO SPA',
       p_iva: null,
-    } as any)
+    }))
     expect(result.confirmed).toBe(false)
   })
 
@@ -313,10 +329,10 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     const emailFields = extractSupplierFieldsFromEmailBody(emailText)
     expect(emailFields.p_iva).toBe('123456789')
 
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'BRITISH CHEESE LTD',
       p_iva: '123456789',
-    } as any)
+    }))
     expect(result.confirmed).toBe(true)
   })
 
@@ -326,20 +342,20 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     expect(emailFields.p_iva).toBeNull()
     expect(emailFields.ragione_sociale).toBeNull()
 
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'FIAT AUTO SPA',
       p_iva: null,
-    } as any)
+    }))
     expect(result.confirmed).toBe(false)
   })
 
   it('5. Mail e documento con nomi che condividono solo un token', () => {
     const emailText = `Ditta: Pasta Fresca SRL`
     const emailFields = extractSupplierFieldsFromEmailBody(emailText)
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'PASTA SECCA SPA',
       p_iva: null,
-    } as any)
+    }))
     expect(result.confirmed).toBe(false)
   })
 
@@ -348,11 +364,11 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     Sede: Via Roma 123, Milano
     P.IVA: 09876543210`
     const emailFields = extractSupplierFieldsFromEmailBody(emailText)
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'FORNITURE UFFICIO SRL',
       p_iva: '09876543210',
       indirizzo: 'Via Roma 123, Milano',
-    } as any)
+    }))
     expect(result.confirmed).toBe(true)
     expect(result.confidence).toBeGreaterThanOrEqual(80)
   })
@@ -363,10 +379,10 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     const emailFields = extractSupplierFieldsFromEmailBody(emailText)
     expect(emailFields.p_iva).toBe('00112233445')
 
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'PRODOTTI CHIMICI SPA',
       p_iva: '00112233445',
-    } as any)
+    }))
     expect(result.confirmed).toBe(true)
   })
 
@@ -384,10 +400,10 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     expect(emailFields.ragione_sociale).toBe('German Auto Parts GmbH')
     expect(emailFields.p_iva).toBe('123456789')
 
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'GERMAN AUTO PARTS GMBH',
       p_iva: '123456789',
-    } as any)
+    }))
     expect(result.confirmed).toBe(true)
   })
 
@@ -395,10 +411,10 @@ describe('scenari reali completi (cross-check + estrazione)', () => {
     const emailText = `Ditta: Pasticceria De Rosa SRL
     P.IVA: 05678901234`
     const emailFields = extractSupplierFieldsFromEmailBody(emailText)
-    const result = crossCheckSupplierFields(emailFields, {
+    const result = crossCheckSupplierFields(emailFields, testOcr({
       ragione_sociale: 'PASTICCERIA DE ROSA SRL',
       p_iva: '05678901234',
-    } as any)
+    }))
     expect(result.confirmed).toBe(true)
   })
 })

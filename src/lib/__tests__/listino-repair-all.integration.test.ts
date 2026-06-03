@@ -15,12 +15,6 @@ const apply = process.env.LISTINO_PRICE_REPAIR_APPLY === '1'
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = []
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
-  return out
-}
-
 describe.skipIf(!enabled)('listino-repair-all', () => {
   it(
     'corregge prezzi listino salvati come totale riga',

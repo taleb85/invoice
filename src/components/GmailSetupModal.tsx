@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { GlyphLightBulb } from '@/components/ui/glyph-icons'
 import { useT } from '@/lib/use-t'
@@ -26,13 +26,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
   const [, setConfigured] = useState(false)
   const [, setConnected] = useState(false)
 
-  useEffect(() => {
-    if (isOpen) {
-      checkStatus()
-    }
-  }, [isOpen])
-
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     setLoading(true)
     setError(null)
     
@@ -64,7 +58,13 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
     } finally {
       setLoading(false)
     }
-  }
+  }, [g])
+
+  useEffect(() => {
+    if (isOpen) {
+      void checkStatus()
+    }
+  }, [isOpen, checkStatus])
 
   const handleSaveCredentials = async () => {
     if (!clientId.trim() || !clientSecret.trim()) {

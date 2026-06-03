@@ -1421,6 +1421,8 @@ export type Translations = {
     inboxAiAssignedInvoice: string
     inboxAiAssignedBolla: string
     inboxAiAddEmailToSupplier: string
+    inboxAiAddEmailSingleOk: string
+    inboxAiAddEmailBulkOk: string
     inboxAiChangeSupplier: string
     inboxAiSupplierOptionPlaceholder: string
     inboxAiApplyNewSupplier: string

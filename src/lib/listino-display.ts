@@ -1,23 +1,99 @@
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 import { resolveListinoUnitPriceForDisplay } from '@/lib/listino-invoice-line-normalize'
+import type { ListinoImportDocTipo } from '@/lib/listino-import-document'
+
+export type { ListinoImportDocTipo }
 
 /** Machine-parseable suffix on `listino_prezzi.note` when saving from invoice import. */
 export const LISTINO_SRC_FATTURA_MARK = '|listino_src_fattura:'
+/** Machine-parseable suffix when saving from bolla / DDT import. */
+export const LISTINO_SRC_BOLLA_MARK = '|listino_src_bolla:'
+/** Machine-parseable suffix when saving from conferma ordine import. */
+export const LISTINO_SRC_ORDINE_MARK = '|listino_src_ordine:'
 
-export function extractListinoSrcFatturaId(note: string | null | undefined): string | null {
+const LISTINO_SRC_MARKS = [
+  LISTINO_SRC_FATTURA_MARK,
+  LISTINO_SRC_BOLLA_MARK,
+  LISTINO_SRC_ORDINE_MARK,
+] as const
+
+function extractListinoSrcId(
+  note: string | null | undefined,
+  mark: string,
+): string | null {
   if (!note) return null
-  const i = note.indexOf(LISTINO_SRC_FATTURA_MARK)
+  const i = note.indexOf(mark)
   if (i < 0) return null
-  const rest = note.slice(i + LISTINO_SRC_FATTURA_MARK.length).trim()
+  const rest = note.slice(i + mark.length).trim()
   const uuid = rest.split('|')[0]?.trim()
   return uuid && /^[0-9a-f-]{36}$/i.test(uuid) ? uuid : null
+}
+
+export function extractListinoSrcFatturaId(note: string | null | undefined): string | null {
+  return extractListinoSrcId(note, LISTINO_SRC_FATTURA_MARK)
+}
+
+export function extractListinoSrcBollaId(note: string | null | undefined): string | null {
+  return extractListinoSrcId(note, LISTINO_SRC_BOLLA_MARK)
+}
+
+export function extractListinoSrcOrdineId(note: string | null | undefined): string | null {
+  return extractListinoSrcId(note, LISTINO_SRC_ORDINE_MARK)
+}
+
+export type ListinoSrcDocument = { tipo: ListinoImportDocTipo; id: string }
+
+export function extractListinoSrcDocument(
+  note: string | null | undefined,
+): ListinoSrcDocument | null {
+  const fatturaId = extractListinoSrcFatturaId(note)
+  if (fatturaId) return { tipo: 'fattura', id: fatturaId }
+  const bollaId = extractListinoSrcBollaId(note)
+  if (bollaId) return { tipo: 'bolla', id: bollaId }
+  const ordineId = extractListinoSrcOrdineId(note)
+  if (ordineId) return { tipo: 'ordine', id: ordineId }
+  return null
 }
 
 /** Note without machine token (for secondary UI / parsing human parts). */
 export function stripListinoSrcMachineSuffix(note: string | null | undefined): string {
   if (!note) return ''
-  const i = note.indexOf(LISTINO_SRC_FATTURA_MARK)
-  return (i < 0 ? note : note.slice(0, i)).trim().replace(/\s+\|\s*$/, '').trim()
+  let out = note
+  for (const mark of LISTINO_SRC_MARKS) {
+    const i = out.indexOf(mark)
+    if (i >= 0) out = out.slice(0, i)
+  }
+  return out.trim().replace(/\s+\|\s*$/, '').trim()
+}
+
+export function listinoDocumentOriginLabel(
+  tipo: ListinoImportDocTipo,
+  data: string,
+  numero: string | null,
+): string {
+  if (tipo === 'fattura') {
+    return numero ? `Fattura ${numero} — ${data}` : `Fattura · ${data}`
+  }
+  if (tipo === 'bolla') {
+    return numero ? `Bolla ${numero} — ${data}` : `Bolla · ${data}`
+  }
+  return numero ? `Ordine ${numero} — ${data}` : `Ordine · ${data}`
+}
+
+export function listinoOriginNoteWithSrc(
+  baseNote: string | null,
+  tipo: ListinoImportDocTipo,
+  docId: string,
+  originLabel: string,
+): string {
+  const mark =
+    tipo === 'fattura'
+      ? LISTINO_SRC_FATTURA_MARK
+      : tipo === 'bolla'
+        ? LISTINO_SRC_BOLLA_MARK
+        : LISTINO_SRC_ORDINE_MARK
+  const tail = `Origine: ${originLabel}${mark}${docId}|`
+  return baseNote ? `${baseNote} — ${tail}` : `Origine listino — ${tail}`
 }
 
 export type ParsedListinoNote = {

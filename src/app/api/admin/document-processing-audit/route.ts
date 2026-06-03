@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(100)
     if (sedeId) stuckQ = stuckQ.or(`sede_id.eq.${sedeId},sede_id.is.null`)
-    const { data: stuckRaw, error: stuckErr } = await stuckQ
+    const { data: stuckRaw } = await stuckQ
 
     let daRevQ = supabase
       .from('documenti_da_processare')
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(100)
     if (sedeId) daRevQ = daRevQ.or(`sede_id.eq.${sedeId},sede_id.is.null`)
-    const { data: daRevRaw, error: daRevErr } = await daRevQ
+    const { data: daRevRaw } = await daRevQ
 
     const sogliaAi = new Date(oggi.getTime() - AI_DIAG_DAYS * 24 * 60 * 60 * 1000).toISOString()
 

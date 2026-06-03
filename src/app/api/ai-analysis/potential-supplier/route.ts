@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
-import { logActivity, type ActivityAction } from '@/lib/activity-logger'
-import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
+import { logActivity } from '@/lib/activity-logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,7 +77,6 @@ export async function POST(req: NextRequest) {
 
   // Recupera informazioni dal documento originale per fallback
   let fileUrl: string | null = null
-  let documentDate: string | null = null
   let dbSupplierName: string | null = null
 
   if (body.entityType === 'bolla') {
@@ -89,7 +87,6 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
     if (data) {
       fileUrl = data.file_url
-      documentDate = data.data
       const forn = data.fornitore as unknown as { nome: string } | null
       dbSupplierName = forn?.nome ?? null
     }
@@ -101,7 +98,6 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
     if (data) {
       fileUrl = data.file_url
-      documentDate = data.data
       const forn = data.fornitore as unknown as { nome: string } | null
       dbSupplierName = forn?.nome ?? null
     }

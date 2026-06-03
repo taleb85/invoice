@@ -13,7 +13,7 @@ export interface LineItem {
   note: string | null
 }
 
-const SYSTEM_PROMPT = `You are an invoice line-item extractor. Given an invoice document, extract ALL product/service line items with their unit prices.
+const SYSTEM_PROMPT = `You are a supplier document line-item extractor. Given an invoice, delivery note (bolla/DDT), or similar document, extract ALL product/service line items with their unit prices.
 
 Return ONLY valid JSON — no markdown, no explanation:
 {
@@ -131,24 +131,96 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
 
-  const { fattura_id } = await req.json() as { fattura_id: string }
-  if (!fattura_id) return NextResponse.json({ error: 'fattura_id richiesto' }, { status: 400 })
+  const body = (await req.json()) as {
+    fattura_id?: string
+    bolla_id?: string
+    conferma_ordine_id?: string
+  }
+  const fatturaId = body.fattura_id?.trim()
+  const bollaId = body.bolla_id?.trim()
+  const ordineId = body.conferma_ordine_id?.trim()
+  const idCount = [fatturaId, bollaId, ordineId].filter(Boolean).length
+  if (idCount !== 1) {
+    return NextResponse.json(
+      { error: 'Specificare esattamente uno tra fattura_id, bolla_id, conferma_ordine_id' },
+      { status: 400 },
+    )
+  }
 
   const service = createServiceClient()
 
-  // Load the fattura record
-  const { data: fattura, error: fatturaErr } = await service
-    .from('fatture')
-    .select('id, file_url, data, numero_fattura, fornitore_id')
-    .eq('id', fattura_id)
-    .single()
+  let fileUrl: string | null
+  let docData: string
+  let fornitoreId: string
+  let docRef: string | null
+  const documentoTipo: 'fattura' | 'bolla' | 'ordine' = fatturaId
+    ? 'fattura'
+    : bollaId
+      ? 'bolla'
+      : 'ordine'
 
-  if (fatturaErr || !fattura) {
-    return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
+  if (fatturaId) {
+    const { data: fattura, error: fatturaErr } = await service
+      .from('fatture')
+      .select('id, file_url, data, numero_fattura, fornitore_id')
+      .eq('id', fatturaId)
+      .single()
+
+    if (fatturaErr || !fattura) {
+      return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
+    }
+    if (!fattura.file_url) {
+      return NextResponse.json({ error: 'Questa fattura non ha un file allegato.' }, { status: 422 })
+    }
+    fileUrl = fattura.file_url
+    docData = fattura.data
+    fornitoreId = fattura.fornitore_id
+    docRef = fattura.numero_fattura
+  } else if (bollaId) {
+    const { data: bolla, error: bollaErr } = await service
+      .from('bolle')
+      .select('id, file_url, data, numero_bolla, fornitore_id')
+      .eq('id', bollaId)
+      .single()
+
+    if (bollaErr || !bolla) {
+      return NextResponse.json({ error: 'Bolla non trovata' }, { status: 404 })
+    }
+    if (!bolla.file_url) {
+      return NextResponse.json({ error: 'Questa bolla non ha un file allegato.' }, { status: 422 })
+    }
+    fileUrl = bolla.file_url
+    docData = bolla.data
+    fornitoreId = bolla.fornitore_id
+    docRef = bolla.numero_bolla
+  } else {
+    const { data: ordine, error: ordineErr } = await service
+      .from('conferme_ordine')
+      .select('id, file_url, data_ordine, created_at, numero_ordine, titolo, fornitore_id')
+      .eq('id', ordineId!)
+      .single()
+
+    if (ordineErr || !ordine) {
+      return NextResponse.json({ error: 'Conferma ordine non trovata' }, { status: 404 })
+    }
+    if (!ordine.file_url) {
+      return NextResponse.json({ error: 'Questo ordine non ha un file allegato.' }, { status: 422 })
+    }
+    fileUrl = ordine.file_url
+    const dataOrdine = ordine.data_ordine as string | null
+    docData =
+      dataOrdine?.slice(0, 10) ??
+      String(ordine.created_at ?? '').slice(0, 10) ??
+      new Date().toISOString().split('T')[0]
+    fornitoreId = ordine.fornitore_id
+    docRef =
+      (ordine.numero_ordine as string | null)?.trim() ||
+      (ordine.titolo as string | null)?.trim() ||
+      null
   }
 
-  if (!fattura.file_url) {
-    return NextResponse.json({ error: 'Questa fattura non ha un file allegato.' }, { status: 422 })
+  if (!fileUrl) {
+    return NextResponse.json({ error: 'Documento senza file allegato.' }, { status: 422 })
   }
 
   // Download the file
@@ -156,7 +228,7 @@ export async function POST(req: NextRequest) {
   let contentType: string
 
   try {
-    const dl = await downloadStorageObjectByFileUrl(service, fattura.file_url)
+    const dl = await downloadStorageObjectByFileUrl(service, fileUrl)
     if ('error' in dl) throw new Error(dl.error)
     contentType = dl.contentType || 'application/octet-stream'
     fileBuffer = dl.data
@@ -212,7 +284,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let { items, data_fattura } = parseLineItems(rawResponse)
+  const parsed = parseLineItems(rawResponse)
+  const data_fattura = parsed.data_fattura
+  let items = parsed.items
 
   if (pdfText) {
     const textLines = parseInvoiceTableLinesFromText(pdfText)
@@ -222,7 +296,7 @@ export async function POST(req: NextRequest) {
   const { data: listinoRows } = await service
     .from('listino_prezzi')
     .select('prodotto, prezzo, note')
-    .eq('fornitore_id', fattura.fornitore_id)
+    .eq('fornitore_id', fornitoreId)
 
   const listinoForHist = (listinoRows ?? []) as Array<{
     prodotto: string
@@ -245,7 +319,10 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     items,
-    data_fattura: data_fattura ?? fattura.data ?? new Date().toISOString().split('T')[0],
-    fattura_ref: fattura.numero_fattura,
+    data_fattura: data_fattura ?? docData ?? new Date().toISOString().split('T')[0],
+    fattura_ref: documentoTipo === 'fattura' ? docRef : null,
+    bolla_ref: documentoTipo === 'bolla' ? docRef : null,
+    ordine_ref: documentoTipo === 'ordine' ? docRef : null,
+    documento_tipo: documentoTipo,
   })
 }

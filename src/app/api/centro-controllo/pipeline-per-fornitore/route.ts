@@ -143,7 +143,6 @@ export async function POST(req: NextRequest) {
         stmtRow.fornitore_id,
       )
 
-      let resolved = 0
       let remaining = 0
       for (const r of checkRes) {
         const dbRow = findStatementRowByNumeroDoc(rows ?? [], r.numero)
@@ -166,8 +165,7 @@ export async function POST(req: NextRequest) {
           delta_importo: r.deltaImporto ?? null,
         }).eq('id', dbRow.id)
 
-        if (r.status === 'ok') resolved++
-        else remaining++
+        if (r.status !== 'ok') remaining++
       }
 
       const prevAnomale = (rows ?? []).filter(
