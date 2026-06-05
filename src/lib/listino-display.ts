@@ -381,12 +381,23 @@ export function displayListinoUnitPrice(row: PriceRow, sortedByDateAsc: PriceRow
 }
 
 /**
+ * Formato confezione UK «x 12» / «X12»: il prezzo listino è per cassa, non per bottiglia.
+ */
+export function isListinoCaseUnitFormat(unita: string | null | undefined): boolean {
+  const u = (unita ?? '').trim()
+  if (!u) return false
+  // «x 12» / «x12» = cassa; non «X6» (confezione da 6, come 6x75cl)
+  if (/^[xX×]\s+\d{1,3}(?:\s*(?:cl|ml|l|lt|ltr|g|kg))?$/i.test(u)) return true
+  return /^[xX×]\d{2,3}(?:\s*(?:cl|ml|l|lt|ltr|g|kg))?$/i.test(u)
+}
+
+/**
  * Pezzi per confezione da `Unità:` in nota listino (es. 6 da `6x75cl`, 24 da `24x33cl`).
- * Non è la quantità ordinata in fattura (`Qtà fattura:`).
+ * Non è la quantità ordinata in fattura (`Qtà fattura:`) né il formato cassa `x 12`.
  */
 export function parsePackSizeFromListinoUnita(unita: string | null | undefined): number | null {
   const u = (unita ?? '').trim()
-  if (!u) return null
+  if (!u || isListinoCaseUnitFormat(u)) return null
   const nx = u.match(/^(\d{1,3})\s*[xX×]\d/)
   if (nx) {
     const n = parseInt(nx[1]!, 10)

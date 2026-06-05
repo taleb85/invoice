@@ -70,9 +70,26 @@ export function isLikelyLineTotalOcrPrice(candidate: number, existingPrices: num
 }
 
 /**
+ * Riferimento storico per inferire totale riga → unitario.
+ * Con cluster bimodale (es. £3,12 qty OCR + £37,44 cassa) usa il cluster alto,
+ * non il minimo che farebbe dividere un prezzo-cassa valido per 12.
+ */
+export function listinoHistRefForLineInference(existingPrices: number[]): number {
+  const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length === 0) return 0
+  if (hist.length === 1) return hist[0]!
+  const max = Math.max(...hist)
+  const dom = dominantListinoPrice(hist)
+  if (max > dom * 1.12) return max
+  const min = Math.min(...hist)
+  if (min > 0 && max / min >= 3.5) return max
+  return dom
+}
+
+/**
  * Totale riga OCR ≈ qty × prezzo unitario abituale (es. £45.68 = 6 × £7.61).
- * Usa il massimo storico come riferimento (non il prezzo dominante più basso)
- * e sceglie la confezione con unitario più vicino a quel massimo.
+ * Usa un riferimento robusto sullo storico e sceglie la confezione con
+ * unitario più vicino a quel riferimento.
  */
 export function inferUnitPriceFromLineTotal(
   candidate: number,
@@ -82,7 +99,12 @@ export function inferUnitPriceFromLineTotal(
   const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
   if (hist.length < 2) return null
 
-  const ref = Math.max(...hist)
+  const maxHist = Math.max(...hist)
+  if (maxHist > 0 && candidate >= maxHist * 0.88 && candidate <= maxHist * 1.15) {
+    return null
+  }
+
+  const ref = listinoHistRefForLineInference(hist)
   if (ref <= 0 || candidate <= ref * 1.12) return null
   if (candidate / ref < 1.75) return null
 
@@ -122,6 +144,7 @@ export function inferExVatUnitPrice(candidate: number, existingPrices: number[])
 export function resolveEffectiveListinoUnitPrice(
   prezzo: number,
   otherPrices: number[],
+  opts?: { skipLineTotalInfer?: boolean },
 ): number {
   if (!Number.isFinite(prezzo) || prezzo <= 0) return prezzo
   const hist = otherPrices.filter((p) => Number.isFinite(p) && p > 0)
@@ -132,7 +155,9 @@ export function resolveEffectiveListinoUnitPrice(
     return prezzo
   }
 
-  const lineUnit = inferUnitPriceFromLineTotal(prezzo, otherPrices)
+  const lineUnit = opts?.skipLineTotalInfer
+    ? null
+    : inferUnitPriceFromLineTotal(prezzo, otherPrices)
   if (lineUnit != null) {
     if (maxHist > 0 && lineUnit < maxHist * 0.92 && prezzo >= maxHist * 0.88) {
       return prezzo

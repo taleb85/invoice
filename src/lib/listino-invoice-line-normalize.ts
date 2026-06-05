@@ -1,5 +1,9 @@
-import { parseListinoNoteParts } from '@/lib/listino-display'
-import { inferUnitPriceFromLineTotal, resolveEffectiveListinoUnitPrice } from '@/lib/listino-price-sanity'
+import { isListinoCaseUnitFormat, parseListinoNoteParts } from '@/lib/listino-display'
+import {
+  inferUnitPriceFromLineTotal,
+  listinoHistRefForLineInference,
+  resolveEffectiveListinoUnitPrice,
+} from '@/lib/listino-price-sanity'
 
 export type ListinoImportLineInput = {
   prodotto: string
@@ -430,19 +434,6 @@ export function normalizeListinoImportLineItem(
     }
   }
 
-  if (qty == null && hist.length >= 1) {
-    const ref = Math.max(...hist)
-    if (ref > 0 && prezzo > ref * 1.5) {
-      for (const q of [2, 3, 4, 5, 6, 8, 10, 12]) {
-        const unit = Math.round((prezzo / q) * 100) / 100
-        if (unit >= ref * 0.88 && unit <= ref * 1.12) {
-          prezzo = unit
-          break
-        }
-      }
-    }
-  }
-
   const qtyFinal = qtyForResolve ?? qty ?? item.quantita
   if (qtyFinal != null && qtyFinal > 1) {
     const fromHist = correctValueColumnWithListinoHistory(
@@ -501,32 +492,46 @@ export function parseListinoNoteOrderQty(note: string | null | undefined): numbe
   return q
 }
 
+function listinoPrezzoLooksLikeInvoiceLineTotal(
+  prezzo: number,
+  orderQty: number,
+  otherPrices: number[],
+): boolean {
+  const unit = Math.round((prezzo / orderQty) * 100) / 100
+  if (unit <= 0 || !amountsClose(prezzo, unit * orderQty, 0.025)) return false
+  const hist = otherPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length === 0) {
+    return orderQty >= 2 && prezzo > unit * 1.35
+  }
+  const ref = listinoHistRefForLineInference(hist)
+  if (unit < ref * 0.85 || unit > ref * 1.15) return false
+  return prezzo >= ref * orderQty * 0.85 || prezzo > ref * 1.75
+}
+
 /** Prezzo mostrato in UI: corregge totale riga (nota o storico). */
 export function resolveListinoUnitPriceForDisplay(
   prezzo: number,
   note: string | null | undefined,
   otherPrices: number[],
 ): number {
-  const qty = parseListinoNoteOrderQty(note)
-  if (qty != null) {
-    const unit = Math.round((prezzo / qty) * 100) / 100
-    if (unit > 0 && unit < prezzo * 0.99 && amountsClose(prezzo, unit * qty, 0.025)) {
-      return resolveEffectiveListinoUnitPrice(unit, otherPrices)
+  const parsed = parseListinoNoteParts(note)
+  const caseUnit = isListinoCaseUnitFormat(parsed.unita)
+
+  const orderQty = parseListinoNoteOrderQty(note)
+  if (orderQty != null) {
+    const unit = Math.round((prezzo / orderQty) * 100) / 100
+    if (
+      unit > 0 &&
+      unit < prezzo * 0.99 &&
+      listinoPrezzoLooksLikeInvoiceLineTotal(prezzo, orderQty, otherPrices)
+    ) {
+      return resolveEffectiveListinoUnitPrice(unit, otherPrices, {
+        skipLineTotalInfer: caseUnit,
+      })
     }
   }
 
-  const hist = otherPrices.filter((p) => Number.isFinite(p) && p > 0)
-  if (hist.length >= 1) {
-    const ref = Math.max(...hist)
-    if (ref > 0 && prezzo > ref * 1.75) {
-      for (const q of [2, 3, 4, 5, 6, 8, 10, 12]) {
-        const unit = Math.round((prezzo / q) * 100) / 100
-        if (unit >= ref * 0.88 && unit <= ref * 1.12) {
-          return unit
-        }
-      }
-    }
-  }
-
-  return resolveEffectiveListinoUnitPrice(prezzo, otherPrices)
+  return resolveEffectiveListinoUnitPrice(prezzo, otherPrices, {
+    skipLineTotalInfer: caseUnit,
+  })
 }

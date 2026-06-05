@@ -9,6 +9,7 @@ import {
   filterOutliersForTrend,
   displayListinoUnitPrice,
   listinoPerPiecePriceHint,
+  isListinoCaseUnitFormat,
   parsePackSizeFromListinoUnita,
   pickDisplayListinoRow,
   dynamicStaleThresholdDays,
@@ -202,6 +203,12 @@ describe('parsePackSizeFromListinoUnita', () => {
     expect(parsePackSizeFromListinoUnita(null)).toBeNull()
     expect(parsePackSizeFromListinoUnita('each')).toBeNull()
     expect(parsePackSizeFromListinoUnita('2 casse')).toBeNull()
+  })
+
+  it('treats UK case format x 12 as per-case, not per-piece pack', () => {
+    expect(isListinoCaseUnitFormat('x 12')).toBe(true)
+    expect(isListinoCaseUnitFormat('X12')).toBe(true)
+    expect(parsePackSizeFromListinoUnita('x 12')).toBeNull()
   })
 })
 

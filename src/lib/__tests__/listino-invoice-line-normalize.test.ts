@@ -6,6 +6,7 @@ import {
   parseInvoiceOrderQuantity,
   parseInvoiceTableLinesFromText,
   resolveAmbiguousInvoiceLinePrice,
+  resolveListinoUnitPriceForDisplay,
   resolveUnitPriceFromInvoiceValue,
   sanitizeListinoProductName,
 } from '@/lib/listino-invoice-line-normalize'
@@ -219,5 +220,22 @@ describe('normalizeListinoImportLineItem', () => {
       note: null,
     })
     expect(r.prezzo).toBe(25)
+  })
+})
+
+describe('resolveListinoUnitPriceForDisplay — Hildon x 12', () => {
+  const note = 'Codice: 75GC12 — Unità: x 12 — Qtà fattura: 3'
+
+  it('keeps per-case price when history has low OCR outlier', () => {
+    expect(resolveListinoUnitPriceForDisplay(37.44, note, [3.12, 3.12])).toBeCloseTo(37.44, 2)
+    expect(resolveListinoUnitPriceForDisplay(37.44, note, [3.12, 37.44])).toBeCloseTo(37.44, 2)
+  })
+
+  it('does not divide by invoice order qty when prezzo is already per case', () => {
+    expect(resolveListinoUnitPriceForDisplay(37.44, note, [37.44])).toBeCloseTo(37.44, 2)
+  })
+
+  it('still divides true line total by order qty', () => {
+    expect(resolveListinoUnitPriceForDisplay(112.32, note, [37.44])).toBeCloseTo(37.44, 2)
   })
 })

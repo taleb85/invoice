@@ -61,6 +61,12 @@ describe('line total OCR', () => {
     expect(inferUnitPriceFromLineTotal(36.04, hist)).toBeNull()
     expect(isBadListinoOcrPrice(36.04, hist)).toBe(false)
   })
+
+  it('does not split case price to match spurious low OCR (Hildon)', () => {
+    const hist = [3.12, 3.12, 37.44]
+    expect(inferUnitPriceFromLineTotal(37.44, hist)).toBeNull()
+    expect(resolveEffectiveListinoUnitPrice(37.44, hist)).toBeCloseTo(37.44, 2)
+  })
 })
 
 describe('isLikelyQtyOcrPrice', () => {
