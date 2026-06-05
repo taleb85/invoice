@@ -1142,6 +1142,7 @@ export type Translations = {
     listinoHistoryLikelyOcrError: string
     listinoPriceStaleBadge: string
     listinoPriceStaleHint: string
+    listinoPerPiecePrice: string
     preferredLanguageEmail: string
     /** Toggle "il fornitore emette DDT separati dalla fattura?" (default true). */
     emetteBolleLabel: string

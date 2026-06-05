@@ -1751,6 +1751,7 @@ const translations: Translations = {
     listinoHistoryLikelyOcrError: 'Probabile qty OCR',
     listinoPriceStaleBadge: 'Prezzo storico/scaduto',
     listinoPriceStaleHint: 'Ultimo aggiornamento da oltre 60 giorni.',
+    listinoPerPiecePrice: '{price} a pezzo (conf. {n} pz)',
     preferredLanguageEmail: 'Lingua preferita (per email)',
     languageInheritSede: "— Eredita dall'azienda —",
     emetteBolleLabel: 'Emette DDT separati dalle fatture',

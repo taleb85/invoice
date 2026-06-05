@@ -41,6 +41,7 @@ import {
   parseListinoNoteParts,
   pickDisplayListinoRow,
   displayListinoUnitPrice,
+  listinoPerPiecePriceHint,
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
   productNamesMatchForVerifica,
@@ -5524,6 +5525,13 @@ function ListinoTab({
                   }
                   return parseListinoNoteParts(displayRow.note)
                 })()
+                const perPieceHint = listinoPerPiecePriceHint({
+                  displayUnitPrice,
+                  unita: parsed.unita,
+                  otherPrices: sorted
+                    .filter((r) => r.id !== displayRow.id)
+                    .map((r) => displayListinoUnitPrice(r, sorted)),
+                })
                 const aliasNames = listinoGroupAliasNames(prezzi, prodotto)
                 const srcDoc = extractListinoSrcDocument(displayRow.note)
                 const fid = extractListinoSrcFatturaId(displayRow.note)
@@ -5692,6 +5700,13 @@ function ListinoTab({
                             >
                               {fmtMoney(displayUnitPrice)}
                             </p>
+                            {perPieceHint ? (
+                              <p className="mt-0.5 text-sm font-medium font-mono tabular-nums text-app-fg-muted">
+                                {t.fornitori.listinoPerPiecePrice
+                                  .replace('{price}', fmtMoney(perPieceHint.perPiecePrice))
+                                  .replace('{n}', String(perPieceHint.packSize))}
+                              </p>
+                            ) : null}
                             <div className="mt-1 text-[11px] font-medium text-app-fg-muted md:hidden">
                               {formatDateLib(displayRow.data_prezzo, locale, timezone, {
                                 day: 'numeric',

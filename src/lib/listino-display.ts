@@ -381,6 +381,54 @@ export function displayListinoUnitPrice(row: PriceRow, sortedByDateAsc: PriceRow
 }
 
 /**
+ * Pezzi per confezione da `Unità:` in nota listino (es. 6 da `6x75cl`, 24 da `24x33cl`).
+ * Non è la quantità ordinata in fattura (`Qtà fattura:`).
+ */
+export function parsePackSizeFromListinoUnita(unita: string | null | undefined): number | null {
+  const u = (unita ?? '').trim()
+  if (!u) return null
+  const nx = u.match(/^(\d{1,3})\s*[xX×]\d/)
+  if (nx) {
+    const n = parseInt(nx[1]!, 10)
+    if (n >= 2 && n <= 999) return n
+  }
+  const xOnly = u.match(/^X(\d{1,3})$/i)
+  if (xOnly) {
+    const n = parseInt(xOnly[1]!, 10)
+    if (n >= 2 && n <= 999) return n
+  }
+  return null
+}
+
+/**
+ * Quando il prezzo in evidenza è per l'intera confezione (es. £63,66 per 6×75cl),
+ * restituisce il prezzo a pezzo da mostrare sotto il totale confezione.
+ */
+export function listinoPerPiecePriceHint(opts: {
+  displayUnitPrice: number
+  unita: string | null | undefined
+  otherPrices: number[]
+}): { packSize: number; perPiecePrice: number } | null {
+  const packSize = parsePackSizeFromListinoUnita(opts.unita)
+  if (!packSize || packSize < 2) return null
+  if (!Number.isFinite(opts.displayUnitPrice) || opts.displayUnitPrice <= 0) return null
+
+  const hist = opts.otherPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length > 0) {
+    const refMax = Math.max(...hist)
+    if (opts.displayUnitPrice <= refMax * 1.2) return null
+    const refMin = Math.min(...hist)
+    if (opts.displayUnitPrice <= refMin * 1.35) return null
+  }
+
+  const perPiecePrice = Math.round((opts.displayUnitPrice / packSize) * 100) / 100
+  if (!Number.isFinite(perPiecePrice) || perPiecePrice <= 0) return null
+  if (perPiecePrice >= opts.displayUnitPrice * 0.999) return null
+
+  return { packSize, perPiecePrice }
+}
+
+/**
  * Soglia dinamica "prezzo storico/scaduto" per un singolo prodotto, in giorni.
  *
  * Invece di usare 60 giorni fissi (che marcano stale anche prodotti acquistati

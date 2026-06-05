@@ -8,6 +8,8 @@ import {
   isPromoListinoRow,
   filterOutliersForTrend,
   displayListinoUnitPrice,
+  listinoPerPiecePriceHint,
+  parsePackSizeFromListinoUnita,
   pickDisplayListinoRow,
   dynamicStaleThresholdDays,
   productNamesMatchForVerifica,
@@ -186,6 +188,41 @@ describe('filterOutliersForTrend', () => {
     const rows = [{ prezzo: 0 }, { prezzo: 0 }, { prezzo: 1 }, { prezzo: 2 }]
     const out = filterOutliersForTrend(rows)
     expect(out.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('parsePackSizeFromListinoUnita', () => {
+  it('reads pack count from 6x75cl style unit strings', () => {
+    expect(parsePackSizeFromListinoUnita('6x75cl')).toBe(6)
+    expect(parsePackSizeFromListinoUnita('24x33cl')).toBe(24)
+    expect(parsePackSizeFromListinoUnita('X6')).toBe(6)
+  })
+
+  it('returns null for single-unit or order-qty patterns', () => {
+    expect(parsePackSizeFromListinoUnita(null)).toBeNull()
+    expect(parsePackSizeFromListinoUnita('each')).toBeNull()
+    expect(parsePackSizeFromListinoUnita('2 casse')).toBeNull()
+  })
+})
+
+describe('listinoPerPiecePriceHint', () => {
+  it('shows per-piece when display price is for full pack (Chianti 6x75cl)', () => {
+    const hint = listinoPerPiecePriceHint({
+      displayUnitPrice: 63.66,
+      unita: '6x75cl',
+      otherPrices: [],
+    })
+    expect(hint).toEqual({ packSize: 6, perPiecePrice: 10.61 })
+  })
+
+  it('hides hint when display price is already per unit vs history', () => {
+    expect(
+      listinoPerPiecePriceHint({
+        displayUnitPrice: 10.61,
+        unita: '6x75cl',
+        otherPrices: [10.5, 10.55],
+      }),
+    ).toBeNull()
   })
 })
 
