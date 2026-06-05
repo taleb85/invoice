@@ -217,7 +217,7 @@ export function groupListinoRowsByProduct<T extends { prodotto: string; note?: s
 export function buildListinoByProduct<T extends { prodotto: string; note?: string | null; data_prezzo: string }>(
   rows: T[],
 ): Record<string, T[]> {
-  const grouped = groupListinoRowsByProduct(rows)
+  const grouped = groupListinoRowsByProduct(rows.filter((r) => isListinoCatalogRow(r)))
   const out: Record<string, T[]> = {}
   for (const groupRows of grouped.values()) {
     const label = listinoDisplayLabelForGroup(groupRows)
@@ -300,6 +300,55 @@ export function isPromoListinoRow(row: { prodotto: string; note?: string | null 
   if (parsed.codice && PROMO_TOKENS_REGEX.test(parsed.codice)) return true
   if (parsed.humanTail && PROMO_TOKENS_REGEX.test(parsed.humanTail)) return true
   return false
+}
+
+/** Righe fattura OCR che non sono articoli (istruzioni consegna, telefoni, note logistiche). */
+const NON_PRODUCT_LISTINO_REGEXES = [
+  /\bdelivery\b/i,
+  /\bconsegna\b/i,
+  /\bspedizione\b/i,
+  /\bfreight\b/i,
+  /\bhandball\s+drop\b/i,
+  /\bdrop\s+based\s+on\b/i,
+  /\bor\s+after\b/i,
+  /\bfrom\s+\d{1,2}\s*[-–]\s*\d{1,2}\b/i,
+  /\b0\d{9,11}\b/,
+  /\bsales\s+orders?\b/i,
+  /\bminimum\s+order\b/i,
+  /\bcarriage\s+paid\b/i,
+  /\bdelivery\s+charge\b/i,
+  /\bservice\s+charge\b/i,
+] as const
+
+function listinoRowHasSku(row: { prodotto: string; note?: string | null }): boolean {
+  const codice = parseListinoNoteParts(row.note ?? null).codice?.trim()
+  if (codice) return true
+  const first = row.prodotto.trim().split(/\s+/)[0] ?? ''
+  return /^[A-Z]{1,6}\d{2,}[A-Z0-9]*$/i.test(first)
+}
+
+/**
+ * Testo descrittivo / logistico importato per errore dal PDF fattura (es. fascia oraria
+ * consegna + telefono + «10 CASE Drop Based On Sales Orders»).
+ */
+export function isNonProductListinoRow(row: { prodotto: string; note?: string | null }): boolean {
+  const name = row.prodotto.trim()
+  if (!name) return true
+  const hay = `${name} ${stripListinoSrcMachineSuffix(row.note ?? null)}`
+  for (const re of NON_PRODUCT_LISTINO_REGEXES) {
+    if (re.test(hay)) return true
+  }
+  if (!listinoRowHasSku(row)) {
+    if (/\b\d+\s+case\b/i.test(name) && /\bdrop\b/i.test(name)) return true
+    const words = name.split(/\s+/).filter(Boolean)
+    if (words.length >= 8 && name.length >= 48) return true
+  }
+  return false
+}
+
+/** Esclude promo e righe non-prodotto da raggruppamento UI / analisi. */
+export function isListinoCatalogRow(row: { prodotto: string; note?: string | null }): boolean {
+  return !isPromoListinoRow(row) && !isNonProductListinoRow(row)
 }
 
 /**

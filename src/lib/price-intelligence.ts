@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { filterOutliersForTrend, isPromoListinoRow } from '@/lib/listino-display'
+import { filterOutliersForTrend, isListinoCatalogRow } from '@/lib/listino-display'
 
 export type PriceTrend = {
   prodotto: string
@@ -165,7 +165,7 @@ export async function analyzeSupplierPriceTrends(
    * Esclude righe-promo (Menabrea Deal, codici FOC/DEAL/PROMO): non sono
    * prodotti comparabili, sono sconti bundle che falsano il trend.
    */
-  const rawRows = rawRowsAll.filter((r) => !isPromoListinoRow({ prodotto: r.prodotto, note: r.note }))
+  const rawRows = rawRowsAll.filter((r) => isListinoCatalogRow({ prodotto: r.prodotto, note: r.note }))
 
   const fornitoreJoin = (rawRows[0] ?? rawRowsAll[0])?.fornitori
   const fornitoreNome = fornitoreJoin

@@ -44,7 +44,8 @@ Rules:
 - Pack format like "X6" (6 items per case) is unita, not quantita — quantita is how many cases were ordered.
 - One invoice row = one JSON item; do not merge two product codes into one line (e.g. CFB128E and CF14BE are two lines).
 - For wholesale food/drink, case prices are often £10–£200; values under £1 on a line that also shows a much larger line total are usually quantity or per-kg, not the case price — prefer line_total/qty or the price in the dedicated price column.
-- Include ALL line items visible on the document.
+- Include ALL product line items visible on the document.
+- Do NOT include delivery instructions, time windows ("Delivery from 9-12"), phone numbers, "drop" / "handball drop" / "case drop based on sales orders", carriage, surcharges, or other non-product text — only real SKUs / goods / beverages / food.
 - Normalise prices to plain decimal numbers (e.g. "£12,50" → 12.50, "1.234,56" → 1234.56).
 - If price is not parseable, use null for that item.
 - codice_prodotto: use the value from columns often named Code, SKU, Art., Artikel, Ref., Item #, Product ID, EAN, Cod., Cód., etc. If the document only embeds a code inside the description text and there is no separate code field, you may put that alphanumeric code here and shorten prodotto accordingly, or leave codice_prodotto null if unclear.
@@ -52,6 +53,7 @@ Rules:
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
 import { extractPdfText } from '@/lib/pdf-parse-utils'
+import { isNonProductListinoRow } from '@/lib/listino-display'
 import {
   existingListinoPricesForImport,
   inferCodiceFromProductName,
@@ -304,18 +306,20 @@ export async function POST(req: NextRequest) {
     note?: string | null
   }>
 
-  items = items.map((item) =>
-    toLineItem(
-      normalizeListinoImportLineItem(
-        item,
-        existingListinoPricesForImport(
-          listinoForHist,
-          item.prodotto,
-          item.codice_prodotto,
+  items = items
+    .map((item) =>
+      toLineItem(
+        normalizeListinoImportLineItem(
+          item,
+          existingListinoPricesForImport(
+            listinoForHist,
+            item.prodotto,
+            item.codice_prodotto,
+          ),
         ),
       ),
-    ),
-  )
+    )
+    .filter((item) => !isNonProductListinoRow({ prodotto: item.prodotto, note: item.note }))
 
   return NextResponse.json({
     items,

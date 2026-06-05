@@ -5,6 +5,7 @@ import {
   listinoGroupAliasNames,
   listinoGroupKey,
   parseListinoNoteParts,
+  isNonProductListinoRow,
   isPromoListinoRow,
   filterOutliersForTrend,
   displayListinoUnitPrice,
@@ -113,6 +114,46 @@ describe('listino product grouping', () => {
     expect(grouped['Goods/Services (807131)']).toHaveLength(1)
     expect(grouped['Goods/Services (809302)']).toHaveLength(1)
     expect(listinoDisplayLabelForGroup([rows[0]!])).toBe('Goods/Services (807131)')
+  })
+})
+
+describe('isNonProductListinoRow', () => {
+  it('flags delivery / logistics OCR lines', () => {
+    expect(
+      isNonProductListinoRow({
+        prodotto:
+          'Delivery from 9 - 12 OR AFTER 3.00PM 02077279957. HANDBALL DROP. 10 CASE Drop Based On Sales Orders',
+      }),
+    ).toBe(true)
+  })
+
+  it('keeps regular catalog products', () => {
+    expect(
+      isNonProductListinoRow({
+        prodotto: '750ml Hildon Still Glass x 12',
+        note: 'Codice: 75GS12 — Unità: x 12',
+      }),
+    ).toBe(false)
+  })
+})
+
+describe('buildListinoByProduct excludes non-products', () => {
+  it('omits delivery instructions from grouped listino', () => {
+    const rows = [
+      {
+        prodotto: 'Beer Menabrea',
+        note: 'codice:61025',
+        data_prezzo: '2026-01-01',
+        prezzo: 36,
+      },
+      {
+        prodotto: 'Delivery from 9 - 12 OR AFTER 3.00PM 02077279957',
+        note: null,
+        data_prezzo: '2026-05-26',
+        prezzo: 18.74,
+      },
+    ]
+    expect(Object.keys(buildListinoByProduct(rows))).toEqual(['Beer Menabrea (61025)'])
   })
 })
 
