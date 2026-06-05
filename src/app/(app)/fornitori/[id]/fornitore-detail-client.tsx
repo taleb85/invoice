@@ -5506,18 +5506,27 @@ function ListinoTab({
                 const up = Boolean(ref && priceDelta > 0.0001)
                 const down = Boolean(ref && priceDelta < -0.0001)
                 const pctLabel = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`
+                const priceChangeDateLabel = formatDateLib(displayRow.data_prezzo, locale, timezone, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+                const fillListinoSummary = (template: string, deltaMoney: string) =>
+                  template
+                    .replace('{data}', priceChangeDateLabel)
+                    .replace('{delta}', deltaMoney)
+                    .replace('{pct}', pctLabel)
                 const summaryLine =
                   ref == null
                     ? null
                     : up
-                      ? t.fornitori.listinoLastIncrease
-                          .replace('{delta}', fmtMoney(priceDelta))
-                          .replace('{pct}', pctLabel)
+                      ? fillListinoSummary(t.fornitori.listinoLastIncrease, fmtMoney(priceDelta))
                       : down
-                        ? t.fornitori.listinoLastDecrease
-                            .replace('{delta}', fmtMoney(Math.abs(priceDelta)))
-                            .replace('{pct}', pctLabel)
-                        : t.fornitori.listinoLastFlat.replace('{pct}', pctLabel)
+                        ? fillListinoSummary(
+                            t.fornitori.listinoLastDecrease,
+                            fmtMoney(Math.abs(priceDelta)),
+                          )
+                        : fillListinoSummary(t.fornitori.listinoLastFlat, '')
                 const parsed = (() => {
                   for (const r of prezzi) {
                     const p = parseListinoNoteParts(r.note)
