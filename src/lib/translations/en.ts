@@ -1690,6 +1690,8 @@ const translations: Translations = {
     suggestEmailInboxErrorName: 'Supplier name is too short for a mailbox search.',
     suggestEmailInboxErrorGeneric: 'Mailbox scan failed. Retry or check IMAP in Settings.',
     suggestEmailInboxScanSummary: '{n} mailbox messages for «{terms}» (last {days} days)',
+    suggestEmailAlreadyConfirmedFromInbox:
+      'Email already on file, confirmed in mailbox (Xero reply-to): {emails}. You can use Sync Email on this supplier.',
     noAddressRegistered: 'No address on file',
     noFiscalRegistered: 'No tax data on file',
     clientSince: 'Customer since',

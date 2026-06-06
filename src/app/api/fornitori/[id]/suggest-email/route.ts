@@ -229,7 +229,9 @@ async function buildSuggestEmailResponse(
 
   const suggestions = mergeSuggestionLists([db.suggestions, inbox.suggestions])
   const billing_platform_only =
-    suggestions.length === 0 && (db.billing_platform_only || inbox.billing_platform_only)
+    suggestions.length === 0 &&
+    (db.billing_platform_only || inbox.billing_platform_only) &&
+    inbox.inbox_confirmed_known.length === 0
 
   return NextResponse.json({
     suggestions,
@@ -239,6 +241,8 @@ async function buildSuggestEmailResponse(
     inbox_search_terms: inbox.search_terms,
     inbox_mails_matched: inbox.mails_matched,
     inbox_lookback_days: inbox.lookback_days,
+    inbox_confirmed_known: inbox.inbox_confirmed_known,
+    registered_emails: [...knownEmails],
   })
 }
 

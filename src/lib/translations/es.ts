@@ -1635,6 +1635,8 @@ const translations: Translations = {
     suggestEmailInboxErrorName: 'Nombre del proveedor demasiado corto para buscar en el buzón.',
     suggestEmailInboxErrorGeneric: 'Falló el escaneo del buzón. Reintenta o revisa IMAP.',
     suggestEmailInboxScanSummary: '{n} mensajes para «{terms}» (últimos {days} días)',
+    suggestEmailAlreadyConfirmedFromInbox:
+      'Email ya registrada, confirmada en buzón (reply-to Xero): {emails}. Puedes usar Sincronizar email.',
     noAddressRegistered: 'Sin dirección registrada',
     noFiscalRegistered: 'Sin datos fiscales',
     clientSince: 'Cliente desde',

@@ -1635,6 +1635,8 @@ const translations: Translations = {
     suggestEmailInboxErrorName: 'Lieferantenname zu kurz für die Postfachsuche.',
     suggestEmailInboxErrorGeneric: 'Postfachscan fehlgeschlagen. Erneut versuchen oder IMAP prüfen.',
     suggestEmailInboxScanSummary: '{n} Nachrichten für «{terms}» (letzte {days} Tage)',
+    suggestEmailAlreadyConfirmedFromInbox:
+      'E-Mail bereits hinterlegt, in Postfach bestätigt (Xero Reply-To): {emails}. Lieferanten-Sync möglich.',
     noAddressRegistered: 'Keine Adresse hinterlegt',
     noFiscalRegistered: 'Keine Steuerdaten',
     clientSince: 'Kunde seit',

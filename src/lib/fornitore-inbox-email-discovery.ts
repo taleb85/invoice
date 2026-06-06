@@ -152,6 +152,7 @@ export async function discoverFornitoreEmailsFromInbox(
   search_terms: string[]
   mails_matched: number
   lookback_days: number
+  inbox_confirmed_known: string[]
   error?: string
 }> {
   if (!fornitore.sede_id) {
@@ -162,6 +163,7 @@ export async function discoverFornitoreEmailsFromInbox(
       search_terms: [],
       mails_matched: 0,
       lookback_days: 0,
+      inbox_confirmed_known: [],
       error: 'sede_missing',
     }
   }
@@ -180,6 +182,7 @@ export async function discoverFornitoreEmailsFromInbox(
       search_terms: [],
       mails_matched: 0,
       lookback_days: 0,
+      inbox_confirmed_known: [],
       error: 'imap_not_configured',
     }
   }
@@ -193,6 +196,7 @@ export async function discoverFornitoreEmailsFromInbox(
       search_terms: [],
       mails_matched: 0,
       lookback_days: 0,
+      inbox_confirmed_known: [],
       error: 'imap_decrypt_failed',
     }
   }
@@ -211,6 +215,7 @@ export async function discoverFornitoreEmailsFromInbox(
       search_terms: [],
       mails_matched: 0,
       lookback_days: 0,
+      inbox_confirmed_known: [],
       error: 'name_too_short',
     }
   }
@@ -231,8 +236,24 @@ export async function discoverFornitoreEmailsFromInbox(
     string,
     { count: number; last_seen: string | null; source: InboxDiscoveredEmailSource }
   >()
+  const skippedKnownEmails = new Set<string>()
   let billingPlatformHits = 0
   let mailsMatched = 0
+
+  function mergeInboxEmailTracked(
+    email: string,
+    date: string | null | undefined,
+    source: InboxDiscoveredEmailSource,
+  ) {
+    const key = email.trim().toLowerCase()
+    if (!key.includes('@') || key.length < 6) return
+    if (exclude.has(key)) {
+      skippedKnownEmails.add(key)
+      return
+    }
+    if (isSharedBillingPlatformSenderEmail(key)) return
+    mergeInboxEmail(map, email, date, source, exclude)
+  }
 
   try {
     await withImapSession(creds, async (client) => {
@@ -301,10 +322,10 @@ export async function discoverFornitoreEmailsFromInbox(
         for (const c of candidates) {
           if (c.fromEmail && isSharedBillingPlatformSenderEmail(c.fromEmail)) {
             for (const rt of c.replyToEmails) {
-              mergeInboxEmail(map, rt, c.dateIso, 'inbox_reply_to', exclude)
+              mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
             }
           } else if (c.fromEmail) {
-            mergeInboxEmail(map, c.fromEmail, c.dateIso, 'inbox_from', exclude)
+            mergeInboxEmailTracked(c.fromEmail, c.dateIso, 'inbox_from')
           }
 
           const needsBody =
@@ -321,14 +342,14 @@ export async function discoverFornitoreEmailsFromInbox(
               if (!msg.source) break
               const parsed = await simpleParser(msg.source)
               for (const rt of addressListEmails(parsed.replyTo)) {
-                mergeInboxEmail(map, rt, c.dateIso, 'inbox_reply_to', exclude)
+                mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
               }
               const fromHeader = extractEmailFromSenderHeader(parsed.from?.text ?? '')
               if (fromHeader && !isSharedBillingPlatformSenderEmail(fromHeader)) {
-                mergeInboxEmail(map, fromHeader, c.dateIso, 'inbox_from', exclude)
+                mergeInboxEmailTracked(fromHeader, c.dateIso, 'inbox_from')
               }
               for (const em of extractBodyContactEmails(parsed.text ?? null)) {
-                mergeInboxEmail(map, em, c.dateIso, 'inbox_body', exclude)
+                mergeInboxEmailTracked(em, c.dateIso, 'inbox_body')
               }
               break
             }
@@ -349,6 +370,7 @@ export async function discoverFornitoreEmailsFromInbox(
       search_terms: searchTerms,
       mails_matched: 0,
       lookback_days: lookbackDays,
+      inbox_confirmed_known: [],
       error: message,
     }
   }
@@ -357,8 +379,9 @@ export async function discoverFornitoreEmailsFromInbox(
     .map(([email, v]) => ({ email, ...v }))
     .sort((a, b) => b.count - a.count || (b.last_seen ?? '').localeCompare(a.last_seen ?? ''))
 
+  const confirmedKnown = [...skippedKnownEmails]
   const billing_platform_only =
-    suggestions.length === 0 && billingPlatformHits > 0
+    suggestions.length === 0 && billingPlatformHits > 0 && confirmedKnown.length === 0
 
   return {
     suggestions,
@@ -367,5 +390,6 @@ export async function discoverFornitoreEmailsFromInbox(
     search_terms: searchTerms,
     mails_matched: mailsMatched,
     lookback_days: lookbackDays,
+    inbox_confirmed_known: confirmedKnown,
   }
 }

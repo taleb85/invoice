@@ -2842,6 +2842,8 @@ const translations: Translations = {
     suggestEmailInboxErrorName: 'Nome fornitore troppo corto per la ricerca in casella.',
     suggestEmailInboxErrorGeneric: 'Scansione casella non riuscita. Riprova o controlla IMAP in Impostazioni.',
     suggestEmailInboxScanSummary: '{n} messaggi in casella per «{terms}» (ultimi {days} giorni)',
+    suggestEmailAlreadyConfirmedFromInbox:
+      'Email già registrata trovata in casella (reply-to Xero): {emails}. Puoi usare Sincronizza Email sul fornitore.',
     noAddressRegistered: 'Nessun indirizzo registrato',
     noFiscalRegistered: 'Nessun dato fiscale registrato',
     clientSince: 'Cliente dal',

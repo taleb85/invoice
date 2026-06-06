@@ -35,6 +35,7 @@ export default function SuggestEmailButton({ fornitoreId, fornitoreNome, onSaved
   const [billingPlatformOnly, setBillingPlatformOnly] = useState(false)
   const [inboxError, setInboxError] = useState<string | null>(null)
   const [inboxScanSummary, setInboxScanSummary] = useState<string | null>(null)
+  const [confirmedKnownMessage, setConfirmedKnownMessage] = useState<string | null>(null)
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const panelRef = useRef<HTMLDivElement>(null)
@@ -48,6 +49,7 @@ export default function SuggestEmailButton({ fornitoreId, fornitoreNome, onSaved
     setLoading(true)
     setInboxError(null)
     setInboxScanSummary(null)
+    setConfirmedKnownMessage(null)
     try {
       const res = await fetch(`/api/fornitori/${fornitoreId}/suggest-email`, {
         method: 'POST',
@@ -59,6 +61,16 @@ export default function SuggestEmailButton({ fornitoreId, fornitoreNome, onSaved
       setSuggestions(json.suggestions ?? [])
       setBillingPlatformOnly(json.billing_platform_only === true)
       setInboxError(typeof json.inbox_error === 'string' ? json.inbox_error : null)
+      const confirmed = Array.isArray(json.inbox_confirmed_known)
+        ? (json.inbox_confirmed_known as string[]).filter(Boolean)
+        : []
+      if (confirmed.length > 0) {
+        setConfirmedKnownMessage(
+          fillTemplate(s.suggestEmailAlreadyConfirmedFromInbox, {
+            emails: confirmed.join(', '),
+          }),
+        )
+      }
       if (json.scanned_inbox === true && Array.isArray(json.inbox_search_terms)) {
         const terms = (json.inbox_search_terms as string[]).join(', ')
         const n = typeof json.inbox_mails_matched === 'number' ? json.inbox_mails_matched : 0
@@ -156,9 +168,13 @@ export default function SuggestEmailButton({ fornitoreId, fornitoreNome, onSaved
 
             {!loading && suggestions !== null && suggestions.length === 0 && (
               <div className="space-y-2 py-4 px-1 text-center text-xs text-app-fg-muted">
-                <p>
-                  {billingPlatformOnly ? s.suggestEmailBillingPlatformOnly : s.suggestEmailNoResults}
-                </p>
+                {confirmedKnownMessage ? (
+                  <p className="text-emerald-300/95">{confirmedKnownMessage}</p>
+                ) : (
+                  <p>
+                    {billingPlatformOnly ? s.suggestEmailBillingPlatformOnly : s.suggestEmailNoResults}
+                  </p>
+                )}
                 {inboxError && inboxError !== 'sede_missing' && (
                   <p className="text-[10px] text-amber-400/90">{inboxErrorLabel(inboxError)}</p>
                 )}

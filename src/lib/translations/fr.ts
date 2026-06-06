@@ -1635,6 +1635,8 @@ const translations: Translations = {
     suggestEmailInboxErrorName: 'Nom du fournisseur trop court pour la recherche en boîte.',
     suggestEmailInboxErrorGeneric: 'Échec du scan de la boîte. Réessayez ou vérifiez IMAP.',
     suggestEmailInboxScanSummary: '{n} messages pour « {terms} » ({days} derniers jours)',
+    suggestEmailAlreadyConfirmedFromInbox:
+      'E-mail déjà enregistrée, confirmée en boîte (reply-to Xero) : {emails}. Utilisez Sync e-mail fournisseur.',
     noAddressRegistered: 'Aucune adresse enregistrée',
     noFiscalRegistered: 'Aucune donnée fiscale',
     clientSince: 'Client depuis',

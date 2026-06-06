@@ -132,6 +132,7 @@ export type Translations = {
     suggestEmailInboxErrorName: string
     suggestEmailInboxErrorGeneric: string
     suggestEmailInboxScanSummary: string
+    suggestEmailAlreadyConfirmedFromInbox: string
     noAddressRegistered: string
     noFiscalRegistered: string
     clientSince: string
