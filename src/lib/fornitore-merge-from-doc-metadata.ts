@@ -82,3 +82,31 @@ export async function mergeFornitoreMissingFromDocMetadata(
     return { updated: false, fields: [] }
   }
 }
+
+/** Compila campi vuoti in anagrafica usando metadata OCR dei documenti già collegati al fornitore. */
+export async function backfillFornitoreAnagraficaFromDocuments(
+  supabase: SupabaseClient,
+  fornitoreId: string,
+): Promise<{ updated: boolean; fields: string[] }> {
+  const { data: docs } = await supabase
+    .from('documenti_da_processare')
+    .select('metadata, mittente')
+    .eq('fornitore_id', fornitoreId)
+    .not('metadata', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(25)
+
+  const merged = new Set<string>()
+  for (const doc of docs ?? []) {
+    const r = await mergeFornitoreMissingFromDocMetadata(
+      supabase,
+      fornitoreId,
+      doc.metadata,
+      doc.mittente,
+    )
+    for (const f of r.fields) merged.add(f)
+    if (merged.has('piva') && merged.has('indirizzo')) break
+  }
+
+  return { updated: merged.size > 0, fields: [...merged] }
+}
