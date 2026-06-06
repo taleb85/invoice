@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildSupplierInboxSearchTerms,
   emailRelatesToSupplierName,
+  filterSupplierEmailSuggestions,
   isLikelyMarketingMailboxEmail,
   messageMatchesFornitoreForInboxDiscovery,
 } from '@/lib/fornitore-inbox-email-discovery'
@@ -53,6 +54,16 @@ describe('messageMatchesFornitoreForInboxDiscovery', () => {
     ).toBe(false)
   })
 
+  it('rejects spoofed display name without supplier in subject', () => {
+    expect(
+      messageMatchesFornitoreForInboxDiscovery(
+        'Weekly deals on catering supplies',
+        'V & S Catering Supplies Ltd',
+        nome,
+      ),
+    ).toBe(false)
+  })
+
   it('accepts invoice subject with full supplier name', () => {
     expect(
       messageMatchesFornitoreForInboxDiscovery(
@@ -87,5 +98,30 @@ describe('emailRelatesToSupplierName', () => {
 
   it('rejects unrelated newsletter sender', () => {
     expect(emailRelatesToSupplierName('newsletter@buzznewsletter.co.uk', nome)).toBe(false)
+  })
+})
+
+describe('filterSupplierEmailSuggestions', () => {
+  const fornitore = { nome: 'V & S Catering Supplies Ltd' }
+
+  it('drops marketing inbox suggestions', () => {
+    const out = filterSupplierEmailSuggestions(
+      [
+        {
+          email: 'newsletter@buzznewsletter.co.uk',
+          source: 'inbox_from',
+          count: 3,
+          last_seen: '2026-06-06T00:00:00Z',
+        },
+        {
+          email: 'info@vandscateringsupplies.co.uk',
+          source: 'inbox_reply_to',
+          count: 2,
+          last_seen: '2026-06-06T00:00:00Z',
+        },
+      ],
+      fornitore,
+    )
+    expect(out.map((s) => s.email)).toEqual(['info@vandscateringsupplies.co.uk'])
   })
 })

@@ -3,6 +3,8 @@ import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 import {
   discoverFornitoreEmailsFromInbox,
+  filterSupplierEmailSuggestions,
+  isLikelyMarketingMailboxEmail,
   type InboxDiscoveredEmailSource,
 } from '@/lib/fornitore-inbox-email-discovery'
 
@@ -101,6 +103,7 @@ async function suggestFromDatabase(
   ) {
     const key = normEmail(email)
     if (!isEmail(key) || knownEmails.has(key) || isSharedBillingPlatformSenderEmail(key)) return
+    if (isLikelyMarketingMailboxEmail(key)) return
     const existing = map.get(key)
     if (existing) {
       existing.count += 1
@@ -157,9 +160,10 @@ async function suggestFromDatabase(
     }
   }
 
-  const suggestions: EmailSuggestion[] = [...map.entries()]
-    .map(([email, v]) => ({ email, ...v }))
-    .sort((a, b) => b.count - a.count || (b.last_seen ?? '').localeCompare(a.last_seen ?? ''))
+  const suggestions: EmailSuggestion[] = filterSupplierEmailSuggestions(
+    [...map.entries()].map(([email, v]) => ({ email, ...v })),
+    fornitore,
+  ).sort((a, b) => b.count - a.count || (b.last_seen ?? '').localeCompare(a.last_seen ?? ''))
 
   const billing_platform_only = suggestions.length === 0 && billingPlatformDocCount > 0
 
@@ -227,7 +231,10 @@ async function buildSuggestEmailResponse(
 
   const inbox = await discoverFornitoreEmailsFromInbox(service, fornitore, { knownEmails })
 
-  const suggestions = mergeSuggestionLists([db.suggestions, inbox.suggestions])
+  const suggestions = filterSupplierEmailSuggestions(
+    mergeSuggestionLists([db.suggestions, inbox.suggestions]),
+    fornitore,
+  )
   const billing_platform_only =
     suggestions.length === 0 &&
     (db.billing_platform_only || inbox.billing_platform_only) &&

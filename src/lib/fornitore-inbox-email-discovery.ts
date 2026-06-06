@@ -145,21 +145,19 @@ function extractSupplierFromBillingEmailSubject(subject: string | null | undefin
 /** Match più severo per «Cerca in casella»: evita newsletter su «catering supplies». */
 export function messageMatchesFornitoreForInboxDiscovery(
   subject: string | null | undefined,
-  fromDisplayName: string | null | undefined,
+  _fromDisplayName: string | null | undefined,
   fornitoreNome: string,
   displayName?: string | null,
 ): boolean {
+  if (!subject?.trim()) return false
+
   const billingSupplier = extractSupplierFromBillingEmailSubject(subject)
   if (billingSupplier && fornitoreNomeMatchesOcr(fornitoreNome, billingSupplier)) return true
 
   const distinctive = distinctiveSupplierTokens(fornitoreNome, displayName)
-  const fields = [subject, fromDisplayName].filter(Boolean) as string[]
-
-  for (const field of fields) {
-    const level = compareRagioneSociale(fornitoreNome, field)
-    if (level === 'exact') return true
-    if (level === 'strong' && fieldContainsDistinctiveSupplierToken(field, distinctive)) return true
-  }
+  const level = compareRagioneSociale(fornitoreNome, subject)
+  if (level === 'exact') return true
+  if (level === 'strong' && fieldContainsDistinctiveSupplierToken(subject, distinctive)) return true
 
   return false
 }
@@ -195,6 +193,34 @@ export function emailRelatesToSupplierName(
     }
   }
   return false
+}
+
+export type SupplierEmailSuggestionLike = {
+  email: string
+  source: string
+  count: number
+  last_seen: string | null
+}
+
+/** Filtro finale condiviso (API + IMAP): scarta marketing e indirizzi non collegati al fornitore. */
+export function filterSupplierEmailSuggestions<T extends SupplierEmailSuggestionLike>(
+  suggestions: T[],
+  fornitore: { nome: string; display_name?: string | null },
+): T[] {
+  return suggestions.filter((sg) => {
+    const email = sg.email.trim().toLowerCase()
+    if (!email.includes('@')) return false
+    if (isLikelyMarketingMailboxEmail(email)) return false
+    if (isSharedBillingPlatformSenderEmail(email)) return false
+    if (
+      sg.source === 'inbox_from' ||
+      sg.source === 'inbox_body' ||
+      sg.source === 'inbox_reply_to'
+    ) {
+      return emailRelatesToSupplierName(email, fornitore.nome, fornitore.display_name)
+    }
+    return true
+  })
 }
 
 function isUsableSupplierCandidate(
@@ -394,6 +420,7 @@ export async function discoverFornitoreEmailsFromInbox(
   ) {
     const key = email.trim().toLowerCase()
     if (!key.includes('@') || key.length < 6) return
+    if (isLikelyMarketingMailboxEmail(key)) return
     if (exclude.has(key)) {
       skippedKnownEmails.add(key)
       return
@@ -436,6 +463,8 @@ export async function discoverFornitoreEmailsFromInbox(
           const fromAddr = env?.from?.[0]
           const fromEmail = fromAddr?.address?.trim().toLowerCase() ?? null
           const fromDisplayName = fromAddr?.name?.trim() ?? null
+          if (fromEmail && isLikelyMarketingMailboxEmail(fromEmail)) continue
+
           const dateIso =
             (msg.internalDate instanceof Date
               ? msg.internalDate
@@ -474,7 +503,9 @@ export async function discoverFornitoreEmailsFromInbox(
         for (const c of candidates) {
           if (c.fromEmail && isSharedBillingPlatformSenderEmail(c.fromEmail)) {
             for (const rt of c.replyToEmails) {
-              mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
+              if (emailRelatesToSupplierName(rt, fornitore.nome, fornitore.display_name)) {
+                mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
+              }
             }
           } else if (
             c.fromEmail &&
@@ -497,7 +528,9 @@ export async function discoverFornitoreEmailsFromInbox(
               if (!msg.source) break
               const parsed = await simpleParser(msg.source)
               for (const rt of addressListEmails(parsed.replyTo)) {
-                mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
+                if (emailRelatesToSupplierName(rt, fornitore.nome, fornitore.display_name)) {
+                  mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
+                }
               }
               const fromHeader = extractEmailFromSenderHeader(parsed.from?.text ?? '')
               if (
@@ -536,9 +569,10 @@ export async function discoverFornitoreEmailsFromInbox(
     }
   }
 
-  const suggestions: InboxDiscoveredEmail[] = [...map.entries()]
-    .map(([email, v]) => ({ email, ...v }))
-    .sort((a, b) => b.count - a.count || (b.last_seen ?? '').localeCompare(a.last_seen ?? ''))
+  const suggestions: InboxDiscoveredEmail[] = filterSupplierEmailSuggestions(
+    [...map.entries()].map(([email, v]) => ({ email, ...v })),
+    fornitore,
+  ).sort((a, b) => b.count - a.count || (b.last_seen ?? '').localeCompare(a.last_seen ?? ''))
 
   const confirmedKnown = [...skippedKnownEmails]
   const billing_platform_only =
