@@ -10,6 +10,7 @@ import {
   type AssociatoAuditSyncResult,
   type RealignStatementsResult,
 } from '@/lib/documenti-revisione-auto'
+import { promotePrimaryFornitoreEmailIfEmpty } from '@/lib/fornitore-email-primary'
 
 /** Estrae primo indirizzo email da stringa mittente (header o solo email). */
 function extractEmail(raw: string): string | null {
@@ -80,6 +81,11 @@ export async function POST(req: NextRequest) {
     }
     const associatoResolved =
       associatoSync.documentsSynced + associatoSync.fattureSynced + associatoSync.bolleSynced
+    try {
+      await promotePrimaryFornitoreEmailIfEmpty(service, fornitoreId, emailExtracted)
+    } catch (e) {
+      console.warn('[POST /api/fornitore-emails] promotePrimary (alreadyLinked)', e)
+    }
     return NextResponse.json({ ok: true, alreadyLinked: true, associatoSync, associatoResolved })
   }
 
@@ -88,8 +94,21 @@ export async function POST(req: NextRequest) {
   ])
 
   if (error) {
-    if (error.code === '23505') return NextResponse.json({ ok: true, alreadyLinked: true })
+    if (error.code === '23505') {
+      try {
+        await promotePrimaryFornitoreEmailIfEmpty(service, fornitoreId, emailExtracted)
+      } catch (e) {
+        console.warn('[POST /api/fornitore-emails] promotePrimary (23505)', e)
+      }
+      return NextResponse.json({ ok: true, alreadyLinked: true })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  try {
+    await promotePrimaryFornitoreEmailIfEmpty(service, fornitoreId, emailExtracted)
+  } catch (e) {
+    console.warn('[POST /api/fornitore-emails] promotePrimary', e)
   }
 
   let retroactive: { processed: number; scanned: number; errors: string[] } | null = null

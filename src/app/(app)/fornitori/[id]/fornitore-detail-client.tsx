@@ -1296,11 +1296,11 @@ function SupplierDesktopMonthlyDocSummary({
 function DashboardTab({
   fornitoreId,
   fornitore,
+  onFornitoreReload,
   readOnly,
 }: {
   fornitoreId: string
   fornitore: Fornitore
-  /** Passato dal parent per coerenza API; refresh profilo gestito altrove se necessario */
   onFornitoreReload?: () => void
   readOnly?: boolean
 }) {
@@ -1325,6 +1325,36 @@ function DashboardTab({
   const [formEmail, setFormEmail]         = useState('')
   const [formTelefono, setFormTelefono]   = useState('')
   const [formSaving, setFormSaving]       = useState(false)
+  const [syncEmails, setSyncEmails]       = useState<string[]>([])
+
+  const loadSyncEmails = useCallback(async () => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('fornitore_emails')
+      .select('email')
+      .eq('fornitore_id', fornitoreId)
+      .order('created_at')
+    setSyncEmails((data ?? []).map((row) => row.email).filter(Boolean))
+  }, [fornitoreId])
+
+  const registeredEmails = useMemo(() => {
+    const seen = new Set<string>()
+    const out: string[] = []
+    const primary = fornitore.email?.trim().toLowerCase()
+    if (primary?.includes('@')) {
+      seen.add(primary)
+      out.push(primary)
+    }
+    for (const raw of syncEmails) {
+      const email = raw.trim().toLowerCase()
+      if (!email.includes('@') || seen.has(email)) continue
+      seen.add(email)
+      out.push(email)
+    }
+    return out
+  }, [fornitore.email, syncEmails])
+
+  const hasRegisteredEmail = registeredEmails.length > 0
 
   const loadContatti = async () => {
     const res = await fetch(`/api/fornitore-contatti?fornitore_id=${fornitoreId}`)
@@ -1366,6 +1396,19 @@ function DashboardTab({
   }
 
   useEffect(() => { loadContatti() }, [fornitoreId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void loadSyncEmails() }, [loadSyncEmails])
+
+  const handleEmailAliasSaved = useCallback(
+    (email: string) => {
+      const normalized = email.trim().toLowerCase()
+      if (normalized.includes('@')) {
+        setSyncEmails((prev) => (prev.some((e) => e.trim().toLowerCase() === normalized) ? prev : [...prev, normalized]))
+      }
+      void loadSyncEmails()
+      onFornitoreReload?.()
+    },
+    [loadSyncEmails, onFornitoreReload],
+  )
 
   const nuovaBollaActive =
     pathname === '/bolle/new' && searchParams.get('fornitore_id') === fornitoreId
@@ -1577,12 +1620,12 @@ function DashboardTab({
           {/* Contact */}
           <div className="space-y-3 px-5 py-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">{t.appStrings.contactsHeading}</p>
-            {fornitore.email && (
-              <div className="flex items-center gap-2">
+            {registeredEmails.map((email) => (
+              <div key={email} className="flex items-center gap-2">
                 <svg className="h-3.5 w-3.5 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                <a href={`mailto:${fornitore.email}`} className="truncate text-xs text-app-cyan-500 hover:text-app-fg-muted hover:underline">{fornitore.email}</a>
+                <a href={`mailto:${email}`} className="truncate text-xs text-app-cyan-500 hover:text-app-fg-muted hover:underline">{email}</a>
               </div>
-            )}
+            ))}
             {fornitore.telefono && (
               <div className="flex items-center gap-2">
                 <svg className="h-3.5 w-3.5 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
@@ -1595,10 +1638,10 @@ function DashboardTab({
                 <span className="text-xs text-app-fg-muted">{fornitore.contatto_nome}</span>
               </div>
             )}
-            {!fornitore.email && !fornitore.telefono && !fornitore.contatto_nome && (
+            {!hasRegisteredEmail && !fornitore.telefono && !fornitore.contatto_nome && (
               <p className="text-xs italic text-app-fg-muted">{t.appStrings.noContactRegistered}</p>
             )}
-            {!fornitore.email && !readOnly && (
+            {!hasRegisteredEmail && !readOnly && (
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={hrefWithReturnTo(`/fornitori/${fornitoreId}/edit`, supplierReturnPath)}
@@ -1610,7 +1653,11 @@ function DashboardTab({
                   </svg>
                   {t.appStrings.noEmailSyncWarning}
                 </Link>
-                <SuggestEmailButton fornitoreId={fornitoreId} fornitoreNome={fornitore.display_name?.trim() || fornitore.nome} />
+                <SuggestEmailButton
+                  fornitoreId={fornitoreId}
+                  fornitoreNome={fornitore.display_name?.trim() || fornitore.nome}
+                  onSaved={handleEmailAliasSaved}
+                />
               </div>
             )}
           </div>

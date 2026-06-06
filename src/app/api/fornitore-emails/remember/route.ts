@@ -7,6 +7,7 @@ import {
   realignStatementsAfterFornitoreEmailAdded,
   type RealignStatementsResult,
 } from '@/lib/documenti-revisione-auto'
+import { promotePrimaryFornitoreEmailIfEmpty } from '@/lib/fornitore-email-primary'
 
 /**
  * Salva l'email del mittente come alias del fornitore (scansione IMAP futura).
@@ -48,6 +49,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (await senderAlreadyLinkedToFornitore(service, emailRaw, fornitoreId)) {
+    try {
+      await promotePrimaryFornitoreEmailIfEmpty(service, fornitoreId, emailRaw)
+    } catch (e) {
+      console.warn('[POST /api/fornitore-emails/remember] promotePrimary (alreadyLinked)', e)
+    }
     return NextResponse.json({ ok: true, alreadyLinked: true })
   }
 
@@ -56,8 +62,21 @@ export async function POST(req: NextRequest) {
   ])
 
   if (error) {
-    if (error.code === '23505') return NextResponse.json({ ok: true, alreadyLinked: true })
+    if (error.code === '23505') {
+      try {
+        await promotePrimaryFornitoreEmailIfEmpty(service, fornitoreId, emailRaw)
+      } catch (e) {
+        console.warn('[POST /api/fornitore-emails/remember] promotePrimary (23505)', e)
+      }
+      return NextResponse.json({ ok: true, alreadyLinked: true })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  try {
+    await promotePrimaryFornitoreEmailIfEmpty(service, fornitoreId, emailRaw)
+  } catch (e) {
+    console.warn('[POST /api/fornitore-emails/remember] promotePrimary', e)
   }
 
   let retroactive: { processed: number; scanned: number; errors: string[] } | null = null
