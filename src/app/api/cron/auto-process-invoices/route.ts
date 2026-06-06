@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       limit: 500,
       recheckExisting: true,
     })
-    logger.info(`[AUTO-REINFER] ${reinferResult.processed} processati, ${reinferResult.matched} match, ${reinferResult.dateFixed} date corrette, ${reinferResult.typeFixed} tipi corretti`)
+    logger.info(`[AUTO-REINFER] ${reinferResult.processed} processati, ${reinferResult.matched} match, ${reinferResult.dateFixed} date corrette, ${reinferResult.typeFixed} tipi corretti, ${reinferResult.ghostEmailsRemoved} email fantasma rimosse`)
 
     // 1. Find recent fatture from Rekki-linked suppliers
     const { data: fatture, error: fattureErr } = await supabase

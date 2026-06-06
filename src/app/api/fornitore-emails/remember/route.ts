@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 import {
   autoProcessAfterFornitoreEmailAdded,
   realignStatementsAfterFornitoreEmailAdded,
@@ -27,6 +28,12 @@ export async function POST(req: NextRequest) {
   const emailRaw = body.email?.trim().toLowerCase()
   if (!fornitoreId || !emailRaw?.includes('@')) {
     return NextResponse.json({ error: 'fornitore_id ed email valida richiesti' }, { status: 400 })
+  }
+  if (isSharedBillingPlatformSenderEmail(emailRaw)) {
+    return NextResponse.json(
+      { error: 'Email di piattaforma di fatturazione (Xero, QuickBooks, …): non associabile al fornitore.' },
+      { status: 400 },
+    )
   }
 
   const service = createServiceClient()

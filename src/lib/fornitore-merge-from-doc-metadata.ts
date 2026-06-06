@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 
 function isBlank(s: string | null | undefined): boolean {
   return !s?.trim()
@@ -62,7 +63,7 @@ export async function mergeFornitoreMissingFromDocMetadata(
       patch.indirizzo = indirizzo
       fields.push('indirizzo')
     }
-    if (isBlank(f.email) && mittEmail) {
+    if (isBlank(f.email) && mittEmail && !isSharedBillingPlatformSenderEmail(mittEmail)) {
       patch.email = mittEmail
       fields.push('email')
     }

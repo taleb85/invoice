@@ -42,6 +42,11 @@ export function isSharedBillingPlatformSenderEmail(email: string | null | undefi
   return !!dom && SHARED_BILLING_PLATFORM_DOMAINS.has(dom)
 }
 
+/** Pattern SQL ILIKE `%@dominio` per pulizia alias/email primarie. */
+export function listSharedBillingPlatformEmailPatterns(): string[] {
+  return [...SHARED_BILLING_PLATFORM_DOMAINS].map((d) => `%@${d}`)
+}
+
 /**
  * Estrae il dominio normalizzato da un indirizzo email.
  * Rimuove eventuali subdomain generici (es. `mail.`, `smtp.`).

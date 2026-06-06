@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/api-auth'
 import { isMasterAdminRole } from '@/lib/roles'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 import { logActivity } from '@/lib/activity-logger'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 
 // ── POST /api/fornitori ────────────────────────────────────────────────────────
 // Creates a new fornitore for a given sede and registers its email in
@@ -33,6 +34,12 @@ export async function POST(req: NextRequest) {
   }
   if (!sede_id) {
     return NextResponse.json({ error: 'La Sede è obbligatoria' }, { status: 400 })
+  }
+  if (email && isSharedBillingPlatformSenderEmail(email)) {
+    return NextResponse.json(
+      { error: 'Email di piattaforma di fatturazione (Xero, QuickBooks, …): non valida come contatto fornitore.' },
+      { status: 400 },
+    )
   }
 
   if (!isMasterAdminRole(profile.role) && profile.sede_id && profile.sede_id !== sede_id) {

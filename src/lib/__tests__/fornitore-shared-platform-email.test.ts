@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isSharedBillingPlatformSenderEmail,
   resolveFornitoreFromScanEmail,
+  listSharedBillingPlatformEmailPatterns,
 } from '@/lib/fornitore-resolve-scan-email'
 import { fornitoreNomeMatchesOcr } from '@/lib/fornitore-cross-check'
 
@@ -35,5 +36,13 @@ describe('resolveFornitoreFromScanEmail', () => {
       'sede-1',
     )
     expect(result).toBeNull()
+  })
+})
+
+describe('listSharedBillingPlatformEmailPatterns', () => {
+  it('includes Xero and Intuit domains', () => {
+    const patterns = listSharedBillingPlatformEmailPatterns()
+    expect(patterns).toContain('%@post.xero.com')
+    expect(patterns).toContain('%@notification.intuit.com')
   })
 })

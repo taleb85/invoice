@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import { fornitoreNomeMatchesOcr, tokenOverlapRatio } from '@/lib/fornitore-cross-check'
 import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 import { tryBootstrapFornitoreFromOcrRagione } from '@/lib/scan-email-ocr-bootstrap-fornitore'
+import { cleanupSharedPlatformFornitoreEmails } from '@/lib/cleanup-shared-platform-fornitore-emails'
 
 const BATCH = 100
 
@@ -30,6 +31,7 @@ export type AutoReinferResult = {
   typeFixed: number
   fornitoreReassigned: number
   fornitoreCreated: number
+  ghostEmailsRemoved: number
 }
 
 async function fornitoreAssignmentContradictsOcr(
@@ -73,6 +75,14 @@ export async function autoReinferSuppliers(
     typeFixed: 0,
     fornitoreReassigned: 0,
     fornitoreCreated: 0,
+    ghostEmailsRemoved: 0,
+  }
+
+  try {
+    const cleanup = await cleanupSharedPlatformFornitoreEmails(supabase, { sedeId: sedeFilter })
+    result.ghostEmailsRemoved = cleanup.aliasesRemoved + cleanup.primaryEmailsCleared
+  } catch (e) {
+    logger.warn('[AUTO-REINFER] cleanup ghost emails', e)
   }
 
   const stati = ['da_associare', 'da_revisionare', 'in_attesa', 'associato']
