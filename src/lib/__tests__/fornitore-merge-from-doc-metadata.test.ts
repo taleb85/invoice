@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   backfillFornitoreAnagraficaFromDocuments,
+  mergeFornitoreContattiFromDocMetadata,
   mergeFornitoreMissingFromDocMetadata,
 } from '@/lib/fornitore-merge-from-doc-metadata'
+import { extractPhoneNumbersFromText } from '@/lib/fornitore-cross-check'
 
 describe('mergeFornitoreMissingFromDocMetadata', () => {
   it('fills empty piva and indirizzo from metadata', async () => {
@@ -93,5 +95,51 @@ describe('backfillFornitoreAnagraficaFromDocuments', () => {
     const r = await backfillFornitoreAnagraficaFromDocuments(supabase as never, 'f1')
     expect(r.updated).toBe(true)
     expect(r.fields).toContain('piva')
+  })
+})
+
+describe('extractPhoneNumbersFromText', () => {
+  it('finds UK numbers on statement letterhead', () => {
+    const text =
+      'V & S Catering Supplies Ltd\n020-7485 2658 / 020-7916 4717\nvandscatering@yahoo.com'
+    const phones = extractPhoneNumbersFromText(text)
+    expect(phones.length).toBeGreaterThanOrEqual(2)
+    expect(phones.join(' ')).toMatch(/020-7485 2658/)
+  })
+})
+
+describe('mergeFornitoreContattiFromDocMetadata', () => {
+  it('inserts contatto from metadata telefono', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null })
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'fornitore_contatti') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+            insert,
+          }
+        }
+        return {}
+      }),
+    }
+
+    const r = await mergeFornitoreContattiFromDocMetadata(supabase as never, 'f1', {
+      ragione_sociale: 'V & S Catering Supplies Ltd',
+      telefono: '020-7485 2658',
+      email_contatto: 'vandscatering@yahoo.com',
+    })
+
+    expect(r.inserted).toBe(true)
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        fornitore_id: 'f1',
+        nome: 'V & S Catering Supplies Ltd',
+        ruolo: 'Da documento',
+        telefono: '020-7485 2658',
+        email: 'vandscatering@yahoo.com',
+      }),
+    ])
   })
 })

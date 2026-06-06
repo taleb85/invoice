@@ -8,7 +8,7 @@ import {
   type RealignStatementsResult,
 } from '@/lib/documenti-revisione-auto'
 import { promotePrimaryFornitoreEmailIfEmpty } from '@/lib/fornitore-email-primary'
-import { backfillFornitoreAnagraficaFromDocuments } from '@/lib/fornitore-merge-from-doc-metadata'
+import { backfillFornitoreAnagraficaFromDocuments, backfillFornitoreContattiFromDocuments } from '@/lib/fornitore-merge-from-doc-metadata'
 
 /**
  * Salva l'email del mittente come alias del fornitore (scansione IMAP futura).
@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     }
     try {
       await backfillFornitoreAnagraficaFromDocuments(service, fornitoreId)
+      await backfillFornitoreContattiFromDocuments(service, fornitoreId)
     } catch (e) {
       console.warn('[POST /api/fornitore-emails/remember] backfillAnagrafica (alreadyLinked)', e)
     }
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await backfillFornitoreAnagraficaFromDocuments(service, fornitoreId)
+    await backfillFornitoreContattiFromDocuments(service, fornitoreId)
   } catch (e) {
     console.warn('[POST /api/fornitore-emails/remember] backfillAnagrafica', e)
   }

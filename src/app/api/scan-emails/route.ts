@@ -28,7 +28,7 @@ import { buildSupplierInboxSearchTerms, messageMatchesFornitore } from '@/lib/fo
 import { findUniqueFornitoreForPendingDoc } from '@/lib/auto-resolve-pending-doc'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
-import { mergeFornitoreMissingFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
+import { mergeFornitoreMissingFromDocMetadata, mergeFornitoreContattiFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
 import { documentContextText, processingDocumentDateYmdFromOcr, safeDate } from '@/lib/safe-date'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 import type { EmailScanMailboxContext, EmailScanStreamEvent } from '@/lib/email-scan-stream'
@@ -2685,6 +2685,12 @@ async function processEmails(
           metadata,
           email.from,
         ).catch((err) => console.warn('[PROCESS] mergeFornitoreMissingFromDocMetadata', err))
+        void mergeFornitoreContattiFromDocMetadata(
+          supabase,
+          fornitore.id,
+          metadata,
+          { fileUrl: file_url, fornitoreNome: fornitore.nome },
+        ).catch((err) => console.warn('[PROCESS] mergeFornitoreContattiFromDocMetadata', err))
 
         const extraSegs = extraPdfSegmentsForQueue(ocr)
         for (let si = 0; si < extraSegs.length; si++) {

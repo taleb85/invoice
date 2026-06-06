@@ -128,13 +128,58 @@ function extractEmailContatto(text: string): string | null {
 }
 
 function extractTelefono(text: string): string | null {
-  const m = text.match(/(?:tel|phone|telefono|cell|mobile)[:\s.]*(?:\+?\d{1,3}[\s.-]?)?\(?\d{2,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4}/i)
-  if (m) {
-    const phone = m[0].replace(/^(?:tel|phone|telefono|cell|mobile)[:\s.]+/i, '').trim()
-    const digits = phone.replace(/\D/g, '')
-    if (digits.length >= 6) return digits
+  const phones = extractPhoneNumbersFromTextImpl(text)
+  return phones[0] ?? null
+}
+
+const PHONE_WITH_LABEL =
+  /(?:tel(?:ephone)?|phone|telefono|cell|mobile|fax)[:\s.]*(?:\+?\d{1,3}[\s.-]?)?\(?\d{2,4}\)?[\s./-]?\d{3,4}[\s./-]?\d{3,4}/gi
+const PHONE_UK_LOOSE = /\b(?:\+?44[\s.-]?)?0\d{2,4}[\s./-]?\d{3,4}[\s./-]?\d{3,4}\b/g
+
+function normalizePhoneDisplay(raw: string): string | null {
+  const cleaned = raw
+    .replace(/^(?:tel(?:ephone)?|phone|telefono|cell|mobile|fax)[:\s.]+/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const digits = cleaned.replace(/\D/g, '')
+  if (digits.length < 9) return null
+  return cleaned
+}
+
+function extractPhoneNumbersFromTextImpl(text: string): string[] {
+  if (!text?.trim()) return []
+  const found = new Set<string>()
+  for (const re of [PHONE_WITH_LABEL, PHONE_UK_LOOSE]) {
+    for (const m of text.matchAll(re)) {
+      const phone = normalizePhoneDisplay(m[0])
+      if (phone) found.add(phone)
+    }
   }
-  return null
+  return [...found].slice(0, 3)
+}
+
+/** Numeri di telefono visibili su intestazione documento / corpo (max 3). */
+export function extractPhoneNumbersFromText(text: string): string[] {
+  return extractPhoneNumbersFromTextImpl(text)
+}
+
+/** Email di contatto visibili nel testo documento (esclusi no-reply e piattaforme). */
+export function extractContactEmailsFromText(
+  text: string,
+  opts?: { exclude?: Set<string> },
+): string[] {
+  if (!text?.trim()) return []
+  const exclude = opts?.exclude ?? new Set<string>()
+  const found = new Set<string>()
+  for (const m of text.matchAll(/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g)) {
+    const email = m[0].trim().toLowerCase()
+    if (email.length < 6 || exclude.has(email)) continue
+    if (/^(no-?reply|donotreply|noreply|mailer-daemon)/i.test(email.split('@')[0] ?? '')) continue
+    found.add(email)
+  }
+  const labeled = extractEmailContatto(text)
+  if (labeled && !exclude.has(labeled)) found.add(labeled)
+  return [...found].slice(0, 3)
 }
 
 const REF_CHARS = "[A-Za-zÀ-ÿ '-]"

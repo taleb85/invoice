@@ -1358,12 +1358,24 @@ function DashboardTab({
 
   const loadContatti = async () => {
     const res = await fetch(`/api/fornitore-contatti?fornitore_id=${fornitoreId}`)
-    if (!res.ok) { setContattiError(true); setContattiLoading(false); return }
+    if (!res.ok) { setContattiError(true); setContattiLoading(false); return [] as ContattoRow[] }
     const data = await res.json()
-    if (Array.isArray(data)) { setContatti(data); setContattiError(false) }
-    else setContattiError(true)
+    if (Array.isArray(data)) { setContatti(data); setContattiError(false); setContattiLoading(false); return data as ContattoRow[] }
+    setContattiError(true)
     setContattiLoading(false)
+    return [] as ContattoRow[]
   }
+
+  const backfillContattiFromDocuments = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/fornitori/${fornitoreId}/backfill-from-documents`, { method: 'POST' })
+      if (!res.ok) return
+      const body = (await res.json()) as { contatti?: { inserted?: boolean } }
+      if (body.contatti?.inserted) await loadContatti()
+    } catch {
+      /* best-effort */
+    }
+  }, [fornitoreId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openAdd = () => {
     setEditingId(null)
@@ -1395,7 +1407,15 @@ function DashboardTab({
     await loadContatti()
   }
 
-  useEffect(() => { loadContatti() }, [fornitoreId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const rows = await loadContatti()
+      if (cancelled || rows.length > 0) return
+      await backfillContattiFromDocuments()
+    })()
+    return () => { cancelled = true }
+  }, [fornitoreId, backfillContattiFromDocuments]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void loadSyncEmails() }, [loadSyncEmails])
 
   const handleEmailAliasSaved = useCallback(
