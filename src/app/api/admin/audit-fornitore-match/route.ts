@@ -3,6 +3,7 @@ import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import type { Profile } from '@/types'
 import { cookies } from 'next/headers'
+import { suggestFornitoreForAuditRow } from '@/lib/inbox-audit-fornitore-suggest'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,10 @@ type AuditRow = {
   assigned_fornitore_id: string | null
   fornitore_fattura: string | null
   fornitore_bolla: string | null
+  suggested_fornitore_id: string | null
+  suggested_fornitore_nome: string | null
+  suggested_from_hint: string | null
+  supplier_mismatch: boolean
 }
 
 function resolveSedeId(profile: Profile, bodySede: string | undefined, cookieSede: string | null): string | null {
@@ -73,24 +78,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const rows = (data ?? []) as Omit<AuditRow, 'file_url'>[]
+  const rows = (data ?? []) as Omit<
+    AuditRow,
+    'file_url' | 'suggested_fornitore_id' | 'suggested_fornitore_nome' | 'suggested_from_hint' | 'supplier_mismatch'
+  >[]
 
   const ids = rows.map((r) => r.id).filter(Boolean)
-  const fileUrlById = new Map<string, string | null>()
+  const docById = new Map<
+    string,
+    { file_url: string | null; oggetto_mail: string | null; metadata: unknown }
+  >()
   if (ids.length > 0) {
     const { data: urlRows } = await service
       .from('documenti_da_processare')
-      .select('id, file_url')
+      .select('id, file_url, oggetto_mail, metadata')
       .in('id', ids)
     for (const u of urlRows ?? []) {
-      fileUrlById.set(u.id, u.file_url?.trim() || null)
+      docById.set(u.id, {
+        file_url: u.file_url?.trim() || null,
+        oggetto_mail: u.oggetto_mail?.trim() || null,
+        metadata: u.metadata,
+      })
     }
   }
 
-  const enriched: AuditRow[] = rows.map((r) => ({
-    ...r,
-    file_url: fileUrlById.get(r.id) ?? null,
-  }))
+  const enriched: AuditRow[] = await Promise.all(
+    rows.map(async (r) => {
+      const doc = docById.get(r.id)
+      const suggestion = await suggestFornitoreForAuditRow(service, sedeId, {
+        file_name: r.file_name,
+        oggetto_mail: doc?.oggetto_mail ?? null,
+        metadata: doc?.metadata ?? null,
+        fornitore_fattura: r.fornitore_fattura,
+        fornitore_bolla: r.fornitore_bolla,
+      })
+      return {
+        ...r,
+        file_url: doc?.file_url ?? null,
+        ...suggestion,
+      }
+    }),
+  )
 
   return NextResponse.json({
     ok: true as const,

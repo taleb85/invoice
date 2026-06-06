@@ -81,6 +81,10 @@ type AuditMatchRow = {
   assigned_fornitore_id: string | null
   fornitore_fattura: string | null
   fornitore_bolla: string | null
+  suggested_fornitore_id: string | null
+  suggested_fornitore_nome: string | null
+  suggested_from_hint: string | null
+  supplier_mismatch: boolean
 }
 
 type FornitoreOption = { id: string; nome: string | null }
@@ -454,6 +458,20 @@ export default function InboxAiClient(props: {
   useEffect(() => {
     void loadAudit()
   }, [loadAudit])
+
+  useEffect(() => {
+    setReassignSel((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const row of auditRows) {
+        if (row.supplier_mismatch && row.suggested_fornitore_id && !next[row.id]) {
+          next[row.id] = row.suggested_fornitore_id
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [auditRows])
 
   const loadDuplicates = useCallback(async () => {
     if (!sedeId || blockedNoSede) return
@@ -1659,14 +1677,38 @@ export default function InboxAiClient(props: {
                         <p className="truncate font-mono text-[11px] text-app-fg-muted">
                           {t.log.inboxAiSenderLabel} {row.mittente ?? '—'}
                         </p>
-                        <p className="text-xs text-cyan-100/95">
+                        {row.supplier_mismatch && row.suggested_fornitore_nome ? (
+                          <p className="text-xs text-amber-100/95">
+                            {t.log.supplierSuggested}:{' '}
+                            <span className="font-semibold text-amber-50">
+                              {row.suggested_fornitore_nome}
+                            </span>
+                            {row.suggested_from_hint &&
+                            row.suggested_from_hint !== row.suggested_fornitore_nome ? (
+                              <span className="text-app-fg-muted"> ({row.suggested_from_hint})</span>
+                            ) : null}
+                          </p>
+                        ) : null}
+                        <p
+                          className={`text-xs ${row.supplier_mismatch ? 'text-rose-200/90' : 'text-cyan-100/95'}`}
+                        >
                           {t.log.inboxAiAssignedSupplier}{' '}
                           <span className="text-app-fg">{assignedLabel(row)}</span>
                         </p>
+                        {row.supplier_mismatch ? (
+                          <p className="text-[11px] leading-snug text-rose-200/80">
+                            {t.log.inboxAiSupplierMismatchWarning}
+                          </p>
+                        ) : null}
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                           <button
                             type="button"
-                            disabled={busy || !row.assigned_fornitore_id || !row.mittente?.trim()}
+                            disabled={
+                              busy ||
+                              !row.assigned_fornitore_id ||
+                              !row.mittente?.trim() ||
+                              row.supplier_mismatch
+                            }
                             onClick={() => void addEmailToFornitore(row)}
                             className="rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1.5 text-[11px] font-semibold text-teal-100 disabled:opacity-40"
                           >
