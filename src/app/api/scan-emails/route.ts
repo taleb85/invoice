@@ -2746,7 +2746,7 @@ async function processEmails(
         continue
       }
 
-      // ── AUTO-PROCESS STATEMENT / PAYMENT-RECEIPT PDF (stesso parser righe) ──
+      // ── AUTO-PROCESS STATEMENT PDF (stesso parser righe; escluse ricevute pagamento) ──
       const stmtPdf =
         attachment &&
         (attachment.contentType === 'application/pdf' || String(attachment.extension).toLowerCase() === 'pdf')

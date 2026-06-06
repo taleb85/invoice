@@ -2613,6 +2613,10 @@ const translations: Translations = {
     stmtListProcessing: 'Elaborazione…',
     stmtListParseError: 'Errore parsing',
     stmtRowsCount: '{n} righe',
+    stmtPaymentReceiptBadge: 'Ricevuta di pagamento',
+    stmtPaymentReceiptSection: 'Ricevute di pagamento',
+    stmtPaymentReceiptHint:
+      'Conferme di pagamento ricevute (es. QuickBooks) — non sono estratti conto da verificare riga per riga.',
     stmtAnomalies_one: '{n} anomalia',
     stmtAnomalies_other: '{n} anomalie',
     stmtAnomalyPreviewMore: '+{n} altre',

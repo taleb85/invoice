@@ -1851,6 +1851,9 @@ export type Translations = {
     stmtListProcessing: string
     stmtListParseError: string
     stmtRowsCount: string
+    stmtPaymentReceiptBadge: string
+    stmtPaymentReceiptSection: string
+    stmtPaymentReceiptHint: string
     stmtAnomalies_one: string
     stmtAnomalies_other: string
     stmtAnomalyPreviewMore: string

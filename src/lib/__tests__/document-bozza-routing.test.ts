@@ -330,4 +330,22 @@ describe('inferAutoPendingKindFromEmailScan — niente statement per solleciti/I
       inferAutoPendingKindFromEmailScan('Account statement March 2026', null, null, null),
     ).toBe('statement')
   })
+
+  it('"Payment Receipt from …" NON è statement (ricevuta pagamento)', () => {
+    expect(
+      inferAutoPendingKindFromEmailScan(
+        'Payment Receipt from True Terroir Ltd',
+        null,
+        null,
+        null,
+      ),
+    ).toBeNull()
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: 'Payment Receipt from True Terroir Ltd',
+        file_name: null,
+        metadata: null,
+      }),
+    ).toBe('comunicazione')
+  })
 })

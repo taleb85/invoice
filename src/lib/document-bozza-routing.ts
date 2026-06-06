@@ -27,10 +27,10 @@ export function emailSubjectLooksLikeStatement(subject: string | null | undefine
 }
 
 /**
- * Oggetto o nome file: ricevute di pagamento, remittance, payment advice — stessa coda “Estratto”
- * (pending_kind statement) e senza bozza fattura/bolla automatica.
+ * Ricevute di pagamento (QuickBooks, ecc.): NON sono estratti conto.
+ * Vanno in coda comunicazioni / archivio, non nel parser statement.
  */
-export function scanContextLooksLikeStatementCategoryDoc(
+export function scanContextLooksLikePaymentReceiptDoc(
   subject: string | null | undefined,
   fileName: string | null | undefined,
 ): boolean {
@@ -38,11 +38,6 @@ export function scanContextLooksLikeStatementCategoryDoc(
   if (!blob.trim()) return false
   return (
     /\bpayment\s+receipt\b/.test(blob) ||
-    /\bpayment\s+advice\b/.test(blob) ||
-    /\bpayment\s+confirmation\b/.test(blob) ||
-    /\bremittance\b/.test(blob) ||
-    /\bremittance\s+advice\b/.test(blob) ||
-    /\bcredit\s+note\s+receipt\b/.test(blob) ||
     (/\bpayment\b/.test(blob) && /\breceipt\b/.test(blob)) ||
     /ricevuta\s+di\s+pagamento/.test(blob) ||
     /ricevuta\s+pagamento/.test(blob) ||
@@ -50,6 +45,36 @@ export function scanContextLooksLikeStatementCategoryDoc(
     /\bpagamento\s+ricevuto\b/.test(blob) ||
     /\bpayment\s+received\b/.test(blob) ||
     /\bproof\s+of\s+payment\b/.test(blob)
+  )
+}
+
+/** Alias per UI lista statement (oggetto mail tipico QuickBooks). */
+export function statementEmailSubjectLooksLikePaymentReceipt(
+  subject: string | null | undefined,
+  fileName?: string | null,
+): boolean {
+  return scanContextLooksLikePaymentReceiptDoc(subject, fileName ?? null)
+}
+
+/**
+ * Oggetto o nome file: remittance, payment advice — stessa coda “Estratto”
+ * (pending_kind statement) e senza bozza fattura/bolla automatica.
+ *
+ * Le ricevute di pagamento (`scanContextLooksLikePaymentReceiptDoc`) sono escluse.
+ */
+export function scanContextLooksLikeStatementCategoryDoc(
+  subject: string | null | undefined,
+  fileName: string | null | undefined,
+): boolean {
+  if (scanContextLooksLikePaymentReceiptDoc(subject, fileName)) return false
+  const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase()
+  if (!blob.trim()) return false
+  return (
+    /\bpayment\s+advice\b/.test(blob) ||
+    /\bpayment\s+confirmation\b/.test(blob) ||
+    /\bremittance\b/.test(blob) ||
+    /\bremittance\s+advice\b/.test(blob) ||
+    /\bcredit\s+note\s+receipt\b/.test(blob)
   )
 }
 
@@ -126,6 +151,7 @@ export function emailLooksLikeStatementInboxDoc(
   bodySnippet?: string | null | undefined,
   ocr?: { ragione_sociale?: string | null; note_corpo_mail?: string | null } | null,
 ): boolean {
+  if (scanContextLooksLikePaymentReceiptDoc(subject, firstAttachmentFileName)) return false
   // Se oggetto o nome file dice fattura/bolla, non è un estratto conto — l'OCR deciderà
   if (subjectLooksLikeInvoice(subject) || subjectLooksLikeInvoice(firstAttachmentFileName)) return false
   if (emailSubjectLooksLikeStatement(subject)) return true
@@ -333,6 +359,10 @@ export function inferPendingDocumentKindForQueueRow(opts: {
 }): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | 'listino' | null {
   const md = opts.metadata
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
+
+  if (scanContextLooksLikePaymentReceiptDoc(opts.oggetto_mail, opts.file_name)) {
+    return 'comunicazione'
+  }
 
   if (
     documentOcrContextSuggestsQuotation(md, {

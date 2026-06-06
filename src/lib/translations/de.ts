@@ -1404,6 +1404,10 @@ const translations: Translations = {
     stmtListProcessing: 'Wird verarbeitet…',
     stmtListParseError: 'Analysefehler',
     stmtRowsCount: '{n} Zeilen',
+    stmtPaymentReceiptBadge: 'Zahlungsbeleg',
+    stmtPaymentReceiptSection: 'Zahlungsbelege',
+    stmtPaymentReceiptHint:
+      'Zahlungsbestätigungen (z. B. QuickBooks) — keine Kontoauszüge zur Zeilenprüfung.',
     stmtAnomalies_one: '{n} Auffälligkeit',
     stmtAnomalies_other: '{n} Auffälligkeiten',
     stmtAnomalyPreviewMore: '+{n} weitere',

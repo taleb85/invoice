@@ -34,7 +34,7 @@ import {
   normalizeAddressKey,
   resolveBolleMatchForPendingInvoice,
 } from '@/lib/auto-resolve-pending-doc'
-import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
+import { inferPendingDocumentKindForQueueRow, statementEmailSubjectLooksLikePaymentReceipt } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { extractNumeroFromDocStrings } from '@/lib/extract-numero-from-doc'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
@@ -4965,10 +4965,19 @@ export function VerificationStatusTab({
   const hideEmbeddedPeriodSelects =
     Boolean(vsEmbeddedSupplier && ledgerDateFrom && ledgerDateToExclusive)
 
-  /** Stesso ordine della lista (più recenti in alto); esclude solo parsing fallito. */
-  const navigableStmts = useMemo(
-    () => stmts.filter((s) => s.status !== 'error'),
+  /** Stesso ordine della lista (più recenti in alto); esclude parsing fallito e ricevute pagamento. */
+  const accountStatementStmts = useMemo(
+    () => stmts.filter((s) => !statementEmailSubjectLooksLikePaymentReceipt(s.email_subject)),
     [stmts],
+  )
+  const paymentReceiptStmts = useMemo(
+    () => stmts.filter((s) => statementEmailSubjectLooksLikePaymentReceipt(s.email_subject)),
+    [stmts],
+  )
+
+  const navigableStmts = useMemo(
+    () => accountStatementStmts.filter((s) => s.status !== 'error'),
+    [accountStatementStmts],
   )
 
   /** Deep link da listino (Anomalie): apri l'estratto più pertinente anche nel pannello fornitore. */
@@ -5441,7 +5450,7 @@ export function VerificationStatusTab({
                 {t.statements.stmtInboxEmailScanning}
               </div>
             </div>
-          ) : stmts.length === 0 ? (
+          ) : accountStatementStmts.length === 0 && paymentReceiptStmts.length === 0 ? (
             <div className={vsCompactS1 ? 'px-3 py-4 text-center' : 'px-4 py-6 text-center'}>
               <p className={`font-medium ${vsCompactS1 ? 'text-xs' : 'text-sm'} text-app-fg`}>
                 {t.statements.stmtEmpty}
@@ -5453,8 +5462,10 @@ export function VerificationStatusTab({
               </p>
             </div>
           ) : (
+            <>
+            {accountStatementStmts.length > 0 ? (
             <div className="divide-y divide-app-line-15">
-              {stmts.map(s => {
+              {accountStatementStmts.map(s => {
                 const stmtOfficialIso = statementOfficialDateIso(s)
                 const stmtListPrimary = fornitoreId
                   ? (s.email_subject?.trim() ||
@@ -5627,6 +5638,78 @@ export function VerificationStatusTab({
                 </button>
               )})}
             </div>
+            ) : null}
+            {paymentReceiptStmts.length > 0 ? (
+              <section className={accountStatementStmts.length > 0 ? 'mt-4 border-t border-app-line-15 pt-3' : ''}>
+                <p className={`px-3 pb-2 font-semibold text-app-fg-muted ${vsCompactS1 ? 'text-[11px]' : 'text-xs'}`}>
+                  {t.statements.stmtPaymentReceiptSection}
+                </p>
+                <p className="px-3 pb-2 text-[11px] leading-snug text-app-fg-muted/90">
+                  {t.statements.stmtPaymentReceiptHint}
+                </p>
+                <div className="divide-y divide-app-line-15">
+                  {paymentReceiptStmts.map((s) => {
+                    const stmtOfficialIso = statementOfficialDateIso(s)
+                    const label =
+                      s.email_subject?.trim() ||
+                      formatStmtDate(stmtOfficialIso ?? s.received_at)
+                    return (
+                      <div
+                        key={s.id}
+                        className={
+                          vsEmbeddedSupplier
+                            ? vsCompactS1
+                              ? 'flex w-full flex-col gap-2 px-3 py-2.5 md:flex-row md:items-center md:justify-between md:py-2'
+                              : 'flex w-full items-center gap-3 px-4 py-2.5'
+                            : 'flex w-full items-center gap-3 px-4 py-2.5'
+                        }
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className={`line-clamp-2 font-medium ${vsCompactS1 && vsEmbeddedSupplier ? 'text-xs' : 'text-sm'} text-app-fg`}>
+                            {label}
+                          </p>
+                          <p className="mt-0.5 text-xs text-app-fg-muted">
+                            {stmtOfficialIso ? (
+                              <>
+                                <span className="font-medium tabular-nums text-app-fg">
+                                  {formatStmtDate(stmtOfficialIso)}
+                                </span>
+                                <span className="text-app-fg-muted"> · </span>
+                                <span className="text-app-fg-muted">
+                                  {t.statements.labelReceived} {formatStmtDate(s.received_at)}
+                                </span>
+                              </>
+                            ) : (
+                              formatStmtDate(s.received_at)
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-violet-500/35 bg-violet-950/25 px-2 py-0.5 text-[10px] font-semibold text-violet-100">
+                            {t.statements.stmtPaymentReceiptBadge}
+                          </span>
+                          {s.file_url ? (
+                            <OpenDocumentInAppButton
+                              statementId={s.id}
+                              fileUrl={s.file_url}
+                              className="text-[11px] font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline"
+                              title={t.bolle.viewDocument}
+                            >
+                              {t.bolle.viewDocument}
+                            </OpenDocumentInAppButton>
+                          ) : null}
+                          <ConvertStmtToInvoiceButton
+                            statementId={s.id}
+                            emailSubject={s.email_subject}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            ) : null}
+            </>
           )
         )}
 

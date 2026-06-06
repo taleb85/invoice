@@ -1461,6 +1461,10 @@ const translations: Translations = {
     stmtListProcessing: 'Processing…',
     stmtListParseError: 'Parse error',
     stmtRowsCount: '{n} rows',
+    stmtPaymentReceiptBadge: 'Payment receipt',
+    stmtPaymentReceiptSection: 'Payment receipts',
+    stmtPaymentReceiptHint:
+      'Payment confirmations received (e.g. QuickBooks) — not account statements to verify line by line.',
     stmtAnomalies_one: '{n} issue',
     stmtAnomalies_other: '{n} issues',
     stmtAnomalyPreviewMore: '+{n} more',

@@ -1404,6 +1404,10 @@ const translations: Translations = {
     stmtListProcessing: 'Procesando…',
     stmtListParseError: 'Error de análisis',
     stmtRowsCount: '{n} filas',
+    stmtPaymentReceiptBadge: 'Recibo de pago',
+    stmtPaymentReceiptSection: 'Recibos de pago',
+    stmtPaymentReceiptHint:
+      'Confirmaciones de pago recibidas (p. ej. QuickBooks) — no son extractos a verificar línea por línea.',
     stmtAnomalies_one: '{n} anomalía',
     stmtAnomalies_other: '{n} anomalías',
     stmtAnomalyPreviewMore: '+{n} más',
