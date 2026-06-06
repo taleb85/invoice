@@ -22,8 +22,24 @@ const GENERIC_EMAIL_DOMAINS = new Set([
   'email.it',
 ])
 
+/** Mittenti condivisi da piattaforme di fatturazione (Xero, …): non identificano un solo fornitore. */
+const SHARED_BILLING_PLATFORM_DOMAINS = new Set([
+  'post.xero.com',
+  'eumessaging.xero.com',
+  'notification.intuit.com',
+  'notifications.intuit.com',
+])
+
 export function isGenericSupplierEmailDomain(domain: string): boolean {
   return GENERIC_EMAIL_DOMAINS.has(domain.trim().toLowerCase())
+}
+
+/** Email mittente di piattaforme terze (es. fatture Xero): stesso indirizzo per molti emittenti. */
+export function isSharedBillingPlatformSenderEmail(email: string | null | undefined): boolean {
+  const e = (email ?? '').trim().toLowerCase()
+  if (!e.includes('@')) return false
+  const dom = extractEmailDomainLower(e)
+  return !!dom && SHARED_BILLING_PLATFORM_DOMAINS.has(dom)
 }
 
 /**
@@ -77,6 +93,7 @@ export async function resolveFornitoreFromScanEmail(
 ): Promise<FornitoreScanRow | null> {
   const senderEmail = (senderEmailRaw ?? '').trim().toLowerCase()
   if (!senderEmail.includes('@')) return null
+  if (isSharedBillingPlatformSenderEmail(senderEmail)) return null
 
   const found = await resolveEmailExact(supabase, senderEmail, sedeFilter)
   if (found) return found
@@ -137,7 +154,9 @@ export async function resolveFornitoreByEmailDomain(
   sedeFilter?: string | null,
 ): Promise<FornitoreScanRow | null | 'ambiguous'> {
   const dom = extractEmailDomainLower(senderEmailNormalized)
-  if (!dom || isGenericSupplierEmailDomain(dom)) return null
+  if (!dom || isGenericSupplierEmailDomain(dom) || isSharedBillingPlatformSenderEmail(senderEmailNormalized)) {
+    return null
+  }
 
   const pattern = `%@${dom}`
   const byId = new Map<string, FornitoreScanRow>()

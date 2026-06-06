@@ -1,8 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isStaleRelativeToReceipt } from '@/lib/fix-ocr-dates-helpers'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
-import { tokenOverlapRatio, normalizeRagioneSocialeForComparison } from '@/lib/fornitore-cross-check'
+import { tokenOverlapRatio, normalizeRagioneSocialeForComparison, fornitoreNomeMatchesOcr } from '@/lib/fornitore-cross-check'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 
 /**
  * Catena di fiducia a 3 segnali per ogni campo critico.
@@ -48,11 +49,16 @@ export async function qualitySupplierMatch(
     if (bySubject?.id) signals.push({ id: bySubject.id, source: 'statement_subject' })
   }
 
-  // Segnale 1: Email mittente
-  if (mittente?.includes('@')) {
+  // Segnale 1: Email mittente (non piattaforme condivise tipo Xero)
+  if (mittente?.includes('@') && !isSharedBillingPlatformSenderEmail(mittente)) {
     const { resolveFornitoreFromScanEmail } = await import('@/lib/fornitore-resolve-scan-email')
     const byEmail = await resolveFornitoreFromScanEmail(supabase, mittente, sedeFilter)
-    if (byEmail?.id) signals.push({ id: byEmail.id, source: 'email' })
+    if (byEmail?.id) {
+      const rs = ocrRagioneSociale?.trim()
+      if (!rs || fornitoreNomeMatchesOcr(byEmail.nome, rs)) {
+        signals.push({ id: byEmail.id, source: 'email' })
+      }
+    }
   }
 
   // Segnale 2: P.IVA
@@ -150,7 +156,12 @@ async function lookupLearnedSupplier(
       if (rs === ragioneSocialeNorm) match = true
       else if (tokenOverlapRatio(rs, ragioneSocialeNorm) >= 0.7) match = true
     }
-    if (!match && mittente?.includes('@') && doc.mittente) {
+    if (
+      !match &&
+      mittente?.includes('@') &&
+      doc.mittente &&
+      !isSharedBillingPlatformSenderEmail(mittente)
+    ) {
       const emNorm = doc.mittente.toLowerCase().trim()
       if (emNorm === mittente.toLowerCase().trim()) match = true
     }

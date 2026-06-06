@@ -4,9 +4,11 @@ import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
 import {
   resolveFornitoreByEmailDomain,
   resolveFornitoreFromScanEmail,
+  isSharedBillingPlatformSenderEmail,
   type FornitoreScanRow,
 } from '@/lib/fornitore-resolve-scan-email'
 import { resolveFornitoreByPartialNameEnhanced } from '@/lib/fornitore-infer-from-document'
+import { fornitoreNomeMatchesOcr } from '@/lib/fornitore-cross-check'
 
 /** Stesso subset usato in scan-emails `Fornitore`. */
 export type FornitoreScanFullRow = {
@@ -164,6 +166,7 @@ export async function linkScanSenderToFornitore(
 ): Promise<void> {
   const em = normalizeSenderEmailCanonical(rawFromHeader)
   if (!em?.includes('@')) return
+  if (isSharedBillingPlatformSenderEmail(em)) return
   if (await senderAlreadyLinkedToFornitore(supabase, em, fornitoreId)) return
   const { error } = await supabase.from('fornitore_emails').insert([
     { fornitore_id: fornitoreId, email: em, label: 'Scan OCR ragione sociale' },
@@ -195,13 +198,23 @@ export async function tryBootstrapFornitoreFromOcrRagione(
   const sede = sedeId.trim()
 
   const emNorm = normalizeSenderEmailCanonical(mittenteRaw ?? null)
-  if (emNorm?.includes('@')) {
+  if (emNorm?.includes('@') && !isSharedBillingPlatformSenderEmail(emNorm)) {
     const exact = await resolveFornitoreFromScanEmail(supabase, emNorm, sede)
-    if (exact?.id) return { kind: 'resolved', fornitore: exact, created: false }
+    if (exact?.id) {
+      const rsEarly = ocr.ragione_sociale?.trim() ?? ''
+      if (!rsEarly || fornitoreNomeMatchesOcr(exact.nome, rsEarly)) {
+        return { kind: 'resolved', fornitore: exact, created: false }
+      }
+    }
 
     const domRes = await resolveFornitoreByEmailDomain(supabase, emNorm, sede)
     if (domRes === 'ambiguous') return { kind: 'ambiguous_match' }
-    if (domRes?.id) return { kind: 'resolved', fornitore: domRes, created: false }
+    if (domRes?.id) {
+      const rsEarly = ocr.ragione_sociale?.trim() ?? ''
+      if (!rsEarly || fornitoreNomeMatchesOcr(domRes.nome, rsEarly)) {
+        return { kind: 'resolved', fornitore: domRes, created: false }
+      }
+    }
   }
 
   const rs = ocr.ragione_sociale?.trim() ?? ''

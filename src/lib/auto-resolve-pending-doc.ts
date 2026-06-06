@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
+import { fornitoreNomeMatchesOcr } from '@/lib/fornitore-cross-check'
 
 export type OcrMetaForMatch = {
   ragione_sociale?: string | null
@@ -225,7 +227,7 @@ export async function findUniqueFornitoreForPendingDoc(
   }
 
   const mitt = normEmail(opts.mittente)
-  if (mitt) {
+  if (mitt && !isSharedBillingPlatformSenderEmail(mitt)) {
     const fornitoreIds = list.map((f) => f.id)
     const { data: aliases } =
       fornitoreIds.length > 0
@@ -245,7 +247,12 @@ export async function findUniqueFornitoreForPendingDoc(
       const aset = aliasByFornitore.get(f.id)
       return !!(aset && aset.has(mitt))
     })
-    if (emailHits.length === 1) return { id: emailHits[0].id, nome: emailHits[0].nome }
+    if (emailHits.length === 1) {
+      const hit = emailHits[0]
+      if (!rsTrim || fornitoreNomeMatchesOcr(hit.nome, rsTrim)) {
+        return { id: hit.id, nome: hit.nome }
+      }
+    }
     if (emailHits.length > 1) return null
   }
 

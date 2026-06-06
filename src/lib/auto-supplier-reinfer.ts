@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { runQualityChain } from '@/lib/document-quality-chain'
 import { logger } from '@/lib/logger'
+import { fornitoreNomeMatchesOcr, tokenOverlapRatio } from '@/lib/fornitore-cross-check'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
+import { tryBootstrapFornitoreFromOcrRagione } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 
 const BATCH = 100
 
@@ -25,6 +28,21 @@ export type AutoReinferResult = {
   errors: number
   dateFixed: number
   typeFixed: number
+  fornitoreReassigned: number
+  fornitoreCreated: number
+}
+
+async function fornitoreAssignmentContradictsOcr(
+  supabase: SupabaseClient,
+  fornitoreId: string,
+  ocrRagioneSociale: string,
+  mittente?: string | null,
+): Promise<boolean> {
+  const { data: f } = await supabase.from('fornitori').select('nome').eq('id', fornitoreId).maybeSingle()
+  if (!f?.nome?.trim()) return false
+  if (fornitoreNomeMatchesOcr(f.nome, ocrRagioneSociale)) return false
+  if (isSharedBillingPlatformSenderEmail(mittente ?? '')) return true
+  return tokenOverlapRatio(f.nome, ocrRagioneSociale) < 0.2
 }
 
 /**
@@ -46,12 +64,23 @@ export async function autoReinferSuppliers(
   const limit = opts?.limit && opts.limit > 0 ? Math.min(opts.limit, BATCH) : BATCH
   const recheckExisting = opts?.recheckExisting === true
 
-  const result: AutoReinferResult = { processed: 0, matched: 0, unchanged: 0, errors: 0, dateFixed: 0, typeFixed: 0 }
+  const result: AutoReinferResult = {
+    processed: 0,
+    matched: 0,
+    unchanged: 0,
+    errors: 0,
+    dateFixed: 0,
+    typeFixed: 0,
+    fornitoreReassigned: 0,
+    fornitoreCreated: 0,
+  }
+
+  const stati = ['da_associare', 'da_revisionare', 'in_attesa', 'associato']
 
   let query = supabase
     .from('documenti_da_processare')
     .select('id, fornitore_id, sede_id, mittente, oggetto_mail, file_name, note, data_documento, created_at, metadata, stato')
-    .in('stato', ['da_associare', 'da_revisionare', 'in_attesa'])
+    .in('stato', stati)
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -83,7 +112,17 @@ export async function autoReinferSuppliers(
       continue
     }
 
-    if (!recheckExisting && doc.fornitore_id && doc.data_documento && meta.pending_kind) {
+    let mightContradict = false
+    if (doc.fornitore_id && ragioneSociale) {
+      mightContradict = await fornitoreAssignmentContradictsOcr(
+        supabase,
+        doc.fornitore_id,
+        ragioneSociale,
+        doc.mittente,
+      )
+    }
+
+    if (!recheckExisting && doc.fornitore_id && doc.data_documento && meta.pending_kind && !mightContradict) {
       result.unchanged++
       continue
     }
@@ -95,8 +134,28 @@ export async function autoReinferSuppliers(
       const patch: Record<string, unknown> = {}
       const updatedMeta = { ...meta }
 
-      // ── Catena qualità fornitore ─────────────────────────────────────────
-      if (!doc.fornitore_id || recheckExisting) {
+      let effectiveFornitoreId = doc.fornitore_id
+
+      // ── Correzione abbinamento errato (es. Xero → fornitore sbagliato) ───
+      if (mightContradict && doc.fornitore_id && ragioneSociale) {
+        const bootstrap = await tryBootstrapFornitoreFromOcrRagione(
+          supabase,
+          { ragione_sociale: ragioneSociale, p_iva: pIva },
+          doc.sede_id,
+          doc.mittente,
+        )
+        if (bootstrap.kind === 'resolved' && bootstrap.fornitore.id !== doc.fornitore_id) {
+          effectiveFornitoreId = bootstrap.fornitore.id
+          patch.fornitore_id = bootstrap.fornitore.id
+          updatedMeta.matched_by = bootstrap.created ? 'ocr_auto_create' : 'ocr_name_reassign'
+          needsUpdate = true
+          if (bootstrap.created) result.fornitoreCreated++
+          else result.fornitoreReassigned++
+        }
+      }
+
+      // ── Catena qualità fornitore / data / tipo ───────────────────────────
+      if (!effectiveFornitoreId || recheckExisting) {
         const quality = await runQualityChain(supabase, {
           mittente: doc.mittente,
           sedeId: doc.sede_id,
@@ -107,23 +166,22 @@ export async function autoReinferSuppliers(
           receivedAt: doc.created_at,
           fileName: doc.file_name,
           emailSubject: doc.oggetto_mail,
-          fornitoreId: doc.fornitore_id,
+          fornitoreId: needsUpdate ? effectiveFornitoreId : doc.fornitore_id,
         })
 
-        if (quality.fornitoreId && quality.fornitoreId !== doc.fornitore_id) {
+        if (quality.fornitoreId && quality.fornitoreId !== effectiveFornitoreId) {
           patch.fornitore_id = quality.fornitoreId
+          effectiveFornitoreId = quality.fornitoreId
           updatedMeta.matched_by = quality.fornitoreSource
           needsUpdate = true
         }
 
-        // ── Catena qualità data ────────────────────────────────────────────
         if (quality.documentDate && quality.documentDate !== (doc.data_documento?.trim() || null)) {
           patch.data_documento = quality.documentDate
           needsUpdate = true
           result.dateFixed++
         }
 
-        // ── Catena qualità tipo documento ──────────────────────────────────
         const currentKind = typeof meta.pending_kind === 'string' ? meta.pending_kind : null
         if (quality.documentType && quality.documentType !== currentKind) {
           updatedMeta.pending_kind = quality.documentType

@@ -8,6 +8,7 @@ import {
   compareRagioneSociale,
   tokenOverlapRatio,
   normalizeRagioneSocialeForComparison,
+  fornitoreNomeMatchesOcr,
 } from '@/lib/fornitore-cross-check'
 
 export type FornitoreInferRow = {
@@ -65,7 +66,12 @@ export async function inferFornitoreAfterOcr(
   const emNorm = normalizeSenderEmailCanonical(row.mittente ?? null)
   if (emNorm?.includes('@')) {
     const fromEmail = await resolveFornitoreFromScanEmail(supabase, emNorm, sedeFilter)
-    if (fromEmail?.id) return { fornitore: fromEmail as FornitoreInferRow, source: 'email' }
+    if (fromEmail?.id) {
+      const rs = ocr.ragione_sociale?.trim()
+      if (!rs || fornitoreNomeMatchesOcr(fromEmail.nome, rs)) {
+        return { fornitore: fromEmail as FornitoreInferRow, source: 'email' }
+      }
+    }
   }
 
   const ocrDig = vatDigits(ocr.p_iva ?? ocr.piva)

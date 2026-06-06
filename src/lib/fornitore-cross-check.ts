@@ -222,6 +222,15 @@ export function compareRagioneSociale(
   return 'none'
 }
 
+/** True se il nome in anagrafica è compatibile con la ragione sociale OCR. */
+export function fornitoreNomeMatchesOcr(
+  fornitoreNome: string | null | undefined,
+  ocrRagioneSociale: string | null | undefined,
+): boolean {
+  const level = compareRagioneSociale(fornitoreNome, ocrRagioneSociale)
+  return level === 'exact' || level === 'strong' || level === 'partial'
+}
+
 export function comparePartitaIva(
   a: string | null | undefined,
   b: string | null | undefined,
