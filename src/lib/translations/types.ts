@@ -122,6 +122,7 @@ export type Translations = {
     suggestEmailSourceQueue: string
     suggestEmailSourceUnmatched: string
     suggestEmailTitle: string
+    suggestEmailBillingPlatformOnly: string
     noAddressRegistered: string
     noFiscalRegistered: string
     clientSince: string

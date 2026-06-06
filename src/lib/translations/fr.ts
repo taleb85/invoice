@@ -1624,6 +1624,8 @@ const translations: Translations = {
     suggestEmailSourceQueue: "de la file d'attente",
     suggestEmailSourceUnmatched: 'de TVA non associée',
     suggestEmailTitle: 'Emails trouvés dans les documents reçus',
+    suggestEmailBillingPlatformOnly:
+      'Les documents de ce fournisseur arrivent uniquement via Xero/QuickBooks (expéditeur partagé). Pas d’e-mail direct à enregistrer : utilisez Synchroniser les e-mails depuis le tableau de bord (site) ou saisissez l’adresse manuellement.',
     noAddressRegistered: 'Aucune adresse enregistrée',
     noFiscalRegistered: 'Aucune donnée fiscale',
     clientSince: 'Client depuis',

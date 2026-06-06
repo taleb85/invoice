@@ -79,6 +79,11 @@ export async function GET(
 
   // Accumulate suggestions: email → { count, last_seen, source }
   const map = new Map<string, { count: number; last_seen: string | null; source: EmailSuggestion['source'] }>()
+  let billingPlatformDocCount = 0
+
+  function noteBillingPlatformSender(email: string | null | undefined) {
+    if (isSharedBillingPlatformSenderEmail(email)) billingPlatformDocCount += 1
+  }
 
   function merge(
     email: string,
@@ -108,6 +113,7 @@ export async function GET(
     .limit(500)
 
   for (const row of (logs ?? [])) {
+    noteBillingPlatformSender(row.mittente)
     if (isEmail(row.mittente)) merge(row.mittente, row.data, 'log')
   }
 
@@ -121,6 +127,7 @@ export async function GET(
     .limit(500)
 
   for (const row of (docs ?? [])) {
+    noteBillingPlatformSender(row.mittente)
     if (isEmail(row.mittente)) merge(row.mittente, row.created_at, 'queue')
   }
 
@@ -148,5 +155,7 @@ export async function GET(
     .map(([email, v]) => ({ email, ...v }))
     .sort((a, b) => b.count - a.count || (b.last_seen ?? '').localeCompare(a.last_seen ?? ''))
 
-  return NextResponse.json({ suggestions })
+  const billing_platform_only = suggestions.length === 0 && billingPlatformDocCount > 0
+
+  return NextResponse.json({ suggestions, billing_platform_only })
 }

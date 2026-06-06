@@ -2831,6 +2831,8 @@ const translations: Translations = {
     suggestEmailSourceQueue: 'da coda documenti',
     suggestEmailSourceUnmatched: 'da P.IVA non abbinata',
     suggestEmailTitle: 'Email trovate nei documenti ricevuti',
+    suggestEmailBillingPlatformOnly:
+      'I documenti di questo fornitore arrivano solo tramite Xero/QuickBooks (mittente condiviso). Non c’è un’email diretta da salvare: usa Sincronizza Email dalla Dashboard (sede) oppure inserisci manualmente l’indirizzo del fornitore se lo conosci.',
     noAddressRegistered: 'Nessun indirizzo registrato',
     noFiscalRegistered: 'Nessun dato fiscale registrato',
     clientSince: 'Cliente dal',

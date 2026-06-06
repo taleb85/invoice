@@ -1624,6 +1624,8 @@ const translations: Translations = {
     suggestEmailSourceQueue: 'de la cola de documentos',
     suggestEmailSourceUnmatched: 'de NIF no asociado',
     suggestEmailTitle: 'Emails encontrados en documentos recibidos',
+    suggestEmailBillingPlatformOnly:
+      'Los documentos de este proveedor llegan solo vía Xero/QuickBooks (remitente compartido). No hay email directo que guardar: usa Sincronizar email desde el panel (sede) o introduce la dirección manualmente.',
     noAddressRegistered: 'Sin dirección registrada',
     noFiscalRegistered: 'Sin datos fiscales',
     clientSince: 'Cliente desde',

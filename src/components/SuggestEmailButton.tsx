@@ -23,6 +23,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<EmailSuggestion[] | null>(null)
+  const [billingPlatformOnly, setBillingPlatformOnly] = useState(false)
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const panelRef = useRef<HTMLDivElement>(null)
@@ -40,6 +41,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
       if (!res.ok) throw new Error(await res.text())
       const json = await res.json()
       setSuggestions(json.suggestions ?? [])
+      setBillingPlatformOnly(json.billing_platform_only === true)
     } catch {
       setSuggestions([])
     } finally {
@@ -116,7 +118,9 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
             )}
 
             {!loading && suggestions !== null && suggestions.length === 0 && (
-              <p className="py-5 text-center text-xs text-app-fg-muted">{s.suggestEmailNoResults}</p>
+              <p className="py-5 text-center text-xs text-app-fg-muted">
+                {billingPlatformOnly ? s.suggestEmailBillingPlatformOnly : s.suggestEmailNoResults}
+              </p>
             )}
 
             {!loading && suggestions !== null && suggestions.length > 0 && (

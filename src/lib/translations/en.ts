@@ -1679,6 +1679,8 @@ const translations: Translations = {
     suggestEmailSourceQueue: 'from document queue',
     suggestEmailSourceUnmatched: 'from unmatched VAT',
     suggestEmailTitle: 'Emails found in received documents',
+    suggestEmailBillingPlatformOnly:
+      'This supplier’s documents arrive only via Xero/QuickBooks (shared sender). There is no direct email to save: use Sync Email from the Dashboard (branch) or enter the supplier’s address manually if you know it.',
     noAddressRegistered: 'No address on file',
     noFiscalRegistered: 'No tax data on file',
     clientSince: 'Customer since',

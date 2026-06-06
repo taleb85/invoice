@@ -1624,6 +1624,8 @@ const translations: Translations = {
     suggestEmailSourceQueue: 'aus Dokumenten-Warteschlange',
     suggestEmailSourceUnmatched: 'aus nicht zugeordneter USt-IdNr.',
     suggestEmailTitle: 'E-Mails in empfangenen Dokumenten gefunden',
+    suggestEmailBillingPlatformOnly:
+      'Dokumente dieses Lieferanten kommen nur über Xero/QuickBooks (gemeinsamer Absender). Keine direkte E-Mail zum Speichern: E-Mail-Sync über das Dashboard (Filiale) oder Adresse manuell eintragen.',
     noAddressRegistered: 'Keine Adresse hinterlegt',
     noFiscalRegistered: 'Keine Steuerdaten',
     clientSince: 'Kunde seit',
