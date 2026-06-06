@@ -236,6 +236,9 @@ async function buildSuggestEmailResponse(
     billing_platform_only,
     scanned_inbox: inbox.scanned,
     inbox_error: inbox.error ?? null,
+    inbox_search_terms: inbox.search_terms,
+    inbox_mails_matched: inbox.mails_matched,
+    inbox_lookback_days: inbox.lookback_days,
   })
 }
 

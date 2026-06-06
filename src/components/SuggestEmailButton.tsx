@@ -6,8 +6,14 @@ import type { EmailSuggestion } from '@/app/api/fornitori/[id]/suggest-email/rou
 
 interface Props {
   fornitoreId: string
+  /** Nome fornitore — mostrato durante la scansione IMAP per nome. */
+  fornitoreNome?: string
   /** Called after an email is successfully saved as an alias */
   onSaved?: (email: string) => void
+}
+
+function fillTemplate(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(vars[key] ?? `{${key}}`))
 }
 
 const SOURCE_ICONS: Record<EmailSuggestion['source'], string> = {
@@ -19,7 +25,7 @@ const SOURCE_ICONS: Record<EmailSuggestion['source'], string> = {
   inbox_body: '📝',
 }
 
-export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
+export default function SuggestEmailButton({ fornitoreId, fornitoreNome, onSaved }: Props) {
   const t = useT()
   const s = t.appStrings
 
@@ -28,6 +34,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
   const [suggestions, setSuggestions] = useState<EmailSuggestion[] | null>(null)
   const [billingPlatformOnly, setBillingPlatformOnly] = useState(false)
   const [inboxError, setInboxError] = useState<string | null>(null)
+  const [inboxScanSummary, setInboxScanSummary] = useState<string | null>(null)
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const panelRef = useRef<HTMLDivElement>(null)
@@ -40,6 +47,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
     setOpen(true)
     setLoading(true)
     setInboxError(null)
+    setInboxScanSummary(null)
     try {
       const res = await fetch(`/api/fornitori/${fornitoreId}/suggest-email`, {
         method: 'POST',
@@ -51,6 +59,14 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
       setSuggestions(json.suggestions ?? [])
       setBillingPlatformOnly(json.billing_platform_only === true)
       setInboxError(typeof json.inbox_error === 'string' ? json.inbox_error : null)
+      if (json.scanned_inbox === true && Array.isArray(json.inbox_search_terms)) {
+        const terms = (json.inbox_search_terms as string[]).join(', ')
+        const n = typeof json.inbox_mails_matched === 'number' ? json.inbox_mails_matched : 0
+        const days = typeof json.inbox_lookback_days === 'number' ? json.inbox_lookback_days : 90
+        setInboxScanSummary(
+          fillTemplate(s.suggestEmailInboxScanSummary, { n, terms, days }),
+        )
+      }
     } catch {
       setSuggestions([])
     } finally {
@@ -96,6 +112,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
       <button
         type="button"
         onClick={handleSearch}
+        title={fornitoreNome ? fillTemplate(s.suggestEmailSearching, { name: fornitoreNome }) : s.suggestEmailTitle}
         className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/35 px-2.5 py-1.5 text-[11px] font-medium text-cyan-300 transition-colors hover:bg-cyan-500/20"
       >
         <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -133,7 +150,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                {s.suggestEmailSearching}
+                {fillTemplate(s.suggestEmailSearching, { name: fornitoreNome ?? '…' })}
               </div>
             )}
 
@@ -189,6 +206,11 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
                   </li>
                 ))}
               </ul>
+            )}
+            {!loading && inboxScanSummary && (
+              <p className="mt-2 border-t border-white/10 pt-2 text-[10px] text-cyan-300/90">
+                {inboxScanSummary}
+              </p>
             )}
           </div>
         </div>

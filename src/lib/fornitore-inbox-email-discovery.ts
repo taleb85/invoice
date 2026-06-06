@@ -149,10 +149,21 @@ export async function discoverFornitoreEmailsFromInbox(
   suggestions: InboxDiscoveredEmail[]
   billing_platform_only: boolean
   scanned: boolean
+  search_terms: string[]
+  mails_matched: number
+  lookback_days: number
   error?: string
 }> {
   if (!fornitore.sede_id) {
-    return { suggestions: [], billing_platform_only: false, scanned: false, error: 'sede_missing' }
+    return {
+      suggestions: [],
+      billing_platform_only: false,
+      scanned: false,
+      search_terms: [],
+      mails_matched: 0,
+      lookback_days: 0,
+      error: 'sede_missing',
+    }
   }
 
   const { data: sede } = await supabase
@@ -162,12 +173,28 @@ export async function discoverFornitoreEmailsFromInbox(
     .maybeSingle()
 
   if (!sede?.imap_host || !sede.imap_user || !sede.imap_password) {
-    return { suggestions: [], billing_platform_only: false, scanned: false, error: 'imap_not_configured' }
+    return {
+      suggestions: [],
+      billing_platform_only: false,
+      scanned: false,
+      search_terms: [],
+      mails_matched: 0,
+      lookback_days: 0,
+      error: 'imap_not_configured',
+    }
   }
 
   const password = await decryptImapPassword(supabase, sede.imap_password)
   if (!password) {
-    return { suggestions: [], billing_platform_only: false, scanned: false, error: 'imap_decrypt_failed' }
+    return {
+      suggestions: [],
+      billing_platform_only: false,
+      scanned: false,
+      search_terms: [],
+      mails_matched: 0,
+      lookback_days: 0,
+      error: 'imap_decrypt_failed',
+    }
   }
 
   const lookbackDays = Math.min(
@@ -177,7 +204,15 @@ export async function discoverFornitoreEmailsFromInbox(
   const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
   const searchTerms = buildSupplierInboxSearchTerms(fornitore.nome, fornitore.display_name)
   if (searchTerms.length === 0) {
-    return { suggestions: [], billing_platform_only: false, scanned: false, error: 'name_too_short' }
+    return {
+      suggestions: [],
+      billing_platform_only: false,
+      scanned: false,
+      search_terms: [],
+      mails_matched: 0,
+      lookback_days: 0,
+      error: 'name_too_short',
+    }
   }
 
   const exclude = new Set<string>(opts?.knownEmails ?? [])
@@ -197,6 +232,7 @@ export async function discoverFornitoreEmailsFromInbox(
     { count: number; last_seen: string | null; source: InboxDiscoveredEmailSource }
   >()
   let billingPlatformHits = 0
+  let mailsMatched = 0
 
   try {
     await withImapSession(creds, async (client) => {
@@ -259,6 +295,8 @@ export async function discoverFornitoreEmailsFromInbox(
           })
         }
 
+        mailsMatched = candidates.length
+
         let bodyParsed = 0
         for (const c of candidates) {
           if (c.fromEmail && isSharedBillingPlatformSenderEmail(c.fromEmail)) {
@@ -304,7 +342,15 @@ export async function discoverFornitoreEmailsFromInbox(
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { suggestions: [], billing_platform_only: false, scanned: true, error: message }
+    return {
+      suggestions: [],
+      billing_platform_only: false,
+      scanned: true,
+      search_terms: searchTerms,
+      mails_matched: 0,
+      lookback_days: lookbackDays,
+      error: message,
+    }
   }
 
   const suggestions: InboxDiscoveredEmail[] = [...map.entries()]
@@ -314,5 +360,12 @@ export async function discoverFornitoreEmailsFromInbox(
   const billing_platform_only =
     suggestions.length === 0 && billingPlatformHits > 0
 
-  return { suggestions, billing_platform_only, scanned: true }
+  return {
+    suggestions,
+    billing_platform_only,
+    scanned: true,
+    search_terms: searchTerms,
+    mails_matched: mailsMatched,
+    lookback_days: lookbackDays,
+  }
 }

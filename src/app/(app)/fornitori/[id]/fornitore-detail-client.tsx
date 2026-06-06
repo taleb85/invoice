@@ -1610,7 +1610,7 @@ function DashboardTab({
                   </svg>
                   {t.appStrings.noEmailSyncWarning}
                 </Link>
-                <SuggestEmailButton fornitoreId={fornitoreId} />
+                <SuggestEmailButton fornitoreId={fornitoreId} fornitoreNome={fornitore.display_name?.trim() || fornitore.nome} />
               </div>
             )}
           </div>

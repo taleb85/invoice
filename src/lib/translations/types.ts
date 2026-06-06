@@ -131,6 +131,7 @@ export type Translations = {
     suggestEmailInboxErrorDecrypt: string
     suggestEmailInboxErrorName: string
     suggestEmailInboxErrorGeneric: string
+    suggestEmailInboxScanSummary: string
     noAddressRegistered: string
     noFiscalRegistered: string
     clientSince: string
