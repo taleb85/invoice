@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 
 export interface EmailSuggestion {
   email: string
@@ -85,7 +86,7 @@ export async function GET(
     source: EmailSuggestion['source']
   ) {
     const key = normEmail(email)
-    if (!isEmail(key) || knownEmails.has(key)) return
+    if (!isEmail(key) || knownEmails.has(key) || isSharedBillingPlatformSenderEmail(key)) return
     const existing = map.get(key)
     if (existing) {
       existing.count += 1
