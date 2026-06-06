@@ -76,7 +76,7 @@ import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { autoCreatePotentialSupplierFromScan } from '@/lib/auto-potential-supplier'
 import {
   loadEmailScanBlacklistSet,
-  senderMatchesEmailScanBlacklist,
+  shouldSkipEmailForScanBlacklist,
 } from '@/lib/email-scan-blacklist'
 import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 import { autoReinferSuppliers } from '@/lib/auto-supplier-reinfer'
@@ -1192,7 +1192,7 @@ async function processEmails(
   const workEmails =
     blacklistSet.size === 0
       ? emails
-      : emails.filter((e) => !senderMatchesEmailScanBlacklist(blacklistSet, e.from))
+      : emails.filter((e) => !shouldSkipEmailForScanBlacklist(blacklistSet, e.from))
   const blacklistSkipped = emails.length - workEmails.length
 
   const ocrScartoRules =

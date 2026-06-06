@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 
 /** Motivi salvati su `email_scan_blacklist.motivo` (allineamento DB). */
 export const EMAIL_BLACKLIST_MOTIVI = [
@@ -40,6 +41,15 @@ export function senderMatchesEmailScanBlacklist(
     if (blacklistLower.has(k)) return true
   }
   return false
+}
+
+/** True se l'email va esclusa dal batch sync per blacklist sede. */
+export function shouldSkipEmailForScanBlacklist(
+  blacklistLower: Set<string>,
+  fromHeader: string,
+): boolean {
+  if (isSharedBillingPlatformSenderEmail(fromHeader)) return false
+  return senderMatchesEmailScanBlacklist(blacklistLower, fromHeader)
 }
 
 /** Carica `lower(mittente)` per sede — confronto senza OCR / log sul mittente saltato. */
