@@ -5,6 +5,11 @@ import { fornitoreNomeMatchesOcr, tokenOverlapRatio } from '@/lib/fornitore-cros
 import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 import { tryBootstrapFornitoreFromOcrRagione } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 import { cleanupSharedPlatformFornitoreEmails } from '@/lib/cleanup-shared-platform-fornitore-emails'
+import { fixStatementFornitoreDriftBatch } from '@/lib/audit-statement-fornitore-fix'
+import {
+  extractStatementFromSupplierName,
+  statementEmailSubjectMatchesFornitore,
+} from '@/lib/statement-supplier-subject'
 
 const BATCH = 100
 
@@ -32,19 +37,50 @@ export type AutoReinferResult = {
   fornitoreReassigned: number
   fornitoreCreated: number
   ghostEmailsRemoved: number
+  statementDriftFixed: number
 }
 
 async function fornitoreAssignmentContradictsOcr(
   supabase: SupabaseClient,
   fornitoreId: string,
-  ocrRagioneSociale: string,
-  mittente?: string | null,
+  ocrRagioneSociale: string | null | undefined,
+  opts?: { mittente?: string | null; oggetto_mail?: string | null },
 ): Promise<boolean> {
-  const { data: f } = await supabase.from('fornitori').select('nome').eq('id', fornitoreId).maybeSingle()
+  const { data: f } = await supabase
+    .from('fornitori')
+    .select('nome, display_name')
+    .eq('id', fornitoreId)
+    .maybeSingle()
   if (!f?.nome?.trim()) return false
-  if (fornitoreNomeMatchesOcr(f.nome, ocrRagioneSociale)) return false
-  if (isSharedBillingPlatformSenderEmail(mittente ?? '')) return true
-  return tokenOverlapRatio(f.nome, ocrRagioneSociale) < 0.2
+
+  const rs = ocrRagioneSociale?.trim()
+  if (rs) {
+    if (fornitoreNomeMatchesOcr(f.nome, rs)) return false
+    if (isSharedBillingPlatformSenderEmail(opts?.mittente ?? '')) return true
+    if (tokenOverlapRatio(f.nome, rs) < 0.2) return true
+  }
+
+  if (opts?.oggetto_mail && extractStatementFromSupplierName(opts.oggetto_mail)) {
+    if (
+      !statementEmailSubjectMatchesFornitore(
+        opts.oggetto_mail,
+        f.nome,
+        f.display_name,
+        rs,
+      )
+    ) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function preferredSupplierNameFromDoc(
+  ragioneSociale: string | null | undefined,
+  oggettoMail: string | null | undefined,
+): string | null {
+  return extractStatementFromSupplierName(oggettoMail) ?? ragioneSociale?.trim() ?? null
 }
 
 /**
@@ -76,6 +112,7 @@ export async function autoReinferSuppliers(
     fornitoreReassigned: 0,
     fornitoreCreated: 0,
     ghostEmailsRemoved: 0,
+    statementDriftFixed: 0,
   }
 
   try {
@@ -83,6 +120,16 @@ export async function autoReinferSuppliers(
     result.ghostEmailsRemoved = cleanup.aliasesRemoved + cleanup.primaryEmailsCleared
   } catch (e) {
     logger.warn('[AUTO-REINFER] cleanup ghost emails', e)
+  }
+
+  try {
+    const drift = await fixStatementFornitoreDriftBatch(supabase, {
+      sedeId: sedeFilter,
+      batchSize: 50,
+    })
+    result.statementDriftFixed = drift.fixes.length
+  } catch (e) {
+    logger.warn('[AUTO-REINFER] statement subject drift', e)
   }
 
   const stati = ['da_associare', 'da_revisionare', 'in_attesa', 'associato']
@@ -123,12 +170,13 @@ export async function autoReinferSuppliers(
     }
 
     let mightContradict = false
-    if (doc.fornitore_id && ragioneSociale) {
+    const supplierNameHint = preferredSupplierNameFromDoc(ragioneSociale, doc.oggetto_mail)
+    if (doc.fornitore_id && supplierNameHint) {
       mightContradict = await fornitoreAssignmentContradictsOcr(
         supabase,
         doc.fornitore_id,
         ragioneSociale,
-        doc.mittente,
+        { mittente: doc.mittente, oggetto_mail: doc.oggetto_mail },
       )
     }
 
@@ -147,10 +195,10 @@ export async function autoReinferSuppliers(
       let effectiveFornitoreId = doc.fornitore_id
 
       // ── Correzione abbinamento errato (es. Xero → fornitore sbagliato) ───
-      if (mightContradict && doc.fornitore_id && ragioneSociale) {
+      if (mightContradict && doc.fornitore_id && supplierNameHint) {
         const bootstrap = await tryBootstrapFornitoreFromOcrRagione(
           supabase,
-          { ragione_sociale: ragioneSociale, p_iva: pIva },
+          { ragione_sociale: supplierNameHint, p_iva: pIva },
           doc.sede_id,
           doc.mittente,
         )

@@ -11,6 +11,14 @@ describe('statement-supplier-subject', () => {
     )
   })
 
+  it('rimuove il suffisso «for cliente» dall\'oggetto', () => {
+    expect(
+      extractStatementFromSupplierName(
+        'Statement from V & S Catering Supplies Limited for Osteria Basilico',
+      ),
+    ).toBe('V & S Catering Supplies Limited')
+  })
+
   it('esclude estratti con oggetto di altro fornitore', () => {
     expect(
       statementEmailSubjectMatchesFornitore(

@@ -35,7 +35,9 @@ export function extractStatementFromSupplierName(subject: string | null | undefi
   if (!s) return null
   const m = s.match(/\bstatement\s+from\s+(.+)$/i)
   if (!m?.[1]) return null
-  const tail = m[1].trim()
+  let tail = m[1].trim()
+  // «Statement from ACME Ltd for Client Name» → solo il fornitore emittente
+  tail = tail.replace(/\s+for\s+.+$/i, '').trim()
   const cut = tail.split(/\s*[-–|]\s*/)[0]?.trim()
   return cut || tail || null
 }

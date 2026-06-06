@@ -4,6 +4,7 @@ import {
   extractStatementFromSupplierName,
   statementEmailSubjectMatchesFornitore,
 } from '@/lib/statement-supplier-subject'
+import { tryBootstrapFornitoreFromOcrRagione } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 
 /**
  * Inoltri da cliente: oggetto «Statement from …» indica il fornitore reale anche se
@@ -140,12 +141,17 @@ export async function fixStatementFornitoreDriftBatch(
       continue
     }
 
-    const target = await resolveFornitoreFromStatementSubject(service, {
-      sedeId: row.sede_id,
-      oggetto_mail: row.email_subject,
-      metadata: null,
-      mittente: null,
-    })
+    const target =
+      (await resolveFornitoreFromStatementSubject(service, {
+        sedeId: row.sede_id,
+        oggetto_mail: row.email_subject,
+        metadata: null,
+        mittente: null,
+      })) ??
+      (await bootstrapFornitoreFromStatementSubject(service, {
+        sedeId: row.sede_id,
+        oggetto_mail: row.email_subject,
+      }))
     if (!target || target.id === row.fornitore_id) continue
 
     const { error: updErr } = await service
@@ -203,4 +209,23 @@ export async function fixStatementFornitoreDriftBatch(
     has_more: rows.length === batchSize,
     next_after_id: last?.id ?? null,
   }
+}
+
+async function bootstrapFornitoreFromStatementSubject(
+  service: SupabaseClient,
+  opts: {
+    sedeId: string | null | undefined
+    oggetto_mail: string | null | undefined
+  },
+): Promise<{ id: string; nome: string } | null> {
+  const name = extractStatementFromSupplierName(opts.oggetto_mail)
+  if (!name?.trim() || !opts.sedeId?.trim()) return null
+  const bootstrap = await tryBootstrapFornitoreFromOcrRagione(
+    service,
+    { ragione_sociale: name.trim() },
+    opts.sedeId.trim(),
+    null,
+  )
+  if (bootstrap.kind !== 'resolved') return null
+  return { id: bootstrap.fornitore.id, nome: bootstrap.fornitore.nome }
 }
