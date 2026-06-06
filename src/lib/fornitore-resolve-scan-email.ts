@@ -48,6 +48,20 @@ export function listSharedBillingPlatformEmailPatterns(): string[] {
 }
 
 /**
+ * Termini IMAP `FROM` per piattaforme di fatturazione condivise (Xero, QuickBooks).
+ * Usati nella sync mirata fornitore insieme a SUBJECT col nome fornitore.
+ */
+export function listSharedBillingPlatformImapFromTerms(): string[] {
+  return [
+    'messaging-service@post.xero.com',
+    'noreply@post.xero.com',
+    'notifications@notification.intuit.com',
+    'quickbooks@notification.intuit.com',
+    ...[...SHARED_BILLING_PLATFORM_DOMAINS].map((d) => `@${d}`),
+  ]
+}
+
+/**
  * Estrae il dominio normalizzato da un indirizzo email.
  * Rimuove eventuali subdomain generici (es. `mail.`, `smtp.`).
  */

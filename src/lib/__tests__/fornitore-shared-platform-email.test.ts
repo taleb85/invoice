@@ -3,6 +3,7 @@ import {
   isSharedBillingPlatformSenderEmail,
   resolveFornitoreFromScanEmail,
   listSharedBillingPlatformEmailPatterns,
+  listSharedBillingPlatformImapFromTerms,
 } from '@/lib/fornitore-resolve-scan-email'
 import { fornitoreNomeMatchesOcr } from '@/lib/fornitore-cross-check'
 
@@ -44,5 +45,13 @@ describe('listSharedBillingPlatformEmailPatterns', () => {
     const patterns = listSharedBillingPlatformEmailPatterns()
     expect(patterns).toContain('%@post.xero.com')
     expect(patterns).toContain('%@notification.intuit.com')
+  })
+})
+
+describe('listSharedBillingPlatformImapFromTerms', () => {
+  it('includes Xero messaging sender for IMAP FROM search', () => {
+    const terms = listSharedBillingPlatformImapFromTerms()
+    expect(terms).toContain('messaging-service@post.xero.com')
+    expect(terms.some((t) => t.includes('post.xero.com'))).toBe(true)
   })
 })

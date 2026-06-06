@@ -72,7 +72,7 @@ function addressListEmails(addrs: AddressObject | AddressObject[] | undefined): 
     .filter((e) => e.includes('@'))
 }
 
-function messageMatchesFornitore(
+export function messageMatchesFornitore(
   subject: string | null | undefined,
   fromDisplayName: string | null | undefined,
   fornitoreNome: string,

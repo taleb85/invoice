@@ -23,7 +23,8 @@ import { autoRegisterCombinedPdfInvoiceAfterStatement } from '@/lib/statement-co
 import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
-import { resolveFornitoreFromScanEmail } from '@/lib/fornitore-resolve-scan-email'
+import { resolveFornitoreFromScanEmail, isSharedBillingPlatformSenderEmail, listSharedBillingPlatformImapFromTerms } from '@/lib/fornitore-resolve-scan-email'
+import { buildSupplierInboxSearchTerms, messageMatchesFornitore } from '@/lib/fornitore-inbox-email-discovery'
 import { findUniqueFornitoreForPendingDoc } from '@/lib/auto-resolve-pending-doc'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
@@ -829,6 +830,7 @@ async function fetchFromImap(
 type Fornitore = {
   id: string
   nome: string
+  display_name?: string | null
   sede_id: string | null
   language?: string | null
   rekki_link?: string | null
@@ -858,7 +860,7 @@ async function loadFornitoreScanContext(
 ): Promise<{ fornitore: Fornitore; scope: SupplierEmailScope } | null> {
   const { data: f, error } = await supabase
     .from('fornitori')
-    .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id, email')
+    .select('id, nome, display_name, sede_id, language, rekki_link, rekki_supplier_id, email')
     .eq('id', fornitoreId)
     .single()
   if (error || !f) return null
@@ -883,6 +885,7 @@ async function loadFornitoreScanContext(
   const fornitore: Fornitore = {
     id: f.id,
     nome: f.nome,
+    display_name: (f as { display_name?: string | null }).display_name ?? null,
     sede_id: f.sede_id,
     language: f.language,
     rekki_link: f.rekki_link,
@@ -898,6 +901,40 @@ function emailMatchesSupplierScope(fromRaw: string, scope: SupplierEmailScope): 
   if (scope.allowedEmails.has(from)) return true
   const dom = from.split('@')[1]
   return !!dom && scope.allowedDomains.has(dom)
+}
+
+function buildSenderScopeForImapFetch(
+  supplierScope: SupplierEmailScope,
+  fornitore: Pick<Fornitore, 'nome' | 'display_name'>,
+  docNumberFilters: string[],
+): NonNullable<SenderSearchScopeOpt> {
+  const supplierNameTerms = buildSupplierInboxSearchTerms(fornitore.nome, fornitore.display_name)
+  const subjectAnyOf = [...docNumberFilters, ...supplierNameTerms]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s, i, arr) => arr.indexOf(s) === i)
+
+  const platformFromTerms = listSharedBillingPlatformImapFromTerms()
+  const emails = [
+    ...new Set([...supplierScope.allowedEmails, ...platformFromTerms.map((e) => e.toLowerCase())]),
+  ]
+
+  return {
+    emails,
+    domains: Array.from(supplierScope.allowedDomains),
+    ...(subjectAnyOf.length > 0 ? { subjectAnyOf } : {}),
+  }
+}
+
+/** Sync mirata fornitore: accetta anche mail Xero/QuickBooks se l'oggetto indica il fornitore. */
+function emailMatchesFornitoreScopedScan(
+  email: ScannedEmail,
+  scope: SupplierEmailScope,
+  fornitore: Pick<Fornitore, 'nome' | 'display_name'>,
+): boolean {
+  if (emailMatchesSupplierScope(email.from, scope)) return true
+  if (!isSharedBillingPlatformSenderEmail(email.from)) return false
+  return messageMatchesFornitore(email.subject, null, fornitore.nome, fornitore.display_name)
 }
 
 /** Unità di lavoro per una singola email (allegati o corpo scansionabile). */
@@ -3385,14 +3422,16 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         const subjectAnyOf = (params.docNumbersFilter ?? [])
           .map(s => (typeof s === 'string' ? s.trim() : ''))
           .filter(Boolean)
-        const senderScopeForFetch = supplierScope
-          ? {
-              emails: Array.from(supplierScope.allowedEmails),
-              domains: Array.from(supplierScope.allowedDomains),
-              ...(subjectAnyOf.length > 0 ? { subjectAnyOf } : {}),
-              ...(params.useSenderFallback === true ? { useSenderFallback: true } : {}),
-            }
-          : null
+        const senderScopeForFetch = supplierScope && directFornitore
+          ? buildSenderScopeForImapFetch(supplierScope, directFornitore, subjectAnyOf)
+          : supplierScope
+            ? {
+                emails: Array.from(supplierScope.allowedEmails),
+                domains: Array.from(supplierScope.allowedDomains),
+                ...(subjectAnyOf.length > 0 ? { subjectAnyOf } : {}),
+                ...(params.useSenderFallback === true ? { useSenderFallback: true } : {}),
+              }
+            : null
         const emails = await fetchFromImap(
           sede.imap_host,
           sede.imap_port ?? 993,
@@ -3500,9 +3539,11 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
             },
           }
         )
-        const filtered = supplierScope
-          ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope!))
-          : emails
+        const filtered = supplierScope && directFornitore
+          ? emails.filter((e) => emailMatchesFornitoreScopedScan(e, supplierScope, directFornitore))
+          : supplierScope
+            ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope))
+            : emails
         const syncKindFiltered = filterEmailsForSyncDocumentKind(filtered, effectiveDocKind)
 
         const batchMails = syncKindFiltered.length
@@ -3688,9 +3729,11 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         lookbackDaysOverride: lookbackOverride,
       })
       const emails = await fetchUnseenEmails(globalHooks, globalFiscalRange, gLb.lookbackDays, gLb.lookbackHours)
-      const filtered = supplierScope
-        ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope!))
-        : emails
+        const filtered = supplierScope && directFornitore
+          ? emails.filter((e) => emailMatchesFornitoreScopedScan(e, supplierScope, directFornitore))
+          : supplierScope
+            ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope))
+            : emails
       const syncKindFiltered = filterEmailsForSyncDocumentKind(filtered, effectiveDocKind)
       const batchMails = syncKindFiltered.length
       mailsFound += batchMails
