@@ -121,8 +121,16 @@ export type Translations = {
     suggestEmailSourceLog: string
     suggestEmailSourceQueue: string
     suggestEmailSourceUnmatched: string
+    suggestEmailSourceInboxFrom: string
+    suggestEmailSourceInboxReplyTo: string
+    suggestEmailSourceInboxBody: string
     suggestEmailTitle: string
     suggestEmailBillingPlatformOnly: string
+    suggestEmailInboxErrorNoSede: string
+    suggestEmailInboxErrorNoImap: string
+    suggestEmailInboxErrorDecrypt: string
+    suggestEmailInboxErrorName: string
+    suggestEmailInboxErrorGeneric: string
     noAddressRegistered: string
     noFiscalRegistered: string
     clientSince: string

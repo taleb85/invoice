@@ -14,6 +14,9 @@ const SOURCE_ICONS: Record<EmailSuggestion['source'], string> = {
   log: '📋',
   queue: '📥',
   unmatched_queue: '🔍',
+  inbox_from: '📧',
+  inbox_reply_to: '↩️',
+  inbox_body: '📝',
 }
 
 export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
@@ -24,6 +27,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<EmailSuggestion[] | null>(null)
   const [billingPlatformOnly, setBillingPlatformOnly] = useState(false)
+  const [inboxError, setInboxError] = useState<string | null>(null)
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const panelRef = useRef<HTMLDivElement>(null)
@@ -34,14 +38,19 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
       return
     }
     setOpen(true)
-    if (suggestions !== null) return // already loaded
     setLoading(true)
+    setInboxError(null)
     try {
-      const res = await fetch(`/api/fornitori/${fornitoreId}/suggest-email`)
+      const res = await fetch(`/api/fornitori/${fornitoreId}/suggest-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scan_inbox: true }),
+      })
       if (!res.ok) throw new Error(await res.text())
       const json = await res.json()
       setSuggestions(json.suggestions ?? [])
       setBillingPlatformOnly(json.billing_platform_only === true)
+      setInboxError(typeof json.inbox_error === 'string' ? json.inbox_error : null)
     } catch {
       setSuggestions([])
     } finally {
@@ -68,7 +77,18 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
   function sourceLabel(source: EmailSuggestion['source']) {
     if (source === 'log') return s.suggestEmailSourceLog
     if (source === 'queue') return s.suggestEmailSourceQueue
-    return s.suggestEmailSourceUnmatched
+    if (source === 'unmatched_queue') return s.suggestEmailSourceUnmatched
+    if (source === 'inbox_from') return s.suggestEmailSourceInboxFrom
+    if (source === 'inbox_reply_to') return s.suggestEmailSourceInboxReplyTo
+    return s.suggestEmailSourceInboxBody
+  }
+
+  function inboxErrorLabel(code: string) {
+    if (code === 'sede_missing') return s.suggestEmailInboxErrorNoSede
+    if (code === 'imap_not_configured') return s.suggestEmailInboxErrorNoImap
+    if (code === 'imap_decrypt_failed') return s.suggestEmailInboxErrorDecrypt
+    if (code === 'name_too_short') return s.suggestEmailInboxErrorName
+    return s.suggestEmailInboxErrorGeneric
   }
 
   return (
@@ -118,9 +138,14 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
             )}
 
             {!loading && suggestions !== null && suggestions.length === 0 && (
-              <p className="py-5 text-center text-xs text-app-fg-muted">
-                {billingPlatformOnly ? s.suggestEmailBillingPlatformOnly : s.suggestEmailNoResults}
-              </p>
+              <div className="space-y-2 py-4 px-1 text-center text-xs text-app-fg-muted">
+                <p>
+                  {billingPlatformOnly ? s.suggestEmailBillingPlatformOnly : s.suggestEmailNoResults}
+                </p>
+                {inboxError && inboxError !== 'sede_missing' && (
+                  <p className="text-[10px] text-amber-400/90">{inboxErrorLabel(inboxError)}</p>
+                )}
+              </div>
             )}
 
             {!loading && suggestions !== null && suggestions.length > 0 && (
