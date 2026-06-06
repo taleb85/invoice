@@ -6,8 +6,10 @@ import { decryptImapPassword } from '@/lib/imap-encryption'
 import { extractEmailFromSenderHeader } from '@/lib/sender-email'
 import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 import {
+  compareRagioneSociale,
   extractSupplierFieldsFromEmailBody,
   fornitoreNomeMatchesOcr,
+  normalizeRagioneSocialeForComparison,
 } from '@/lib/fornitore-cross-check'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 
@@ -26,6 +28,38 @@ const MAX_BODY_PARSE = 30
 
 const NOREPLY_LOCAL = /^(no-?reply|donotreply|noreply|mailer-daemon|postmaster|bounce)/i
 
+/** Parole troppo generiche per IMAP BODY/SUBJECT o match parziali da soli. */
+const GENERIC_INDUSTRY_TOKENS = new Set([
+  'CATERING',
+  'SUPPLIES',
+  'SUPPLY',
+  'FOOD',
+  'KITCHEN',
+  'RESTAURANT',
+  'WHOLESALE',
+  'TRADE',
+  'SERVICES',
+  'SERVICE',
+  'GROUP',
+  'COMPANY',
+  'PRODUCTS',
+  'SOLUTIONS',
+  'NEWSLETTER',
+  'NEWS',
+  'DEALS',
+  'OFFERS',
+  'PROMO',
+  'PROMOTION',
+  'BUZZ',
+  'MARKETING',
+  'OILS',
+  'OIL',
+])
+
+const MARKETING_MAILBOX_LOCAL = /(?:newsletter|mailing|marketing|promo|campaign|subscri)/i
+const MARKETING_MAILBOX_DOMAIN =
+  /(?:newsletter|mailchimp|sendgrid|campaignmonitor|constantcontact|buzznewsletter|mailerlite|hubspot)/i
+
 /** Termini IMAP SUBJECT/BODY derivati dal nome fornitore (es. «Cici Cibo Limited» → «Cici Cibo»). */
 export function buildSupplierInboxSearchTerms(
   nome: string,
@@ -43,12 +77,124 @@ export function buildSupplierInboxSearchTerms(
     const tokens = n
       .split(/\s+/)
       .filter((t) => t.length >= 2 && !/^(ltd|limited|plc|inc|srl|spa)$/i.test(t))
-    if (tokens.length >= 2) terms.add(tokens.slice(0, 2).join(' '))
+    if (tokens.length >= 2) {
+      const pair = tokens.slice(0, 2)
+      const hasDistinctive = pair.some((t) => !GENERIC_INDUSTRY_TOKENS.has(t.toUpperCase()))
+      if (hasDistinctive) terms.add(pair.join(' '))
+    }
   }
   return [...terms]
     .filter((t) => t.length >= 4)
     .sort((a, b) => b.length - a.length)
     .slice(0, 4)
+}
+
+/** Esclude newsletter / mailing list che finiscono in BODY search su termini generici. */
+export function isLikelyMarketingMailboxEmail(email: string): boolean {
+  const key = email.trim().toLowerCase()
+  if (!key.includes('@')) return false
+  const [local, domain = ''] = key.split('@')
+  if (NOREPLY_LOCAL.test(local)) return true
+  if (MARKETING_MAILBOX_LOCAL.test(local)) return true
+  if (MARKETING_MAILBOX_DOMAIN.test(domain)) return true
+  return false
+}
+
+function distinctiveSupplierTokens(
+  fornitoreNome: string,
+  displayName?: string | null,
+): string[] {
+  const tokens = new Set<string>()
+  for (const raw of [fornitoreNome, displayName]) {
+    if (!raw?.trim()) continue
+    for (const t of normalizeRagioneSocialeForComparison(raw).split(/\s+/)) {
+      if (t.length >= 2 && !GENERIC_INDUSTRY_TOKENS.has(t)) tokens.add(t)
+    }
+    const initials = raw.match(/\b([A-Za-z])\s*(?:&|and)\s*([A-Za-z])\b/i)
+    if (initials) {
+      tokens.add(`${initials[1]}${initials[2]}`.toUpperCase())
+    }
+  }
+  return [...tokens]
+}
+
+function fieldContainsDistinctiveSupplierToken(
+  field: string,
+  distinctive: string[],
+): boolean {
+  if (distinctive.length === 0) return false
+  const norm = normalizeRagioneSocialeForComparison(field).replace(/\s+/g, '')
+  const upper = field.toUpperCase()
+  return distinctive.some((d) => {
+    const compact = d.replace(/\s+/g, '')
+    return norm.includes(compact) || upper.includes(d)
+  })
+}
+
+/** Estrae il fornitore da oggetti Xero «… from ACME Ltd for Client». */
+function extractSupplierFromBillingEmailSubject(subject: string | null | undefined): string | null {
+  const stmt = extractStatementFromSupplierName(subject)
+  if (stmt) return stmt
+  const s = (subject ?? '').trim()
+  if (!s) return null
+  const m = s.match(/\bfrom\s+(.+?)\s+for\s+/i)
+  if (!m?.[1]) return null
+  return m[1].trim() || null
+}
+
+/** Match più severo per «Cerca in casella»: evita newsletter su «catering supplies». */
+export function messageMatchesFornitoreForInboxDiscovery(
+  subject: string | null | undefined,
+  fromDisplayName: string | null | undefined,
+  fornitoreNome: string,
+  displayName?: string | null,
+): boolean {
+  const billingSupplier = extractSupplierFromBillingEmailSubject(subject)
+  if (billingSupplier && fornitoreNomeMatchesOcr(fornitoreNome, billingSupplier)) return true
+
+  const distinctive = distinctiveSupplierTokens(fornitoreNome, displayName)
+  const fields = [subject, fromDisplayName].filter(Boolean) as string[]
+
+  for (const field of fields) {
+    const level = compareRagioneSociale(fornitoreNome, field)
+    if (level === 'exact') return true
+    if (level === 'strong' && fieldContainsDistinctiveSupplierToken(field, distinctive)) return true
+  }
+
+  return false
+}
+
+function compressSupplierNameForEmailMatch(nome: string, displayName?: string | null): string {
+  return normalizeRagioneSocialeForComparison(`${nome} ${displayName ?? ''}`)
+    .replace(/\s+/g, '')
+    .toLowerCase()
+}
+
+/** Per mittenti FROM: il dominio o local-part devono richiamare il fornitore. */
+export function emailRelatesToSupplierName(
+  email: string,
+  fornitoreNome: string,
+  displayName?: string | null,
+): boolean {
+  if (isLikelyMarketingMailboxEmail(email)) return false
+  const key = email.trim().toLowerCase()
+  const [localRaw, domainRaw = ''] = key.split('@')
+  const local = localRaw.replace(/[^a-z0-9]/g, '')
+  const domainCore = domainRaw.split('.')[0]?.replace(/[^a-z0-9]/g, '') ?? ''
+  const hay = compressSupplierNameForEmailMatch(fornitoreNome, displayName)
+  if (!hay || hay.length < 4) return false
+
+  for (const part of [local, domainCore]) {
+    if (part.length < 5) continue
+    if (hay.includes(part) || part.includes(hay)) return true
+    for (let len = Math.min(part.length, 10); len >= 5; len--) {
+      for (let i = 0; i <= part.length - len; i++) {
+        const sub = part.slice(i, i + len)
+        if (hay.includes(sub)) return true
+      }
+    }
+  }
+  return false
 }
 
 function isUsableSupplierCandidate(
@@ -59,6 +205,7 @@ function isUsableSupplierCandidate(
   if (!key.includes('@') || key.length < 6) return false
   if (opts.exclude.has(key)) return false
   if (isSharedBillingPlatformSenderEmail(key)) return false
+  if (isLikelyMarketingMailboxEmail(key)) return false
   const local = key.split('@')[0] ?? ''
   if (NOREPLY_LOCAL.test(local)) return false
   return true
@@ -297,7 +444,12 @@ export async function discoverFornitoreEmailsFromInbox(
                 : env?.date ?? null)?.toISOString?.() ?? null
 
           if (
-            !messageMatchesFornitore(subject, fromDisplayName, fornitore.nome, fornitore.display_name)
+            !messageMatchesFornitoreForInboxDiscovery(
+              subject,
+              fromDisplayName,
+              fornitore.nome,
+              fornitore.display_name,
+            )
           ) {
             continue
           }
@@ -324,7 +476,10 @@ export async function discoverFornitoreEmailsFromInbox(
             for (const rt of c.replyToEmails) {
               mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
             }
-          } else if (c.fromEmail) {
+          } else if (
+            c.fromEmail &&
+            emailRelatesToSupplierName(c.fromEmail, fornitore.nome, fornitore.display_name)
+          ) {
             mergeInboxEmailTracked(c.fromEmail, c.dateIso, 'inbox_from')
           }
 
@@ -345,11 +500,17 @@ export async function discoverFornitoreEmailsFromInbox(
                 mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
               }
               const fromHeader = extractEmailFromSenderHeader(parsed.from?.text ?? '')
-              if (fromHeader && !isSharedBillingPlatformSenderEmail(fromHeader)) {
+              if (
+                fromHeader &&
+                !isSharedBillingPlatformSenderEmail(fromHeader) &&
+                emailRelatesToSupplierName(fromHeader, fornitore.nome, fornitore.display_name)
+              ) {
                 mergeInboxEmailTracked(fromHeader, c.dateIso, 'inbox_from')
               }
               for (const em of extractBodyContactEmails(parsed.text ?? null)) {
-                mergeInboxEmailTracked(em, c.dateIso, 'inbox_body')
+                if (emailRelatesToSupplierName(em, fornitore.nome, fornitore.display_name)) {
+                  mergeInboxEmailTracked(em, c.dateIso, 'inbox_body')
+                }
               }
               break
             }
