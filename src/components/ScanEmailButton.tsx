@@ -240,6 +240,12 @@ export default function ScanEmailButton({
   }, [isHeaderPlacement, headerMenuOpen])
 
   useEffect(() => {
+    if (emailSync?.progress.active) {
+      setHeaderMenuOpen(false)
+    }
+  }, [emailSync?.progress.active])
+
+  useEffect(() => {
     setHeaderMenuOpen(false)
   }, [pathname])
 
@@ -408,9 +414,9 @@ export default function ScanEmailButton({
 
         <button
           type="button"
-          onClick={async () => {
-            const ok = await handleClick()
-            if (ok) setHeaderMenuOpen(false)
+          onClick={() => {
+            setHeaderMenuOpen(false)
+            void handleClick()
           }}
           disabled={controlsDisabled}
           className="mt-1 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-app-a-55 bg-app-line-30 text-xs font-bold text-app-fg shadow-sm shadow-cyan-950/30 transition-colors hover:bg-app-line-40 active:bg-app-line-35 disabled:cursor-not-allowed disabled:opacity-50"
