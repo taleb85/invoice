@@ -75,6 +75,7 @@ type AuditMatchRow = {
   id: string
   mittente: string | null
   file_name: string | null
+  file_url: string | null
   fattura_id: string | null
   bolla_id: string | null
   assigned_fornitore_id: string | null
@@ -1640,9 +1641,21 @@ export default function InboxAiClient(props: {
                       className="rounded-xl border border-amber-500/25 bg-amber-950/10 px-3 py-3 sm:px-4"
                     >
                       <div className="flex flex-col gap-2">
-                        <p className="text-sm font-semibold text-app-fg">
-                          {row.file_name?.trim() || t.log.inboxAiNoFileName}
-                        </p>
+                        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <p className="min-w-0 flex-1 text-sm font-semibold text-app-fg">
+                            {row.file_name?.trim() || t.log.inboxAiNoFileName}
+                          </p>
+                          {row.id ? (
+                            <OpenDocumentInAppButton
+                              documentoId={row.id}
+                              fileUrl={row.file_url}
+                              className="shrink-0 text-[11px] font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline"
+                              title={t.bolle.viewDocument}
+                            >
+                              {t.bolle.viewDocument}
+                            </OpenDocumentInAppButton>
+                          ) : null}
+                        </div>
                         <p className="truncate font-mono text-[11px] text-app-fg-muted">
                           {t.log.inboxAiSenderLabel} {row.mittente ?? '—'}
                         </p>

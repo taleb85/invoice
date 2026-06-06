@@ -10,6 +10,7 @@ type AuditRow = {
   id: string
   mittente: string
   file_name: string | null
+  file_url: string | null
   fattura_id: string | null
   bolla_id: string | null
   assigned_fornitore_id: string | null
@@ -72,11 +73,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const rows = (data ?? []) as AuditRow[]
+  const rows = (data ?? []) as Omit<AuditRow, 'file_url'>[]
+
+  const ids = rows.map((r) => r.id).filter(Boolean)
+  const fileUrlById = new Map<string, string | null>()
+  if (ids.length > 0) {
+    const { data: urlRows } = await service
+      .from('documenti_da_processare')
+      .select('id, file_url')
+      .in('id', ids)
+    for (const u of urlRows ?? []) {
+      fileUrlById.set(u.id, u.file_url?.trim() || null)
+    }
+  }
+
+  const enriched: AuditRow[] = rows.map((r) => ({
+    ...r,
+    file_url: fileUrlById.get(r.id) ?? null,
+  }))
 
   return NextResponse.json({
     ok: true as const,
     sede_id: sedeId,
-    rows,
+    rows: enriched,
   })
 }
