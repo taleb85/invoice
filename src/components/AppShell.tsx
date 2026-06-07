@@ -27,6 +27,7 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { AppActivitiesProvider } from '@/lib/app-activities-context'
 import { DocumentActionsProvider } from '@/lib/document-actions-context'
 import type { DocumentActionItem } from '@/components/DocumentActionsModal'
+import { openDocumentUrl } from '@/lib/open-document-url'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { translateDocumentiDaProcessareError } from '@/lib/documenti-da-processare-errors'
 import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
@@ -258,14 +259,36 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
 
     // Apri documento
     if (actionId === 'documento.apri') {
-      if (item.file_url) {
-        const url = `/api/open-document?documento_id=${encodeURIComponent(item.id)}&json=1`
-        const res = await fetch(url)
-        if (res.ok) {
-          const { url: docUrl } = await res.json()
-          if (docUrl) window.open(docUrl, '_blank')
-        }
+      const jsonHref =
+        item.origine === 'bolla' || item.origine === 'bolla_aperta'
+          ? openDocumentUrl({ bollaId: item.id, json: true })
+          : item.origine === 'fattura'
+            ? openDocumentUrl({ fatturaId: item.id, json: true })
+            : item.origine === 'riga_statement'
+              ? openDocumentUrl({ statementId: item.id, json: true })
+              : openDocumentUrl({ documentoId: item.id, json: true })
+      const res = await fetch(jsonHref)
+      if (res.ok) {
+        const { url: docUrl } = await res.json()
+        if (docUrl) window.open(docUrl, '_blank')
       }
+      return
+    }
+
+    const isBollaOrigine = item.origine === 'bolla' || item.origine === 'bolla_aperta'
+    if (isBollaOrigine && actionId === 'documento.finalizza_come_fattura') {
+      const res = await fetch('/api/bolle/convert-to-fattura', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bolla_id: item.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast((data as { error?: string }).error || httpErr(res.status), 'error')
+        return
+      }
+      showToast(a.bollaConvertita, 'success')
+      window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
       return
     }
 
@@ -307,7 +330,8 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       'documento.finalizza_come_nota_credito': { url: '/api/fatture/update-type', body: { id: item.id, is_credit_note: true } },
       'documento.finalizza_come_fattura': { url: '/api/fatture/update-type', body: { id: item.id, is_credit_note: false } },
     }
-    const isRegistered = item.origine === 'fattura' || item.origine === 'bolla_aperta'
+    const isRegistered =
+      item.origine === 'fattura' || item.origine === 'bolla' || item.origine === 'bolla_aperta'
     const reclass = isRegistered && registeredReclassify[actionId]
     if (reclass) {
       const res = await fetch(reclass.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reclass.body) })

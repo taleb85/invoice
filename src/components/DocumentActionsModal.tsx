@@ -22,6 +22,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import type { CommandId } from '@/lib/command-system/types'
+import { actionIdsForOrigine } from '@/lib/document-actions-applicable'
 import { useT } from '@/lib/use-t'
 import type { Translations } from '@/lib/translations'
 
@@ -47,41 +48,39 @@ export type DocumentAction = {
   icona: React.ReactNode
   gruppo: 'tipo' | 'fornitore' | 'stato' | 'documento' | 'pericolose'
   pericolosa?: boolean
-  /** Solo per certi origini documento */
-  origini?: string[]
 }
 
 function buildAllActions(t: Translations): DocumentAction[] {
   const d = t.documentActions
   return [
     // ── Tipo documento ──
-    { id: 'documento.finalizza_come_fattura', label: d.actRegisterFatturaLabel, descrizione: d.actRegisterFatturaDesc, icona: <FileText className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-    { id: 'documento.finalizza_come_bolla', label: d.actRegisterBollaLabel, descrizione: d.actRegisterBollaDesc, icona: <Package className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-    { id: 'documento.finalizza_come_nota_credito', label: d.actRegisterNotaLabel, descrizione: d.actRegisterNotaDesc, icona: <CreditCard className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-    { id: 'documento.finalizza_come_statement', label: d.actArchiveStatementLabel, descrizione: d.actArchiveStatementDesc, icona: <List className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-    { id: 'documento.finalizza_come_ordine', label: d.actRegisterOrdineLabel, descrizione: d.actRegisterOrdineDesc, icona: <ShoppingCart className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-    { id: 'documento.finalizza_come_comunicazione', label: d.actArchiveCommunicationLabel, descrizione: d.actArchiveCommunicationDesc, icona: <MessageSquare className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
-    { id: 'documento.finalizza_come_listino', label: d.actRegisterListinoLabel, descrizione: d.actRegisterListinoDesc, icona: <List className="h-4 w-4" />, gruppo: 'tipo', origini: ['documento_da_processare'] },
+    { id: 'documento.finalizza_come_fattura', label: d.actRegisterFatturaLabel, descrizione: d.actRegisterFatturaDesc, icona: <FileText className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'documento.finalizza_come_bolla', label: d.actRegisterBollaLabel, descrizione: d.actRegisterBollaDesc, icona: <Package className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'documento.finalizza_come_nota_credito', label: d.actRegisterNotaLabel, descrizione: d.actRegisterNotaDesc, icona: <CreditCard className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'documento.finalizza_come_statement', label: d.actArchiveStatementLabel, descrizione: d.actArchiveStatementDesc, icona: <List className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'documento.finalizza_come_ordine', label: d.actRegisterOrdineLabel, descrizione: d.actRegisterOrdineDesc, icona: <ShoppingCart className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'documento.finalizza_come_comunicazione', label: d.actArchiveCommunicationLabel, descrizione: d.actArchiveCommunicationDesc, icona: <MessageSquare className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'documento.finalizza_come_listino', label: d.actRegisterListinoLabel, descrizione: d.actRegisterListinoDesc, icona: <List className="h-4 w-4" />, gruppo: 'tipo' },
     // ── Fornitore ──
     { id: 'documento.associa', label: d.actAssociateSupplierLabel, descrizione: d.actAssociateSupplierDesc, icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore' },
-    { id: 'documento.aggiorna_categoria', label: d.actChangeCategoryLabel, descrizione: d.actChangeCategoryDesc, icona: <Tag className="h-4 w-4" />, gruppo: 'fornitore', origini: ['documento_da_processare'] },
+    { id: 'documento.aggiorna_categoria', label: d.actChangeCategoryLabel, descrizione: d.actChangeCategoryDesc, icona: <Tag className="h-4 w-4" />, gruppo: 'fornitore' },
     // ── Stato ──
-    { id: 'documento.scarta', label: d.actDiscardLabel, descrizione: d.actDiscardDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['documento_da_processare'] },
-    { id: 'documento.scarta_fattura', label: d.actDiscardInvoiceLabel, descrizione: d.actDiscardInvoiceDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['fattura'] },
-    { id: 'documento.rianalizza_ocr', label: d.actReanalyzeOcrLabel, descrizione: d.actReanalyzeOcrDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['documento_da_processare'] },
-    { id: 'documento.ignora_mittente', label: d.actIgnoreSenderLabel, descrizione: d.actIgnoreSenderDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['documento_da_processare'] },
-    { id: 'fattura.approva', label: d.actApproveInvoiceLabel, descrizione: d.actApproveInvoiceDesc, icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato', origini: ['fattura'] },
-    { id: 'fattura.rifiuta', label: d.actRejectInvoiceLabel, descrizione: d.actRejectInvoiceDesc, icona: <AlertTriangle className="h-4 w-4" />, gruppo: 'stato', pericolosa: true, origini: ['fattura'] },
-    { id: 'fattura.resetta_approvazione', label: d.actResetApprovalLabel, descrizione: d.actResetApprovalDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['fattura'] },
-    { id: 'statement.segna_come_ok', label: d.actMarkVerifiedLabel, descrizione: d.actMarkVerifiedDesc, icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato', origini: ['riga_statement'] },
-    { id: 'statement.assegna_fattura', label: d.actAssignInvoiceLabel, descrizione: d.actAssignInvoiceDesc, icona: <FileText className="h-4 w-4" />, gruppo: 'stato', origini: ['riga_statement'] },
+    { id: 'documento.scarta', label: d.actDiscardLabel, descrizione: d.actDiscardDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true },
+    { id: 'documento.scarta_fattura', label: d.actDiscardInvoiceLabel, descrizione: d.actDiscardInvoiceDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true },
+    { id: 'documento.rianalizza_ocr', label: d.actReanalyzeOcrLabel, descrizione: d.actReanalyzeOcrDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato' },
+    { id: 'documento.ignora_mittente', label: d.actIgnoreSenderLabel, descrizione: d.actIgnoreSenderDesc, icona: <Ban className="h-4 w-4" />, gruppo: 'stato', pericolosa: true },
+    { id: 'fattura.approva', label: d.actApproveInvoiceLabel, descrizione: d.actApproveInvoiceDesc, icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato' },
+    { id: 'fattura.rifiuta', label: d.actRejectInvoiceLabel, descrizione: d.actRejectInvoiceDesc, icona: <AlertTriangle className="h-4 w-4" />, gruppo: 'stato', pericolosa: true },
+    { id: 'fattura.resetta_approvazione', label: d.actResetApprovalLabel, descrizione: d.actResetApprovalDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato' },
+    { id: 'statement.segna_come_ok', label: d.actMarkVerifiedLabel, descrizione: d.actMarkVerifiedDesc, icona: <CheckCircle className="h-4 w-4" />, gruppo: 'stato' },
+    { id: 'statement.assegna_fattura', label: d.actAssignInvoiceLabel, descrizione: d.actAssignInvoiceDesc, icona: <FileText className="h-4 w-4" />, gruppo: 'stato' },
     // ── Documento ──
     { id: 'documento.apri', label: d.actOpenDocumentLabel, descrizione: d.actOpenDocumentDesc, icona: <ExternalLink className="h-4 w-4" />, gruppo: 'documento' },
     // ── Bolla ──
-    { id: 'bolla.rianalizza_ocr', label: d.actBollaReanalyzeOcrLabel, descrizione: d.actBollaReanalyzeOcrDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['bolla'] },
-    { id: 'bolla.converti_in_fattura', label: d.actBollaConvertLabel, descrizione: d.actBollaConvertDesc, icona: <Save className="h-4 w-4" />, gruppo: 'tipo', origini: ['bolla'] },
-    { id: 'bolla.cambia_fornitore', label: d.actBollaChangeSupplierLabel, descrizione: d.actBollaChangeSupplierDesc, icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore', origini: ['bolla'] },
-    { id: 'bolla.elimina', label: d.actBollaDeleteLabel, descrizione: d.actBollaDeleteDesc, icona: <Archive className="h-4 w-4" />, gruppo: 'pericolose', pericolosa: true, origini: ['bolla'] },
+    { id: 'bolla.rianalizza_ocr', label: d.actBollaReanalyzeOcrLabel, descrizione: d.actBollaReanalyzeOcrDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato' },
+    { id: 'bolla.converti_in_fattura', label: d.actBollaConvertLabel, descrizione: d.actBollaConvertDesc, icona: <Save className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'bolla.cambia_fornitore', label: d.actBollaChangeSupplierLabel, descrizione: d.actBollaChangeSupplierDesc, icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore' },
+    { id: 'bolla.elimina', label: d.actBollaDeleteLabel, descrizione: d.actBollaDeleteDesc, icona: <Archive className="h-4 w-4" />, gruppo: 'pericolose', pericolosa: true },
   ]
 }
 
@@ -103,14 +102,21 @@ export default function DocumentActionsModal({
   const t = useT()
   const d = t.documentActions
   const allActions = useMemo(() => buildAllActions(t), [t])
+  const actionsById = useMemo(
+    () => new Map(allActions.map((a) => [a.id, a])),
+    [allActions],
+  )
+  const visible = useMemo(() => {
+    if (!item) return []
+    return actionIdsForOrigine(item.origine)
+      .map((id) => actionsById.get(id))
+      .filter((a): a is DocumentAction => Boolean(a))
+  }, [item, actionsById])
   const [confermaId, setConfermaId] = useState<string | null>(null)
   const [selettoreCategoria, setSelettoreCategoria] = useState(false)
 
   if (!open || !item) return null
 
-  const visible = allActions.filter(
-    (a) => !a.origini || a.origini.some((o) => o === item.origine),
-  )
   const isLoading = (id: string) => eseguendoId === `${item.id}_${id}`
   const inConferma = (id: string) => confermaId === id
 
@@ -161,7 +167,7 @@ export default function DocumentActionsModal({
       onClick={onClose}
     >
       <div
-        className="document-actions-modal-panel relative mx-auto flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-app-line-45 shadow-2xl shadow-black/55 ring-1 ring-cyan-400/25"
+        className="document-actions-modal-panel relative mx-auto flex max-h-[min(90dvh,calc(100dvh-2rem))] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-app-line-45 shadow-2xl shadow-black/55 ring-1 ring-cyan-400/25"
         role="dialog"
         aria-modal="true"
         aria-labelledby="document-actions-modal-title"
@@ -228,7 +234,7 @@ export default function DocumentActionsModal({
             </div>
           </div>
         ) : (
-        <div className="max-h-[60vh] overflow-y-auto px-3 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
           {gruppi.map((grp) => {
             const azioni = visible.filter((a) => a.gruppo === grp)
             if (!azioni.length) return null
