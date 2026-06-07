@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       pendingRes,
     ] = await Promise.all([
       service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
-      service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('stato', 'in attesa').gte('data', from).lt('data', to),
+      service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).in('stato', ['in attesa', 'bozza']).gte('data', from).lt('data', to),
       service
         .from('fatture')
         .select('id, data, importo, numero_fattura, is_credit_note, file_url')
