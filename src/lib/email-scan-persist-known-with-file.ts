@@ -13,6 +13,7 @@ import {
   emailSubjectLooksLikeStatement,
   inferAutoPendingKindFromEmailScan,
   inferPendingDocumentKindForQueueRow,
+  scanContextLooksLikePaymentReceiptDoc,
   subjectLooksLikeInvoice,
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
@@ -307,6 +308,10 @@ export async function persistKnownFornitoreEmailScanWithFile(
   const documentSedeId = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
   const noteFromEmailBody = ocr.note_corpo_mail?.trim() || null
   const bodySnippet = email.bodyText?.slice(0, 12_000) ?? null
+  const isPaymentReceiptDoc = scanContextLooksLikePaymentReceiptDoc(
+    email.subject,
+    storedFileName,
+  )
 
   const autoPendingKind = inferAutoPendingKindFromEmailScan(
     email.subject,
@@ -328,7 +333,9 @@ export async function persistKnownFornitoreEmailScanWithFile(
   // "Ordine" rilevato dai pattern testuali (Order Confirmation, conferma ordine, ecc.)
   // è ASSOLUTO: nessun learned hint può sovrascriverlo. Vedi nota in scan-emails/route.ts.
   const effectivePendingKind =
-    autoPendingKind === 'ordine'
+    isPaymentReceiptDoc
+      ? ('comunicazione' as const)
+      : autoPendingKind === 'ordine'
       ? ('ordine' as const)
       : learnedOverridesAutoStatement
         ? learnedPendingKind
@@ -344,7 +351,10 @@ export async function persistKnownFornitoreEmailScanWithFile(
   let duplicateSkippedFatturaId: string | null = null
   let duplicateSkippedBollaId: string | null = null
   let needsDocRevision = !!ocr.ocr_cliente_estratto_come_fornitore
-  const skipAutoBozza = treatAsStatement || effectivePendingKind === 'ordine'
+  const skipAutoBozza =
+    treatAsStatement ||
+    effectivePendingKind === 'ordine' ||
+    effectivePendingKind === 'comunicazione'
 
   const ocrMetaForInfer = {
     ragione_sociale: ocr.ragione_sociale,
@@ -382,7 +392,9 @@ export async function persistKnownFornitoreEmailScanWithFile(
 
     if (targetKind === 'fattura') {
       const bypassOcrTipoGuard = args.docKind === 'fattura'
-      if (shouldSkipEmailAutoFattura(ocr)) {
+      if (isPaymentReceiptDoc) {
+        needsDocRevision = true
+      } else if (shouldSkipEmailAutoFattura(ocr)) {
         needsDocRevision = true
       } else if (hasDocDateFallback) {
         needsDocRevision = true
@@ -391,7 +403,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
       } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
       }
-      if (!shouldSkipEmailAutoFattura(ocr) && dataDoc) {
+      if (!isPaymentReceiptDoc && !shouldSkipEmailAutoFattura(ocr) && dataDoc) {
         const res = await insertEmailAutoFattura(supabase, {
           fornitoreId: fornitore.id,
           sedeId: documentSedeId,

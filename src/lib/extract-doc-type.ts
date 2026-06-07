@@ -70,7 +70,10 @@ export function extractDocTypeLabel(
 
   if (!text.trim()) return null
 
-  if (/invoice|fattura|facture|rechnung|factura/.test(text)) return 'Invoice'
+  const normalized = text.replace(/[_-]+/g, ' ')
+
+  if (/\breceipt\b/.test(normalized)) return 'Payment Receipt'
+  if (/invoice|fattura|facture|rechnung|factura/.test(normalized)) return 'Invoice'
   if (/credit.note|nota.credito|note.de.crédit|gutschrift|nota.de.crédito/.test(text))
     return 'Credit Note'
   if (/delivery.note|ddt|bon.de.livraison|lieferschein|albar[aá]n/.test(text))
@@ -83,7 +86,7 @@ export function extractDocTypeLabel(
     return 'Purchase Order'
   if (/statement|estratto.conto|relevé.de.compte|kontoauszug|extracto/.test(text))
     return 'Statement'
-  if (/receipt|ricevuta|reçu|quittung|recibo/.test(text)) return 'Receipt'
+  if (/receipt|ricevuta|reçu|quittung|recibo/.test(normalized)) return 'Payment Receipt'
   if (/proforma|pro.forma/.test(text)) return 'Pro-forma Invoice'
 
   return null

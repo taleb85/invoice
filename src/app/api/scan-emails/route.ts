@@ -41,6 +41,7 @@ import {
   emailSubjectLooksLikeStatement,
   inferAutoPendingKindFromEmailScan,
   inferPendingDocumentKindForQueueRow,
+  scanContextLooksLikePaymentReceiptDoc,
   scanContextLooksLikeServiceReport,
   subjectLooksLikeInvoice,
 } from '@/lib/document-bozza-routing'
@@ -2397,6 +2398,10 @@ async function processEmails(
       const noteFromEmailBody = ocr.note_corpo_mail?.trim() || null
 
       const bodySnippet = email.bodyText?.slice(0, 12_000) ?? null
+      const isPaymentReceiptDoc = scanContextLooksLikePaymentReceiptDoc(
+        email.subject,
+        storedFileName,
+      )
       const autoPendingKind = inferAutoPendingKindFromEmailScan(
         email.subject,
         storedFileName,
@@ -2425,7 +2430,9 @@ async function processEmails(
        */
       const subjectIsExplicitlyInvoice = subjectLooksLikeInvoice(email.subject) || subjectLooksLikeInvoice(storedFileName)
       const effectivePendingKind =
-        autoPendingKind === 'statement'
+        isPaymentReceiptDoc
+          ? ('comunicazione' as const)
+          : autoPendingKind === 'statement'
           ? 'statement'
           : autoPendingKind === 'ordine'
             ? 'ordine'
@@ -2442,7 +2449,10 @@ async function processEmails(
       let duplicateSkippedBollaId: string | null = null
       let needsDocRevision = !!ocr.ocr_cliente_estratto_come_fornitore
 
-      const skipAutoBozza = treatAsStatement || effectivePendingKind === 'ordine'
+      const skipAutoBozza =
+        treatAsStatement ||
+        effectivePendingKind === 'ordine' ||
+        effectivePendingKind === 'comunicazione'
 
       const ocrMetaForInfer = {
         ragione_sociale: ocr.ragione_sociale,
@@ -2485,7 +2495,12 @@ async function processEmails(
 
         if (targetKind === 'fattura') {
           const bypassOcrTipoGuard = docKind === 'fattura'
-          if (shouldSkipEmailAutoFattura(ocr)) {
+          if (isPaymentReceiptDoc) {
+            needsDocRevision = true
+            mailDebugLog(
+              `[PROCESS] Skip auto-fattura: ricevuta di pagamento (${storedFileName ?? email.subject ?? '—'})`,
+            )
+          } else if (shouldSkipEmailAutoFattura(ocr)) {
             needsDocRevision = true
             mailDebugLog(
               `[PROCESS] Skip auto-fattura: numero sembra Account No. UK (${ocr.numero_fattura ?? '—'}) — revisione manuale o segmento PDF`,

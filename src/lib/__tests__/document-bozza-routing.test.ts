@@ -348,4 +348,15 @@ describe('inferAutoPendingKindFromEmailScan — niente statement per solleciti/I
       }),
     ).toBe('comunicazione')
   })
+
+  it('QuickBooks Receipt__from_*.pdf è ricevuta pagamento, non fattura', () => {
+    const file = 'Receipt__from_True_Terroir_Ltd.pdf'
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: null,
+        file_name: file,
+        metadata: { tipo_documento: 'fattura', numero_fattura: '9262', totale_iva_inclusa: 100 },
+      }),
+    ).toBe('comunicazione')
+  })
 })

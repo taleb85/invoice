@@ -28,7 +28,7 @@ export function emailSubjectLooksLikeStatement(subject: string | null | undefine
 
 /**
  * Ricevute di pagamento (QuickBooks, ecc.): NON sono estratti conto.
- * Vanno in coda comunicazioni / archivio, non nel parser statement.
+ * Vanno in coda comunicazioni / archivio, non nel parser statement né in fatture.
  */
 export function scanContextLooksLikePaymentReceiptDoc(
   subject: string | null | undefined,
@@ -36,6 +36,15 @@ export function scanContextLooksLikePaymentReceiptDoc(
 ): boolean {
   const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase()
   if (!blob.trim()) return false
+
+  const fileStem = (fileName ?? '')
+    .split(/[/\\]/)
+    .pop()
+    ?.split('?')[0]
+    ?.replace(/\.[a-z0-9]{2,5}$/i, '')
+    .trim()
+    .toLowerCase() ?? ''
+
   return (
     /\bpayment\s+receipt\b/.test(blob) ||
     (/\bpayment\b/.test(blob) && /\breceipt\b/.test(blob)) ||
@@ -44,7 +53,10 @@ export function scanContextLooksLikePaymentReceiptDoc(
     /\bquietanza\b/.test(blob) ||
     /\bpagamento\s+ricevuto\b/.test(blob) ||
     /\bpayment\s+received\b/.test(blob) ||
-    /\bproof\s+of\s+payment\b/.test(blob)
+    /\bproof\s+of\s+payment\b/.test(blob) ||
+    // QuickBooks: Receipt__from_Supplier_Ltd.pdf / Receipt_from_…
+    /^receipt(?:__+|[_\s-]+)from(?:__|[_\s-]|$)/.test(fileStem) ||
+    /\breceipt(?:__+|[_\s-]+)from(?:__|[_\s-]|$)/.test(blob)
   )
 }
 
