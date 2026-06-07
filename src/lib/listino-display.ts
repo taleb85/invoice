@@ -327,6 +327,23 @@ function listinoRowHasSku(row: { prodotto: string; note?: string | null }): bool
   return /^[A-Z]{1,6}\d{2,}[A-Z0-9]*$/i.test(first)
 }
 
+/** Nome articolo reale (vino, birra, confezione) anche senza codice in nota. */
+function looksLikeCatalogProductDescription(name: string): boolean {
+  if (/\d+\s*[xX×]\s*\d+\s*(?:cl|ml|l|lt|ltr)\b/i.test(name)) return true
+  if (/\b(?:doc|docg|igt|igp|aoc|aop|750\s?ml)\b/i.test(name)) return true
+  if (
+    /\b(?:pinot|chardonnay|sauvignon|merlot|cabernet|prosecco|grigio|brut|spumante|riesling|shiraz|malbec)\b/i.test(
+      name,
+    )
+  ) {
+    return true
+  }
+  if (/\b(?:wine|vino|beer|lager|ale|cider|spirit|vodka|gin|whisky|whiskey|champagne|cava)\b/i.test(name)) {
+    return true
+  }
+  return false
+}
+
 /**
  * Testo descrittivo / logistico importato per errore dal PDF fattura (es. fascia oraria
  * consegna + telefono + «10 CASE Drop Based On Sales Orders»).
@@ -339,6 +356,7 @@ export function isNonProductListinoRow(row: { prodotto: string; note?: string | 
     if (re.test(hay)) return true
   }
   if (!listinoRowHasSku(row)) {
+    if (looksLikeCatalogProductDescription(name)) return false
     if (/\b\d+\s+case\b/i.test(name) && /\bdrop\b/i.test(name)) return true
     const words = name.split(/\s+/).filter(Boolean)
     if (words.length >= 8 && name.length >= 48) return true

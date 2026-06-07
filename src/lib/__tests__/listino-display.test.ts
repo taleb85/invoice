@@ -135,6 +135,24 @@ describe('isNonProductListinoRow', () => {
       }),
     ).toBe(false)
   })
+
+  it('keeps long wine descriptions without SKU in note (True Terroir)', () => {
+    expect(
+      isNonProductListinoRow({
+        prodotto: 'LA VIGNA DI RIVA - Pinot Grigio Doc delle Venezie - 2023 - Italy - 6x75cl',
+      }),
+    ).toBe(false)
+    const grouped = buildListinoByProduct([
+      {
+        id: '1',
+        prodotto: 'LA VIGNA DI RIVA - Pinot Grigio Doc delle Venezie - 2023 - Italy - 6x75cl',
+        prezzo: 8.3,
+        data_prezzo: '2025-06-12',
+        note: null,
+      },
+    ])
+    expect(Object.keys(grouped)).toHaveLength(1)
+  })
 })
 
 describe('buildListinoByProduct excludes non-products', () => {
