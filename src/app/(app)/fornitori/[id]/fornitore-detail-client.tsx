@@ -1336,7 +1336,9 @@ function DashboardTab({
       .select('email')
       .eq('fornitore_id', fornitoreId)
       .order('created_at')
-    setSyncEmails((data ?? []).map((row) => row.email).filter(Boolean))
+    setSyncEmails(
+      ((data ?? []) as { email: string | null }[]).map((row) => row.email).filter(Boolean) as string[],
+    )
   }, [fornitoreId])
 
   const registeredEmails = useMemo(() => {
