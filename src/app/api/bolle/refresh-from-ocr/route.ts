@@ -52,6 +52,12 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (qErr || !bolla) {
+    if (qErr?.code === '42703') {
+      return NextResponse.json(
+        { error: 'Schema database non aggiornato (colonna mancante). Esegui le migration Supabase.' },
+        { status: 503 },
+      )
+    }
     return NextResponse.json({ error: 'Bolla non trovata' }, { status: 404 })
   }
   if (!bolla.file_url?.trim()) {
