@@ -7,6 +7,7 @@ import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib, formatCurrency } from '@/lib/locale'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 
+import { DocumentRowActions } from '@/components/DocumentRowActions'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR } from '@/lib/app-shell-layout'
@@ -66,10 +67,6 @@ function confermaRowLabel(
 
 /** Sul guscio `supplier-detail-tab-shell` (trasparente): niente `app-workspace-inset-bg`. */
 const CONFERME_TABLE_HEAD_ROW = 'border-b border-app-soft-border bg-transparent'
-
-/** Apri PDF: contorno rosa, fill trasparente. */
-const CONFERME_OPEN_PILL =
-  'inline-flex items-center gap-1 rounded-lg border border-app-line-25 bg-transparent px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg'
 
 const RED_ACTION_PILL =
   'inline-flex items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
@@ -193,20 +190,6 @@ export default function FornitoreConfermeOrdineTab({
   const fmt = useCallback(
     (iso: string) => formatDateLib(iso, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' }),
     [locale, timezone],
-  )
-
-  const pdfOpenTrigger = (
-    <>
-      <svg className={`h-3 w-3 ${icon.orders}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-        />
-      </svg>
-      {t.fornitori.confermeOrdineOpen}
-    </>
   )
 
   const load = useCallback(async () => {
@@ -629,17 +612,22 @@ export default function FornitoreConfermeOrdineTab({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <OpenDocumentInAppButton
-                      confermaOrdineId={r.id}
-                      fileUrl={r.file_url}
-                      className={CONFERME_OPEN_PILL}
-                      categoria={confermaRowLabel(r).secondary ?? t.fornitori.tabConfermeOrdine}
-                    >
-                      {pdfOpenTrigger}
-                    </OpenDocumentInAppButton>
-                    {!readOnly ? (
-                      <div className="flex flex-wrap items-center gap-2">{renderRowActions(r)}</div>
+                    {r.file_url?.trim() ? (
+                      <DocumentRowActions
+                        item={{
+                          id: r.id,
+                          origine: 'documento_da_processare',
+                          fornitore_id: fornitoreId,
+                          file_url: r.file_url,
+                        }}
+                        confermaOrdineId={r.id}
+                        fileUrl={r.file_url}
+                        fornitoreId={fornitoreId}
+                        hideActionsButton
+                        categoria={confermaRowLabel(r).secondary ?? t.fornitori.tabConfermeOrdine}
+                      />
                     ) : null}
+                    {!readOnly ? <div className="flex flex-wrap items-center gap-2">{renderRowActions(r)}</div> : null}
                   </div>
                 </div>
               ))}
@@ -730,13 +718,27 @@ export default function FornitoreConfermeOrdineTab({
                         })()}
                       </td>
                       <td className="px-5 py-3 text-right">
-                        {!readOnly ? (
                         <div className="inline-flex flex-wrap items-center justify-end gap-2">
-                          {renderRowActions(r)}
+                          {r.file_url?.trim() ? (
+                            <DocumentRowActions
+                              item={{
+                                id: r.id,
+                                origine: 'documento_da_processare',
+                                fornitore_id: fornitoreId,
+                                file_url: r.file_url,
+                              }}
+                              confermaOrdineId={r.id}
+                              fileUrl={r.file_url}
+                              fornitoreId={fornitoreId}
+                              readOnly={readOnly}
+                              hideActionsButton
+                              categoria={confermaRowLabel(r).secondary ?? t.fornitori.tabConfermeOrdine}
+                            />
+                          ) : (
+                            <span className={`text-xs ${confermeSecondaryClass}`}>—</span>
+                          )}
+                          {!readOnly ? renderRowActions(r) : null}
                         </div>
-                        ) : (
-                          <span className={`text-xs ${confermeSecondaryClass}`}>—</span>
-                        )}
                       </td>
                     </tr>
                   ))}

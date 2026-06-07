@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { SupplierAnomalieApiResponse, SupplierAnomalieApiRow } from '@/app/api/fornitori/[id]/anomalie/route'
-import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { DocumentRowActions } from '@/components/DocumentRowActions'
+import { documentActionItemFromAnomalieRow } from '@/lib/document-action-item'
+import { attachmentKindFromFileUrl } from '@/lib/attachment-kind'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -183,39 +185,25 @@ export default function FornitoreAnomalieTab({
   const renderAttachment = (row: SupplierAnomalieApiRow) => {
     const url = row.fileUrl?.trim()
     if (!url) return <span className="text-xs text-app-fg-muted">—</span>
-    if (row.meta?.fatturaId) {
-      return (
-        <OpenDocumentInAppButton fatturaId={row.meta.fatturaId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
-          {t.bolle.viewDocument}
-        </OpenDocumentInAppButton>
-      )
-    }
-    if (row.meta?.bollaId) {
-      return (
-        <OpenDocumentInAppButton bollaId={row.meta.bollaId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
-          {t.bolle.viewDocument}
-        </OpenDocumentInAppButton>
-      )
-    }
-    if (row.meta?.statementId) {
-      return (
-        <OpenDocumentInAppButton statementId={row.meta.statementId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
-          {t.bolle.viewDocument}
-        </OpenDocumentInAppButton>
-      )
-    }
-    if (row.meta?.documentoId) {
-      return (
-        <OpenDocumentInAppButton documentoId={row.meta.documentoId} fileUrl={url} className="text-xs font-semibold text-cyan-400">
-          {t.bolle.viewDocument}
-        </OpenDocumentInAppButton>
-      )
-    }
-    return <span className="text-xs text-app-fg-muted">—</span>
+    const kind = attachmentKindFromFileUrl(url)
+    return (
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+        {kind === 'pdf'
+          ? t.bolle.attachmentKindPdf
+          : kind === 'image'
+            ? t.bolle.attachmentKindImage
+            : t.bolle.attachmentKindOther}
+      </span>
+    )
   }
 
-  const renderRowActions = (row: SupplierAnomalieApiRow) => (
+  const renderRowActions = (row: SupplierAnomalieApiRow) => {
+    const docItem = documentActionItemFromAnomalieRow(row, fornitoreId, '')
+    return (
     <div className="flex flex-wrap items-center justify-end gap-1.5">
+      {docItem ? (
+        <DocumentRowActions item={docItem} fileUrl={row.fileUrl} fornitoreId={fornitoreId} />
+      ) : null}
       {row.kind === 'prezzo_listino' && row.id.startsWith('pl-') && row.id !== 'rekki-summary' ? (
         <button
           type="button"
@@ -258,7 +246,8 @@ export default function FornitoreAnomalieTab({
         </button>
       )}
     </div>
-  )
+    )
+  }
 
   const hi = SUPPLIER_DETAIL_TAB_HIGHLIGHT.anomalie
 

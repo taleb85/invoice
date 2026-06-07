@@ -1,7 +1,12 @@
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { NewFornitoreLink } from '@/components/NewFornitoreLink'
-import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { DocumentRowActions } from '@/components/DocumentRowActions'
+import {
+  documentActionItemForBolla,
+  documentActionItemForFattura,
+  documentActionItemForPendingDoc,
+} from '@/lib/document-action-item'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import ExportZipButton from './ExportZipButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -243,15 +248,17 @@ export default async function ArchivioPage() {
                           </span>
                         </div>
                         <div className="ml-2 flex shrink-0 items-center gap-2">
-                          {b.file_url && (
-                            <OpenDocumentInAppButton
-                              bollaId={b.id}
+                          {b.file_url ? (
+                            <DocumentRowActions
+                              item={documentActionItemForBolla(
+                                { id: b.id, file_url: b.file_url, data: b.data },
+                                f.id,
+                                f.nome,
+                              )}
                               fileUrl={b.file_url}
-                              className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
-                            >
-                              {t.archivio.documento}
-                            </OpenDocumentInAppButton>
-                          )}
+                              fornitoreId={f.id}
+                            />
+                          ) : null}
                           {b.stato === 'in attesa' && (
                             <ReturnToLink
                               to={`/fatture/new?bolla_id=${b.id}&fornitore_id=${f.id}`}
@@ -294,15 +301,18 @@ export default async function ArchivioPage() {
                             </span>
                           )}
                         </div>
-                        {fa.file_url && (
-                          <OpenDocumentInAppButton
-                            fatturaId={fa.id}
+                        {fa.file_url ? (
+                          <DocumentRowActions
+                            item={documentActionItemForFattura(
+                              { id: fa.id, file_url: fa.file_url, data: fa.data, fornitore_id: f.id },
+                              f.id,
+                              f.nome,
+                            )}
                             fileUrl={fa.file_url}
-                            className="ml-2 shrink-0 text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
-                          >
-                            {t.archivio.documento}
-                          </OpenDocumentInAppButton>
-                        )}
+                            fornitoreId={f.id}
+                            className="ml-2 flex shrink-0 items-center justify-end gap-1.5 whitespace-nowrap"
+                          />
+                        ) : null}
                       </div>
                     ))}
 
@@ -322,15 +332,16 @@ export default async function ArchivioPage() {
                           </span>
                         </div>
                         <div className="ml-2 flex shrink-0 items-center gap-2">
-                          {doc.file_url && (
-                            <OpenDocumentInAppButton
-                              documentoId={doc.id}
+                          {doc.file_url ? (
+                            <DocumentRowActions
+                              item={documentActionItemForPendingDoc(
+                                { id: doc.id, fornitore_id: f.id, file_url: doc.file_url },
+                                f.nome,
+                              )}
                               fileUrl={doc.file_url}
-                              className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
-                            >
-                              {t.archivio.documento}
-                            </OpenDocumentInAppButton>
-                          )}
+                              fornitoreId={f.id}
+                            />
+                          ) : null}
                           <Link
                             href="/statements"
                             className="whitespace-nowrap text-[10px] font-semibold text-amber-300 hover:text-amber-200 hover:underline"

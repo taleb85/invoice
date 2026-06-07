@@ -6,8 +6,9 @@ import { AlertTriangle, Eye } from 'lucide-react'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import { ReturnToLink } from '@/components/ReturnToLink'
-import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import DeleteButton from '@/components/DeleteButton'
+import { DocumentRowActions } from '@/components/DocumentRowActions'
+import { documentActionItemForBolla } from '@/lib/document-action-item'
 import { StandardBadge } from '@/components/ui/StandardBadge'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
@@ -15,7 +16,6 @@ import { tipoDocumentoToLabelStrict, extractDocTypeLabel } from '@/lib/extract-d
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
 import { deleteDuplicateRow } from '@/lib/duplicate-invoice-actions'
-import DocumentActionsButton from '@/components/DocumentActionsButton'
 import {
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
@@ -255,12 +255,18 @@ export default function BolleListClient({
                 </div>
               </ReturnToLink>
               <div className="flex flex-wrap items-center gap-2">
-                {b.file_url && (
-                  <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
-                    <Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
-                    {t.bolle.viewDocument}
-                  </OpenDocumentInAppButton>
-                )}
+                {b.file_url ? (
+                  <DocumentRowActions
+                    item={documentActionItemForBolla(
+                      { ...b, sede_id: null },
+                      b.fornitore_id ?? '',
+                      b.fornitori?.display_name ?? b.fornitori?.nome ?? '',
+                    )}
+                    fileUrl={b.file_url}
+                    fornitoreId={b.fornitore_id}
+                    viewIcon={<Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />}
+                  />
+                ) : null}
                 {!excessBollaIds.has(b.id) ? (
                   <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
                 ) : null}
@@ -355,24 +361,18 @@ export default function BolleListClient({
                 </td>
                 <td className={APP_SECTION_TABLE_TD_COMPACT}>
                   <div className="flex flex-nowrap items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    {b.file_url && (
-                      <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
-                        <Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
-                        {t.bolle.viewDocument}
-                      </OpenDocumentInAppButton>
-                    )}
-                    <DocumentActionsButton
-                      item={{
-                        id: b.id,
-                        origine: 'bolla',
-                        fornitore_id: b.fornitore_id ?? null,
-                        fornitore_nome: b.fornitori?.display_name ?? b.fornitori?.nome ?? null,
-                        numero_documento: b.numero_bolla ?? null,
-                        file_url: b.file_url ?? null,
-                        data_doc: b.data ?? null,
-                      }}
-                      className="h-7 w-7"
-                    />
+                    {b.file_url ? (
+                      <DocumentRowActions
+                        item={documentActionItemForBolla(
+                          { ...b, sede_id: null },
+                          b.fornitore_id ?? '',
+                          b.fornitori?.display_name ?? b.fornitori?.nome ?? '',
+                        )}
+                        fileUrl={b.file_url}
+                        fornitoreId={b.fornitore_id}
+                        viewIcon={<Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />}
+                      />
+                    ) : null}
                     {!excessBollaIds.has(b.id) ? (
                       <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
                     ) : null}

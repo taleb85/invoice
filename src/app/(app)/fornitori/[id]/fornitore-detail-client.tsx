@@ -127,8 +127,11 @@ const FornitoreConfermeOrdineTab = dynamic(
   () => import('@/components/FornitoreConfermeOrdineTab'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
-import DocumentActionsButton from '@/components/DocumentActionsButton'
-import type { DocumentActionItem } from '@/components/DocumentActionsModal'
+import { DocumentRowActions } from '@/components/DocumentRowActions'
+import {
+  documentActionItemForBolla,
+  documentActionItemForFattura,
+} from '@/lib/document-action-item'
 import {
   SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE,
   SUPPLIER_DETAIL_TAB_HIGHLIGHT,
@@ -1885,8 +1888,6 @@ function attachmentOpenFileLinkLabel(
 }
 
 /** Pill cyan compatto: «Vedi documento» / allegato in tabella bolle fornitore (e dettaglio fatture). */
-const FORNITORE_TABLE_CYAN_ACTION_PILL =
-  'inline-flex items-center gap-1 rounded-lg border border-app-line-30 bg-app-line-10 px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-20'
 
 function attachmentKindText(
   kind: AttachmentKind,
@@ -1902,23 +1903,6 @@ function numeroRefFromDocMetadata(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== 'object') return null
   const n = (metadata as Record<string, unknown>).numero_fattura
   return typeof n === 'string' && n.trim() ? n.trim() : null
-}
-
-function bollaDocumentActionItem(
-  b: Bolla,
-  fornitoreId: string,
-  fornitoreNome: string,
-): DocumentActionItem {
-  return {
-    id: b.id,
-    origine: 'bolla',
-    fornitore_id: fornitoreId,
-    fornitore_nome: fornitoreNome,
-    sede_id: b.sede_id ?? null,
-    numero_documento: b.numero_bolla ?? null,
-    file_url: b.file_url ?? null,
-    data_doc: b.data ?? null,
-  }
 }
 
 /* ─── Bolle tab ──────────────────────────────────────────────────── */
@@ -2338,32 +2322,19 @@ function BolleTab({
   )
 
   const renderBollaDocumentActions = useCallback(
-    (b: Bolla) => {
-      const docItem = bollaDocumentActionItem(b, fornitoreId, fornitoreNome)
-      const categoria =
-        (b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ??
-        extractDocTypeLabel(b.numero_bolla, b.file_url) ??
-        t.bolle.title
-      return (
-        <>
-          {b.file_url ? (
-            <OpenDocumentInAppButton
-              bollaId={b.id}
-              fileUrl={b.file_url}
-              fornitoreId={fornitoreId}
-              documentActionsItem={docItem}
-              stopTriggerPropagation
-              className={`${FORNITORE_TABLE_CYAN_ACTION_PILL} touch-manipulation`}
-              title={t.bolle.viewDocument}
-              categoria={categoria}
-            >
-              <svg className={`h-3 w-3 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              {t.bolle.viewDocument}
-            </OpenDocumentInAppButton>
-          ) : null}
-          {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? (
+    (b: Bolla) => (
+      <DocumentRowActions
+        item={documentActionItemForBolla(b, fornitoreId, fornitoreNome)}
+        fileUrl={b.file_url}
+        fornitoreId={fornitoreId}
+        readOnly={readOnly}
+        categoria={
+          (b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ??
+          extractDocTypeLabel(b.numero_bolla, b.file_url) ??
+          t.bolle.title
+        }
+        beforeActions={
+          !readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? (
             <button
               type="button"
               disabled={deletingBollaId === b.id}
@@ -2376,13 +2347,10 @@ function BolleTab({
             >
               {deletingBollaId === b.id ? '…' : t.fatture.duplicateRemoveThisCopy}
             </button>
-          ) : null}
-          {!readOnly ? (
-            <DocumentActionsButton item={docItem} className="h-7 w-7 touch-manipulation" />
-          ) : null}
-        </>
-      )
-    },
+          ) : null
+        }
+      />
+    ),
     [
       bollaExcessIds,
       canRianalizzaOcr,
@@ -2392,7 +2360,6 @@ function BolleTab({
       fornitoreNome,
       readOnly,
       t.bolle.title,
-      t.bolle.viewDocument,
       t.bolle.duplicateCopyDeleteConfirm,
       t.fatture.duplicateRemoveThisCopy,
       tipoDocByFileUrl,
@@ -2686,7 +2653,6 @@ function FattureTab({
 }) {
   const t = useT()
   const { locale } = useLocale()
-  const { me } = useMe()
   const formatDate = useAppFormatDate()
   const [fatture, setFatture] = useState<Fattura[]>([])
   const [loading, setLoading] = useState(true)
@@ -2694,11 +2660,6 @@ function FattureTab({
   const [docSupplierHintByFileUrl, setDocSupplierHintByFileUrl] = useState<Record<string, string>>({})
   /** Manual user overrides — highest priority, never overwritten by DB re-fetch. */
   const manualTipoOverridesRef = useRef<Record<string, string>>({})
-  const [reassignFatturaId, setReassignFatturaId] = useState<string | null>(null)
-  const [fornitoriList, setFornitoriList] = useState<{ id: string; nome: string }[]>([])
-  const [reassignBusyId, setReassignBusyId] = useState<string | null>(null)
-  const [reassignPos, setReassignPos] = useState<{ top: number; left: number } | null>(null)
-  const canReassignFornitore = Boolean(me?.is_admin || me?.is_admin_sede) && !readOnly
 
   const dupPayload = useMemo(() => {
     const analysis = analyzeFatturaDuplicatesForDeletion(
@@ -2785,52 +2746,6 @@ function FattureTab({
     })()
     return () => { cancelled = true }
   }, [fatture, fornitoreNome])
-
-  const openFatturaSupplierPicker = useCallback(
-    (e: React.MouseEvent, fatturaId: string) => {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-      setReassignPos({ top: rect.bottom + 4, left: Math.max(8, rect.left) })
-      setReassignFatturaId(fatturaId)
-      setFornitoriList([])
-      const supabase = createClient()
-      void supabase
-        .from('fornitori')
-        .select('id, nome')
-        .eq('sede_id', fornitoreSedeId ?? '')
-        .order('nome', { ascending: true })
-        .then(({ data }: { data: { id: string; nome: string }[] | null }) =>
-          setFornitoriList((data ?? []) as { id: string; nome: string }[]),
-        )
-    },
-    [fornitoreSedeId],
-  )
-
-  const handleReassignFatturaFornitore = useCallback(
-    async (fatturaId: string, nuovoFornitoreId: string) => {
-      setReassignBusyId(fatturaId)
-      try {
-        const res = await fetch('/api/fatture/reassign-fornitore', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            fattura_id: fatturaId,
-            nuovo_fornitore_id: nuovoFornitoreId,
-            sede_id: fornitoreSedeId,
-          }),
-        })
-        if (!res.ok) return
-        setFatture((prev) => prev.filter((f) => f.id !== fatturaId))
-        onLedgerMutated?.()
-        window.dispatchEvent(new Event('fattura-mutated'))
-      } finally {
-        setReassignFatturaId(null)
-        setReassignBusyId(null)
-        setReassignPos(null)
-      }
-    },
-    [fornitoreSedeId, onLedgerMutated],
-  )
 
   const docSupplierMismatch = useCallback(
     (fileUrl: string | null | undefined) => {
@@ -3192,6 +3107,24 @@ function FattureTab({
     return base
   }
 
+  const renderFatturaDocumentActions = useCallback(
+    (f: Fattura) => (
+      <DocumentRowActions
+        item={documentActionItemForFattura(f, fornitoreId, fornitoreNome)}
+        fileUrl={f.file_url}
+        fornitoreId={fornitoreId}
+        readOnly={readOnly}
+        categoria={
+          (f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ??
+          (f.is_credit_note ? 'Credit Note' : null) ??
+          extractDocTypeLabel(f.numero_fattura, f.file_url) ??
+          t.fatture.invoice
+        }
+      />
+    ),
+    [fornitoreId, fornitoreNome, readOnly, t.fatture.invoice, tipoFatturaByFileUrl],
+  )
+
   return (
     <>
       <ErrorBoundary sectionName="lista fatture">
@@ -3284,7 +3217,7 @@ function FattureTab({
                       </p>
                     )}
                   </Link>
-                  <div className="flex shrink-0 flex-col items-end gap-2">
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
                     {f.bolla_id ? (
                       <span className="rounded-full border border-app-line-30 bg-app-line-15 px-2 py-0.5 text-[11px] font-medium text-app-fg-muted">
                         {t.fatture.statusAssociata}
@@ -3294,20 +3227,13 @@ function FattureTab({
                         {t.fatture.statusSenzaBolla}
                       </span>
                     )}
+                    {f.file_url?.trim() ? (
+                      <div onClick={(e) => e.stopPropagation()}>{renderFatturaDocumentActions(f)}</div>
+                    ) : null}
                   </div>
                 </div>
                 {!readOnly ? (
                   <div className="mt-2 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    {canReassignFornitore && supplierMismatch ? (
-                      <button
-                        type="button"
-                        onClick={(e) => openFatturaSupplierPicker(e, f.id)}
-                        disabled={reassignBusyId === f.id}
-                        className="shrink-0 touch-manipulation rounded-lg border border-indigo-500/35 bg-indigo-500/8 px-2 py-1 text-[11px] font-semibold text-indigo-200/95 transition-colors hover:bg-indigo-500/15 disabled:opacity-50"
-                      >
-                        {reassignBusyId === f.id ? '…' : 'Cambia fornitore'}
-                      </button>
-                    ) : null}
                     <DuplicateLedgerRowExtras
                       rowId={f.id}
                       payload={dupPayload}
@@ -3463,32 +3389,7 @@ function FattureTab({
                       )}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {canReassignFornitore && supplierMismatch ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openFatturaSupplierPicker(e, f.id)
-                            }}
-                            disabled={reassignBusyId === f.id}
-                            className="shrink-0 touch-manipulation rounded-lg border border-indigo-500/35 bg-indigo-500/8 px-2 py-1 text-[11px] font-semibold text-indigo-200/95 transition-colors hover:bg-indigo-500/15 disabled:opacity-50"
-                          >
-                            {reassignBusyId === f.id ? '…' : 'Cambia fornitore'}
-                          </button>
-                        ) : null}
-                        <Link
-                          href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)}
-                          scroll={false}
-                          className={FORNITORE_TABLE_CYAN_ACTION_PILL}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <svg className={`h-3 w-3 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                          {t.fatture.dettaglio}
-                        </Link>
-                      </div>
+                      {f.file_url?.trim() ? renderFatturaDocumentActions(f) : null}
                     </td>
                   </tr>
                 )
@@ -3499,24 +3400,6 @@ function FattureTab({
       </div>
     </div>
     </ErrorBoundary>
-    {reassignPos && reassignFatturaId && fornitoriList.length > 0 && createPortal(
-      <div
-        className="fixed z-[220] max-h-64 w-64 overflow-y-auto rounded-lg border border-app-line-30 bg-[var(--app-workspace-bg,#0f1117)] py-1 shadow-xl"
-        style={{ top: reassignPos.top, left: reassignPos.left }}
-      >
-        {fornitoriList.map((fn) => (
-          <button
-            key={fn.id}
-            type="button"
-            className="block w-full px-3 py-2 text-left text-xs text-app-fg hover:bg-white/5"
-            onClick={() => void handleReassignFatturaFornitore(reassignFatturaId, fn.id)}
-          >
-            {fn.nome}
-          </button>
-        ))}
-      </div>,
-      document.body,
-    )}
     </>
   )
 }

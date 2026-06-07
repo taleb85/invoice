@@ -22,7 +22,8 @@ import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
-import DocumentActionsButton from '@/components/DocumentActionsButton'
+import { DocumentRowActions } from '@/components/DocumentRowActions'
+import { documentActionItemForPendingDoc } from '@/lib/document-action-item'
 
 const SupplierDocumentOcrToolbar = dynamic(
   () => import('@/components/SupplierDocumentOcrToolbar'),
@@ -2957,26 +2958,22 @@ export function PendingMatchesTab({
                       <span className={officialDocDateIso ? 'text-slate-400' : ''}>
                         {t.statements.labelReceived} {fmt(doc.created_at)}
                       </span>
-                      <OpenDocumentInAppButton
-                        documentoId={doc.id}
+                      <DocumentRowActions
+                        item={documentActionItemForPendingDoc(
+                          {
+                            id: doc.id,
+                            fornitore_id: doc.fornitore_id,
+                            sede_id: doc.sede_id,
+                            file_url: doc.file_url,
+                            mittente: doc.mittente,
+                            oggetto_mail: doc.oggetto_mail,
+                            pending_kind: pendingKindForDoc(doc, statementDocs) ?? undefined,
+                          },
+                          nomeFornitore,
+                        )}
                         fileUrl={doc.file_url}
-                        className="border-0 bg-transparent p-0 text-left text-xs font-inherit text-cyan-300 hover:text-cyan-200 hover:underline"
-                      >
-                        {t.statements.openFile}
-                      </OpenDocumentInAppButton>
-                      <DocumentActionsButton
-                        item={{
-                          id: doc.id,
-                          origine: 'documento_da_processare',
-                          fornitore_id: doc.fornitore_id ?? null,
-                          fornitore_nome: nomeFornitore,
-                          sede_id: doc.sede_id ?? null,
-                          file_url: doc.file_url ?? null,
-                          mittente: doc.mittente ?? null,
-                          oggetto_mail: doc.oggetto_mail ?? null,
-                          pending_kind: pendingKindForDoc(doc, statementDocs) ?? undefined,
-                        }}
-                        className="h-6 w-6 shrink-0"
+                        fornitoreId={doc.fornitore_id}
+                        actionsButtonClassName="h-6 w-6 shrink-0 touch-manipulation"
                       />
                       {docNeedsManualProcessing(doc.stato) && doc.file_url && (
                         <button

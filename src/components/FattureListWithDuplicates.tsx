@@ -8,10 +8,11 @@ import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 import { deleteDuplicateRow } from '@/lib/duplicate-invoice-actions'
 import DeleteButton from '@/components/DeleteButton'
-import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { DocumentRowActions } from '@/components/DocumentRowActions'
+import { documentActionItemForFattura } from '@/lib/document-action-item'
+import { attachmentKindFromFileUrl } from '@/lib/attachment-kind'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
-import DocumentActionsButton from '@/components/DocumentActionsButton'
 import type { FatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import {
   APP_SECTION_AMOUNT_NEGATIVE_CLASS,
@@ -406,17 +407,19 @@ export default function FattureListWithDuplicates({
                   </Link>
                 )}
               </div>
-              {f.file_url && (
+              {f.file_url ? (
                 <div className="mt-2">
-                  <OpenDocumentInAppButton
-                    fatturaId={f.id}
+                  <DocumentRowActions
+                    item={documentActionItemForFattura(
+                      { ...f, sede_id: null, data: f.dataDocumentoFull ?? null, importo: null },
+                      f.fornitore_id ?? '',
+                      f.fornitoreNome ?? '',
+                    )}
                     fileUrl={f.file_url}
-                    title={t.common.openAttachment}
-                  >
-                    {t.common.openAttachment}
-                  </OpenDocumentInAppButton>
+                    fornitoreId={f.fornitore_id}
+                  />
                 </div>
-              )}
+              ) : null}
           </div>
         ))}
       </div>
@@ -448,7 +451,7 @@ export default function FattureListWithDuplicates({
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.colNumFattura}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.headerAllegato}</th>
             <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
-            <th className={APP_SECTION_TABLE_TH} />
+            <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.common.actions}</th>
           </tr>
         </thead>
         <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -526,13 +529,13 @@ export default function FattureListWithDuplicates({
               </td>
               <td className={APP_SECTION_TABLE_TD_COMPACT}>
                 {f.file_url ? (
-                  <OpenDocumentInAppButton
-                    fatturaId={f.id}
-                    fileUrl={f.file_url}
-                    title={t.common.openAttachment}
-                  >
-                    {t.common.openAttachment}
-                  </OpenDocumentInAppButton>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                    {attachmentKindFromFileUrl(f.file_url) === 'pdf'
+                      ? t.bolle.attachmentKindPdf
+                      : attachmentKindFromFileUrl(f.file_url) === 'image'
+                        ? t.bolle.attachmentKindImage
+                        : t.bolle.attachmentKindOther}
+                  </span>
                 ) : (
                   <span className="text-app-fg-muted">—</span>
                 )}
@@ -569,17 +572,17 @@ export default function FattureListWithDuplicates({
               </td>
               <td className={`${APP_SECTION_TABLE_TD_COMPACT} text-right`}>
                 <div className="flex flex-nowrap items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <DocumentActionsButton
-                    item={{
-                      id: f.id,
-                      origine: 'fattura',
-                      fornitore_id: f.fornitore_id ?? null,
-                      fornitore_nome: f.fornitoreNome ?? null,
-                      numero_documento: f.numero_fattura ?? null,
-                      file_url: f.file_url ?? null,
-                    }}
-                    className="h-7 w-7"
-                  />
+                  {f.file_url ? (
+                    <DocumentRowActions
+                      item={documentActionItemForFattura(
+                        { ...f, sede_id: null, data: f.dataDocumentoFull ?? null, importo: null },
+                        f.fornitore_id ?? '',
+                        f.fornitoreNome ?? '',
+                      )}
+                      fileUrl={f.file_url}
+                      fornitoreId={f.fornitore_id}
+                    />
+                  ) : null}
                   <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />
                 </div>
               </td>

@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { DocumentRowActions } from '@/components/DocumentRowActions'
+import { documentActionItemForPendingDoc } from '@/lib/document-action-item'
 import { QueueDocRowActions, type QueueDocRowActionsLabels } from '@/components/QueueDocRowActions'
 
 export interface DocumentoInCoda {
@@ -176,15 +177,22 @@ export default function DocumentiQueue({ documenti, fornitori, formattedDates, l
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        {doc.file_url && (
-                          <OpenDocumentInAppButton
-                            documentoId={doc.id}
+                        {doc.file_url ? (
+                          <DocumentRowActions
+                            item={documentActionItemForPendingDoc(
+                              {
+                                id: doc.id,
+                                fornitore_id: doc.fornitore_id,
+                                sede_id: doc.sede_id,
+                                file_url: doc.file_url,
+                                mittente: doc.mittente,
+                              },
+                              group.nome,
+                            )}
                             fileUrl={doc.file_url}
-                            className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
-                          >
-                            {labels.openDoc}
-                          </OpenDocumentInAppButton>
-                        )}
+                            fornitoreId={doc.fornitore_id}
+                          />
+                        ) : null}
                         <Link
                           href="/statements"
                           className="whitespace-nowrap text-[10px] font-semibold text-amber-300 hover:text-amber-200 hover:underline"
