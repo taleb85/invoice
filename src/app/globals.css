@@ -1574,6 +1574,23 @@ body:has([data-deep-aurora-integration]) .document-actions-modal-panel {
   box-shadow: 0 20px 60px rgb(0 0 0 / 0.55) !important;
 }
 
+/** Tendina azioni documento (tabella): stesso fill opaco della modale. */
+.document-actions-dropdown {
+  background-color: #0f172a !important;
+  background-image: linear-gradient(155deg, rgb(15 23 42) 0%, rgb(30 27 75) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    0 16px 48px -12px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+body:has([data-deep-aurora-integration]) .document-actions-dropdown,
+[data-deep-aurora-integration] .document-actions-dropdown {
+  border-color: var(--app-surface-border) !important;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.55) !important;
+}
+
 /**
  * Full-viewport con `app-workspace-inset-bg` ma senza `app-aurora-modal-overlay`
  * (non il dettaglio bolla — quello usa `app-aurora-modal-overlay` + `.app-fornitore-doc-detail-scrim`).

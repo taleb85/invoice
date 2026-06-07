@@ -115,7 +115,7 @@ export default function DocumentActionsDropdown({
       role="menu"
       aria-label={d.title}
       style={{ top: position.top, left: position.left, width: 240 }}
-      className="document-actions-dropdown fixed z-[9999] max-h-[min(70dvh,420px)] overflow-hidden overflow-y-auto rounded-lg border border-app-line-30 app-workspace-surface-elevated shadow-xl"
+      className="document-actions-dropdown fixed z-[9999] max-h-[min(70dvh,420px)] overflow-hidden overflow-y-auto rounded-lg border border-app-line-45 shadow-2xl ring-1 ring-black/25"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="border-b border-app-line-20 px-3 py-2">
