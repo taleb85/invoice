@@ -26,6 +26,7 @@ import DocumentActionsButton from '@/components/DocumentActionsButton'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
 import { extractEmailFromSenderHeader } from '@/lib/sender-email'
 import { auditMittenteMatchesFornitoreScope } from '@/lib/audit-fornitore-match'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 import { useToast } from '@/lib/toast-context'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
@@ -434,7 +435,10 @@ export default function InboxAiClient(props: {
         setAuditRows([])
         return
       }
-      setAuditRows(j.rows ?? [])
+      const rows = (j.rows ?? []).filter(
+        (row) => !isSharedBillingPlatformSenderEmail(extractEmailFromSenderHeader(row.mittente)),
+      )
+      setAuditRows(rows)
     } finally {
       setAuditLoading(false)
     }

@@ -127,9 +127,7 @@ export async function POST(req: NextRequest) {
     }),
   )
 
-  const visibleRows = enriched.filter(
-    (r) => !r.billing_platform_sender || r.supplier_mismatch,
-  )
+  const visibleRows = enriched.filter((r) => !r.billing_platform_sender)
 
   return NextResponse.json({
     ok: true as const,
