@@ -9,11 +9,13 @@ import type { DocumentActionResult } from '@/lib/document-action-result'
 type ActionsContextValue = {
   openActions: (item: DocumentActionItem) => void
   closeActions: () => void
+  executeAction: (item: DocumentActionItem, actionId: CommandId) => Promise<DocumentActionResult>
 }
 
 const ActionsContext = createContext<ActionsContextValue>({
   openActions: () => {},
   closeActions: () => {},
+  executeAction: async () => ({ ok: false, error: 'Not initialized' }),
 })
 
 export function useDocumentActions() {
@@ -37,8 +39,13 @@ export function DocumentActionsProvider({
     setActionsItem(null)
   }, [])
 
+  const executeAction = useCallback(
+    (item: DocumentActionItem, actionId: CommandId) => onExecute(item, actionId),
+    [onExecute],
+  )
+
   return (
-    <ActionsContext.Provider value={{ openActions, closeActions }}>
+    <ActionsContext.Provider value={{ openActions, closeActions, executeAction }}>
       {children}
       {typeof document !== 'undefined' &&
         createPortal(
