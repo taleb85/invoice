@@ -9,6 +9,7 @@ function isRegisterAction(actionId: CommandId): boolean {
   return (
     actionId.startsWith('documento.finalizza_') ||
     actionId === 'bolla.converti_in_fattura' ||
+    actionId === 'statement.converti_in_fattura' ||
     actionId === 'fattura.approva' ||
     actionId === 'statement.segna_come_ok'
   )

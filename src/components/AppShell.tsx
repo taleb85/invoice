@@ -242,6 +242,7 @@ function AppShellRootBoundary({ children }: { children: React.ReactNode }) {
 function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
   const { showToast } = useToast()
   const { t } = useLocale()
+  const { me } = useMe()
   const handleDocumentAction = useCallback(async (item: DocumentActionItem, actionId: string): Promise<DocumentActionResult> => {
     const a = t.appShellActions
     const httpErr = (status: number) => t.common.httpError.replace('{code}', String(status))
@@ -276,7 +277,7 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
           ? openDocumentUrl({ bollaId: item.id, json: true })
           : item.origine === 'fattura'
             ? openDocumentUrl({ fatturaId: item.id, json: true })
-            : item.origine === 'riga_statement'
+            : item.origine === 'riga_statement' || item.origine === 'statement'
               ? openDocumentUrl({ statementId: item.id, json: true })
               : openDocumentUrl({ documentoId: item.id, json: true })
       const res = await fetch(jsonHref)
@@ -388,6 +389,23 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
       return succeed(a.bollaConvertita)
     }
+    if (actionId === 'statement.converti_in_fattura') {
+      if (!me?.is_admin && !me?.is_admin_sede) {
+        return fail(a.azioneNonDisponibile.replace('{action}', actionId))
+      }
+      const res = await fetch('/api/statements/convert-to-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ statement_id: item.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        return fail((data as { error?: string }).error || httpErr(res.status))
+      }
+      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+      return succeed(t.bolle.convertiInFatturaOk ?? a.bollaConvertita)
+    }
     if (actionId === 'bolla.elimina') {
       const supabase = (await import('@/utils/supabase/client')).createClient()
       const { error: delErr } = await supabase.from('bolle').delete().eq('id', item.id)
@@ -417,7 +435,7 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       }
     }
     return succeed(a.operazioneCompletata)
-  }, [showToast, t])
+  }, [showToast, t, me?.is_admin, me?.is_admin_sede])
 
   return (
     <DocumentActionsProvider onExecute={handleDocumentAction}>

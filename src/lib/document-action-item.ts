@@ -211,3 +211,24 @@ export function documentActionItemForPendingDoc(
     pending_kind: doc.pending_kind,
   }
 }
+
+export function documentActionItemForStatement(
+  s: {
+    id: string
+    fornitore_id?: string | null
+    fornitore_nome?: string | null
+    file_url?: string | null
+    email_subject?: string | null
+    document_date?: string | null
+  },
+): DocumentActionItem {
+  return {
+    id: s.id,
+    origine: 'statement',
+    fornitore_id: s.fornitore_id ?? null,
+    fornitore_nome: s.fornitore_nome ?? null,
+    file_url: s.file_url ?? null,
+    numero_documento: s.email_subject ?? null,
+    data_doc: s.document_date ?? null,
+  }
+}

@@ -22,6 +22,7 @@ export type CommandId =
   | 'statement.assegna_fattura'
   | 'statement.ricalcola'
   | 'statement.associa_fornitore'
+  | 'statement.converti_in_fattura'
   | 'bolla.rianalizza_ocr'
   | 'bolla.converti_in_fattura'
   | 'bolla.cambia_fornitore'

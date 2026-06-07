@@ -34,6 +34,8 @@ function entityIdsFromItem(item: DocumentActionItem) {
       return { documentoId: item.id }
     case 'riga_statement':
       return { statementId: item.id }
+    case 'statement':
+      return { statementId: item.id }
     default:
       return {}
   }

@@ -23,7 +23,7 @@ import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { DocumentRowActions } from '@/components/DocumentRowActions'
-import { documentActionItemForPendingDoc } from '@/lib/document-action-item'
+import { documentActionItemForPendingDoc, documentActionItemForStatement } from '@/lib/document-action-item'
 
 const SupplierDocumentOcrToolbar = dynamic(
   () => import('@/components/SupplierDocumentOcrToolbar'),
@@ -3593,62 +3593,6 @@ function MigrationCard() {
 
 export type SupplierDesktopVerificaMode = 'full' | 'classicToolbar' | 'statementsPanel'
 
-function ConvertStmtToInvoiceButton({
-  statementId,
-  emailSubject,
-}: {
-  statementId: string
-  emailSubject?: string | null
-}) {
-  const { showToast } = useToast()
-  const { me } = useMe()
-  const [busy, setBusy] = useState(false)
-
-  const canConvert = Boolean(me?.is_admin || me?.is_admin_sede)
-  if (!canConvert) return null
-
-  const handleConvert = async () => {
-    if (!confirm('Spostare questo documento in Fatture?')) return
-    setBusy(true)
-    try {
-      const res = await fetch('/api/statements/convert-to-invoice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ statement_id: statementId }),
-      })
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({ error: 'Errore' }))
-        showToast(j.error ?? 'Errore', 'error')
-        return
-      }
-      showToast('Documento spostato in Fatture', 'success')
-      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
-    } catch {
-      showToast('Errore di connessione', 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <span
-      role="button"
-      tabIndex={0}
-      onClick={(e) => { e.stopPropagation(); void handleConvert() }}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); void handleConvert() } }}
-      title={emailSubject ?? statementId}
-      className={`inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2 py-1 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 ${busy ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
-    >
-      {busy ? (
-        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
-      ) : (
-        'Sposta in Fatture'
-      )}
-    </span>
-  )
-}
-
 export function VerificationStatusTab({
   sedeId,
   fornitoreId,
@@ -5434,13 +5378,23 @@ export function VerificationStatusTab({
                       formatStmtDate(stmtOfficialIso ?? s.received_at))
                   : (s.fornitore_nome ?? s.email_subject ?? 'Statement')
                 return (
-                <button key={s.id} onClick={() => loadStatementRows(s)}
+                <div
+                  key={s.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => loadStatementRows(s)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      loadStatementRows(s)
+                    }
+                  }}
                   className={
                     vsEmbeddedSupplier
                       ? vsCompactS1
-                        ? 'flex w-full flex-col gap-2 px-3 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12] max-md:py-3 md:flex-row md:items-center md:gap-2 md:py-2'
-                        : 'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
-                      : 'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
+                        ? 'flex w-full cursor-pointer flex-col gap-2 px-3 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12] max-md:py-3 md:flex-row md:items-center md:gap-2 md:py-2'
+                        : 'flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
+                      : 'flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
                   }
                 >
                   <div
@@ -5582,10 +5536,21 @@ export function VerificationStatusTab({
                         </span>
                       )}
                     </div>
-                    <ConvertStmtToInvoiceButton
-                      statementId={s.id}
-                      emailSubject={s.email_subject}
-                    />
+                    {s.file_url?.trim() ? (
+                      <DocumentRowActions
+                        item={documentActionItemForStatement({
+                          id: s.id,
+                          fornitore_id: s.fornitore_id,
+                          fornitore_nome: s.fornitore_nome,
+                          file_url: s.file_url,
+                          email_subject: s.email_subject,
+                          document_date: s.document_date,
+                        })}
+                        statementId={s.id}
+                        fileUrl={s.file_url}
+                        fornitoreId={s.fornitore_id ?? fornitoreId ?? null}
+                      />
+                    ) : null}
                     </>
                   )}
                   <svg
@@ -5597,7 +5562,7 @@ export function VerificationStatusTab({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                   </div>
-                </button>
+                </div>
               )})}
             </div>
             ) : null}
@@ -5650,20 +5615,21 @@ export function VerificationStatusTab({
                           <span className="rounded-full border border-violet-500/35 bg-violet-950/25 px-2 py-0.5 text-[10px] font-semibold text-violet-100">
                             {t.statements.stmtPaymentReceiptBadge}
                           </span>
-                          {s.file_url ? (
-                            <OpenDocumentInAppButton
+                          {s.file_url?.trim() ? (
+                            <DocumentRowActions
+                              item={documentActionItemForStatement({
+                                id: s.id,
+                                fornitore_id: s.fornitore_id,
+                                fornitore_nome: s.fornitore_nome,
+                                file_url: s.file_url,
+                                email_subject: s.email_subject,
+                                document_date: s.document_date,
+                              })}
                               statementId={s.id}
                               fileUrl={s.file_url}
-                              className="text-[11px] font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline"
-                              title={t.bolle.viewDocument}
-                            >
-                              {t.bolle.viewDocument}
-                            </OpenDocumentInAppButton>
+                              fornitoreId={s.fornitore_id ?? fornitoreId ?? null}
+                            />
                           ) : null}
-                          <ConvertStmtToInvoiceButton
-                            statementId={s.id}
-                            emailSubject={s.email_subject}
-                          />
                         </div>
                       </div>
                     )

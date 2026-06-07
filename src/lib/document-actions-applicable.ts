@@ -38,9 +38,16 @@ const PENDING_ACTIONS: CommandId[] = [
   'documento.apri',
 ]
 
-const STATEMENT_ACTIONS: CommandId[] = [
+const STATEMENT_ROW_ACTIONS: CommandId[] = [
   'statement.segna_come_ok',
   'statement.assegna_fattura',
+  'documento.associa',
+  'documento.apri',
+]
+
+/** PDF estratto conto in inbox Verifica (header statement, non singola riga). */
+const STATEMENT_INBOX_ACTIONS: CommandId[] = [
+  'statement.converti_in_fattura',
   'documento.associa',
   'documento.apri',
 ]
@@ -50,7 +57,8 @@ const BY_ORIGINE: Record<string, CommandId[]> = {
   bolla_aperta: BOLLA_ACTIONS,
   fattura: FATTURA_ACTIONS,
   documento_da_processare: PENDING_ACTIONS,
-  riga_statement: STATEMENT_ACTIONS,
+  riga_statement: STATEMENT_ROW_ACTIONS,
+  statement: STATEMENT_INBOX_ACTIONS,
 }
 
 const FALLBACK_ACTIONS: CommandId[] = ['documento.associa', 'documento.apri']

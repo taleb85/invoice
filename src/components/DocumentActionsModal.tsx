@@ -26,6 +26,7 @@ import { actionIdsForOrigine } from '@/lib/document-actions-applicable'
 import { progressStepsForAction } from '@/lib/document-action-progress-steps'
 import type { DocumentActionResult } from '@/lib/document-action-result'
 import { useT } from '@/lib/use-t'
+import { useMe } from '@/lib/me-context'
 import type { Translations } from '@/lib/translations'
 
 export type DocumentActionItem = {
@@ -81,6 +82,7 @@ function buildAllActions(t: Translations): DocumentAction[] {
     // ── Bolla ──
     { id: 'bolla.rianalizza_ocr', label: d.actBollaReanalyzeOcrLabel, descrizione: d.actBollaReanalyzeOcrDesc, icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato' },
     { id: 'bolla.converti_in_fattura', label: d.actBollaConvertLabel, descrizione: d.actBollaConvertDesc, icona: <Save className="h-4 w-4" />, gruppo: 'tipo' },
+    { id: 'statement.converti_in_fattura', label: d.actBollaConvertLabel, descrizione: d.actBollaConvertDesc, icona: <Save className="h-4 w-4" />, gruppo: 'tipo' },
     { id: 'bolla.cambia_fornitore', label: d.actBollaChangeSupplierLabel, descrizione: d.actBollaChangeSupplierDesc, icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore' },
     { id: 'bolla.elimina', label: d.actBollaDeleteLabel, descrizione: d.actBollaDeleteDesc, icona: <Archive className="h-4 w-4" />, gruppo: 'pericolose', pericolosa: true },
   ]
@@ -121,6 +123,8 @@ export default function DocumentActionsModal({
   onExecute,
 }: DocumentActionsModalProps) {
   const t = useT()
+  const { me } = useMe()
+  const canAdminDocActions = Boolean(me?.is_admin || me?.is_admin_sede)
   const d = t.documentActions
   const allActions = useMemo(() => buildAllActions(t), [t])
   const actionsById = useMemo(
@@ -130,9 +134,18 @@ export default function DocumentActionsModal({
   const visible = useMemo(() => {
     if (!item) return []
     return actionIdsForOrigine(item.origine)
+      .filter((id) => {
+        if (
+          (id === 'statement.converti_in_fattura' || id === 'bolla.converti_in_fattura') &&
+          !canAdminDocActions
+        ) {
+          return false
+        }
+        return true
+      })
       .map((id) => actionsById.get(id))
       .filter((a): a is DocumentAction => Boolean(a))
-  }, [item, actionsById])
+  }, [item, actionsById, canAdminDocActions])
   const [confermaId, setConfermaId] = useState<string | null>(null)
   const [selettoreCategoria, setSelettoreCategoria] = useState(false)
   const [execution, setExecution] = useState<ExecutionState | null>(null)
