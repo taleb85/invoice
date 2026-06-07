@@ -191,6 +191,8 @@ export const OCR_INVOICE_SCHEMA = {
     },
     promessa_invio_documento: { type: SchemaType.BOOLEAN, nullable: true },
     totale_iva_inclusa: { type: SchemaType.NUMBER, nullable: true },
+    quantita_totale: { type: SchemaType.NUMBER, nullable: true },
+    data_ordine: { type: SchemaType.STRING, nullable: true },
     note_corpo_mail: { type: SchemaType.STRING, nullable: true },
     estrazione_utile: { type: SchemaType.BOOLEAN, nullable: true },
     importo_raw: { type: SchemaType.STRING, nullable: true },

@@ -2206,7 +2206,7 @@ function BolleTab({
     void (async () => {
       const { data } = await supabase
         .from('bolle')
-        .select('id, sede_id, data, stato, file_url, numero_bolla, importo, email_sync_auto_saved_at')
+        .select('id, sede_id, data, stato, file_url, numero_bolla, importo, quantita, email_sync_auto_saved_at')
         .eq('fornitore_id', fornitoreId)
         .gte('data', from)
         .lt('data', to)

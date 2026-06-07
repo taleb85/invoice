@@ -7,7 +7,8 @@ import {
   documentDateRejectMessage,
   resolveDocumentDateFromOcrContext,
 } from '@/lib/resolve-document-date-from-ocr'
-import { quantitaForBollaFromOcr } from '@/lib/bolla-quantita'
+import { quantitaForBollaFromOcrOrText } from '@/lib/bolla-quantita'
+import { extractPdfText } from '@/lib/pdf-parse-utils'
 import { shouldClearBollaImportoAfterBollaDdtReocr } from '@/lib/ocr-tipo-documento'
 
 function resolvedContentType(url: string, header: string | null): string {
@@ -129,7 +130,9 @@ export async function POST(req: NextRequest) {
     })
     const numRaw = normalizeNumeroBolla(ocr.numero_fattura) ?? ''
     ocrNumero = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
-    ocrQty = quantitaForBollaFromOcr(ocr)
+    const pdfText =
+      contentType === 'application/pdf' ? await extractPdfText(buffer).catch(() => null) : null
+    ocrQty = quantitaForBollaFromOcrOrText(ocr, pdfText)
     ocrTipo = ocr.tipo_documento ?? null
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) {

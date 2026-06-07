@@ -35,6 +35,41 @@ export function quantitaForBollaFromOcr(ocr: {
   return n >= 0 ? Math.round(n * 1000) / 1000 : null
 }
 
+/** Fallback when OCR JSON omits quantita_totale: sum Pack/Qty from delivery-note PDF text. */
+export function sumDeliveryNoteQuantitaFromText(text: string | null | undefined): number | null {
+  if (!text?.trim()) return null
+  if (
+    !/\b(?:delivery note|sales delivery note|lieferschein|ddt|albar[aá]n|bon de livraison)\b/i.test(
+      text,
+    )
+  ) {
+    return null
+  }
+  let sum = 0
+  let any = false
+  const add = (raw: string) => {
+    const n = parseFloat(raw.replace(',', '.'))
+    if (Number.isFinite(n) && n > 0) {
+      sum += n
+      any = true
+    }
+  }
+  for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+(?:Case|Each)\b/gi)) {
+    add(m[1]!)
+  }
+  for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+\d+(?:[.,]\d+)?\s+KG\b/gi)) {
+    add(m[1]!)
+  }
+  return any ? Math.round(sum * 1000) / 1000 : null
+}
+
+export function quantitaForBollaFromOcrOrText(
+  ocr: { tipo_documento?: unknown; quantita_totale?: number | null },
+  extractedText?: string | null,
+): number | null {
+  return quantitaForBollaFromOcr(ocr) ?? sumDeliveryNoteQuantitaFromText(extractedText)
+}
+
 export function formatBollaQuantita(
   quantita: number | null | undefined,
   locale: string,
