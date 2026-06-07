@@ -43,7 +43,7 @@ export default function DocumentActionsDropdown({
     const gap = 4
     const panelWidth = 240
     let left = rect.right - panelWidth
-    let top = rect.bottom + gap
+    const top = rect.bottom + gap
     if (left < 8) left = 8
     if (left + panelWidth > window.innerWidth - 8) {
       left = window.innerWidth - panelWidth - 8

@@ -1365,7 +1365,7 @@ function DashboardTab({
 
   const hasRegisteredEmail = registeredEmails.length > 0
 
-  const loadContatti = async () => {
+  const loadContatti = useCallback(async () => {
     const res = await fetch(`/api/fornitore-contatti?fornitore_id=${fornitoreId}`)
     if (!res.ok) { setContattiError(true); setContattiLoading(false); return [] as ContattoRow[] }
     const data = await res.json()
@@ -1373,7 +1373,7 @@ function DashboardTab({
     setContattiError(true)
     setContattiLoading(false)
     return [] as ContattoRow[]
-  }
+  }, [fornitoreId])
 
   const backfillContattiFromDocuments = useCallback(async () => {
     try {
@@ -1384,7 +1384,7 @@ function DashboardTab({
     } catch {
       /* best-effort */
     }
-  }, [fornitoreId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fornitoreId, loadContatti])
 
   const openAdd = () => {
     setEditingId(null)
@@ -3043,6 +3043,33 @@ function FattureTab({
       })
   }, [onLedgerMutated, fornitoreId, dateFrom, dateToExclusive])
 
+  const fatturaToolbarRowClass = (id: string, hasFile: boolean, supplierMismatch?: string) => {
+    const base =
+      !hasFile || toolbarFatturaId !== id ? '' : 'bg-cyan-500/8 ring-1 ring-inset ring-cyan-400/25'
+    if (supplierMismatch) {
+      return `${base} bg-amber-500/8 ring-1 ring-inset ring-amber-400/25`.trim()
+    }
+    return base
+  }
+
+  const renderFatturaDocumentActions = useCallback(
+    (f: Fattura) => (
+      <DocumentRowActions
+        item={documentActionItemForFattura(f, fornitoreId, fornitoreNome)}
+        fileUrl={f.file_url}
+        fornitoreId={fornitoreId}
+        readOnly={readOnly}
+        categoria={
+          (f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ??
+          (f.is_credit_note ? 'Credit Note' : null) ??
+          extractDocTypeLabel(f.numero_fattura, f.file_url) ??
+          t.fatture.invoice
+        }
+      />
+    ),
+    [fornitoreId, fornitoreNome, readOnly, t.fatture.invoice, tipoFatturaByFileUrl],
+  )
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -3097,33 +3124,6 @@ function FattureTab({
       </div>
     )
   }
-
-  const fatturaToolbarRowClass = (id: string, hasFile: boolean, supplierMismatch?: string) => {
-    const base =
-      !hasFile || toolbarFatturaId !== id ? '' : 'bg-cyan-500/8 ring-1 ring-inset ring-cyan-400/25'
-    if (supplierMismatch) {
-      return `${base} bg-amber-500/8 ring-1 ring-inset ring-amber-400/25`.trim()
-    }
-    return base
-  }
-
-  const renderFatturaDocumentActions = useCallback(
-    (f: Fattura) => (
-      <DocumentRowActions
-        item={documentActionItemForFattura(f, fornitoreId, fornitoreNome)}
-        fileUrl={f.file_url}
-        fornitoreId={fornitoreId}
-        readOnly={readOnly}
-        categoria={
-          (f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ??
-          (f.is_credit_note ? 'Credit Note' : null) ??
-          extractDocTypeLabel(f.numero_fattura, f.file_url) ??
-          t.fatture.invoice
-        }
-      />
-    ),
-    [fornitoreId, fornitoreNome, readOnly, t.fatture.invoice, tipoFatturaByFileUrl],
-  )
 
   return (
     <>
