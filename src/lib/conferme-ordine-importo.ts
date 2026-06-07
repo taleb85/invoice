@@ -49,6 +49,9 @@ export function extractOrderTotalFromLabelledText(text: string): number | null {
   if (!text?.trim()) return null
   const normalized = text.replace(/\r\n/g, '\n')
   const labeled: Array<{ re: RegExp; rank: number }> = [
+    { re: /\bbalance\s+due\b[^0-9£€$]{0,48}[£€$]?\s*([\d][\d.,\s]*)/gi, rank: 6 },
+    { re: /\bamount\s+due\b[^0-9£€$]{0,48}[£€$]?\s*([\d][\d.,\s]*)/gi, rank: 6 },
+    { re: /\binvoice\s+total\b[^0-9£€$]{0,48}[£€$]?\s*([\d][\d.,\s]*)/gi, rank: 5 },
     { re: /\bgrand\s+total\b[^0-9£€$]{0,48}[£€$]?\s*([\d][\d.,\s]*)/gi, rank: 5 },
     { re: /\border\s+total\b[^0-9£€$]{0,48}[£€$]?\s*([\d][\d.,\s]*)/gi, rank: 4 },
     { re: /\b(?:totale|importo)\s+(?:ordine|documento)\b[^0-9£€$]{0,48}[£€$]?\s*([\d][\d.,\s]*)/gi, rank: 4 },

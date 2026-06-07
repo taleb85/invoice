@@ -10,6 +10,11 @@ import {
 } from '@/lib/resolve-document-date-from-ocr'
 import { resolveFatturaFornitoreCorrection } from '@/lib/fattura-fornitore-reassign-from-doc'
 import { reassignEntityFornitore } from '@/lib/reassign-entity-fornitore'
+import { extractDocumentText } from '@/lib/document-extractors'
+import {
+  importoTotaleFromOcrResult,
+  totaleFromDocMetadata,
+} from '@/lib/conferme-ordine-importo'
 
 function resolvedContentType(url: string, header: string | null): string {
   const h = (header ?? '').toLowerCase()
@@ -64,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   const { data: docRow } = await service
     .from('documenti_da_processare')
-    .select('created_at, oggetto_mail, file_name, mittente, metadata')
+    .select('id, created_at, oggetto_mail, file_name, mittente, metadata')
     .eq('file_url', fattura.file_url)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -116,6 +121,8 @@ export async function POST(req: NextRequest) {
   }
 
   let importFromOcr: number | null = null
+  let ocrImportoRaw: string | null = null
+  let ocrTotaleIvaInclusa: number | null = null
   let numeroFatturaFromOcr: string | null = null
   let tipoDocumentoFromOcr: string | null = null
   let ocrRagioneSociale: string | null = null
@@ -131,8 +138,9 @@ export async function POST(req: NextRequest) {
       emailSubject,
       receivedAt,
     })
+    ocrImportoRaw = ocr.importo_raw?.trim() ?? null
     if (ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))) {
-      importFromOcr = Number(ocr.totale_iva_inclusa)
+      ocrTotaleIvaInclusa = Number(ocr.totale_iva_inclusa)
     }
     const rawNumero = ocr.numero_fattura?.trim()
     if (rawNumero) numeroFatturaFromOcr = rawNumero
@@ -145,26 +153,50 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
+  let pdfText = ''
+  try {
+    const { text } = await extractDocumentText(buffer, contentType)
+    pdfText = text ?? ''
+  } catch {
+    /* testo PDF opzionale */
+  }
+  const contextText = [emailSubject, fileName, pdfText].filter(Boolean).join('\n')
+  importFromOcr = importoTotaleFromOcrResult(
+    {
+      totale_iva_inclusa: ocrTotaleIvaInclusa,
+      importo_raw: ocrImportoRaw,
+    },
+    contextText,
+  )
+  if (importFromOcr == null && fattura.importo == null) {
+    importFromOcr = totaleFromDocMetadata(docMetadata)
+  }
+
   const normalized = dateResolution.proposedDate
   const dateRejected = Boolean(dateResolution.skipReason && dateResolution.skipReason !== 'unchanged')
   const dateRejectInfo = dateResolution.skipReason
     ? documentDateRejectMessage(dateResolution.skipReason, locale)
     : undefined
 
-  // Persist the updated tipo_documento into documenti_da_processare so the UI can reflect it
-  if (tipoDocumentoFromOcr && fattura.file_url) {
-    const { data: docMetaRow } = await service
-      .from('documenti_da_processare')
-      .select('id, metadata')
-      .eq('file_url', fattura.file_url)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (docMetaRow) {
-      const existing = (docMetaRow.metadata ?? {}) as Record<string, unknown>
+  // Persist OCR fields into documenti_da_processare metadata for UI / future re-reads
+  if (fattura.file_url && (tipoDocumentoFromOcr || importFromOcr != null)) {
+    const docMetaRow = docRow as { id?: string; metadata?: unknown } | null
+    if (docMetaRow?.id) {
+      const existing =
+        docMetaRow.metadata &&
+        typeof docMetaRow.metadata === 'object' &&
+        !Array.isArray(docMetaRow.metadata)
+          ? (docMetaRow.metadata as Record<string, unknown>)
+          : {}
+      const metaPatch: Record<string, unknown> = { ...existing }
+      if (tipoDocumentoFromOcr) metaPatch.tipo_documento = tipoDocumentoFromOcr
+      if (importFromOcr != null) {
+        metaPatch.totale_iva_inclusa = importFromOcr
+        if (ocrImportoRaw) metaPatch.importo_raw = ocrImportoRaw
+      }
       await service
         .from('documenti_da_processare')
-        .update({ metadata: { ...existing, tipo_documento: tipoDocumentoFromOcr } })
+        .update({ metadata: metaPatch })
         .eq('id', docMetaRow.id)
     }
   }

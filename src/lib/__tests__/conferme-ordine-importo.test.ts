@@ -42,4 +42,16 @@ describe('confermaOrdineImportoTotale', () => {
       ),
     ).toBe(2500)
   })
+
+  it('estrae Balance Due da fattura QuickBooks', () => {
+    expect(
+      extractOrderTotalFromLabelledText('Items\nBalance Due\n£1,234.56\nThank you'),
+    ).toBe(1234.56)
+    expect(
+      importoTotaleFromOcrResult(
+        { totale_iva_inclusa: null, importo_raw: null },
+        'Invoice 43284\nBalance Due £99.00',
+      ),
+    ).toBe(99)
+  })
 })
