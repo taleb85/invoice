@@ -703,6 +703,18 @@ const translations: Translations = {
     errDocNotFound: 'Documento no encontrado.',
     errInvalidKind: 'Tipo de documento no válido.',
     errGenericFinalize: 'Operación fallida.',
+    execProgressTitle: 'Ejecutando acción',
+    execStepPrepare: 'Preparación',
+    execStepOcr: 'Análisis IA del documento',
+    execStepSave: 'Guardando resultados',
+    execStepRegister: 'Registrando documento',
+    execStepDone: 'Finalizando',
+    execStepRunning: 'Procesando',
+    execStepOpen: 'Abriendo documento',
+    execStepDelete: 'Eliminando documento',
+    execSuccess: 'Acción completada',
+    execError: 'Acción fallida',
+    execBackToActions: 'Volver a las acciones',
 
   },
   backupManager: {

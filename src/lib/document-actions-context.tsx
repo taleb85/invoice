@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 import { createPortal } from 'react-dom'
 import DocumentActionsModal, { type DocumentActionItem } from '@/components/DocumentActionsModal'
 import type { CommandId } from '@/lib/command-system/types'
+import type { DocumentActionResult } from '@/lib/document-action-result'
 
 type ActionsContextValue = {
   openActions: (item: DocumentActionItem) => void
@@ -24,7 +25,7 @@ export function DocumentActionsProvider({
   onExecute,
 }: {
   children: ReactNode
-  onExecute: (item: DocumentActionItem, actionId: CommandId) => Promise<void>
+  onExecute: (item: DocumentActionItem, actionId: CommandId) => Promise<DocumentActionResult>
 }) {
   const [actionsItem, setActionsItem] = useState<DocumentActionItem | null>(null)
 
@@ -45,10 +46,7 @@ export function DocumentActionsProvider({
             open={!!actionsItem}
             item={actionsItem}
             onClose={closeActions}
-            onExecute={async (item, actionId) => {
-              await onExecute(item, actionId)
-              closeActions()
-            }}
+            onExecute={onExecute}
           />,
           document.body,
         )}

@@ -28,6 +28,7 @@ import { AppActivitiesProvider } from '@/lib/app-activities-context'
 import { DocumentActionsProvider } from '@/lib/document-actions-context'
 import type { DocumentActionItem } from '@/components/DocumentActionsModal'
 import { openDocumentUrl } from '@/lib/open-document-url'
+import type { DocumentActionResult } from '@/lib/document-action-result'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { translateDocumentiDaProcessareError } from '@/lib/documenti-da-processare-errors'
 import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
@@ -241,9 +242,21 @@ function AppShellRootBoundary({ children }: { children: React.ReactNode }) {
 function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
   const { showToast } = useToast()
   const { t } = useLocale()
-  const handleDocumentAction = useCallback(async (item: DocumentActionItem, actionId: string) => {
+  const handleDocumentAction = useCallback(async (item: DocumentActionItem, actionId: string): Promise<DocumentActionResult> => {
     const a = t.appShellActions
     const httpErr = (status: number) => t.common.httpError.replace('{code}', String(status))
+    const succeed = (message?: string): DocumentActionResult => {
+      if (message) showToast(message, 'success')
+      return { ok: true }
+    }
+    const inform = (message: string): DocumentActionResult => {
+      showToast(message, 'info')
+      return { ok: false, error: message, informational: true }
+    }
+    const fail = (message: string): DocumentActionResult => {
+      showToast(message, 'error')
+      return { ok: false, error: message }
+    }
     // Azioni che richiedono un dialogo (disponibili solo nel Centro Controllo)
     const dialogOnly: Record<string, string> = {
       'documento.associa': a.centroControlloAssociaFornitore,
@@ -253,8 +266,7 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
     }
     const dialogMsg = dialogOnly[actionId]
     if (dialogMsg) {
-      showToast(dialogMsg, 'info')
-      return
+      return inform(dialogMsg)
     }
 
     // Apri documento
@@ -268,11 +280,10 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
               ? openDocumentUrl({ statementId: item.id, json: true })
               : openDocumentUrl({ documentoId: item.id, json: true })
       const res = await fetch(jsonHref)
-      if (res.ok) {
-        const { url: docUrl } = await res.json()
-        if (docUrl) window.open(docUrl, '_blank')
-      }
-      return
+      if (!res.ok) return fail(httpErr(res.status))
+      const { url: docUrl } = await res.json()
+      if (docUrl) window.open(docUrl, '_blank')
+      return succeed()
     }
 
     const isBollaOrigine = item.origine === 'bolla' || item.origine === 'bolla_aperta'
@@ -284,12 +295,10 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast((data as { error?: string }).error || httpErr(res.status), 'error')
-        return
+        return fail((data as { error?: string }).error || httpErr(res.status))
       }
-      showToast(a.bollaConvertita, 'success')
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
-      return
+      return succeed(a.bollaConvertita)
     }
 
     const apiCalls: Record<string, { url: string; body: Record<string, unknown> }> = {
@@ -315,14 +324,12 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast(data.error || httpErr(res.status), 'error')
-        return
+        return fail(data.error || httpErr(res.status))
       }
-      showToast(a.fatturaScartata, 'success')
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('document-type-changed', { detail: { id: item.id } }))
       }
-      return
+      return succeed(a.fatturaScartata)
     }
     // Per documenti già registrati (fatture, bolle), i finalizza_come_* aggiornano il tipo direttamente
     // invece di creare un nuovo documento dalla coda.
@@ -337,20 +344,16 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       const res = await fetch(reclass.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reclass.body) })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast(data.error || httpErr(res.status), 'error')
-        return
+        return fail(data.error || httpErr(res.status))
       }
-      showToast(a.tipoDocumentoAggiornato, 'success')
-      // Notifica la pagina che i dati duplicati sono cambiati
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('document-type-changed', { detail: { id: item.id } }))
       }
-      return
+      return succeed(a.tipoDocumentoAggiornato)
     }
     // Bolla: cambia fornitore richiede picker UI nel pannello bolla
     if (actionId === 'bolla.cambia_fornitore') {
-      showToast(a.aprilPannelloBolla, 'info')
-      return
+      return inform(a.aprilPannelloBolla)
     }
 
     // Bolla: azioni che chiamano API dirette + notificano il tab di ricaricare
@@ -367,12 +370,10 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast((data as { error?: string }).error || httpErr(res.status), 'error')
-        return
+        return fail((data as { error?: string }).error || httpErr(res.status))
       }
-      showToast(a.ocrCompletato, 'success')
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
-      return
+      return succeed(a.ocrCompletato)
     }
     if (actionId === 'bolla.converti_in_fattura') {
       const res = await fetch('/api/bolle/convert-to-fattura', {
@@ -382,41 +383,32 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        showToast((data as { error?: string }).error || httpErr(res.status), 'error')
-        return
+        return fail((data as { error?: string }).error || httpErr(res.status))
       }
-      showToast(a.bollaConvertita, 'success')
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
-      return
+      return succeed(a.bollaConvertita)
     }
     if (actionId === 'bolla.elimina') {
       const supabase = (await import('@/utils/supabase/client')).createClient()
       const { error: delErr } = await supabase.from('bolle').delete().eq('id', item.id)
       if (delErr) {
-        showToast(delErr.message, 'error')
-        return
+        return fail(delErr.message)
       }
-      showToast(a.bollaEliminata, 'success')
       window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
-      return
+      return succeed(a.bollaEliminata)
     }
 
     const api = apiCalls[actionId]
     if (!api) {
-      showToast(a.azioneNonDisponibile.replace('{action}', actionId), 'info')
-      return
+      return inform(a.azioneNonDisponibile.replace('{action}', actionId))
     }
     const res = await fetch(api.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(api.body) })
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string }
-      showToast(
+      return fail(
         translateDocumentiDaProcessareError(data.error, t) || data.error || httpErr(res.status),
-        'error',
       )
-      return
     }
-    showToast(a.operazioneCompletata, 'success')
-    // Notify lists to refresh after modal actions
     if (typeof window !== 'undefined') {
       if (actionId.startsWith('documento.') && item.origine === 'documento_da_processare') {
         window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
@@ -424,6 +416,7 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
         window.dispatchEvent(new CustomEvent('fattura-mutated', { detail: { id: item.id } }))
       }
     }
+    return succeed(a.operazioneCompletata)
   }, [showToast, t])
 
   return (

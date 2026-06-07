@@ -2602,6 +2602,18 @@ export type Translations = {
     errDocNotFound: string
     errInvalidKind: string
     errGenericFinalize: string
+    execProgressTitle: string
+    execStepPrepare: string
+    execStepOcr: string
+    execStepSave: string
+    execStepRegister: string
+    execStepDone: string
+    execStepRunning: string
+    execStepOpen: string
+    execStepDelete: string
+    execSuccess: string
+    execError: string
+    execBackToActions: string
   }
   backupManager: {
     statusSchedulingAria: string

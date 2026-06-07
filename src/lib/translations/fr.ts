@@ -703,6 +703,18 @@ const translations: Translations = {
     errDocNotFound: 'Document introuvable.',
     errInvalidKind: 'Type de document invalide.',
     errGenericFinalize: "Échec de l'opération.",
+    execProgressTitle: 'Exécution en cours',
+    execStepPrepare: 'Préparation',
+    execStepOcr: 'Analyse IA du document',
+    execStepSave: 'Enregistrement des résultats',
+    execStepRegister: 'Enregistrement du document',
+    execStepDone: 'Finalisation',
+    execStepRunning: 'Traitement en cours',
+    execStepOpen: 'Ouverture du document',
+    execStepDelete: 'Suppression du document',
+    execSuccess: 'Action terminée',
+    execError: 'Action échouée',
+    execBackToActions: 'Retour aux actions',
 
   },
   backupManager: {

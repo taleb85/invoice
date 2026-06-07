@@ -703,6 +703,18 @@ const translations: Translations = {
     errDocNotFound: 'Dokument nicht gefunden.',
     errInvalidKind: 'Ungültiger Dokumenttyp.',
     errGenericFinalize: 'Vorgang fehlgeschlagen.',
+    execProgressTitle: 'Aktion wird ausgeführt',
+    execStepPrepare: 'Vorbereitung',
+    execStepOcr: 'KI-Dokumentenanalyse',
+    execStepSave: 'Ergebnisse speichern',
+    execStepRegister: 'Dokument registrieren',
+    execStepDone: 'Abschluss',
+    execStepRunning: 'Verarbeitung läuft',
+    execStepOpen: 'Dokument öffnen',
+    execStepDelete: 'Dokument entfernen',
+    execSuccess: 'Aktion abgeschlossen',
+    execError: 'Aktion fehlgeschlagen',
+    execBackToActions: 'Zurück zu den Aktionen',
 
   },
   backupManager: {
