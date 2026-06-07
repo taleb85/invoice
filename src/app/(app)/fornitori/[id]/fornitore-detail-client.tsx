@@ -2034,15 +2034,6 @@ function BolleTab({
     [],
   )
 
-  useEffect(() => {
-    return () => {
-      if (ocrStepTimerRef.current) {
-        clearInterval(ocrStepTimerRef.current)
-        ocrStepTimerRef.current = null
-      }
-    }
-  }, [])
-
   // Close the document-type dropdown when the user clicks outside of it
   // or presses Escape, mirroring the FattureTab behaviour.
   useEffect(() => {
