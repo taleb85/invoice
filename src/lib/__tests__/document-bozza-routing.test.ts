@@ -359,4 +359,14 @@ describe('inferAutoPendingKindFromEmailScan — niente statement per solleciti/I
       }),
     ).toBe('comunicazione')
   })
+
+  it('Easter Delivery Schedule letter è comunicazione anche se OCR dice bolla_ddt', () => {
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: 'Easter Delivery Schedule – Attached Letter',
+        file_name: 'Easter Delivery 2026.pdf',
+        metadata: { tipo_documento: 'bolla_ddt' },
+      }),
+    ).toBe('comunicazione')
+  })
 })

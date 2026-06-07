@@ -42,6 +42,7 @@ import {
   inferAutoPendingKindFromEmailScan,
   inferPendingDocumentKindForQueueRow,
   scanContextLooksLikePaymentReceiptDoc,
+  scanContextLooksLikeSupplierCommunicationDoc,
   scanContextLooksLikeServiceReport,
   subjectLooksLikeInvoice,
 } from '@/lib/document-bozza-routing'
@@ -2402,6 +2403,10 @@ async function processEmails(
         email.subject,
         storedFileName,
       )
+      const isSupplierCommunicationDoc = scanContextLooksLikeSupplierCommunicationDoc(
+        email.subject,
+        storedFileName,
+      )
       const autoPendingKind = inferAutoPendingKindFromEmailScan(
         email.subject,
         storedFileName,
@@ -2430,7 +2435,7 @@ async function processEmails(
        */
       const subjectIsExplicitlyInvoice = subjectLooksLikeInvoice(email.subject) || subjectLooksLikeInvoice(storedFileName)
       const effectivePendingKind =
-        isPaymentReceiptDoc
+        isPaymentReceiptDoc || isSupplierCommunicationDoc
           ? ('comunicazione' as const)
           : autoPendingKind === 'statement'
           ? 'statement'
@@ -2495,10 +2500,10 @@ async function processEmails(
 
         if (targetKind === 'fattura') {
           const bypassOcrTipoGuard = docKind === 'fattura'
-          if (isPaymentReceiptDoc) {
+          if (isPaymentReceiptDoc || isSupplierCommunicationDoc) {
             needsDocRevision = true
             mailDebugLog(
-              `[PROCESS] Skip auto-fattura: ricevuta di pagamento (${storedFileName ?? email.subject ?? '—'})`,
+              `[PROCESS] Skip auto-fattura: ${isPaymentReceiptDoc ? 'ricevuta di pagamento' : 'comunicazione fornitore'} (${storedFileName ?? email.subject ?? '—'})`,
             )
           } else if (shouldSkipEmailAutoFattura(ocr)) {
             needsDocRevision = true
@@ -2540,7 +2545,12 @@ async function processEmails(
             }
           }
         } else if (targetKind === 'bolla') {
-          if (!dataDocLocal) {
+          if (isPaymentReceiptDoc || isSupplierCommunicationDoc) {
+            needsDocRevision = true
+            mailDebugLog(
+              `[PROCESS] Skip auto-bolla: ${isPaymentReceiptDoc ? 'ricevuta pagamento' : 'comunicazione fornitore'} (${storedFileName ?? email.subject ?? '—'})`,
+            )
+          } else if (!dataDocLocal) {
             needsDocRevision = true
           } else {
             const numRef = ocr.numero_fattura?.trim() || null

@@ -73,6 +73,8 @@ export function extractDocTypeLabel(
   const normalized = text.replace(/[_-]+/g, ' ')
 
   if (/\breceipt\b/.test(normalized)) return 'Payment Receipt'
+  if (/\bdelivery\s+schedule\b/.test(normalized)) return 'Letter'
+  if (/\battached\s+letter\b/.test(normalized)) return 'Letter'
   if (/invoice|fattura|facture|rechnung|factura/.test(normalized)) return 'Invoice'
   if (/credit.note|nota.credito|note.de.crédit|gutschrift|nota.de.crédito/.test(text))
     return 'Credit Note'

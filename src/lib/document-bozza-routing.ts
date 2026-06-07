@@ -60,6 +60,26 @@ export function scanContextLooksLikePaymentReceiptDoc(
   )
 }
 
+/**
+ * Lettere, piani di consegna, avvisi non fiscali dal fornitore — non DDT/fatture.
+ * Es. «Easter Delivery Schedule – Attached Letter» + Easter Delivery 2026.pdf
+ */
+export function scanContextLooksLikeSupplierCommunicationDoc(
+  subject: string | null | undefined,
+  fileName: string | null | undefined,
+): boolean {
+  const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase().replace(/[_.\-–—]/g, ' ')
+  if (!blob.trim()) return false
+  if (/\battached\s+letter\b/.test(blob)) return true
+  if (/\bletter\s+attached\b/.test(blob)) return true
+  if (/\bdelivery\s+schedule\b/.test(blob)) return true
+  if (/\bschedule\s+letter\b/.test(blob)) return true
+  if (/\bholiday\s+schedule\b/.test(blob)) return true
+  if (/\bplanned\s+delivery\b/.test(blob) && !/delivery\s+note/.test(blob)) return true
+  if (/\beaster\s+delivery\b/.test(blob) && !/delivery\s+note/.test(blob)) return true
+  return false
+}
+
 /** Alias per UI lista statement (oggetto mail tipico QuickBooks). */
 export function statementEmailSubjectLooksLikePaymentReceipt(
   subject: string | null | undefined,
@@ -376,6 +396,10 @@ export function inferPendingDocumentKindForQueueRow(opts: {
     return 'comunicazione'
   }
 
+  if (scanContextLooksLikeSupplierCommunicationDoc(opts.oggetto_mail, opts.file_name)) {
+    return 'comunicazione'
+  }
+
   if (
     documentOcrContextSuggestsQuotation(md, {
       oggetto_mail: opts.oggetto_mail,
@@ -395,7 +419,12 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   }
 
   if (tipo === 'comunicazione') return 'comunicazione'
-  if (tipo === 'bolla_ddt') return 'bolla'
+  if (tipo === 'bolla_ddt') {
+    if (scanContextLooksLikeSupplierCommunicationDoc(opts.oggetto_mail, opts.file_name)) {
+      return 'comunicazione'
+    }
+    return 'bolla'
+  }
   if (tipo === 'fattura') return 'fattura'
   if (tipo === 'nota_credito') return 'nota_credito'
   if (tipo === 'ordine') return 'ordine'

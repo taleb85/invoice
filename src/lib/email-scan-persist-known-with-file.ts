@@ -14,6 +14,7 @@ import {
   inferAutoPendingKindFromEmailScan,
   inferPendingDocumentKindForQueueRow,
   scanContextLooksLikePaymentReceiptDoc,
+  scanContextLooksLikeSupplierCommunicationDoc,
   subjectLooksLikeInvoice,
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
@@ -312,6 +313,10 @@ export async function persistKnownFornitoreEmailScanWithFile(
     email.subject,
     storedFileName,
   )
+  const isSupplierCommunicationDoc = scanContextLooksLikeSupplierCommunicationDoc(
+    email.subject,
+    storedFileName,
+  )
 
   const autoPendingKind = inferAutoPendingKindFromEmailScan(
     email.subject,
@@ -333,7 +338,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
   // "Ordine" rilevato dai pattern testuali (Order Confirmation, conferma ordine, ecc.)
   // è ASSOLUTO: nessun learned hint può sovrascriverlo. Vedi nota in scan-emails/route.ts.
   const effectivePendingKind =
-    isPaymentReceiptDoc
+    isPaymentReceiptDoc || isSupplierCommunicationDoc
       ? ('comunicazione' as const)
       : autoPendingKind === 'ordine'
       ? ('ordine' as const)
@@ -392,7 +397,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
 
     if (targetKind === 'fattura') {
       const bypassOcrTipoGuard = args.docKind === 'fattura'
-      if (isPaymentReceiptDoc) {
+      if (isPaymentReceiptDoc || isSupplierCommunicationDoc) {
         needsDocRevision = true
       } else if (shouldSkipEmailAutoFattura(ocr)) {
         needsDocRevision = true
@@ -403,7 +408,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
       } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
       }
-      if (!isPaymentReceiptDoc && !shouldSkipEmailAutoFattura(ocr) && dataDoc) {
+      if (!isPaymentReceiptDoc && !isSupplierCommunicationDoc && !shouldSkipEmailAutoFattura(ocr) && dataDoc) {
         const res = await insertEmailAutoFattura(supabase, {
           fornitoreId: fornitore.id,
           sedeId: documentSedeId,
@@ -428,9 +433,11 @@ export async function persistKnownFornitoreEmailScanWithFile(
         }
       }
     } else if (targetKind === 'bolla') {
-      if (hasDocDateFallback) needsDocRevision = true
+      if (isPaymentReceiptDoc || isSupplierCommunicationDoc) {
+        needsDocRevision = true
+      } else if (hasDocDateFallback) needsDocRevision = true
       const numRef = normalizeNumeroBolla(ocr.numero_fattura)
-      if (dataDoc) {
+      if (!isPaymentReceiptDoc && !isSupplierCommunicationDoc && dataDoc) {
         const rb = await insertEmailAutoBolla(supabase, {
           fornitoreId: fornitore.id,
           sedeId: documentSedeId,
