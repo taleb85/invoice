@@ -1,5 +1,6 @@
 import { scanContextSuggestsBolla, scanContextSuggestsFattura } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
 
 /**
  * Nome file dall’URL (per euristiche fattura vs DDT in assenza di contesto email).
@@ -75,16 +76,6 @@ export function normalizeNumeroBolla(raw: string | null | undefined): string | n
   if (alnum.length >= 2) return alnum
 
   return null
-}
-
-/**
- * C Carnevale / J&G Italian Food: "Sales Delivery Note" numbers are SDN###### — never tax invoices.
- * OCR often misreads them as fattura because the PDF shows "Invoice To" / "Invoice Total".
- */
-export function numeroLooksLikeSalesDeliveryNoteReference(num: string | null | undefined): boolean {
-  if (!num?.trim()) return false
-  const compact = num.trim().replace(/\s+/g, '').toUpperCase()
-  return /^SDN\d{5,10}$/.test(compact)
 }
 
 /**

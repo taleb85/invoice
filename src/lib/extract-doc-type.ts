@@ -1,5 +1,5 @@
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
-import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
 
 /**
  * Converts an OCR `tipo_documento` value (raw or normalised) to a human-readable label.

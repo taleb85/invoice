@@ -1,5 +1,5 @@
 import type { OcrResult } from '@/lib/ocr-invoice'
-import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
 import { numeroLooksLikeUkAccountReference } from '@/lib/ocr-pdf-multi'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 

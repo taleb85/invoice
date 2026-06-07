@@ -1,5 +1,5 @@
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
-import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
 
 /**
  * Oggetto mail tipico degli estratti conto (allineato alla scansione in scan-emails).

@@ -1,4 +1,5 @@
-import { formatCurrency, type Locale } from '@/lib/locale-shared'
+import { formatCurrency } from '@/lib/locale-shared'
+import type { Locale } from '@/lib/translations'
 
 /** Importo con segno per UI: le note credito sono negative, importo assoluto in DB. */
 export function signedFatturaImporto(

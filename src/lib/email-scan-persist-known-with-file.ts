@@ -27,7 +27,7 @@ import {
   ocrTipoAllowsEmailAutoFattura,
 } from '@/lib/ocr-tipo-documento'
 import { shouldSkipEmailAutoFattura } from '@/lib/uk-account-invoice-guard'
-import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
 import {
   buildPdfSegmentQueueMetadata,
   extraPdfSegmentsForQueue,

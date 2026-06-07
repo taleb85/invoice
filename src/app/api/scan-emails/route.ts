@@ -54,7 +54,7 @@ import {
   extraPdfSegmentsForQueue,
 } from '@/lib/ocr-pdf-multi-queue'
 import { shouldSkipEmailAutoFattura } from '@/lib/uk-account-invoice-guard'
-import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
 import {
   tryBootstrapFornitoreFromOcrRagione,
   fetchFullFornitoreForScan,
