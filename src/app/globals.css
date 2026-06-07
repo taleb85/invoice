@@ -1574,21 +1574,51 @@ body:has([data-deep-aurora-integration]) .document-actions-modal-panel {
   box-shadow: 0 20px 60px rgb(0 0 0 / 0.55) !important;
 }
 
-/** Tendina azioni documento (tabella): stesso fill opaco della modale. */
-.document-actions-dropdown {
-  background-color: #0f172a !important;
-  background-image: linear-gradient(155deg, rgb(15 23 42) 0%, rgb(30 27 75) 100%) !important;
+/**
+ * Tendina azioni documento (portal su body): fill opaco come menu lingua sidebar.
+ * Selettori forti per vincere su `body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated`.
+ */
+.document-actions-dropdown,
+.document-actions-dropdown-inner,
+[data-fluxo-document-actions-dropdown],
+[data-fluxo-document-actions-dropdown] .document-actions-dropdown-inner {
+  background-color: rgb(15 23 42) !important;
+  background-image: linear-gradient(
+    to bottom right,
+    rgb(51 65 85),
+    rgb(15 23 42)
+  ) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+}
+
+.document-actions-dropdown {
   box-shadow:
-    0 16px 48px -12px rgba(0, 0, 0, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    0 18px 52px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
 }
 
 body:has([data-deep-aurora-integration]) .document-actions-dropdown,
-[data-deep-aurora-integration] .document-actions-dropdown {
+body:has([data-deep-aurora-integration]) [data-fluxo-document-actions-dropdown],
+body:has([data-deep-aurora-integration]) .document-actions-dropdown-inner,
+body:has([data-deep-aurora-integration]) [data-fluxo-document-actions-dropdown] .document-actions-dropdown-inner,
+[data-deep-aurora-integration] .document-actions-dropdown,
+[data-deep-aurora-integration] [data-fluxo-document-actions-dropdown],
+[data-deep-aurora-integration] .document-actions-dropdown-inner,
+[data-deep-aurora-integration] [data-fluxo-document-actions-dropdown] .document-actions-dropdown-inner {
   border-color: var(--app-surface-border) !important;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 0.55) !important;
+  background-color: rgb(15 23 42) !important;
+  background-image: linear-gradient(
+    to bottom right,
+    rgb(51 65 85),
+    rgb(15 23 42)
+  ) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    0 18px 52px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
 }
 
 /**

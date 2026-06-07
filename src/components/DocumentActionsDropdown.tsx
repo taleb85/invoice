@@ -112,24 +112,31 @@ export default function DocumentActionsDropdown({
   return createPortal(
     <div
       ref={panelRef}
-      role="menu"
-      aria-label={d.title}
       style={{ top: position.top, left: position.left, width: 240 }}
-      className="document-actions-dropdown fixed z-[9999] max-h-[min(70dvh,420px)] overflow-hidden overflow-y-auto rounded-lg border border-app-line-45 shadow-2xl ring-1 ring-black/25"
+      className="document-actions-dropdown-anchor fixed z-[9999]"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="border-b border-app-line-20 px-3 py-2">
-        <p className="truncate text-[11px] font-semibold text-app-fg">
-          {panel.execution ? d.execProgressTitle : d.title}
-        </p>
-        <p className="truncate text-[10px] text-app-fg-muted">
-          {panel.execution
-            ? panel.execution.actionLabel
-            : (item.fornitore_nome ?? d.noSupplier)}
-          {!panel.execution && item.numero_documento ? ` · ${item.numero_documento}` : null}
-        </p>
+      <div
+        role="menu"
+        aria-label={d.title}
+        data-fluxo-document-actions-dropdown
+        className="document-actions-dropdown max-h-[min(70dvh,420px)] overflow-hidden overflow-y-auto rounded-lg border border-app-line-45 shadow-2xl ring-1 ring-black/30"
+      >
+        <div className="document-actions-dropdown-inner">
+          <div className="border-b border-app-line-20 px-3 py-2">
+            <p className="truncate text-[11px] font-semibold text-app-fg">
+              {panel.execution ? d.execProgressTitle : d.title}
+            </p>
+            <p className="truncate text-[10px] text-app-fg-muted">
+              {panel.execution
+                ? panel.execution.actionLabel
+                : (item.fornitore_nome ?? d.noSupplier)}
+              {!panel.execution && item.numero_documento ? ` · ${item.numero_documento}` : null}
+            </p>
+          </div>
+          <DocumentActionsPanelContent panel={panel} variant="compact" />
+        </div>
       </div>
-      <DocumentActionsPanelContent panel={panel} variant="compact" />
     </div>,
     document.body,
   )
