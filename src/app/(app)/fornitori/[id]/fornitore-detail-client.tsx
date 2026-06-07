@@ -2459,38 +2459,6 @@ function BolleTab({
     })()
   }, [loading, readOnly, canRianalizzaOcr, bollaSafeAutoDeleteIds, onBollaDuplicateRemoved])
 
-  const bolleToolbarChoices = useMemo(
-    () =>
-      bolle.map((b) => {
-        const parts = [formatDate(b.data)]
-        const num = numeroInElenco(b)
-        if (num) parts.push(`#${num}`)
-        return {
-          id: b.id,
-          label: parts.join(' · '),
-          hasFile: Boolean(b.file_url?.trim()),
-        }
-      }),
-    [bolle, formatDate, numeroInElenco],
-  )
-
-  const bolleWithFile = useMemo(
-    () => bolleToolbarChoices.filter((c) => c.hasFile),
-    [bolleToolbarChoices],
-  )
-
-  const [toolbarBollaId, setToolbarBollaId] = useState('')
-
-  useEffect(() => {
-    if (!bolleWithFile.length) {
-      setToolbarBollaId('')
-      return
-    }
-    setToolbarBollaId((prev) =>
-      bolleWithFile.some((c) => c.id === prev) ? prev : bolleWithFile[0]!.id,
-    )
-  }, [bolleWithFile])
-
   const bolleRefreshBatch = useMemo(
     () =>
       bolle
@@ -2565,12 +2533,9 @@ function BolleTab({
 
   return (
     <>
-      {!readOnly && bolleWithFile.length > 0 && toolbarBollaId ? (
+      {!readOnly && bolleRefreshBatch.length > 0 ? (
         <div className="mb-4 px-4">
           <SupplierDocumentOcrToolbar
-            choices={bolleWithFile}
-            selectedId={toolbarBollaId}
-            onSelectedIdChange={setToolbarBollaId}
             refreshBatch={bolleRefreshBatch}
             onLedgerMutated={() => {
               onLedgerMutated?.()

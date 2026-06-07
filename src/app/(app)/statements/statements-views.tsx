@@ -2185,28 +2185,6 @@ export function PendingMatchesTab({
     [docs, potentialSupplierByDocId],
   )
 
-  const formatDocDate = useFmt()
-  const [toolbarDocId, setToolbarDocId] = useState('')
-
-  const pendingOcrToolbarChoices = useMemo(
-    () =>
-      docs
-        .filter((d) => docNeedsManualProcessing(d.stato) && d.file_url?.trim())
-        .map((d) => {
-          const nf = d.metadata?.numero_fattura?.trim()
-          const dateIso = effectivePendingDocDayIso(d) ?? d.data_documento ?? null
-          const parts: string[] = []
-          if (dateIso) parts.push(formatDocDate(dateIso))
-          if (nf) parts.push(`#${nf}`)
-          if (!parts.length) {
-            const fallback = (d.oggetto_mail ?? d.mittente ?? d.file_name ?? '').trim()
-            if (fallback) parts.push(fallback.length > 48 ? `${fallback.slice(0, 48)}…` : fallback)
-          }
-          return { id: d.id, label: parts.join(' · ') || d.id.slice(0, 8), hasFile: true }
-        }),
-    [docs, formatDocDate],
-  )
-
   const pendingRefreshBatch = useMemo(
     () =>
       docs
@@ -2214,16 +2192,6 @@ export function PendingMatchesTab({
         .map((d) => ({ kind: 'pending' as const, documentoId: d.id })),
     [docs],
   )
-
-  useEffect(() => {
-    if (!pendingOcrToolbarChoices.length) {
-      setToolbarDocId('')
-      return
-    }
-    setToolbarDocId((prev) =>
-      pendingOcrToolbarChoices.some((c) => c.id === prev) ? prev : pendingOcrToolbarChoices[0]!.id,
-    )
-  }, [pendingOcrToolbarChoices])
 
   /** Documenti in lista con tipo già scelto e fornitore collegato: pronti per `finalizza_da_tipo` come sulla riga. */
   const finalizeReadyIdsByKind = useMemo(() => {
@@ -2598,12 +2566,9 @@ export function PendingMatchesTab({
         </div>
       ) : (
         <div className="space-y-2">
-          {pendingOcrToolbarChoices.length > 0 && toolbarDocId ? (
+          {pendingRefreshBatch.length > 0 ? (
             <div className={supplierDocShell ? 'mb-1' : 'mb-3'}>
               <SupplierDocumentOcrToolbar
-                choices={pendingOcrToolbarChoices}
-                selectedId={toolbarDocId}
-                onSelectedIdChange={setToolbarDocId}
                 refreshBatch={pendingRefreshBatch}
                 onLedgerMutated={() => {
                   void fetchDocs()
