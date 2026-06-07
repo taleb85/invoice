@@ -1,6 +1,8 @@
-import { scanContextSuggestsBolla, scanContextSuggestsFattura } from '@/lib/document-bozza-routing'
+import { scanContextSuggestsBolla, scanContextSuggestsFattura } from '@/lib/scan-context-suggests'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
+
+export { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
 
 /**
  * Nome file dall’URL (per euristiche fattura vs DDT in assenza di contesto email).
