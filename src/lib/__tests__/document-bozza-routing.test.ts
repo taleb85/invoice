@@ -369,4 +369,14 @@ describe('inferAutoPendingKindFromEmailScan — niente statement per solleciti/I
       }),
     ).toBe('comunicazione')
   })
+
+  it('SDN###### (C Carnevale Sales Delivery Note) → bolla anche se OCR dice fattura', () => {
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: 'Delivery note attached',
+        file_name: 'email_auto_abc.pdf',
+        metadata: { tipo_documento: 'fattura', numero_fattura: 'SDN640603', totale_iva_inclusa: 137.87 },
+      }),
+    ).toBe('bolla')
+  })
 })

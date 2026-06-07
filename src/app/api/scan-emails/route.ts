@@ -54,6 +54,7 @@ import {
   extraPdfSegmentsForQueue,
 } from '@/lib/ocr-pdf-multi-queue'
 import { shouldSkipEmailAutoFattura } from '@/lib/uk-account-invoice-guard'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
 import {
   tryBootstrapFornitoreFromOcrRagione,
   fetchFullFornitoreForScan,
@@ -2497,6 +2498,10 @@ async function processEmails(
         else if (inferredKind === 'fattura') targetKind = 'fattura'
         else if (inferredKind === 'bolla') targetKind = 'bolla'
         else targetKind = null
+
+        if (targetKind === 'fattura' && numeroLooksLikeSalesDeliveryNoteReference(ocr.numero_fattura)) {
+          targetKind = 'bolla'
+        }
 
         if (targetKind === 'fattura') {
           const bypassOcrTipoGuard = docKind === 'fattura'

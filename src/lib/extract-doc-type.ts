@@ -1,4 +1,5 @@
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
 
 /**
  * Converts an OCR `tipo_documento` value (raw or normalised) to a human-readable label.
@@ -71,6 +72,8 @@ export function extractDocTypeLabel(
   if (!text.trim()) return null
 
   const normalized = text.replace(/[_-]+/g, ' ')
+
+  if (sources.some((s) => numeroLooksLikeSalesDeliveryNoteReference(s))) return 'Delivery Note'
 
   if (/\breceipt\b/.test(normalized)) return 'Payment Receipt'
   if (/\bdelivery\s+schedule\b/.test(normalized)) return 'Letter'

@@ -1,4 +1,5 @@
 import type { OcrResult } from '@/lib/ocr-invoice'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
 import { numeroLooksLikeUkAccountReference } from '@/lib/ocr-pdf-multi'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
@@ -30,7 +31,10 @@ export function ocrAccountNumberMisusedAsInvoice(ocr: {
  * Blocca auto-registrazione fattura da email quando il numero è solo un account reference.
  */
 export function shouldSkipEmailAutoFattura(ocr: OcrResult): boolean {
-  return ocrAccountNumberMisusedAsInvoice(ocr)
+  return (
+    ocrAccountNumberMisusedAsInvoice(ocr) ||
+    numeroLooksLikeSalesDeliveryNoteReference(ocr.numero_fattura)
+  )
 }
 
 /** Numero fattura in DB che va azzerato (account UK usato per errore). */

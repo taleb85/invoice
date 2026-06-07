@@ -1,4 +1,5 @@
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/fix-ocr-dates-helpers'
 
 /**
  * Oggetto mail tipico degli estratti conto (allineato alla scansione in scan-emails).
@@ -425,7 +426,10 @@ export function inferPendingDocumentKindForQueueRow(opts: {
     }
     return 'bolla'
   }
-  if (tipo === 'fattura') return 'fattura'
+  if (tipo === 'fattura') {
+    if (numeroLooksLikeSalesDeliveryNoteReference(md?.numero_fattura)) return 'bolla'
+    return 'fattura'
+  }
   if (tipo === 'nota_credito') return 'nota_credito'
   if (tipo === 'ordine') return 'ordine'
   if (tipo === 'estratto_conto') return 'statement'

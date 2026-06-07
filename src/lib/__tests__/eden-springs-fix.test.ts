@@ -104,4 +104,21 @@ describe('shouldSkipEmailAutoFattura', () => {
       }),
     ).toBe(true)
   })
+
+  it('blocks auto fattura for C Carnevale SDN delivery note numbers', () => {
+    expect(
+      shouldSkipEmailAutoFattura({
+        tipo_documento: 'fattura',
+        numero_fattura: 'SDN640603',
+        ragione_sociale: 'C CARNEVALE LTD',
+        p_iva: null,
+        indirizzo: null,
+        data_fattura: '2026-04-02',
+        totale_iva_inclusa: 137.87,
+        nome: null,
+        piva: null,
+        data: null,
+      }),
+    ).toBe(true)
+  })
 })

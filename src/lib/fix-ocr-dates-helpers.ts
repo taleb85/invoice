@@ -78,6 +78,16 @@ export function normalizeNumeroBolla(raw: string | null | undefined): string | n
 }
 
 /**
+ * C Carnevale / J&G Italian Food: "Sales Delivery Note" numbers are SDN###### — never tax invoices.
+ * OCR often misreads them as fattura because the PDF shows "Invoice To" / "Invoice Total".
+ */
+export function numeroLooksLikeSalesDeliveryNoteReference(num: string | null | undefined): boolean {
+  if (!num?.trim()) return false
+  const compact = num.trim().replace(/\s+/g, '').toUpperCase()
+  return /^SDN\d{5,10}$/.test(compact)
+}
+
+/**
  * Dopo OCR su una bolla: decidere se spostare in `fatture` oltre a `tipo_documento === 'fattura'`.
  * Per **batch** (senza bolla forzata) resta solo la classificazione esplicita.
  * Per **Rianalizza** (bollaId forzata + allow_tipo_migrate): Gemini spesso restituisce `bolla` anche per
@@ -130,6 +140,7 @@ export function shouldMigrateBollaRowToFattura(params: {
 
   const numForDdt = ocr.numero_fattura?.trim() ? ocr.numero_fattura : existingNumeroBolla
   if (numeroReferenceLooksLikeDdt(numForDdt)) return false
+  if (numeroLooksLikeSalesDeliveryNoteReference(numForDdt)) return false
 
   /**
    * Da qui `bollaIdForce` è sempre true (altrimenti riga sopra: niente bolla→fattura euristica).
