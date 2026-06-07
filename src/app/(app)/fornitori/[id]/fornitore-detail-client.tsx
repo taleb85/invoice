@@ -128,6 +128,7 @@ const FornitoreConfermeOrdineTab = dynamic(
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
 import DocumentActionsButton from '@/components/DocumentActionsButton'
+import type { DocumentActionItem } from '@/components/DocumentActionsModal'
 import {
   SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE,
   SUPPLIER_DETAIL_TAB_HIGHLIGHT,
@@ -1903,6 +1904,23 @@ function numeroRefFromDocMetadata(metadata: unknown): string | null {
   return typeof n === 'string' && n.trim() ? n.trim() : null
 }
 
+function bollaDocumentActionItem(
+  b: Bolla,
+  fornitoreId: string,
+  fornitoreNome: string,
+): DocumentActionItem {
+  return {
+    id: b.id,
+    origine: 'bolla',
+    fornitore_id: fornitoreId,
+    fornitore_nome: fornitoreNome,
+    sede_id: b.sede_id ?? null,
+    numero_documento: b.numero_bolla ?? null,
+    file_url: b.file_url ?? null,
+    data_doc: b.data ?? null,
+  }
+}
+
 /* ─── Bolle tab ──────────────────────────────────────────────────── */
 function BolleTab({
   fornitoreId,
@@ -1940,13 +1958,7 @@ function BolleTab({
   const [tipoEditingBollaId, setTipoEditingBollaId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [ocrEpoch, setOcrEpoch] = useState(0)
-  const [ocrBusyId, setOcrBusyId] = useState<string | null>(null)
-  const [convertBusyId, setConvertBusyId] = useState<string | null>(null)
   const [ocrError, setOcrError] = useState<string | null>(null)
-  const [ocrInfo, setOcrInfo] = useState<string | null>(null)
-  /** 1…3: passi mostrati durante Rianalizza (OCR) — allineati al lavoro lato server */
-  const [ocrProgressStep, setOcrProgressStep] = useState(0)
-  const ocrStepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Refresh bolle list when AppShell fires a bolla-mutated event (from DocumentActionsModal)
   useEffect(() => {
@@ -1954,158 +1966,11 @@ function BolleTab({
     window.addEventListener('bolla-mutated', handler)
     return () => window.removeEventListener('bolla-mutated', handler)
   }, [])
-  const [reassignBollaId, setReassignBollaId] = useState<string | null>(null)
-  const [fornitoriList, setFornitoriList] = useState<{ id: string; nome: string }[]>([])
-  const [reassignBusyId, setReassignBusyId] = useState<string | null>(null)
-  const [reassignPos, setReassignPos] = useState<{ top: number; left: number } | null>(null)
-
-  const openSupplierPicker = useCallback((e: React.MouseEvent, bollaId: string, sedeId: string | null) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    setReassignPos({ top: rect.bottom + 4, left: Math.max(8, rect.left) })
-    setReassignBollaId(bollaId)
-    setFornitoriList([])
-    const supabase = createClient()
-    supabase
-      .from('fornitori')
-      .select('id, nome')
-      .eq('sede_id', sedeId ?? '')
-      .order('nome', { ascending: true })
-      .then(({ data }: { data: { id: string; nome: string }[] | null }) => setFornitoriList((data ?? []) as { id: string; nome: string }[]))
-      .catch(() => {})
-  }, [])
-
-  const handleReassignSupplier = useCallback(async (bollaId: string, nuovoFornitoreId: string, sedeId: string | null) => {
-    setReassignBusyId(bollaId)
-    try {
-      await fetch('/api/bolle/reassign-fornitore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ bolla_id: bollaId, nuovo_fornitore_id: nuovoFornitoreId, sede_id: sedeId }),
-      })
-    } catch { /* ignore */ }
-    setReassignBollaId(null)
-    setReassignBusyId(null)
-    setReassignPos(null)
-    window.location.reload()
-  }, [])
 
   const canRianalizzaOcr = Boolean(me?.is_admin || me?.is_admin_sede)
   const supplierReturnPath = useMemo(
     () => buildListLocationPath(pathname, searchParams),
     [pathname, searchParams],
-  )
-
-  const runBollaOcr = useCallback(
-    async (bollaId: string, bollaSedeId?: string | null) => {
-      if (!bollaId) return
-      if (ocrStepTimerRef.current) {
-        clearInterval(ocrStepTimerRef.current)
-        ocrStepTimerRef.current = null
-      }
-      setOcrError(null)
-      setOcrInfo(null)
-      setOcrProgressStep(1)
-      setOcrBusyId(bollaId)
-      ocrStepTimerRef.current = setInterval(() => {
-        setOcrProgressStep((s) => (s < 3 ? s + 1 : 3))
-      }, 2000)
-      try {
-        const body: {
-          bolla_id: string
-          limit: number
-          sede_id?: string
-          allow_tipo_migrate: boolean
-        } = { bolla_id: bollaId, limit: 1, allow_tipo_migrate: true }
-        const resolvedSedeId = me?.sede_id?.trim() || bollaSedeId?.trim() || fornitoreSedeId?.trim() || undefined
-        if (resolvedSedeId) body.sede_id = resolvedSedeId
-        const res = await fetch('/api/admin/fix-ocr-dates', {
-          method: 'POST',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-        const data = (await res.json().catch(() => ({}))) as {
-          error?: string
-          details?: { action: string }[]
-          errors?: { message: string }[]
-        }
-        if (!res.ok) {
-          setOcrError(data.error ?? `HTTP ${res.status}`)
-          return
-        }
-        const reportErr = data.errors?.[0]?.message
-        if (reportErr) {
-          setOcrError(reportErr)
-          setOcrEpoch((e) => e + 1)
-          onLedgerMutated?.()
-          return
-        }
-        const details = data.details ?? []
-        const migrated = details.some((d) => d.action === 'migrated_to_fattura')
-        const first = details[0]
-        if (migrated) {
-          setOcrInfo(t.bolle.ocrRerunMovedToInvoices)
-        } else if (first?.action === 'unchanged') {
-          setOcrInfo(t.bolle.ocrRerunUnchangedStaysBolla)
-        } else if (first && (first.action === 'bolla_enriched' || first.action === 'date_only')) {
-          setOcrInfo(t.bolle.ocrRerunUpdatedStaysBolla)
-        } else if (first?.action === 'error') {
-          setOcrError(t.bolle.ocrRerunFailed)
-        } else {
-          setOcrInfo(t.bolle.ocrRerunUpdatedStaysBolla)
-        }
-        window.setTimeout(() => setOcrInfo(null), 12_000)
-        setOcrEpoch((e) => e + 1)
-        onLedgerMutated?.()
-      } catch (e) {
-        setOcrError(e instanceof Error ? e.message : 'Errore di rete')
-      } finally {
-        if (ocrStepTimerRef.current) {
-          clearInterval(ocrStepTimerRef.current)
-          ocrStepTimerRef.current = null
-        }
-        setOcrProgressStep(0)
-        setOcrBusyId(null)
-      }
-    },
-    [me?.sede_id, fornitoreSedeId, onLedgerMutated, t.bolle],
-  )
-
-  const runConvertBollaToFattura = useCallback(
-    async (bollaId: string) => {
-      if (!bollaId) return
-      if (!window.confirm(t.bolle.convertiInFatturaConfirm)) return
-      setOcrError(null)
-      setOcrInfo(null)
-      setConvertBusyId(bollaId)
-      try {
-        const res = await fetch('/api/bolle/convert-to-fattura', {
-          method: 'POST',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bolla_id: bollaId }),
-        })
-        const data = (await res.json().catch(() => ({}))) as { error?: string }
-        if (!res.ok) {
-          if (res.status === 409) {
-            setOcrError(t.bolle.convertiInFatturaErrLinked)
-          } else {
-            setOcrError(data.error?.trim() || t.bolle.convertiInFatturaErrGeneric)
-          }
-          return
-        }
-        setOcrInfo(t.bolle.convertiInFatturaOk)
-        window.setTimeout(() => setOcrInfo(null), 12_000)
-        setOcrEpoch((e) => e + 1)
-        onLedgerMutated?.()
-      } catch (e) {
-        setOcrError(e instanceof Error ? e.message : t.bolle.convertiInFatturaErrGeneric)
-      } finally {
-        setConvertBusyId(null)
-      }
-    },
-    [onLedgerMutated, t.bolle],
   )
 
   const DOC_TYPE_OPTIONS = useMemo(
@@ -2481,6 +2346,68 @@ function BolleTab({
     [bolle],
   )
 
+  const renderBollaDocumentActions = useCallback(
+    (b: Bolla) => {
+      const docItem = bollaDocumentActionItem(b, fornitoreId, fornitoreNome)
+      const categoria =
+        (b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ??
+        extractDocTypeLabel(b.numero_bolla, b.file_url) ??
+        t.bolle.title
+      return (
+        <>
+          {b.file_url ? (
+            <OpenDocumentInAppButton
+              bollaId={b.id}
+              fileUrl={b.file_url}
+              fornitoreId={fornitoreId}
+              documentActionsItem={docItem}
+              stopTriggerPropagation
+              className={`${FORNITORE_TABLE_CYAN_ACTION_PILL} touch-manipulation`}
+              title={t.bolle.viewDocument}
+              categoria={categoria}
+            >
+              <svg className={`h-3 w-3 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              {t.bolle.viewDocument}
+            </OpenDocumentInAppButton>
+          ) : null}
+          {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? (
+            <button
+              type="button"
+              disabled={deletingBollaId === b.id}
+              onClick={(e) => {
+                e.stopPropagation()
+                void deleteExcessBolla(b.id)
+              }}
+              title={t.bolle.duplicateCopyDeleteConfirm}
+              className="shrink-0 touch-manipulation rounded-lg border border-rose-500/35 bg-rose-500/8 px-2 py-1 text-[11px] font-semibold text-rose-300/90 transition-colors hover:bg-rose-500/15 disabled:opacity-50"
+            >
+              {deletingBollaId === b.id ? '…' : t.fatture.duplicateRemoveThisCopy}
+            </button>
+          ) : null}
+          {!readOnly ? (
+            <DocumentActionsButton item={docItem} className="h-7 w-7 touch-manipulation" />
+          ) : null}
+        </>
+      )
+    },
+    [
+      bollaExcessIds,
+      canRianalizzaOcr,
+      deleteExcessBolla,
+      deletingBollaId,
+      fornitoreId,
+      fornitoreNome,
+      readOnly,
+      t.bolle.title,
+      t.bolle.viewDocument,
+      t.bolle.duplicateCopyDeleteConfirm,
+      t.fatture.duplicateRemoveThisCopy,
+      tipoDocByFileUrl,
+    ],
+  )
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -2546,55 +2473,9 @@ function BolleTab({
       ) : null}
     <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}>
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
-      {ocrBusyId && ocrProgressStep > 0 ? (
-        <div
-          className="border-b border-amber-500/30 bg-amber-950/50 px-3 py-2.5 sm:px-4"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <p className="text-center text-[10px] font-bold uppercase tracking-wider text-amber-200/95 sm:text-xs">
-            {t.bolle.ocrRerunProgressTitle}
-          </p>
-          <ol className="mx-auto mt-2 max-w-xl list-none space-y-1 text-[11px] sm:text-xs">
-            {(
-              [
-                [1, t.bolle.ocrRerunStep1],
-                [2, t.bolle.ocrRerunStep2],
-                [3, t.bolle.ocrRerunStep3],
-              ] as const
-            ).map(([n, label]) => {
-              const done = ocrProgressStep > n
-              const active = ocrProgressStep === n
-              return (
-                <li
-                  key={n}
-                  className={`rounded-md border border-transparent px-1.5 py-1 transition-colors sm:px-2 ${
-                    active
-                      ? 'border-amber-500/30 bg-amber-500/15 font-semibold text-amber-50'
-                      : done
-                        ? 'text-amber-200/70'
-                        : 'text-amber-200/35'
-                  }`}
-                >
-                  {label}
-                </li>
-              )
-            })}
-          </ol>
-        </div>
-      ) : null}
       {ocrError ? (
         <p className="border-b border-rose-500/25 bg-rose-500/10 px-4 py-2 text-center text-xs text-rose-200" role="alert">
           {ocrError}
-        </p>
-      ) : null}
-      {ocrInfo ? (
-        <p
-          className="border-b border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-center text-xs text-emerald-100"
-          role="status"
-        >
-          {ocrInfo}
         </p>
       ) : null}
       <div className="min-w-0 flex-1">
@@ -2659,17 +2540,8 @@ function BolleTab({
                 {formatBollaQuantita(quantitaInElenco(b), locale)}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-                {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? (
-                <button
-                  type="button"
-                  disabled={deletingBollaId === b.id}
-                  onClick={(e) => { e.stopPropagation(); void deleteExcessBolla(b.id) }}
-                  className="shrink-0 touch-manipulation rounded-lg border border-rose-500/35 bg-rose-500/8 px-2 py-1 text-[11px] font-semibold text-rose-300/90 transition-colors hover:bg-rose-500/15 disabled:opacity-50"
-                >
-                  {deletingBollaId === b.id ? '…' : t.fatture.duplicateRemoveThisCopy}
-                </button>
-              ) : b.stato === 'completato' ? (
+            <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+              {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? null : b.stato === 'completato' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> {t.bolle.statoCompletato}
                 </span>
@@ -2678,69 +2550,12 @@ function BolleTab({
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {t.bolle.statoInAttesa}
                 </span>
               )}
-              {canRianalizzaOcr && b.file_url ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    void runBollaOcr(b.id, b.sede_id)
-                  }}
-                  disabled={ocrBusyId === b.id || convertBusyId === b.id}
-                  title={
-                    ocrBusyId === b.id
-                      ? `${t.bolle.ocrRerunProgressTitle} (${ocrProgressStep}/3)`
-                      : t.bolle.riannalizzaOcr
-                  }
-                  aria-label={
-                    ocrBusyId === b.id && ocrProgressStep >= 1 && ocrProgressStep <= 3
-                      ? `${t.bolle.ocrRerunProgressTitle} — ${[t.bolle.ocrRerunStep1, t.bolle.ocrRerunStep2, t.bolle.ocrRerunStep3][ocrProgressStep - 1]}`
-                      : t.bolle.riannalizzaOcr
-                  }
-                  className="shrink-0 touch-manipulation rounded-lg border border-amber-500/35 bg-amber-500/8 px-2 py-1 text-[11px] font-semibold text-amber-200/95 transition-colors hover:bg-amber-500/15 disabled:opacity-50"
-                >
-                  {ocrBusyId === b.id ? `${ocrProgressStep}/3` : t.bolle.riannalizzaOcr}
-                </button>
-              ) : null}
-              {!readOnly && canRianalizzaOcr && b.file_url ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    void runConvertBollaToFattura(b.id)
-                  }}
-                  disabled={ocrBusyId === b.id || convertBusyId === b.id}
-                  title={t.bolle.convertiInFatturaTitle}
-                  className="shrink-0 touch-manipulation rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2 py-1 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 disabled:opacity-50"
-                >
-                  {convertBusyId === b.id ? '…' : t.bolle.convertiInFattura}
-                </button>
-              ) : null}
-              {!readOnly && canRianalizzaOcr && (
-                <div className="relative inline-flex">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openSupplierPicker(e, b.id, b.sede_id)
-                    }}
-                    disabled={reassignBusyId === b.id}
-                    className="shrink-0 touch-manipulation rounded-lg border border-indigo-500/35 bg-indigo-500/8 px-2 py-1 text-[11px] font-semibold text-indigo-200/95 transition-colors hover:bg-indigo-500/15 disabled:opacity-50"
-                  >
-                    {reassignBusyId === b.id ? '…' : 'Cambia fornitore'}
-                  </button>
-                </div>
-              )}
-              {b.file_url && (
-                <OpenDocumentInAppButton
-                  bollaId={b.id}
-                  fileUrl={b.file_url}
-                  stopTriggerPropagation
-                  className="-mr-2 border-0 bg-transparent px-2 py-1.5 text-left text-xs text-app-cyan-500 touch-manipulation hover:text-app-fg-muted hover:underline"
-                  categoria={(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
-                >
-                  {attachmentOpenFileLinkLabel(fileKind, t)}
-                </OpenDocumentInAppButton>
-              )}
+              <div
+                className="flex items-center justify-end gap-1.5 whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {renderBollaDocumentActions(b)}
+              </div>
             </div>
           </div>
           )
@@ -2831,45 +2646,7 @@ function BolleTab({
                 </td>
                 <td className="px-5 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                    {b.file_url && (
-                      <OpenDocumentInAppButton
-                        bollaId={b.id}
-                        fileUrl={b.file_url}
-                        stopTriggerPropagation
-                        className={FORNITORE_TABLE_CYAN_ACTION_PILL}
-                        title={attachmentOpenFileLinkLabel(fileKind, t)}
-                        categoria={(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.bolle.title}
-                      >
-                        <svg className={`h-3 w-3 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                        {attachmentOpenFileLinkLabel(fileKind, t)}
-                      </OpenDocumentInAppButton>
-                    )}
-                    {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? (
-                      <button
-                        type="button"
-                        disabled={deletingBollaId === b.id}
-                        onClick={(e) => { e.stopPropagation(); void deleteExcessBolla(b.id) }}
-                        title={t.bolle.duplicateCopyDeleteConfirm}
-                        className="shrink-0 rounded-lg border border-rose-500/35 bg-rose-500/8 px-2 py-1 text-[11px] font-semibold text-rose-300/90 transition-colors hover:bg-rose-500/15 disabled:opacity-50"
-                      >
-                        {deletingBollaId === b.id ? '…' : t.fatture.duplicateRemoveThisCopy}
-                      </button>
-                    ) : null}
-                    {!readOnly ? (
-                      <DocumentActionsButton
-                        item={{
-                          id: b.id,
-                          origine: 'bolla',
-                          fornitore_id: fornitoreId,
-                          fornitore_nome: fornitoreNome,
-                          sede_id: b.sede_id ?? null,
-                          numero_documento: b.numero_bolla ?? null,
-                          file_url: b.file_url ?? null,
-                          data_doc: b.data ?? null,
-                        }}
-                        className="h-7 w-7"
-                      />
-                    ) : null}
+                    {renderBollaDocumentActions(b)}
                   </div>
                 </td>
               </tr>
@@ -2880,28 +2657,6 @@ function BolleTab({
       </div>
       </div>
     </div>
-    {reassignPos && reassignBollaId && fornitoriList.length > 0 && createPortal(
-      <div
-        className="fixed z-[100] max-h-48 w-52 overflow-y-auto rounded-lg border border-app-line-30 bg-slate-900 shadow-xl ring-1 ring-black/40"
-        style={{ top: reassignPos.top, left: reassignPos.left }}
-        onClick={() => { setReassignPos(null); setReassignBollaId(null) }}
-      >
-        {fornitoriList.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              void handleReassignSupplier(reassignBollaId, f.id, null)
-            }}
-            className="block w-full px-3 py-2 text-left text-xs font-medium text-app-fg transition-colors hover:bg-indigo-500/15"
-          >
-            {f.nome}
-          </button>
-        ))}
-      </div>,
-      document.body
-    )}
   </>
   )
 }
