@@ -12,6 +12,8 @@ export type FatturaRefreshOcrResponse = {
   numero_fattura?: string | null
   numero_fattura_changed?: boolean
   tipo_documento?: string | null
+  fornitore_reassigned?: boolean
+  nuovo_fornitore_nome?: string | null
 }
 
 export type FatturaRefreshOcrCallbacks = {
@@ -47,8 +49,9 @@ export function applyFatturaRefreshOcrResponse(
   const dataChanged = j.data_changed === true
   const importoChanged = j.importo_changed === true && j.importo != null
   const numeroChanged = j.numero_fattura_changed === true && j.numero_fattura != null
+  const fornitoreReassigned = j.fornitore_reassigned === true
   if (j.data && dataChanged) callbacks.onDataUpdated(j.data)
   if (importoChanged) callbacks.onImportoUpdated?.(j.importo as number)
   if (numeroChanged) callbacks.onNumeroFatturaUpdated?.(j.numero_fattura as string)
-  return dataChanged || importoChanged || numeroChanged
+  return dataChanged || importoChanged || numeroChanged || fornitoreReassigned
 }

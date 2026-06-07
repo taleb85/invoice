@@ -1999,6 +1999,7 @@ const translations: Translations = {
     refreshDateFromDocUnchanged: 'La data è già allineata a quella letta dal documento.',
     refreshImportoFromDocSuccess: 'Importo aggiornato dal documento.',
     refreshNumeroFatturaFromDocSuccess: 'Numero fattura aggiornato dal documento.',
+    refreshFornitoreReassignedFromDocSuccess: 'Fattura spostata a {fornitore}.',
     contextMenuOpenAttachment: 'Apri allegato',
     contextMenuOpenDetail: 'Apri dettaglio fattura',
     contextMenuAssignSupplier: 'Assegna a fornitore',

@@ -961,6 +961,7 @@ export type Translations = {
     refreshDateFromDocUnchanged: string
     refreshImportoFromDocSuccess: string
     refreshNumeroFatturaFromDocSuccess: string
+    refreshFornitoreReassignedFromDocSuccess: string
     contextMenuOpenAttachment: string
     contextMenuOpenDetail: string
     contextMenuAssignSupplier: string

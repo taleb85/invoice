@@ -8,6 +8,8 @@ import {
   documentDateRejectMessage,
   resolveDocumentDateFromOcrContext,
 } from '@/lib/resolve-document-date-from-ocr'
+import { resolveFatturaFornitoreCorrection } from '@/lib/fattura-fornitore-reassign-from-doc'
+import { reassignEntityFornitore } from '@/lib/reassign-entity-fornitore'
 
 function resolvedContentType(url: string, header: string | null): string {
   const h = (header ?? '').toLowerCase()
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const { data: fattura, error: qErr } = await service
     .from('fatture')
-    .select('id, data, importo, numero_fattura, file_url')
+    .select('id, data, importo, numero_fattura, file_url, fornitore_id, sede_id, fornitore:fornitori(nome, sede_id)')
     .eq('id', fatturaId)
     .single()
 
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   const { data: docRow } = await service
     .from('documenti_da_processare')
-    .select('created_at, oggetto_mail, file_name')
+    .select('created_at, oggetto_mail, file_name, mittente, metadata')
     .eq('file_url', fattura.file_url)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -73,6 +75,14 @@ export async function POST(req: NextRequest) {
     || fileNameFromStorageUrl(fattura.file_url)
   const emailSubject = (docRow as { oggetto_mail?: string | null } | null)?.oggetto_mail ?? null
   const receivedAt = (docRow as { created_at?: string | null } | null)?.created_at ?? null
+  const docMittente = (docRow as { mittente?: string | null } | null)?.mittente ?? null
+  const docMetadata = (docRow as { metadata?: unknown } | null)?.metadata ?? null
+  const fornitoreRow = fattura.fornitore as { nome?: string | null; sede_id?: string | null } | null
+  const currentFornitoreNome = fornitoreRow?.nome?.trim() ?? ''
+  const sedeId =
+    (fattura.sede_id as string | null)?.trim()
+    || fornitoreRow?.sede_id?.trim()
+    || ''
 
   let buffer: Buffer
   let contentType: string
@@ -108,6 +118,7 @@ export async function POST(req: NextRequest) {
   let importFromOcr: number | null = null
   let numeroFatturaFromOcr: string | null = null
   let tipoDocumentoFromOcr: string | null = null
+  let ocrRagioneSociale: string | null = null
   let dateResolution: ReturnType<typeof resolveDocumentDateFromOcrContext>
   try {
     const ocr = await ocrInvoice(new Uint8Array(buffer), contentType, undefined, {
@@ -126,6 +137,7 @@ export async function POST(req: NextRequest) {
     const rawNumero = ocr.numero_fattura?.trim()
     if (rawNumero) numeroFatturaFromOcr = rawNumero
     tipoDocumentoFromOcr = ocr.tipo_documento ?? null
+    ocrRagioneSociale = ocr.ragione_sociale?.trim() ?? null
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) {
       return NextResponse.json({ error: e.message }, { status: 503 })
@@ -160,9 +172,42 @@ export async function POST(req: NextRequest) {
   const normalizedTipo = normalizeTipoDocumento(tipoDocumentoFromOcr)
   const importNeedsFill = fattura.importo == null && importFromOcr != null
   const numeroChanged = numeroFatturaFromOcr != null && numeroFatturaFromOcr !== fattura.numero_fattura
+
+  let fornitoreReassigned = false
+  let nuovoFornitoreNome: string | null = null
+  if (fattura.fornitore_id && currentFornitoreNome && sedeId) {
+    const correction = await resolveFatturaFornitoreCorrection(service, {
+      currentFornitoreId: fattura.fornitore_id as string,
+      currentFornitoreNome,
+      sedeId,
+      fileName,
+      emailSubject,
+      metadata: docMetadata,
+      ocrRagioneSociale,
+      mittente: docMittente,
+    })
+    if (correction) {
+      const reassign = await reassignEntityFornitore('fatture', {
+        entityId: fatturaId,
+        nuovoFornitoreId: correction.nuovoFornitoreId,
+        sedeId,
+        userId: user.id,
+      })
+      if (!reassign.error) {
+        fornitoreReassigned = true
+        nuovoFornitoreNome = correction.nuovoFornitoreNome
+      }
+    }
+  }
+
+  const fornitoreFields = {
+    fornitore_reassigned: fornitoreReassigned,
+    nuovo_fornitore_nome: nuovoFornitoreNome,
+  }
+
   /** Se né data né totale né numero dall'OCR, non abbiamo nulla da scrivere nei campi fattura.
    *  Restituiamo comunque 200 con tipo_documento se l'OCR ha riclassificato il documento. */
-  if (normalized == null && !importNeedsFill && !numeroChanged) {
+  if (normalized == null && !importNeedsFill && !numeroChanged && !fornitoreReassigned) {
     return NextResponse.json(
       {
         ok: true,
@@ -175,9 +220,26 @@ export async function POST(req: NextRequest) {
         numero_fattura: fattura.numero_fattura ?? null,
         numero_fattura_changed: false,
         tipo_documento: normalizedTipo,
+        ...fornitoreFields,
         info: dateRejectInfo ?? "Nessun campo data/importo/numero aggiornato. Il tipo documento potrebbe essere stato aggiornato.",
       },
     )
+  }
+
+  if (normalized == null && !importNeedsFill && !numeroChanged && fornitoreReassigned) {
+    return NextResponse.json({
+      ok: true,
+      data: fattura.data,
+      data_changed: false,
+      date_rejected: dateRejected,
+      ocr_date: dateResolution.ocrDate,
+      importo: fattura.importo,
+      importo_changed: false,
+      numero_fattura: fattura.numero_fattura ?? null,
+      numero_fattura_changed: false,
+      tipo_documento: normalizedTipo,
+      ...fornitoreFields,
+    })
   }
 
   const updates: { data?: string; importo?: number; numero_fattura?: string } = {}
@@ -204,6 +266,7 @@ export async function POST(req: NextRequest) {
       numero_fattura: fattura.numero_fattura ?? null,
       numero_fattura_changed: false,
       tipo_documento: normalizedTipo,
+      ...fornitoreFields,
       info: dateRejectInfo,
     })
   }
@@ -226,5 +289,6 @@ export async function POST(req: NextRequest) {
     numero_fattura: updates.numero_fattura ?? fattura.numero_fattura ?? null,
     numero_fattura_changed: updates.numero_fattura !== undefined,
     tipo_documento: normalizedTipo,
+    ...fornitoreFields,
   })
 }

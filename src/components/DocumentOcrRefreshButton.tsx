@@ -81,7 +81,15 @@ export default function DocumentOcrRefreshButton({
         if (!isBatch) {
           if (target.kind === 'fattura' && isFatturaBody(result.body)) {
             const j = result.body
-            if (j.data_changed && j.data) {
+            if (j.fornitore_reassigned && j.nuovo_fornitore_nome) {
+              showToast(
+                t.fatture.refreshFornitoreReassignedFromDocSuccess.replace(
+                  '{fornitore}',
+                  j.nuovo_fornitore_nome,
+                ),
+                'success',
+              )
+            } else if (j.data_changed && j.data) {
               showToast(t.fatture.refreshDateFromDocSuccess.replace('{data}', fmt(j.data)), 'success')
             } else if (j.importo_changed) {
               showToast(t.fatture.refreshImportoFromDocSuccess, 'success')
