@@ -12,6 +12,7 @@ import {
 import { fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
 import { resolveFiscalFilterForSede, type FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { formatCurrency } from '@/lib/locale-shared'
+import { formatSignedFatturaImporto } from '@/lib/fattura-importo'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
 import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
@@ -193,10 +194,12 @@ export default async function FatturePage(props: {
     bolla_id: f.bolla_id,
     fornitore_id: f.fornitore_id,
     fornitoreNome: f.fornitore?.nome ?? null,
-    importoLabel:
-      f.importo != null && Number.isFinite(Number(f.importo))
-        ? formatCurrency(Number(f.importo), currency, locale)
-        : null,
+    importoLabel: formatSignedFatturaImporto(
+      f.importo != null ? Number(f.importo) : null,
+      f.is_credit_note === true,
+      currency,
+      locale,
+    ),
     approval_status: showApprovalBadge ? (f.approval_status ?? null) : null,
     rejection_reason: showApprovalBadge ? (f.rejection_reason ?? null) : null,
     dataDocumentoLabel: formatDate(f.data),

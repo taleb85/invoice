@@ -14,6 +14,7 @@ import { AiAnalysisModal } from '@/components/AiAnalysisModal'
 import DocumentActionsButton from '@/components/DocumentActionsButton'
 import type { FatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import {
+  APP_SECTION_AMOUNT_NEGATIVE_CLASS,
   APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
@@ -317,7 +318,7 @@ export default function FattureListWithDuplicates({
                 )}
                 <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
                   {f.importoLabel ? (
-                    <span className={`font-mono text-xs tabular-nums ${APP_SECTION_AMOUNT_POSITIVE_CLASS}`}>
+                    <span className={`font-mono text-xs tabular-nums ${f.is_credit_note ? APP_SECTION_AMOUNT_NEGATIVE_CLASS : APP_SECTION_AMOUNT_POSITIVE_CLASS}`}>
                       {f.importoLabel}
                     </span>
                   ) : null}
@@ -539,7 +540,9 @@ export default function FattureListWithDuplicates({
               <td
                 className={`${APP_SECTION_TABLE_TD_COMPACT} text-right font-mono tabular-nums whitespace-nowrap ${
                   f.importoLabel
-                    ? APP_SECTION_AMOUNT_POSITIVE_CLASS
+                    ? f.is_credit_note
+                      ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
+                      : APP_SECTION_AMOUNT_POSITIVE_CLASS
                     : 'text-app-fg-muted'
                 }`}
               >

@@ -81,6 +81,7 @@ import { useLocale } from '@/lib/locale-context'
 import { useToast } from '@/lib/toast-context'
 import { parseAnyAmount } from '@/lib/ocr-amount'
 import { formatDate as formatDateLib, formatCurrency, formatMonthYearUppercase } from '@/lib/locale'
+import { formatSignedFatturaImporto, storedFatturaImportoFromEdit } from '@/lib/fattura-importo'
 import type { Locale } from '@/lib/translations'
 import {
   defaultFiscalYearLabel,
@@ -3239,7 +3240,10 @@ function FattureTab({
       fatture.map((f) => {
         const parts = [formatDate(f.data)]
         if (f.numero_fattura?.trim()) parts.push(`#${f.numero_fattura.trim()}`)
-        if (f.importo != null) parts.push(formatCurrency(f.importo, currency, locale))
+        if (f.importo != null) {
+          const label = formatSignedFatturaImporto(f.importo, f.is_credit_note, currency, locale)
+          if (label) parts.push(label)
+        }
         return {
           id: f.id,
           label: parts.join(' · '),
@@ -3383,16 +3387,18 @@ function FattureTab({
     } else {
       const trimmed = value.trim()
       const parsed = trimmed === '' ? null : parseAnyAmount(trimmed)
-      if (trimmed !== '' && (parsed === null || parsed <= 0)) {
+      const row = fatture.find((r) => r.id === id)
+      const stored = storedFatturaImportoFromEdit(parsed, row?.is_credit_note)
+      if (trimmed !== '' && (stored === null || stored <= 0)) {
         showToast('Importo non valido', 'error')
         return
       }
-      const { error } = await supabase.from('fatture').update({ importo: parsed }).eq('id', id)
+      const { error } = await supabase.from('fatture').update({ importo: stored }).eq('id', id)
       if (error) { showToast(t.ui.networkError, 'error'); return }
-      setFatture((prev) => prev.map((r) => r.id === id ? { ...r, importo: parsed } : r))
+      setFatture((prev) => prev.map((r) => r.id === id ? { ...r, importo: stored } : r))
       onLedgerMutated?.()
     }
-  }, [editingCell, editValue, onLedgerMutated, showToast, t])
+  }, [editingCell, editValue, fatture, onLedgerMutated, showToast, t])
 
   const reloadFattureAfterListino = useCallback(() => {
     onLedgerMutated?.()
@@ -3562,8 +3568,8 @@ function FattureTab({
                       </p>
                     ) : null}
                     {f.importo != null && (
-                      <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
-                        {formatCurrency(f.importo, currency, locale)}
+                      <p className={`mt-0.5 font-mono text-xs font-semibold tabular-nums ${f.is_credit_note ? APP_SECTION_AMOUNT_NEGATIVE_CLASS : 'text-app-fg-muted'}`}>
+                        {formatSignedFatturaImporto(f.importo, f.is_credit_note, currency, locale)}
                       </p>
                     )}
                   </Link>
@@ -3726,8 +3732,8 @@ function FattureTab({
                       )}
                     </td>
                     <td
-                      className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted"
-                      onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'importo', f.importo != null ? String(f.importo) : '')}
+                      className={`px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums ${f.is_credit_note ? APP_SECTION_AMOUNT_NEGATIVE_CLASS : 'text-app-fg-muted'}`}
+                      onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'importo', f.importo != null ? String(Math.abs(f.importo)) : '')}
                     >
                       {editingCell?.id === f.id && editingCell.field === 'importo' ? (
                         <input
@@ -3741,7 +3747,7 @@ function FattureTab({
                         />
                       ) : (
                         <span className={!readOnly ? 'cursor-text' : ''}>
-                          {f.importo != null ? formatCurrency(f.importo, currency, locale) : '—'}
+                          {f.importo != null ? formatSignedFatturaImporto(f.importo, f.is_credit_note, currency, locale) : '—'}
                         </span>
                       )}
                     </td>
