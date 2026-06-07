@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
-import { parseSupabasePublicStorageUrl } from '@/lib/open-document-url'
+import { normalizeStorageFileUrl, parseSupabasePublicStorageUrl } from '@/lib/open-document-url'
 import type { Profile } from '@/types'
 
 const SIGNED_TTL_SEC = 600
@@ -226,7 +226,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Not found or no attachment' }, { status: 404 })
   }
 
-  const trimmed = file_url.trim()
+  const trimmed = normalizeStorageFileUrl(file_url)
   const wantsJson = req.nextUrl.searchParams.get('json') === '1'
 
   const parsed = parseSupabasePublicStorageUrl(trimmed)

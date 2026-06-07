@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { parseSupabasePublicStorageUrl } from '@/lib/open-document-url'
+import { normalizeStorageFileUrl, parseSupabasePublicStorageUrl } from '@/lib/open-document-url'
 
 const BUCKET = 'documenti' as const
 
@@ -9,7 +9,7 @@ const BUCKET = 'documenti' as const
  * `createSignedUrl` o `download` lato service.
  */
 export function documentiPublicRefUrl(objectPath: string): string {
-  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '')
+  const base = normalizeStorageFileUrl(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '')
   if (!base) return ''
   const pathEnc = objectPath
     .split('/')
@@ -23,7 +23,7 @@ export async function downloadStorageObjectByFileUrl(
   service: SupabaseClient,
   fileUrl: string
 ): Promise<{ data: Buffer; contentType: string } | { error: string }> {
-  const parsed = parseSupabasePublicStorageUrl(fileUrl.trim())
+  const parsed = parseSupabasePublicStorageUrl(fileUrl)
   if (!parsed) {
     return { error: 'URL storage non riconosciuto' }
   }

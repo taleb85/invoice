@@ -85,6 +85,11 @@ function decodeStoragePath(pathSegment: string): string {
   }
 }
 
+/** Rimuove newline parassiti dentro URL storage (env multilinea o copy-paste in DB). */
+export function normalizeStorageFileUrl(fileUrl: string): string {
+  return fileUrl.replace(/[\r\n]+/g, '').trim()
+}
+
 /**
  * Estrae bucket e path oggetto da un URL Supabase Storage (public, signed o render).
  * Serve a rigenerare sempre un URL firmato fresco: i link `/object/sign/...?token=...` in DB scadono
@@ -92,7 +97,7 @@ function decodeStoragePath(pathSegment: string): string {
  */
 export function parseSupabasePublicStorageUrl(fileUrl: string): { bucket: string; objectPath: string } | null {
   try {
-    const u = new URL(fileUrl)
+    const u = new URL(normalizeStorageFileUrl(fileUrl))
     const pathname = u.pathname
 
     const publicM = pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/)
