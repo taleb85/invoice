@@ -47,6 +47,27 @@ describe('quantitaForBollaFromOcrOrText', () => {
     const text = 'Sales Delivery Note\nPT009 TOMATOES 4.00 Case 18.50'
     expect(quantitaForBollaFromOcrOrText({ tipo_documento: 'bolla_ddt' }, text)).toBe(4)
   })
+
+  it('uses OCR qty for SDN even when misclassified as fattura', () => {
+    expect(
+      quantitaForBollaFromOcrOrText(
+        { tipo_documento: 'fattura', quantita_totale: 7, numero_fattura: 'SDN696539' },
+        null,
+        { numeroBolla: 'SDN696539' },
+      ),
+    ).toBe(7)
+  })
+
+  it('parses PDF line qty for SDN when OCR omits quantita_totale', () => {
+    const text = 'Sales Delivery Note\nPT009 TOMATOES 4.00 Case 18.50'
+    expect(
+      quantitaForBollaFromOcrOrText(
+        { tipo_documento: 'fattura', numero_fattura: 'SDN698804' },
+        text,
+        { numeroBolla: 'SDN698804' },
+      ),
+    ).toBe(4)
+  })
 })
 
 describe('formatBollaQuantita', () => {

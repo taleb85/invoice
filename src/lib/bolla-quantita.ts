@@ -1,4 +1,29 @@
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { numeroLooksLikeSalesDeliveryNoteReference } from '@/lib/sales-delivery-note-reference'
+
+export type BollaQuantitaExtractContext = {
+  /** Numero già salvato sulla bolla (es. SDN662860). */
+  numeroBolla?: string | null
+}
+
+function parseQuantitaNumber(raw: unknown): number | null {
+  if (raw == null || raw === '') return null
+  const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(',', '.'))
+  if (!Number.isFinite(n) || n < 0) return null
+  return Math.round(n * 1000) / 1000
+}
+
+function isKnownDeliveryNoteContext(
+  ocr: { tipo_documento?: unknown; numero_fattura?: string | null },
+  extractedText?: string | null,
+  ctx?: BollaQuantitaExtractContext,
+): boolean {
+  const num = ctx?.numeroBolla?.trim() || (ocr.numero_fattura ?? '').trim()
+  if (numeroLooksLikeSalesDeliveryNoteReference(num)) return true
+  if (normalizeTipoDocumento(ocr.tipo_documento) === 'bolla_ddt') return true
+  if (extractedText && /\b(?:sales delivery note|delivery note)\b/i.test(extractedText)) return true
+  return false
+}
 
 export function quantitaFromDocMetadata(metadata: unknown): number | null {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
@@ -29,16 +54,18 @@ export function quantitaForBollaFromOcr(ocr: {
 }): number | null {
   const tipo = normalizeTipoDocumento(ocr.tipo_documento)
   if (tipo != null && tipo !== 'bolla_ddt') return null
-  const q = ocr.quantita_totale
-  if (q == null || !Number.isFinite(Number(q))) return null
-  const n = Number(q)
-  return n >= 0 ? Math.round(n * 1000) / 1000 : null
+  return parseQuantitaNumber(ocr.quantita_totale)
 }
 
 /** Fallback when OCR JSON omits quantita_totale: sum Pack/Qty from delivery-note PDF text. */
-export function sumDeliveryNoteQuantitaFromText(text: string | null | undefined): number | null {
+export function sumDeliveryNoteQuantitaFromText(
+  text: string | null | undefined,
+  opts?: { relaxed?: boolean },
+): number | null {
   if (!text?.trim()) return null
+  const relaxed = opts?.relaxed === true
   if (
+    !relaxed &&
     !/\b(?:delivery note|sales delivery note|lieferschein|ddt|albar[aá]n|bon de livraison)\b/i.test(
       text,
     )
@@ -54,7 +81,7 @@ export function sumDeliveryNoteQuantitaFromText(text: string | null | undefined)
       any = true
     }
   }
-  for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+(?:Case|Each)\b/gi)) {
+  for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+(?:Case|Each|Pack)\b/gi)) {
     add(m[1]!)
   }
   for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+\d+(?:[.,]\d+)?\s+KG\b/gi)) {
@@ -64,10 +91,23 @@ export function sumDeliveryNoteQuantitaFromText(text: string | null | undefined)
 }
 
 export function quantitaForBollaFromOcrOrText(
-  ocr: { tipo_documento?: unknown; quantita_totale?: number | null },
+  ocr: {
+    tipo_documento?: unknown
+    quantita_totale?: number | null
+    numero_fattura?: string | null
+  },
   extractedText?: string | null,
+  ctx?: BollaQuantitaExtractContext,
 ): number | null {
-  return quantitaForBollaFromOcr(ocr) ?? sumDeliveryNoteQuantitaFromText(extractedText)
+  const fromStrict = quantitaForBollaFromOcr(ocr)
+  if (fromStrict != null) return fromStrict
+
+  if (!isKnownDeliveryNoteContext(ocr, extractedText, ctx)) return null
+
+  const fromOcrField = parseQuantitaNumber(ocr.quantita_totale)
+  if (fromOcrField != null) return fromOcrField
+
+  return sumDeliveryNoteQuantitaFromText(extractedText, { relaxed: true })
 }
 
 export function formatBollaQuantita(

@@ -14,7 +14,8 @@ import {
   normalizeNumeroBolla,
 } from '@/lib/fix-ocr-dates-helpers'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
-import { quantitaForBollaFromOcr } from '@/lib/bolla-quantita'
+import { quantitaForBollaFromOcrOrText } from '@/lib/bolla-quantita'
+import { extractPdfText } from '@/lib/pdf-parse-utils'
 import { shouldClearBollaImportoAfterBollaDdtReocr } from '@/lib/ocr-tipo-documento'
 
 export const dynamic = 'force-dynamic'
@@ -595,10 +596,12 @@ export async function POST(req: NextRequest) {
           const numRaw = normalizeNumeroBolla(ocr.numero_fattura) ?? ''
           const ocrNum = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
           const hasNum = Boolean(b.numero_bolla?.trim())
+          const pdfText =
+            contentType === 'application/pdf' ? await extractPdfText(buf).catch(() => null) : null
 
           const upd: Record<string, unknown> = {}
           if (newData && newData !== b.data) upd.data = newData
-          const ocrQty = quantitaForBollaFromOcr(ocr)
+          const ocrQty = quantitaForBollaFromOcrOrText(ocr, pdfText, { numeroBolla: b.numero_bolla })
           if (isForcedBolla) {
             if (ocrNum && ocrNum !== (b.numero_bolla?.trim() ?? '')) upd.numero_bolla = ocrNum
             if (shouldClearBollaImportoAfterBollaDdtReocr(ocr.tipo_documento, b.importo)) {

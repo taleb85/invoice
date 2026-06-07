@@ -132,7 +132,9 @@ export async function POST(req: NextRequest) {
     ocrNumero = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
     const pdfText =
       contentType === 'application/pdf' ? await extractPdfText(buffer).catch(() => null) : null
-    ocrQty = quantitaForBollaFromOcrOrText(ocr, pdfText)
+    ocrQty = quantitaForBollaFromOcrOrText(ocr, pdfText, {
+      numeroBolla: bolla.numero_bolla ?? ocrNumero,
+    })
     ocrTipo = ocr.tipo_documento ?? null
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) {
