@@ -81,7 +81,7 @@ export function sumDeliveryNoteQuantitaFromText(
       any = true
     }
   }
-  for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+(?:Case|Each|Pack)\b/gi)) {
+  for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+(?:Case|Each|Pack|Tray|Box|Unit|Pcs)\b/gi)) {
     add(m[1]!)
   }
   for (const m of text.matchAll(/\s(\d+(?:[.,]\d+)?)\s+\d+(?:[.,]\d+)?\s+KG\b/gi)) {

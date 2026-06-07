@@ -58,15 +58,17 @@ describe('quantitaForBollaFromOcrOrText', () => {
     ).toBe(7)
   })
 
-  it('parses PDF line qty for SDN when OCR omits quantita_totale', () => {
-    const text = 'Sales Delivery Note\nPT009 TOMATOES 4.00 Case 18.50'
+  it('sums Tray unit on single-line C Carnevale delivery notes', () => {
+    const sdn651659 = `Sales Delivery Note
+FH022 ALICI ( ANCHOVIES ) MARINATE RENNA 550gr 1.00 Tray 11.05 12.50 9.67 VAT0`
+    expect(sumDeliveryNoteQuantitaFromText(sdn651659)).toBe(1)
     expect(
       quantitaForBollaFromOcrOrText(
-        { tipo_documento: 'fattura', numero_fattura: 'SDN698804' },
-        text,
-        { numeroBolla: 'SDN698804' },
+        { tipo_documento: 'fattura', numero_fattura: 'SDN651659' },
+        sdn651659,
+        { numeroBolla: 'SDN651659' },
       ),
-    ).toBe(4)
+    ).toBe(1)
   })
 })
 
