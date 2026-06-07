@@ -240,9 +240,19 @@ function isUsableSupplierCandidate(
 function addressListEmails(addrs: AddressObject | AddressObject[] | undefined): string[] {
   if (!addrs) return []
   const list = Array.isArray(addrs) ? addrs : [addrs]
-  return list
-    .map((a) => (a.address ?? '').trim().toLowerCase())
-    .filter((e) => e.includes('@'))
+  return list.flatMap((a) => {
+    const obj = a as AddressObject & {
+      address?: string
+      value?: Array<{ address?: string | null }>
+    }
+    if (obj.address?.trim()) {
+      const email = obj.address.trim().toLowerCase()
+      return email.includes('@') ? [email] : []
+    }
+    return (obj.value ?? [])
+      .map((v) => (v.address ?? '').trim().toLowerCase())
+      .filter((e) => e.includes('@'))
+  })
 }
 
 export function messageMatchesFornitore(

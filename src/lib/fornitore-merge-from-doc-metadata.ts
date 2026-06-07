@@ -51,10 +51,11 @@ async function contactsFromPdfUrl(
     const dl = await downloadStorageObjectByFileUrl(supabase, fileUrl)
     if ('error' in dl) return { telefonos: [], emails: [] }
     const { text } = await extractDocumentText(dl.data, dl.contentType)
-    const emails = extractContactEmailsFromText(text).filter(
+    const body = text ?? ''
+    const emails = extractContactEmailsFromText(body).filter(
       (e) => !isSharedBillingPlatformSenderEmail(e),
     )
-    return { telefonos: extractPhoneNumbersFromText(text), emails }
+    return { telefonos: extractPhoneNumbersFromText(body), emails }
   } catch (e) {
     console.warn('[contactsFromPdfUrl]', e)
     return { telefonos: [], emails: [] }
@@ -77,7 +78,7 @@ async function buildContactCandidate(
 
   const nome =
     trimStr(meta.ragione_sociale) ||
-    opts.fornitoreNome?.trim() ||
+    opts?.fornitoreNome?.trim() ||
     'Contatto aziendale'
 
   return {
