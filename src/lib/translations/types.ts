@@ -1440,6 +1440,7 @@ export type Translations = {
     inboxAiSupplierOptionPlaceholder: string
     inboxAiApplyNewSupplier: string
     inboxAiSupplierMismatchWarning: string
+    inboxAiBillingPlatformSenderHint: string
     inboxAiNoDupInvoices: string
     inboxAiNoDupBolle: string
     inboxAiDupLoadFailed: string

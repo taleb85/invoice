@@ -4,6 +4,8 @@ import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import type { Profile } from '@/types'
 import { cookies } from 'next/headers'
 import { suggestFornitoreForAuditRow } from '@/lib/inbox-audit-fornitore-suggest'
+import { extractEmailFromSenderHeader } from '@/lib/sender-email'
+import { isSharedBillingPlatformSenderEmail } from '@/lib/fornitore-resolve-scan-email'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +23,7 @@ type AuditRow = {
   suggested_fornitore_nome: string | null
   suggested_from_hint: string | null
   supplier_mismatch: boolean
+  billing_platform_sender: boolean
 }
 
 function resolveSedeId(profile: Profile, bodySede: string | undefined, cookieSede: string | null): string | null {
@@ -112,17 +115,25 @@ export async function POST(req: NextRequest) {
         fornitore_fattura: r.fornitore_fattura,
         fornitore_bolla: r.fornitore_bolla,
       })
+      const billing_platform_sender = isSharedBillingPlatformSenderEmail(
+        extractEmailFromSenderHeader(r.mittente),
+      )
       return {
         ...r,
         file_url: doc?.file_url ?? null,
         ...suggestion,
+        billing_platform_sender,
       }
     }),
+  )
+
+  const visibleRows = enriched.filter(
+    (r) => !r.billing_platform_sender || r.supplier_mismatch,
   )
 
   return NextResponse.json({
     ok: true as const,
     sede_id: sedeId,
-    rows: enriched,
+    rows: visibleRows,
   })
 }

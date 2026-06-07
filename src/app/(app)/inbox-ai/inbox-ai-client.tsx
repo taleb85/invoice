@@ -85,6 +85,7 @@ type AuditMatchRow = {
   suggested_fornitore_nome: string | null
   suggested_from_hint: string | null
   supplier_mismatch: boolean
+  billing_platform_sender?: boolean
 }
 
 type FornitoreOption = { id: string; nome: string | null }
@@ -1700,20 +1701,27 @@ export default function InboxAiClient(props: {
                             {t.log.inboxAiSupplierMismatchWarning}
                           </p>
                         ) : null}
+                        {row.billing_platform_sender ? (
+                          <p className="text-[11px] leading-snug text-amber-100/90">
+                            {t.log.inboxAiBillingPlatformSenderHint}
+                          </p>
+                        ) : null}
                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                          <button
-                            type="button"
-                            disabled={
-                              busy ||
-                              !row.assigned_fornitore_id ||
-                              !row.mittente?.trim() ||
-                              row.supplier_mismatch
-                            }
-                            onClick={() => void addEmailToFornitore(row)}
-                            className="rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1.5 text-[11px] font-semibold text-teal-100 disabled:opacity-40"
-                          >
-                            {t.log.inboxAiAddEmailToSupplier}
-                          </button>
+                          {!row.billing_platform_sender ? (
+                            <button
+                              type="button"
+                              disabled={
+                                busy ||
+                                !row.assigned_fornitore_id ||
+                                !row.mittente?.trim() ||
+                                row.supplier_mismatch
+                              }
+                              onClick={() => void addEmailToFornitore(row)}
+                              className="rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1.5 text-[11px] font-semibold text-teal-100 disabled:opacity-40"
+                            >
+                              {t.log.inboxAiAddEmailToSupplier}
+                            </button>
+                          ) : null}
                           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                             <label className="flex items-center gap-2 text-[11px] text-app-fg-muted">
                               {t.log.inboxAiChangeSupplier}

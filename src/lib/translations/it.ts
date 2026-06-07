@@ -2301,6 +2301,8 @@ const translations: Translations = {
     inboxAiApplyNewSupplier: 'Applica nuovo fornitore',
     inboxAiSupplierMismatchWarning:
       'Il fornitore collegato alla fattura non corrisponde al nome nel file. Correggi con «Applica nuovo fornitore» prima di salvare l’email del mittente.',
+    inboxAiBillingPlatformSenderHint:
+      'Mittente QuickBooks/Xero condiviso: non puoi salvare questa email sul fornitore. Se l’abbinamento è corretto non serve altro; altrimenti usa «Applica nuovo fornitore». Per le prossime email usa Sincronizza Email sul fornitore.',
     inboxAiNoDupInvoices: 'Nessun gruppo di fatture duplicate per questa sede.',
     inboxAiNoDupBolle: 'Nessun gruppo di bolle duplicate per questa sede.',
     inboxAiDupLoadFailed: 'Impossibile caricare l’elenco duplicati. Ricarica la pagina o contatta l’amministratore.',
