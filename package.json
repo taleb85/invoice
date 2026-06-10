@@ -47,7 +47,9 @@
     "audit:listino-qty": "node scripts/audit-listino-qty-prices.mjs",
     "audit:listino-qty:apply": "node scripts/audit-listino-qty-prices.mjs --apply",
     "repair:listino-prices": "node scripts/repair-listino-prices.mjs",
-    "repair:listino-prices:apply": "node scripts/repair-listino-prices.mjs --apply"
+    "repair:listino-prices:apply": "node scripts/repair-listino-prices.mjs --apply",
+    "storage:purge-orphans": "node scripts/purge-storage-orphans.mjs",
+    "storage:purge-orphans:apply": "node scripts/purge-storage-orphans.mjs --apply"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
