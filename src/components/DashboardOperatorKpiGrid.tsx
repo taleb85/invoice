@@ -437,9 +437,10 @@ export default function DashboardOperatorKpiGrid({
                     <p
                       className={
                         glassShell
-                          ? `break-words text-xl font-bold tabular-nums leading-none tracking-tight sm:text-2xl sm:leading-tight ${dashboardKpiIconTextClass(tileIndex)}`
-                          : 'break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight'
+                          ? `min-w-0 max-w-full truncate text-lg font-bold tabular-nums leading-none tracking-tight sm:text-xl lg:text-2xl ${dashboardKpiIconTextClass(tileIndex)}`
+                          : 'min-w-0 max-w-full truncate text-lg font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-xl lg:text-2xl'
                       }
+                      title={typeof item.value === 'string' || typeof item.value === 'number' ? String(item.value) : undefined}
                     >
                       {item.value}
                     </p>

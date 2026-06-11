@@ -788,7 +788,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                   <Suspense fallback={null}>
                     <AppMainScrollRestoration />
                   </Suspense>
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+                  {children}
                 </BranchSessionGate>
               </ErrorBoundary>
             </main>

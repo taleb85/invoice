@@ -12,16 +12,7 @@ export const APP_FORNITORE_FORM_PAGE_SHELL_CLASS =
 
 /** Stack verticale (header strip → contenuto) come la dashboard KPI; corpo trasparente sul canvas workspace. */
 export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
-  'mx-auto flex w-full min-w-0 max-w-[var(--app-layout-max-width)] flex-col gap-3 overflow-x-hidden md:gap-4 app-shell-page-padding'
-
-/**
- * Come `APP_SHELL_SECTION_PAGE_STACK_CLASS` ma riempie l’altezza utile su desktop (`#app-main` → corpo scrollabile).
- */
-export const APP_SHELL_SECTION_PAGE_STACK_FILL_CLASS = `${APP_SHELL_SECTION_PAGE_STACK_CLASS} md:min-h-0 md:flex-1`
-
-/** Corpo lista sotto header sezione: scroll verticale nel viewport desktop, senza overflow orizzontale. */
-export const APP_SHELL_SECTION_PAGE_BODY_FILL_CLASS =
-  'min-w-0 min-h-0 md:min-h-0 md:flex-1 md:overflow-y-auto md:overflow-x-hidden'
+  'mx-auto flex w-full min-w-0 max-w-[var(--app-layout-max-width)] flex-col gap-3 md:gap-4 app-shell-page-padding'
 
 /** Tabella desktop fluida: larghezza colonne automatica, senza scroll orizzontale. */
 export const APP_SECTION_TABLE_DESKTOP_FLUID_CLASS =
