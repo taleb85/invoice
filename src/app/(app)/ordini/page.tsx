@@ -165,7 +165,7 @@ export default async function OrdiniOverviewPage(props: {
       dataLabel: dataOrdine ? formatDate(dataOrdine) : null,
       numeroLabel: r.numero_ordine?.trim() || r.titolo?.trim() || r.file_name?.trim() || null,
       importoLabel: importo != null ? formatCurrency(importo, currency, locale) : null,
-      syncLabel: r.created_at ? fmtDateTime(r.created_at, locale, tz, true) : null,
+      syncLabel: r.created_at ? formatDate(r.created_at) : null,
       syncFull: r.created_at ?? null,
     }
   })
