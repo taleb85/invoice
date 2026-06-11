@@ -61,6 +61,8 @@ type Props = {
   beforeActions?: ReactNode
   /** Nasconde il menu azioni documento (es. conferme ordine senza origine dedicata). */
   hideActionsButton?: boolean
+  /** Solo icona per «Vedi documento» (tabelle compatte). */
+  iconOnly?: boolean
 }
 
 export function DocumentRowActions({
@@ -81,6 +83,7 @@ export function DocumentRowActions({
   actionsButtonClassName = 'h-7 w-7 touch-manipulation',
   beforeActions,
   hideActionsButton,
+  iconOnly = false,
 }: Props) {
   const t = useT()
   const url = (fileUrl ?? item.file_url)?.trim() || null
@@ -106,12 +109,17 @@ export function DocumentRowActions({
           fornitoreId={fornitoreId ?? item.fornitore_id ?? null}
           documentActionsItem={item}
           stopTriggerPropagation={stopTriggerPropagation}
-          className={TABLE_DOCUMENT_ACTION_PILL}
+          className={
+            iconOnly
+              ? 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-app-line-30 bg-app-line-10 text-app-fg-muted transition-colors hover:bg-app-line-20 touch-manipulation'
+              : TABLE_DOCUMENT_ACTION_PILL
+          }
           title={label}
+          aria-label={iconOnly ? label : undefined}
           categoria={categoria}
         >
-          {viewIcon ?? defaultViewIcon()}
-          {label}
+          {viewIcon ?? defaultViewIcon(iconOnly ? 'h-3.5 w-3.5' : undefined)}
+          {iconOnly ? null : label}
         </OpenDocumentInAppButton>
       ) : null}
       {beforeActions}
