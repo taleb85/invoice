@@ -236,15 +236,19 @@ async function fetchOrdiniImportoFieldsByIds(
 ): Promise<Map<string, { importo_totale: number | null; righe: unknown }>> {
   const out = new Map<string, { importo_totale: number | null; righe: unknown }>()
   if (ids.length === 0) return out
-  let { data, error } = await supabase
-    .from('conferme_ordine')
-    .select('id, importo_totale, righe')
-    .in('id', ids)
+  type ImportoRow = { id: string; importo_totale?: number | null; righe?: unknown }
+  let data: ImportoRow[] | null = null
+  let error: { message?: string } | null = null
+  const full = await supabase.from('conferme_ordine').select('id, importo_totale, righe').in('id', ids)
+  data = (full.data ?? null) as ImportoRow[] | null
+  error = full.error
   if (error && isConfermeOrdineMissingImportoTotaleColumn(error)) {
-    ;({ data, error } = await supabase.from('conferme_ordine').select('id, righe').in('id', ids))
+    const fallback = await supabase.from('conferme_ordine').select('id, righe').in('id', ids)
+    data = (fallback.data ?? null) as ImportoRow[] | null
+    error = fallback.error
   }
   if (error || !data?.length) return out
-  for (const row of data as { id: string; importo_totale?: number | null; righe?: unknown }[]) {
+  for (const row of data) {
     const importo =
       typeof row.importo_totale === 'number' && Number.isFinite(row.importo_totale)
         ? row.importo_totale
@@ -294,12 +298,18 @@ export async function fetchOrdiniOverviewRows(
     return q
   }
 
-  let { data, error } = await buildQuery(ORDINI_OVERVIEW_SELECT_FULL)
+  let data: Record<string, unknown>[] | null = null
+  let error: { message?: string } | null = null
+  const full = await buildQuery(ORDINI_OVERVIEW_SELECT_FULL)
+  data = (full.data ?? null) as Record<string, unknown>[] | null
+  error = full.error
   if (error && isConfermeOrdineMissingImportoTotaleColumn(error)) {
-    ;({ data, error } = await buildQuery(ORDINI_OVERVIEW_SELECT_NO_IMPORTO))
+    const fallback = await buildQuery(ORDINI_OVERVIEW_SELECT_NO_IMPORTO)
+    data = (fallback.data ?? null) as Record<string, unknown>[] | null
+    error = fallback.error
   }
   if (error || !data?.length) return []
-  return (data as Record<string, unknown>[]).map(mapOrdineOverviewRow)
+  return data.map(mapOrdineOverviewRow)
 }
 
 /** Filtro KPI per anno fiscale sede (stessa logica di sync email / `fiscal-year.ts`). */
