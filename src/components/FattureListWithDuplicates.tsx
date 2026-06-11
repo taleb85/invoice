@@ -21,11 +21,7 @@ import {
   APP_SECTION_ROW_ACTION_CHIP,
   APP_SECTION_TABLE_CELL_LINK,
   APP_SECTION_TABLE_TBODY,
-  APP_SECTION_TABLE_TD_COMPACT,
-  APP_SECTION_TABLE_TH,
-  APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR_GROUP,
-  APP_SECTION_TABLE_DESKTOP_FLUID_CLASS,
   APP_SECTION_TABLE_THEAD_STICKY,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
@@ -282,8 +278,11 @@ export default function FattureListWithDuplicates({
     [t, router, supabase, showContextMenu],
   )
 
-  const fattureTableTh = `${APP_SECTION_TABLE_TH} whitespace-normal leading-tight tracking-wide`
-  const fattureTableThRight = `${APP_SECTION_TABLE_TH_RIGHT} whitespace-normal leading-tight tracking-wide`
+  const fattureTableClass = 'hidden w-full min-w-0 table-fixed text-sm min-[640px]:table'
+  const fattureTh =
+    'px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted md:px-2.5 lg:py-2'
+  const fattureThRight = `${fattureTh} text-right`
+  const fattureTd = 'px-2 py-1.5 text-[13px] align-middle md:px-2.5 lg:py-2'
 
   return (
     <>
@@ -399,29 +398,50 @@ export default function FattureListWithDuplicates({
         ))}
       </div>
 
-      <table className={APP_SECTION_TABLE_DESKTOP_FLUID_CLASS}>
+      <table className={fattureTableClass}>
+        <colgroup>
+          <col className="w-[34%]" />
+          <col className="w-[12%]" />
+          <col className="w-[28%]" />
+          <col className="w-[14%]" />
+          <col className="w-[12%]" />
+        </colgroup>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
-            <th className={fattureTableTh}>{t.common.supplier}</th>
-            <th className={fattureTableTh}>
+            <th className={fattureTh}>{t.common.supplier}</th>
+            <th className={fattureTh}>
               <button
                 type="button"
                 onClick={() => handleSort('dataDocumento')}
-                className="inline-flex items-center gap-0.5 text-left uppercase text-app-fg-muted transition-colors hover:text-app-fg"
+                className="inline-flex items-center gap-0.5 whitespace-nowrap text-left uppercase text-app-fg-muted transition-colors hover:text-app-fg"
               >
                 {t.fatture.colDataDoc}
                 <SortIcon dir={sortKey === 'dataDocumento' ? sortDir : null} />
               </button>
             </th>
-            <th className={fattureTableTh}>{t.fatture.colNumFattura}</th>
-            <th className={fattureTableThRight}>{t.statements.colAmount}</th>
-            <th className={`${fattureTableThRight} w-16`}>{t.common.actions}</th>
+            <th className={fattureTh}>{t.fatture.colNumFattura}</th>
+            <th className={fattureThRight}>{t.statements.colAmount}</th>
+            <th className={fattureThRight}>{t.common.actions}</th>
           </tr>
         </thead>
         <tbody className={APP_SECTION_TABLE_TBODY}>
-          {sortedRows.map((f) => (
+          {sortedRows.map((f) => {
+            const docKind =
+              (f.file_url ? tipoByFileUrl[f.file_url.trim()] : undefined) ??
+              (f.is_credit_note ? 'Credit Note' : null) ??
+              extractDocTypeLabel(f.numero_fattura, f.file_url) ??
+              'Invoice'
+            const attachKind = f.file_url
+              ? attachmentKindFromFileUrl(f.file_url) === 'pdf'
+                ? t.bolle.attachmentKindPdf
+                : attachmentKindFromFileUrl(f.file_url) === 'image'
+                  ? t.bolle.attachmentKindImage
+                  : t.bolle.attachmentKindOther
+              : null
+
+            return (
             <tr key={f.id} className={`${APP_SECTION_TABLE_TR_GROUP} ${highlightedIds.has(f.id) ? highlightRowCls : ''}`} onContextMenu={(e) => handleContextMenu(e, f)}>
-              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[11rem] lg:max-w-[14rem]`}>
+              <td className={`${fattureTd} max-w-0`}>
                 {f.fornitore_id ? (
                   <Link
                     href={`/fornitori/${f.fornitore_id}`}
@@ -436,91 +456,74 @@ export default function FattureListWithDuplicates({
                   </span>
                 )}
               </td>
-              <td className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap`}>
-                {f.dataDocumentoLabel ? (
-                  <span className="text-app-fg-muted">{f.dataDocumentoLabel}</span>
-                ) : (
-                  <span className="text-app-fg-muted">—</span>
-                )}
+              <td className={`${fattureTd} whitespace-nowrap`}>
+                <span className="text-app-fg-muted">{f.dataDocumentoLabel ?? '—'}</span>
               </td>
-              <td className={`${APP_SECTION_TABLE_TD_COMPACT} min-w-[6.5rem]`}>
-                <span className="block min-w-0" title={f.numero_fattura?.trim() || undefined}>
-                  <span className="block font-medium text-app-fg">{f.numero_fattura?.trim() || '—'}</span>
-                  {f.numero_fattura?.trim() && (
-                    <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/70">
-                      {(f.file_url ? tipoByFileUrl[f.file_url.trim()] : undefined) ??
-                        (f.is_credit_note ? 'Credit Note' : null) ??
-                        extractDocTypeLabel(f.numero_fattura, f.file_url) ??
-                        'Invoice'}
-                      {f.file_url
-                        ? ` · ${
-                            attachmentKindFromFileUrl(f.file_url) === 'pdf'
-                              ? t.bolle.attachmentKindPdf
-                              : attachmentKindFromFileUrl(f.file_url) === 'image'
-                                ? t.bolle.attachmentKindImage
-                                : t.bolle.attachmentKindOther
-                          }`
-                        : ''}
-                    </span>
-                  )}
-                  {memberSet.has(f.id) ? (
-                    <button
-                      type="button"
-                      className={dupBadgeInteractiveCls}
-                      aria-label={t.fatture.duplicatePairBadgeAria}
-                      aria-pressed={focusedGroupKey != null && highlightedIds.has(f.id)}
-                      onClick={() => toggleBadgeFocus(f.id)}
-                    >
-                      {t.common.duplicateBadge}
-                    </button>
-                  ) : null}
-                </span>
-                {excessSet.has(f.id) ? (
-                  <div className="mt-1">
-                    <ActionButton
-                      type="button"
-                      intent="danger"
-                      size="sm"
-                      disabled={deletingId === f.id}
-                      onClick={() => void removeCopy(f)}
-                    >
-                      {focusedGroupKey && highlightedIds.has(f.id)
-                        ? t.fatture.duplicateRemoveThisCopy
-                        : t.fatture.duplicateRemoveCopy}
-                    </ActionButton>
+              <td className={`${fattureTd} align-top`}>
+                <div className="min-w-0" title={f.numero_fattura?.trim() || undefined}>
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    <span className="font-medium text-app-fg">{f.numero_fattura?.trim() || '—'}</span>
+                    {f.email_sync_auto_saved_at ? (
+                      <span
+                        className="inline-flex h-2 w-2 shrink-0 rounded-full bg-teal-400 ring-2 ring-teal-400/25"
+                        title={t.common.emailSyncAutoSavedBadge}
+                        aria-label={t.common.emailSyncAutoSavedBadge}
+                      />
+                    ) : null}
+                    {f.is_credit_note ? (
+                      <span
+                        className="rounded bg-amber-500/25 px-1 py-px text-[9px] font-bold uppercase leading-none text-amber-100"
+                        title="Credit Note"
+                      >
+                        NC
+                      </span>
+                    ) : null}
+                    {memberSet.has(f.id) ? (
+                      <button
+                        type="button"
+                        className={dupBadgeInteractiveCls}
+                        aria-label={t.fatture.duplicatePairBadgeAria}
+                        aria-pressed={focusedGroupKey != null && highlightedIds.has(f.id)}
+                        onClick={() => toggleBadgeFocus(f.id)}
+                      >
+                        {t.common.duplicateBadge}
+                      </button>
+                    ) : null}
                   </div>
-                ) : null}
-                  {(f.email_sync_auto_saved_at ||
-                    f.is_credit_note ||
-                    (f.approval_status && f.approval_status !== 'approved')) && (
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      {f.email_sync_auto_saved_at ? (
-                        <span
-                          className="inline-flex h-2 w-2 shrink-0 rounded-full bg-teal-400 ring-2 ring-teal-400/25"
-                          title={t.common.emailSyncAutoSavedBadge}
-                          aria-label={t.common.emailSyncAutoSavedBadge}
-                        />
-                      ) : null}
-                      {f.is_credit_note ? (
-                        <span
-                          className="rounded bg-amber-500/25 px-1 py-px text-[9px] font-bold uppercase leading-none text-amber-100"
-                          title="Credit Note"
-                        >
-                          NC
-                        </span>
-                      ) : null}
-                      {f.approval_status && f.approval_status !== 'approved' ? (
-                        <ApprovalBadge
-                          status={f.approval_status as 'pending' | 'approved' | 'rejected'}
-                          rejectionReason={f.rejection_reason}
-                          size="sm"
-                        />
-                      ) : null}
+                  {f.numero_fattura?.trim() ? (
+                    <p className="mt-0.5 text-[10px] leading-snug text-app-fg-muted/70">
+                      {docKind}
+                      {attachKind ? ` · ${attachKind}` : ''}
+                    </p>
+                  ) : null}
+                  {f.approval_status && f.approval_status !== 'approved' ? (
+                    <div className="mt-1">
+                      <ApprovalBadge
+                        status={f.approval_status as 'pending' | 'approved' | 'rejected'}
+                        rejectionReason={f.rejection_reason}
+                        size="sm"
+                      />
                     </div>
-                  )}
+                  ) : null}
+                  {excessSet.has(f.id) ? (
+                    <div className="mt-1">
+                      <ActionButton
+                        type="button"
+                        intent="danger"
+                        size="sm"
+                        disabled={deletingId === f.id}
+                        onClick={() => void removeCopy(f)}
+                      >
+                        {focusedGroupKey && highlightedIds.has(f.id)
+                          ? t.fatture.duplicateRemoveThisCopy
+                          : t.fatture.duplicateRemoveCopy}
+                      </ActionButton>
+                    </div>
+                  ) : null}
+                </div>
               </td>
               <td
-                className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap text-right font-mono text-sm font-semibold tabular-nums ${
+                className={`${fattureTd} whitespace-nowrap text-right font-mono text-[13px] font-semibold tabular-nums ${
                   f.importoLabel
                     ? f.is_credit_note
                       ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
@@ -530,8 +533,8 @@ export default function FattureListWithDuplicates({
               >
                 {f.importoLabel ?? '—'}
               </td>
-              <td className={`${APP_SECTION_TABLE_TD_COMPACT} w-16 text-right`}>
-                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+              <td className={`${fattureTd} text-right`}>
+                <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                   {f.file_url ? (
                     <DocumentRowActions
                       item={documentActionItemForFattura(
@@ -542,13 +545,14 @@ export default function FattureListWithDuplicates({
                       fileUrl={f.file_url}
                       fornitoreId={f.fornitore_id}
                       iconOnly
-                      className="flex items-center justify-end gap-1"
+                      className="flex items-center justify-end gap-0.5"
                     />
                   ) : null}
                 </div>
               </td>
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
 
