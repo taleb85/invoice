@@ -60,6 +60,7 @@ export type Translations = {
     docUnavailableBollaDesc: string
     docUnavailableFatturaTitle: string
     docUnavailableFatturaDesc: string
+    attachmentArchived: string
     backToHome: string
     sedeLockTitle: string
     sedeLockDescription: string
@@ -1650,6 +1651,7 @@ export type Translations = {
     fileRetentionDeleteOnly: string
     fileRetentionArchiveThenDelete: string
     fileRetentionMonthsLabel: string
+    fileRetentionHotMonthsDetail: string
     fileRetentionRunDayLabel: string
     fileRetentionRunDayHint: string
     fileRetentionEditLink: string

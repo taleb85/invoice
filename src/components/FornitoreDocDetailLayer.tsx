@@ -791,6 +791,9 @@ function BollaLayerBody({
           )}
         </div>
         <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(bolla.data)}</p>
+        <p className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+          {t.appStrings.attachmentArchived}
+        </p>
       </div>
 
       <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">

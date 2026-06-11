@@ -26,7 +26,6 @@ type Props = {
 export default function SedeFileRetentionSection({
   sedeId,
   initialPolicy,
-  initialDays,
   initialRunDay,
   canEdit,
 }: Props) {
