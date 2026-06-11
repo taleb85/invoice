@@ -4,7 +4,6 @@ import { getRequestAuth, createServiceClient } from '@/utils/supabase/server'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
-import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
@@ -201,10 +200,56 @@ export default async function BollePage(props: {
     return t.bolle.noBills
   })()
 
+  const bolleFilterTrailing = (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {!showAll ? (
+        <>
+          <Link
+            href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
+            className={standardLinkButtonClassName('secondary', 'sm')}
+          >
+            {t.bolle.listShowAll}
+          </Link>
+          <Link
+            href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
+            className={standardLinkButtonClassName('secondary', 'sm')}
+          >
+            {t.bolle.listAllPending}
+          </Link>
+        </>
+      ) : pendingOnly ? (
+        <>
+          <Link href="/bolle" className={standardLinkButtonClassName('secondary', 'sm')}>
+            {t.bolle.listShowToday}
+          </Link>
+          <Link
+            href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
+            className={standardLinkButtonClassName('secondary', 'sm')}
+          >
+            {t.bolle.listShowAll}
+          </Link>
+        </>
+      ) : (
+        <>
+          <Link href="/bolle" className={standardLinkButtonClassName('secondary', 'sm')}>
+            {t.bolle.listShowToday}
+          </Link>
+          <Link
+            href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
+            className={standardLinkButtonClassName('secondary', 'sm')}
+          >
+            {t.bolle.listAllPending}
+          </Link>
+        </>
+      )}
+    </div>
+  )
+
   const bolleMergedSummary = {
     label: t.common.total,
     primary: bolle.length,
     secondary: subtitle,
+    trailing: bolleFilterTrailing,
   }
 
   return (
@@ -223,46 +268,6 @@ export default async function BollePage(props: {
           <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
         </div>
       </AppPageHeaderStrip>
-
-      <AppSectionFiltersBar>
-        {!showAll ? (
-          <>
-            <Link
-              href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
-              className={standardLinkButtonClassName('secondary', 'sm')}
-            >
-              {t.bolle.listShowAll}
-            </Link>
-            <Link
-              href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
-              className={standardLinkButtonClassName('secondary', 'sm')}
-            >
-              {t.bolle.listAllPending}
-            </Link>
-          </>
-        ) : pendingOnly ? (
-          <>
-            <Link href="/bolle" className={standardLinkButtonClassName('secondary', 'sm')}>
-              {t.bolle.listShowToday}
-            </Link>
-            <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={standardLinkButtonClassName('secondary', 'sm')}>
-              {t.bolle.listShowAll}
-            </Link>
-          </>
-        ) : (
-          <>
-            <Link href="/bolle" className={standardLinkButtonClassName('secondary', 'sm')}>
-              {t.bolle.listShowToday}
-            </Link>
-            <Link
-              href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
-              className={standardLinkButtonClassName('secondary', 'sm')}
-            >
-              {t.bolle.listAllPending}
-            </Link>
-          </>
-        )}
-      </AppSectionFiltersBar>
 
       <div className="min-w-0">
           {bolle.length === 0 ? (

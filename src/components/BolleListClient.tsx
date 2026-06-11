@@ -6,7 +6,6 @@ import { AlertTriangle, Eye } from 'lucide-react'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import { ReturnToLink } from '@/components/ReturnToLink'
-import DeleteButton from '@/components/DeleteButton'
 import { DocumentRowActions } from '@/components/DocumentRowActions'
 import { documentActionItemForBolla } from '@/lib/document-action-item'
 import { StandardBadge } from '@/components/ui/StandardBadge'
@@ -267,9 +266,6 @@ export default function BolleListClient({
                     viewIcon={<Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />}
                   />
                 ) : null}
-                {!excessBollaIds.has(b.id) ? (
-                  <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
-                ) : null}
               </div>
             </div>
           )
@@ -372,9 +368,6 @@ export default function BolleListClient({
                         fornitoreId={b.fornitore_id}
                         viewIcon={<Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />}
                       />
-                    ) : null}
-                    {!excessBollaIds.has(b.id) ? (
-                      <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
                     ) : null}
                   </div>
                 </td>
