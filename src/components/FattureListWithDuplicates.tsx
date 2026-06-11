@@ -58,7 +58,7 @@ export type FattureDuplicateListRow = {
   is_credit_note?: boolean
 }
 
-type SortKey = 'dataDocumento' | 'dataSincronizzazione'
+type SortKey = 'dataDocumento'
 type SortDir = 'asc' | 'desc'
 
 const dupBadgeInteractiveCls = standardBadgeClassName(
@@ -198,8 +198,8 @@ export default function FattureListWithDuplicates({
   const sortedRows = useMemo(() => {
     if (!sortKey) return rows
     return [...rows].sort((a, b) => {
-      const aVal = sortKey === 'dataDocumento' ? a.dataDocumentoFull : a.dataSincronizzazioneFull
-      const bVal = sortKey === 'dataDocumento' ? b.dataDocumentoFull : b.dataSincronizzazioneFull
+      const aVal = a.dataDocumentoFull
+      const bVal = b.dataDocumentoFull
       if (!aVal && !bVal) return 0
       if (!aVal) return 1
       if (!bVal) return -1
@@ -285,33 +285,6 @@ export default function FattureListWithDuplicates({
   const fattureTableTh = `${APP_SECTION_TABLE_TH} whitespace-normal leading-tight tracking-wide`
   const fattureTableThRight = `${APP_SECTION_TABLE_TH_RIGHT} whitespace-normal leading-tight tracking-wide`
 
-  function splitSyncLabel(label: string): { date: string; time: string | null } {
-    const parts = label.trim().split(/\s+/)
-    if (parts.length >= 2 && /^\d{1,2}:\d{2}/.test(parts[parts.length - 1])) {
-      const time = parts.pop()!
-      return { date: parts.join(' '), time }
-    }
-    return { date: label, time: null }
-  }
-
-  function extendedDateTime(iso: string | null | undefined): string | null {
-    if (!iso) return null
-    try {
-      return new Intl.DateTimeFormat('it-IT', {
-        weekday: 'long',
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZoneName: 'short',
-      }).format(new Date(iso))
-    } catch {
-      return null
-    }
-  }
-
   return (
     <>
       <div className={APP_SECTION_MOBILE_LIST}>
@@ -374,22 +347,12 @@ export default function FattureListWithDuplicates({
                   </button>
                 ) : null}
               </p>
-              {(f.dataDocumentoLabel || f.dataSincronizzazioneLabel) && (
-                <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-app-fg-muted">
-                  {f.dataDocumentoLabel && (
-                    <span>
-                      <span className="font-medium uppercase tracking-wide">{t.fatture.colDataDoc}</span>{' '}
-                      {f.dataDocumentoLabel}
-                    </span>
-                  )}
-                  {f.dataSincronizzazioneLabel && (
-                    <span title={extendedDateTime(f.dataSincronizzazioneFull) ?? undefined}>
-                      <span className="font-medium uppercase tracking-wide">{t.fatture.colDataSync}</span>{' '}
-                      {f.dataSincronizzazioneLabel}
-                    </span>
-                  )}
+              {f.dataDocumentoLabel ? (
+                <div className="mb-2 text-[11px] text-app-fg-muted">
+                  <span className="font-medium uppercase tracking-wide">{t.fatture.colDataDoc}</span>{' '}
+                  {f.dataDocumentoLabel}
                 </div>
-              )}
+              ) : null}
               {excessSet.has(f.id) ? (
                 <ActionButton
                   type="button"
@@ -450,16 +413,6 @@ export default function FattureListWithDuplicates({
                 <SortIcon dir={sortKey === 'dataDocumento' ? sortDir : null} />
               </button>
             </th>
-            <th className={fattureTableTh}>
-              <button
-                type="button"
-                onClick={() => handleSort('dataSincronizzazione')}
-                className="inline-flex max-w-[5.5rem] items-start gap-0.5 text-left uppercase text-app-fg-muted transition-colors hover:text-app-fg sm:max-w-none"
-              >
-                {t.fatture.colDataSync}
-                <SortIcon dir={sortKey === 'dataSincronizzazione' ? sortDir : null} />
-              </button>
-            </th>
             <th className={fattureTableTh}>{t.fatture.colNumFattura}</th>
             <th className={fattureTableThRight}>{t.statements.colAmount}</th>
             <th className={`${fattureTableThRight} w-16`}>{t.common.actions}</th>
@@ -486,26 +439,6 @@ export default function FattureListWithDuplicates({
               <td className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap`}>
                 {f.dataDocumentoLabel ? (
                   <span className="text-app-fg-muted">{f.dataDocumentoLabel}</span>
-                ) : (
-                  <span className="text-app-fg-muted">—</span>
-                )}
-              </td>
-              <td className={APP_SECTION_TABLE_TD_COMPACT}>
-                {f.dataSincronizzazioneLabel ? (
-                  <span
-                    className="block text-[11px] leading-snug text-app-fg-muted"
-                    title={extendedDateTime(f.dataSincronizzazioneFull) ?? f.dataSincronizzazioneLabel}
-                  >
-                    {(() => {
-                      const { date, time } = splitSyncLabel(f.dataSincronizzazioneLabel)
-                      return (
-                        <>
-                          <span className="block whitespace-nowrap">{date}</span>
-                          {time ? <span className="block whitespace-nowrap tabular-nums">{time}</span> : null}
-                        </>
-                      )
-                    })()}
-                  </span>
                 ) : (
                   <span className="text-app-fg-muted">—</span>
                 )}
