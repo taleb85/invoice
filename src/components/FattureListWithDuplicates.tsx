@@ -283,8 +283,8 @@ export default function FattureListWithDuplicates({
     'px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted md:px-2.5 lg:py-2'
   const fattureThRight = `${fattureTh} text-right`
   const fattureTd = 'px-2 py-1.5 text-[13px] align-middle md:px-2.5 lg:py-2'
-  const fattureTdNumero = `${fattureTd} pl-4 md:pl-5`
-  const fattureThNumero = `${fattureTh} pl-4 md:pl-5`
+  const fattureTdNumero = `${fattureTd} pl-6 md:pl-8`
+  const fattureThNumero = `${fattureTh} pl-6 md:pl-8`
 
   return (
     <>
