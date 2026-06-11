@@ -283,8 +283,8 @@ export default function FattureListWithDuplicates({
     'px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted md:px-2.5 lg:py-2'
   const fattureThRight = `${fattureTh} text-right`
   const fattureTd = 'px-2 py-1.5 text-[13px] align-middle md:px-2.5 lg:py-2'
-  const fattureTdNumero = `${fattureTd} pl-6 md:pl-8`
-  const fattureThNumero = `${fattureTh} pl-6 md:pl-8`
+  const fattureTdNumero = `${fattureTd} text-center`
+  const fattureThNumero = `${fattureTh} text-center`
   const fattureThImporto = `${fattureThRight} whitespace-nowrap pr-0.5 pl-2`
   const fattureTdImporto = `${fattureTd} whitespace-nowrap pr-0.5 pl-2 text-right`
 
@@ -464,8 +464,8 @@ export default function FattureListWithDuplicates({
                 <span className="text-app-fg-muted">{f.dataDocumentoLabel ?? '—'}</span>
               </td>
               <td className={`${fattureTdNumero} align-top`}>
-                <div className="min-w-0" title={f.numero_fattura?.trim() || undefined}>
-                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                <div className="mx-auto min-w-0 max-w-full text-center" title={f.numero_fattura?.trim() || undefined}>
+                  <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
                     <span className="font-medium text-app-fg">{f.numero_fattura?.trim() || '—'}</span>
                     {f.email_sync_auto_saved_at ? (
                       <span
@@ -501,7 +501,7 @@ export default function FattureListWithDuplicates({
                     </p>
                   ) : null}
                   {f.approval_status && f.approval_status !== 'approved' ? (
-                    <div className="mt-1">
+                    <div className="mt-1 flex justify-center">
                       <ApprovalBadge
                         status={f.approval_status as 'pending' | 'approved' | 'rejected'}
                         rejectionReason={f.rejection_reason}
@@ -510,7 +510,7 @@ export default function FattureListWithDuplicates({
                     </div>
                   ) : null}
                   {excessSet.has(f.id) ? (
-                    <div className="mt-1">
+                    <div className="mt-1 flex justify-center">
                       <ActionButton
                         type="button"
                         intent="danger"
