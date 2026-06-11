@@ -9,6 +9,7 @@ import { TRIPLE_CHECK_TOLERANCE } from '@/lib/triple-check'
 import { getFiscalYearPgBounds } from '@/lib/fiscal-year'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
+import { isConfermeOrdineMissingImportoTotaleColumn } from '@/lib/conferme-ordine-schema'
 import {
   analyzeBolleDuplicatesForDeletion,
   analyzeFatturaDuplicateGroups,
@@ -165,6 +166,8 @@ export type OrdineOverviewRow = {
   created_at: string
   file_url: string
   file_name: string | null
+  importo_totale: number | null
+  righe: unknown
 }
 
 const ORDINI_OVERVIEW_LIMIT = 200
@@ -197,21 +200,79 @@ export async function fetchOrdiniDuplicateOverviewRows(
     nameById.set(row.id, row.display_name?.trim() || row.nome?.trim() || '—')
   }
 
+  const memberIds = members.map((m) => m.id)
+  const amountById = await fetchOrdiniImportoFieldsByIds(supabase, memberIds)
+
   const rows: OrdineOverviewRow[] = members
-    .map((m) => ({
-      id: m.id,
-      fornitore_id: m.fornitore_id,
-      fornitore_nome: nameById.get(m.fornitore_id) ?? '—',
-      titolo: m.titolo ?? null,
-      numero_ordine: m.numero_ordine ?? null,
-      data_ordine: m.data_ordine != null ? String(m.data_ordine) : null,
-      created_at: String(m.created_at ?? ''),
-      file_url: String(m.file_url ?? ''),
-      file_name: m.file_name ?? null,
-    }))
+    .map((m) => {
+      const amounts = amountById.get(m.id)
+      return {
+        id: m.id,
+        fornitore_id: m.fornitore_id,
+        fornitore_nome: nameById.get(m.fornitore_id) ?? '—',
+        titolo: m.titolo ?? null,
+        numero_ordine: m.numero_ordine ?? null,
+        data_ordine: m.data_ordine != null ? String(m.data_ordine) : null,
+        created_at: String(m.created_at ?? ''),
+        file_url: String(m.file_url ?? ''),
+        file_name: m.file_name ?? null,
+        importo_totale: amounts?.importo_totale ?? null,
+        righe: amounts?.righe ?? null,
+      }
+    })
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
   return { rows, dupRows, analysis }
+}
+
+const ORDINI_OVERVIEW_SELECT_FULL =
+  'id, fornitore_id, titolo, numero_ordine, data_ordine, created_at, file_url, file_name, importo_totale, righe, fornitori(nome, display_name)'
+const ORDINI_OVERVIEW_SELECT_NO_IMPORTO =
+  'id, fornitore_id, titolo, numero_ordine, data_ordine, created_at, file_url, file_name, righe, fornitori(nome, display_name)'
+
+async function fetchOrdiniImportoFieldsByIds(
+  supabase: SupabaseClient,
+  ids: string[],
+): Promise<Map<string, { importo_totale: number | null; righe: unknown }>> {
+  const out = new Map<string, { importo_totale: number | null; righe: unknown }>()
+  if (ids.length === 0) return out
+  let { data, error } = await supabase
+    .from('conferme_ordine')
+    .select('id, importo_totale, righe')
+    .in('id', ids)
+  if (error && isConfermeOrdineMissingImportoTotaleColumn(error)) {
+    ;({ data, error } = await supabase.from('conferme_ordine').select('id, righe').in('id', ids))
+  }
+  if (error || !data?.length) return out
+  for (const row of data as { id: string; importo_totale?: number | null; righe?: unknown }[]) {
+    const importo =
+      typeof row.importo_totale === 'number' && Number.isFinite(row.importo_totale)
+        ? row.importo_totale
+        : null
+    out.set(row.id, { importo_totale: importo, righe: row.righe ?? null })
+  }
+  return out
+}
+
+function mapOrdineOverviewRow(r: Record<string, unknown>): OrdineOverviewRow {
+  type Fn = { nome?: string | null; display_name?: string | null }
+  const fn = r.fornitori as Fn | null
+  const label = (fn?.display_name?.trim() || fn?.nome?.trim() || '—') as string
+  const importo =
+    typeof r.importo_totale === 'number' && Number.isFinite(r.importo_totale) ? r.importo_totale : null
+  return {
+    id: r.id as string,
+    fornitore_id: r.fornitore_id as string,
+    fornitore_nome: label,
+    titolo: (r.titolo as string | null) ?? null,
+    numero_ordine: (r.numero_ordine as string | null) ?? null,
+    data_ordine: r.data_ordine != null ? String(r.data_ordine) : null,
+    created_at: String(r.created_at ?? ''),
+    file_url: String(r.file_url ?? ''),
+    file_name: (r.file_name as string | null) ?? null,
+    importo_totale: importo,
+    righe: r.righe ?? null,
+  }
 }
 
 /** Conferme ordine con nome fornitore, per la pagina /ordini. */
@@ -220,33 +281,25 @@ export async function fetchOrdiniOverviewRows(
   fornitoreIds: string[] | null,
   fiscalBounds?: FiscalPgBounds | null
 ): Promise<OrdineOverviewRow[]> {
-  let q = supabase
-    .from('conferme_ordine')
-    .select('id, fornitore_id, titolo, numero_ordine, data_ordine, created_at, file_url, file_name, fornitori(nome, display_name)')
-    .order('created_at', { ascending: false })
-    .limit(ORDINI_OVERVIEW_LIMIT)
-  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
-  if (fiscalBounds) {
-    q = q.gte('created_at', fiscalBounds.tsFrom).lt('created_at', fiscalBounds.tsToExclusive)
-  }
-  const { data, error } = await q
-  if (error || !data?.length) return []
-  type Fn = { nome?: string | null; display_name?: string | null }
-  return (data as Record<string, unknown>[]).map((r) => {
-    const fn = r.fornitori as Fn | null
-    const label = (fn?.display_name?.trim() || fn?.nome?.trim() || '—') as string
-    return {
-      id: r.id as string,
-      fornitore_id: r.fornitore_id as string,
-      fornitore_nome: label,
-      titolo: (r.titolo as string | null) ?? null,
-      numero_ordine: (r.numero_ordine as string | null) ?? null,
-      data_ordine: r.data_ordine != null ? String(r.data_ordine) : null,
-      created_at: String(r.created_at ?? ''),
-      file_url: String(r.file_url ?? ''),
-      file_name: (r.file_name as string | null) ?? null,
+  function buildQuery(select: string) {
+    let q = supabase
+      .from('conferme_ordine')
+      .select(select)
+      .order('created_at', { ascending: false })
+      .limit(ORDINI_OVERVIEW_LIMIT)
+    if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+    if (fiscalBounds) {
+      q = q.gte('created_at', fiscalBounds.tsFrom).lt('created_at', fiscalBounds.tsToExclusive)
     }
-  })
+    return q
+  }
+
+  let { data, error } = await buildQuery(ORDINI_OVERVIEW_SELECT_FULL)
+  if (error && isConfermeOrdineMissingImportoTotaleColumn(error)) {
+    ;({ data, error } = await buildQuery(ORDINI_OVERVIEW_SELECT_NO_IMPORTO))
+  }
+  if (error || !data?.length) return []
+  return (data as Record<string, unknown>[]).map(mapOrdineOverviewRow)
 }
 
 /** Filtro KPI per anno fiscale sede (stessa logica di sync email / `fiscal-year.ts`). */

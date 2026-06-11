@@ -11,9 +11,13 @@ import {
   getT,
   getLocale,
   getTimezone,
+  getCurrency,
   getCookieStore,
   formatDate as fmtDate,
 } from '@/lib/locale-server'
+import { formatCurrency } from '@/lib/locale-shared'
+import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
+import { StandardBadge } from '@/components/ui/StandardBadge'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
@@ -27,14 +31,15 @@ import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
+  APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_SECTION_TABLE_CELL_LINK,
   appSectionTableHeadRowAccentClass,
   APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_THEAD_STICKY,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR_GROUP,
-  APP_SECTION_TABLE_TD,
-  APP_SECTION_TABLE_TD_NUMERIC,
+  APP_SECTION_TABLE_TD_COMPACT,
 } from '@/lib/app-shell-layout'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import {
@@ -71,10 +76,11 @@ export default async function OrdiniOverviewPage(props: {
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
   const dupOnly = searchParams.dup === '1'
-  const [t, locale, tz, cookieStore] = await Promise.all([
+  const [t, locale, tz, currency, cookieStore] = await Promise.all([
     getT(),
     getLocale(),
     getTimezone(),
+    getCurrency(),
     getCookieStore(),
   ])
   const profile = await getProfile()
@@ -125,7 +131,7 @@ export default async function OrdiniOverviewPage(props: {
   const formatDate = (d: string) => fmtDate(d, locale, tz)
   const fyForLinks = fiscal?.labelYear ?? null
 
-  const ordiniDupRows = await enrichOrdiniDupRowsFromDocumenti(
+  let ordiniDupRows = await enrichOrdiniDupRowsFromDocumenti(
     supabase,
     ordiniOverviewRowToDupProbe(rows),
   )
@@ -138,14 +144,28 @@ export default async function OrdiniOverviewPage(props: {
     const deleted = await autoDeleteExcessDuplicates(service, 'conferme_ordine', ordExcessIds)
     if (deleted > 0) {
       rows = rows.filter((r) => !ordExcessIds.includes(r.id))
-      const cleanRows = await enrichOrdiniDupRowsFromDocumenti(
+      ordiniDupRows = await enrichOrdiniDupRowsFromDocumenti(
         supabase,
         ordiniOverviewRowToDupProbe(rows),
       )
-      ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(cleanRows)
+      ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(ordiniDupRows)
     }
   }
   const ordDupPayload = serializeFatturaDuplicateDeletionPayload(ordDupAnalysis)
+  const enrichedDataOrdineById = new Map(
+    ordiniDupRows.map((r) => [r.id, r.data_ordine != null ? String(r.data_ordine) : null]),
+  )
+  const displayRows = rows.map((r) => {
+    const dataOrdine = enrichedDataOrdineById.get(r.id) ?? r.data_ordine
+    const importo = confermaOrdineImportoTotale(r)
+    return {
+      ...r,
+      data_ordine: dataOrdine,
+      dataLabel: dataOrdine ? formatDate(dataOrdine) : null,
+      numeroLabel: r.numero_ordine?.trim() || r.titolo?.trim() || r.file_name?.trim() || null,
+      importoLabel: importo != null ? formatCurrency(importo, currency, locale) : null,
+    }
+  })
   const excessVisible = rows.filter((r) => ordDupPayload.excessIds.includes(r.id)).length
 
   const ordiniMergedSummary = dupOnly
@@ -237,46 +257,79 @@ export default async function OrdiniOverviewPage(props: {
               {t.dashboard.ordiniDupViewBadgeHint}
             </p>
           ) : null}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
+          <div className="min-w-0 overflow-x-auto">
+            <table className="w-full min-w-0 table-fixed text-sm">
+              <colgroup>
+                <col />
+                <col />
+                <col className="w-[6.5rem]" />
+                <col />
+                <col className="w-[7.5rem]" />
+                <col className="w-[4.25rem]" />
+              </colgroup>
+              <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
                 <tr className={appSectionTableHeadRowAccentClass('cyan')}>
-                  <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColSupplier}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColTitle}</th>
-                  <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.dashboard.ordiniColOrderDate}</th>
-                  <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.dashboard.ordiniColRegistered}</th>
-                  <th className={`w-36 ${APP_SECTION_TABLE_TH_RIGHT}`}>{' '}</th>
+                  <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
+                  <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
+                  <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
+                  <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
+                  <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
+                  <th className={`${APP_SECTION_TABLE_TH_RIGHT} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className={APP_SECTION_TABLE_TBODY}>
-                {rows.map((r) => (
+                {displayRows.map((r) => (
                   <tr key={r.id} className={APP_SECTION_TABLE_TR_GROUP}>
-                    <td className={`${APP_SECTION_TABLE_TD} max-w-[200px]`}>
-                      <Link href={`/fornitori/${r.fornitore_id}?tab=conferme`} className={APP_SECTION_TABLE_CELL_LINK}>
+                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0 font-medium text-app-fg`}>
+                      <Link
+                        href={`/fornitori/${r.fornitore_id}?tab=conferme`}
+                        className={`${APP_SECTION_TABLE_CELL_LINK} line-clamp-2 leading-snug`}
+                        title={r.fornitore_nome}
+                      >
                         {r.fornitore_nome}
                       </Link>
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD} max-w-xs text-app-fg-muted`}>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span>{r.titolo?.trim() || r.numero_ordine?.trim() || r.file_name || '—'}</span>
-                        <DuplicateLedgerRowExtras
-                          rowId={r.id}
-                          payload={ordDupPayload}
-                          kind="ordine"
-                          duplicateBadgeLabel={t.common.duplicateBadge}
-                          duplicateDeleteConfirm={t.fornitori.confermeOrdineDuplicateCopyDeleteConfirm}
-                          removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
-                          deleteFailedPrefix={t.appStrings.deleteFailed}
-                        />
-                      </div>
+                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[10rem] font-mono text-app-fg-muted`}>
+                      <span className="text-app-fg">{r.numeroLabel ?? '—'}</span>
+                      {r.titolo?.trim() && r.numero_ordine?.trim() && r.titolo.trim() !== r.numero_ordine.trim() ? (
+                        <span className="mt-0.5 block truncate font-sans text-[10px] font-normal not-italic text-app-fg-muted/60" title={r.titolo}>
+                          {r.titolo}
+                        </span>
+                      ) : null}
+                      <DuplicateLedgerRowExtras
+                        rowId={r.id}
+                        payload={ordDupPayload}
+                        kind="ordine"
+                        duplicateBadgeLabel={t.common.duplicateBadge}
+                        duplicateDeleteConfirm={t.fornitori.confermeOrdineDuplicateCopyDeleteConfirm}
+                        removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                        deleteFailedPrefix={t.appStrings.deleteFailed}
+                      />
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD_NUMERIC} whitespace-nowrap text-app-fg-muted`}>
-                      {r.data_ordine ? formatDate(r.data_ordine) : '—'}
+                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap font-medium text-app-fg-muted`}>
+                      {r.dataLabel ?? '—'}
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD_NUMERIC} whitespace-nowrap text-app-fg-muted`}>
-                      {formatDate(r.created_at)}
+                    <td className={APP_SECTION_TABLE_TD_COMPACT}>
+                      {r.data_ordine ? (
+                        <StandardBadge variant="success" dot="emerald" className="normal-case">
+                          {t.dashboard.ordiniColRegistered}
+                        </StandardBadge>
+                      ) : (
+                        <StandardBadge variant="pending" dot="amber" className="normal-case">
+                          {t.status.inAttesa}
+                        </StandardBadge>
+                      )}
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD} text-right`}>
+                    <td
+                      className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap pr-0.5 pl-2 text-right font-mono text-[13px] font-semibold tabular-nums ${
+                        r.importoLabel ? APP_SECTION_AMOUNT_POSITIVE_CLASS : 'text-app-fg-muted'
+                      }`}
+                    >
+                      <span className="block truncate" title={r.importoLabel ?? undefined}>
+                        {r.importoLabel ?? '—'}
+                      </span>
+                    </td>
+                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} w-[4.25rem] pr-0.5 text-right`}>
                       <OpenDocumentInAppButton
                         confermaOrdineId={r.id}
                         fileUrl={r.file_url}
