@@ -1523,6 +1523,7 @@ const translations: Translations = {
     ordiniColTitle: 'Titolo',
     ordiniColOrderDate: 'Data ordine',
     ordiniColRegistered: 'Registrata',
+    ordiniColSync: 'Sincronizzato',
     ordiniOpenPdf: 'Apri PDF',
     ordiniPdfPreview: 'Anteprima',
     ordiniPdfOpenNewTab: 'Apri in nuova scheda',

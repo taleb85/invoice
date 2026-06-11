@@ -261,12 +261,11 @@ export default async function OrdiniOverviewPage(props: {
             </p>
           ) : null}
           <div className="min-w-0 overflow-x-auto">
-            <table className="w-full min-w-0 table-fixed text-sm">
+            <table className="w-full min-w-[48rem] table-fixed text-sm">
               <colgroup>
                 <col />
                 <col />
-                <col className="w-[6.5rem]" />
-                <col className="w-[7.25rem]" />
+                <col className="w-[9.5rem]" />
                 <col />
                 <col className="w-[7.5rem]" />
                 <col className="w-[4.25rem]" />
@@ -275,8 +274,12 @@ export default async function OrdiniOverviewPage(props: {
                 <tr className={appSectionTableHeadRowAccentClass('cyan')}>
                   <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.fatture.colDataSync}</th>
+                  <th className={APP_SECTION_TABLE_TH}>
+                    <span className="block leading-tight">{t.common.date}</span>
+                    <span className="mt-0.5 block text-[9px] font-medium normal-case tracking-normal text-app-fg-muted/70">
+                      {t.dashboard.ordiniColSync}
+                    </span>
+                  </th>
                   <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
                   <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
                   <th className={`${APP_SECTION_TABLE_TH_RIGHT} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
@@ -311,14 +314,16 @@ export default async function OrdiniOverviewPage(props: {
                         deleteFailedPrefix={t.appStrings.deleteFailed}
                       />
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap font-medium text-app-fg-muted`}>
-                      {r.dataLabel ?? '—'}
-                    </td>
-                    <td
-                      className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap text-[12px] text-app-fg-muted`}
-                      title={r.syncFull ?? undefined}
-                    >
-                      {r.syncLabel ?? '—'}
+                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} align-top`}>
+                      <div className="whitespace-nowrap font-medium text-app-fg-muted">{r.dataLabel ?? '—'}</div>
+                      {r.syncLabel ? (
+                        <div
+                          className="mt-0.5 whitespace-nowrap text-[10px] leading-snug text-app-fg-muted/75"
+                          title={r.syncFull ?? undefined}
+                        >
+                          {r.syncLabel}
+                        </div>
+                      ) : null}
                     </td>
                     <td className={APP_SECTION_TABLE_TD_COMPACT}>
                       {r.data_ordine ? (

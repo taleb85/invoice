@@ -854,6 +854,7 @@ export type Translations = {
     ordiniColTitle: string
     ordiniColOrderDate: string
     ordiniColRegistered: string
+    ordiniColSync: string
     ordiniOpenPdf: string
     ordiniPdfPreview: string
     ordiniPdfOpenNewTab: string
