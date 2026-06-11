@@ -285,6 +285,8 @@ export default function FattureListWithDuplicates({
   const fattureTd = 'px-2 py-1.5 text-[13px] align-middle md:px-2.5 lg:py-2'
   const fattureTdNumero = `${fattureTd} pl-6 md:pl-8`
   const fattureThNumero = `${fattureTh} pl-6 md:pl-8`
+  const fattureThImporto = `${fattureThRight} whitespace-nowrap pr-0.5 pl-2`
+  const fattureTdImporto = `${fattureTd} whitespace-nowrap pr-0.5 pl-2 text-right`
 
   return (
     <>
@@ -402,11 +404,11 @@ export default function FattureListWithDuplicates({
 
       <table className={fattureTableClass}>
         <colgroup>
-          <col className="w-[40%]" />
-          <col className="w-[12%]" />
-          <col className="w-[16%]" />
-          <col className="w-[14%]" />
-          <col className="w-[18%]" />
+          <col />
+          <col className="w-[6.5rem]" />
+          <col />
+          <col className="w-[7.5rem]" />
+          <col className="w-[4.25rem]" />
         </colgroup>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
@@ -422,8 +424,8 @@ export default function FattureListWithDuplicates({
               </button>
             </th>
             <th className={fattureThNumero}>{t.fatture.colNumFattura}</th>
-            <th className={fattureThRight}>{t.statements.colAmount}</th>
-            <th className={fattureThRight}>{t.common.actions}</th>
+            <th className={fattureThImporto}>{t.statements.colAmount}</th>
+            <th className={`${fattureThRight} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
           </tr>
         </thead>
         <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -525,7 +527,7 @@ export default function FattureListWithDuplicates({
                 </div>
               </td>
               <td
-                className={`${fattureTd} whitespace-nowrap text-right font-mono text-[13px] font-semibold tabular-nums ${
+                className={`${fattureTdImporto} font-mono text-[13px] font-semibold tabular-nums ${
                   f.importoLabel
                     ? f.is_credit_note
                       ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
@@ -533,9 +535,11 @@ export default function FattureListWithDuplicates({
                     : 'text-app-fg-muted'
                 }`}
               >
-                {f.importoLabel ?? '—'}
+                <span className="block truncate" title={f.importoLabel ?? undefined}>
+                  {f.importoLabel ?? '—'}
+                </span>
               </td>
-              <td className={`${fattureTd} text-right`}>
+              <td className={`${fattureTd} w-[4.25rem] pr-0.5 text-right`}>
                 <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                   {f.file_url ? (
                     <DocumentRowActions
