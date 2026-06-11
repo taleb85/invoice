@@ -62,6 +62,11 @@ const dupBadgeInteractiveCls = standardBadgeClassName(
   'ml-1.5 cursor-pointer align-middle transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-900/55 focus:outline-none focus:ring-2 focus:ring-red-400/60',
 )
 
+const dupBadgeTableCls = standardBadgeClassName(
+  'duplicate',
+  'cursor-pointer align-middle transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-900/55 focus:outline-none focus:ring-2 focus:ring-red-400/60',
+)
+
 const highlightRowCls = 'ring-2 ring-red-400/75 ring-offset-2 ring-offset-transparent'
 
 function groupKeyForRowId(
@@ -279,13 +284,14 @@ export default function FattureListWithDuplicates({
   )
 
   const fattureTableClass = 'hidden w-full min-w-0 table-fixed text-sm min-[640px]:table'
-  const fattureTh =
-    'px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted md:px-2.5 lg:py-2'
-  const fattureThRight = `${fattureTh} text-right`
+  const fattureThBase =
+    'px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted md:px-2.5 lg:py-2'
+  const fattureTh = `${fattureThBase} text-left`
+  const fattureThRight = `${fattureThBase} text-right`
   const fattureTd = 'px-2 py-1.5 text-[13px] align-middle md:px-2.5 lg:py-2'
   const fattureTdNumero = `${fattureTd} text-center`
-  const fattureThNumero = `${fattureTh} text-center`
-  const fattureThImporto = `${fattureThRight} whitespace-nowrap pr-0.5 pl-2`
+  const fattureThNumero = `${fattureThBase} text-center`
+  const fattureThImporto = `${fattureThBase} text-right whitespace-nowrap pr-0.5 pl-2`
   const fattureTdImporto = `${fattureTd} whitespace-nowrap pr-0.5 pl-2 text-right`
 
   return (
@@ -485,7 +491,7 @@ export default function FattureListWithDuplicates({
                     {memberSet.has(f.id) ? (
                       <button
                         type="button"
-                        className={dupBadgeInteractiveCls}
+                        className={dupBadgeTableCls}
                         aria-label={t.fatture.duplicatePairBadgeAria}
                         aria-pressed={focusedGroupKey != null && highlightedIds.has(f.id)}
                         onClick={() => toggleBadgeFocus(f.id)}
@@ -495,7 +501,7 @@ export default function FattureListWithDuplicates({
                     ) : null}
                   </div>
                   {f.numero_fattura?.trim() ? (
-                    <p className="mt-0.5 text-[10px] leading-snug text-app-fg-muted/70">
+                    <p className="mt-0.5 text-center text-[10px] leading-snug text-app-fg-muted/70">
                       {docKind}
                       {attachKind ? ` · ${attachKind}` : ''}
                     </p>
