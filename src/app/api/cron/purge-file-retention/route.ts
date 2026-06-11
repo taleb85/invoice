@@ -3,6 +3,7 @@ import { createServiceClient } from '@/utils/supabase/server'
 import { purgeColdDocumentFiles } from '@/lib/document-file-retention'
 
 export const maxDuration = 300
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET

@@ -196,7 +196,7 @@ async function fetchFileRefsForSede(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await service
       .from('log_sincronizzazione')
-      .select('id, file_url, data, created_at')
+      .select('id, file_url, data')
       .eq('sede_id', sedeId)
       .not('file_url', 'is', null)
       .range(from, from + PAGE - 1)
@@ -206,8 +206,7 @@ async function fetchFileRefsForSede(
       'log_sincronizzazione',
       chunk.map((r) => {
         const dataCol = r.data as string | null
-        const created = r.created_at as string | null
-        const docDate = dataCol?.slice(0, 10) ?? created?.slice(0, 10) ?? null
+        const docDate = dataCol?.slice(0, 10) ?? null
         return {
           id: r.id as string,
           file_url: r.file_url as string | null,

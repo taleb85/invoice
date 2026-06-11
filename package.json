@@ -52,7 +52,9 @@
     "storage:purge-orphans:apply": "node scripts/purge-storage-orphans.mjs --apply",
     "storage:purge-retention": "node scripts/purge-file-retention.mjs",
     "storage:purge-retention:apply": "node scripts/purge-file-retention.mjs --apply",
-    "storage:purge-retention:apply:force": "node scripts/purge-file-retention.mjs --apply --force"
+    "storage:purge-retention:apply:force": "npx tsx scripts/run-purge-retention-inline.mjs --apply --force",
+    "storage:purge-retention:inline": "npx tsx scripts/run-purge-retention-inline.mjs",
+    "storage:purge-retention:inline:apply": "npx tsx scripts/run-purge-retention-inline.mjs --apply --force"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

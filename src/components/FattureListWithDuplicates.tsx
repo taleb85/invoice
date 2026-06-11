@@ -7,7 +7,6 @@ import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 import { deleteDuplicateRow } from '@/lib/duplicate-invoice-actions'
-import DeleteButton from '@/components/DeleteButton'
 import { DocumentRowActions } from '@/components/DocumentRowActions'
 import { documentActionItemForFattura } from '@/lib/document-action-item'
 import { attachmentKindFromFileUrl } from '@/lib/attachment-kind'
@@ -583,7 +582,6 @@ export default function FattureListWithDuplicates({
                       fornitoreId={f.fornitore_id}
                     />
                   ) : null}
-                  <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />
                 </div>
               </td>
             </tr>
