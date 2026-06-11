@@ -49,7 +49,10 @@
     "repair:listino-prices": "node scripts/repair-listino-prices.mjs",
     "repair:listino-prices:apply": "node scripts/repair-listino-prices.mjs --apply",
     "storage:purge-orphans": "node scripts/purge-storage-orphans.mjs",
-    "storage:purge-orphans:apply": "node scripts/purge-storage-orphans.mjs --apply"
+    "storage:purge-orphans:apply": "node scripts/purge-storage-orphans.mjs --apply",
+    "storage:purge-retention": "node scripts/purge-file-retention.mjs",
+    "storage:purge-retention:apply": "node scripts/purge-file-retention.mjs --apply",
+    "storage:purge-retention:apply:force": "node scripts/purge-file-retention.mjs --apply --force"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

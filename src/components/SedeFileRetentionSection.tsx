@@ -6,6 +6,7 @@ import { useLocale } from '@/lib/locale-context'
 import type { SedeFileRetentionPolicy } from '@/types'
 import {
   FILE_ATTACHMENT_RETENTION_DAYS,
+  FILE_ATTACHMENT_RETENTION_HOT_MONTHS,
   FILE_ATTACHMENT_RETENTION_UI_ENABLED,
 } from '@/lib/file-retention-config'
 
@@ -34,9 +35,6 @@ export default function SedeFileRetentionSection({
   const s = t.sedi
 
   const [policy, setPolicy] = useState<SedeFileRetentionPolicy>(() => normalizePolicy(initialPolicy))
-  const [days, setDays] = useState(() =>
-    initialDays != null && Number.isFinite(initialDays) ? String(initialDays) : String(FILE_ATTACHMENT_RETENTION_DAYS),
-  )
   const [runDay, setRunDay] = useState(() =>
     initialRunDay != null && Number.isFinite(initialRunDay) ? String(initialRunDay) : '',
   )
@@ -45,13 +43,8 @@ export default function SedeFileRetentionSection({
 
   useEffect(() => {
     setPolicy(normalizePolicy(initialPolicy))
-    setDays(
-      initialDays != null && Number.isFinite(initialDays)
-        ? String(initialDays)
-        : String(FILE_ATTACHMENT_RETENTION_DAYS),
-    )
     setRunDay(initialRunDay != null && Number.isFinite(initialRunDay) ? String(initialRunDay) : '')
-  }, [initialPolicy, initialDays, initialRunDay])
+  }, [initialPolicy, initialRunDay])
 
   const save = useCallback(async () => {
     if (!canEdit || !FILE_ATTACHMENT_RETENTION_UI_ENABLED) return
@@ -60,11 +53,7 @@ export default function SedeFileRetentionSection({
     try {
       const payload: Record<string, unknown> = { file_retention_policy: policy }
       if (policy !== 'keep') {
-        const d = Math.floor(Number(days))
-        const clamped = Number.isNaN(d)
-          ? FILE_ATTACHMENT_RETENTION_DAYS
-          : Math.min(3650, Math.max(1, d))
-        payload.file_retention_days = clamped
+        payload.file_retention_days = FILE_ATTACHMENT_RETENTION_DAYS
         const rd = runDay.trim()
         if (rd === '') {
           payload.file_retention_run_day = null
@@ -90,7 +79,7 @@ export default function SedeFileRetentionSection({
       setSaving(false)
       window.setTimeout(() => setFeedback(null), 2800)
     }
-  }, [canEdit, days, policy, runDay, router, sedeId])
+  }, [canEdit, policy, runDay, router, sedeId])
 
   if (!FILE_ATTACHMENT_RETENTION_UI_ENABLED) return null
 
@@ -158,20 +147,14 @@ export default function SedeFileRetentionSection({
 
         {policy !== 'keep' ? (
           <div className="grid grid-cols-1 gap-4 border-t border-app-line-15 pt-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor={`ret-days-${sedeId}`} className="mb-1 block text-xs font-medium text-app-fg-muted">
-                {s.fileRetentionMonthsLabel}
-              </label>
-              <input
-                id={`ret-days-${sedeId}`}
-                type="number"
-                min={1}
-                max={3650}
-                disabled={!canEdit}
-                value={days}
-                onChange={(e) => setDays(e.target.value)}
-                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-line-40 disabled:opacity-60"
-              />
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium text-app-fg-muted">{s.fileRetentionMonthsLabel}</p>
+              <p className="mt-1 text-sm text-app-fg">
+                {s.fileRetentionHotMonthsDetail.replace(
+                  '{n}',
+                  String(FILE_ATTACHMENT_RETENTION_HOT_MONTHS),
+                )}
+              </p>
             </div>
             <div>
               <label htmlFor={`ret-runday-${sedeId}`} className="mb-1 block text-xs font-medium text-app-fg-muted">

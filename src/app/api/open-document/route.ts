@@ -223,7 +223,10 @@ export async function GET(req: NextRequest) {
   }
 
   if (!file_url?.trim()) {
-    return NextResponse.json({ error: 'Not found or no attachment' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'Allegato non disponibile (archiviato o assente)', code: 'attachment_archived' },
+      { status: 404 },
+    )
   }
 
   const trimmed = normalizeStorageFileUrl(file_url)

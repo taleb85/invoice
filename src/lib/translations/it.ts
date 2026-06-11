@@ -2413,12 +2413,14 @@ const translations: Translations = {
     operatorPinTooShort: 'Il PIN deve essere di almeno 4 caratteri.', wizardOperatorHint: 'Gli operatori accedono con nome + PIN. Puoi aggiungerne altri dopo.', sedeStats: '{operatori} operatori · {fornitori} fornitori', operatoriHeader: 'Operatori ({n})', operatorsDrawerCollapsedHint: 'Tocca o clicca per aprire l’elenco e gestire gli operatori.', operatorsDrawerAriaOpen: 'Espandi elenco operatori', operatorsDrawerAriaClose: 'Chiudi elenco operatori', sedeAccessCodeLabel: 'Codice accesso azienda', sedePinHint: 'PIN numerico di 4 cifre. Lascia vuoto per disabilitare.', sedePinError4Digits: 'Il PIN di accesso azienda deve essere di 4 cifre oppure vuoto.', changePinTitle: 'Cambia PIN', newPinFor: 'Nuovo PIN per {name}', operatoreRoleShort: 'Op.', adminSedeRoleShort: 'Resp.',
     fileRetentionSectionTitle: 'Conservazione allegati (PDF / immagini)',
     fileRetentionSectionHint:
-      'Oltre l’età indicata gli allegati vengono eliminati dallo storage; importi, date e collegamenti ai fornitori restano nel database. Il job mensile automatico non è ancora collegato: servono script o cron lato server.',
+      'Restano in storage gli allegati del mese corrente e del mese precedente; i più vecchi vengono rimossi dallo storage (dati in database invariati). Job automatico il giorno 5 di ogni mese; in dev: npm run storage:purge-retention.',
     fileRetentionPolicyLabel: 'Modalità di eliminazione degli allegati scaduti',
     fileRetentionKeep: 'Tieni tutti gli allegati',
     fileRetentionDeleteOnly: 'Elimina solo i file (nessun archivio dall’app)',
     fileRetentionArchiveThenDelete: 'Intendo scaricare prima una copia (ZIP/mese) poi eliminare — l’archivio è un passo manuale o futuro job; qui salvi solo la policy',
-    fileRetentionMonthsLabel: 'Età massima allegati: 45 giorni dalla data documento (fisso).',
+    fileRetentionMonthsLabel: 'Finestra allegati (data documento)',
+    fileRetentionHotMonthsDetail:
+      'Conserva PDF e immagini del mese corrente e del mese precedente ({n} mesi calendario). I periodi più vecchi restano solo come dati in database.',
     fileRetentionRunDayLabel: 'Giorno del mese previsto per la pulizia (1–28)',
     fileRetentionRunDayHint: 'Es. 1 = inizio mese. Usato quando automatizzi con cron o script.',
     fileRetentionEditLink: 'Conservazione allegati',
@@ -2789,6 +2791,8 @@ const translations: Translations = {
     docUnavailableFatturaTitle: 'Fattura non trovata',
     docUnavailableFatturaDesc:
       'Non risulta alcuna fattura con questo link. Potrebbe essere stata eliminata, il link è errato, oppure non hai permesso di vederla da questa azienda o con questo profilo.',
+    attachmentArchived:
+      'Allegato non disponibile: periodo archiviato (restano data, importo e fornitore).',
     backToHome: 'Torna al riepilogo',
     sedeLockTitle: 'Accesso protetto',
     sedeLockDescription: "L'azienda {name} richiede un PIN numerico a 4 cifre.",
