@@ -18,7 +18,6 @@ import {
   supplierDesktopKpiOuterShadow,
 } from '@/lib/kpi-accent-palette'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
-import { formatFiscalYearShort } from '@/lib/fiscal-year'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
@@ -136,8 +135,6 @@ type KpiItem = {
   /** Tile Bolle: link secondario verso elenco solo `pending=1` (evita `<a>` annidato: gestito nel render). */
   bollePendingHref?: string
   bollePendingCta?: string
-  /** Solo tile vetro Aurora: chiarisce KPI composito revisione vs subset «da associare». */
-  glassExplainSub?: string
   /** Tile fatturato: avviso duplicati (arancio / neon). */
   duplicateInvoiceSub?: string
 }
@@ -316,10 +313,6 @@ export default function DashboardOperatorKpiGrid({
       label: t.dashboard.kpiDocumentiDaRevisionareTitle,
       value: k.documentiDaRevisionare,
       sub: t.dashboard.kpiDocumentiDaRevisionareSub,
-      glassExplainSub:
-        glassShell && fy != null && kpiRevisionFiscalCountryCode
-          ? t.dashboard.kpiDocumentiDaRevisionareGlassExplain.replace('{fyLabel}', formatFiscalYearShort(kpiRevisionFiscalCountryCode, fy)).replace('{da_associare}', String(k.documentiDaAssociare)).replace('{total}', String(k.documentiDaRevisionare))
-          : undefined,
       icon: (
         <svg
           className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4)}`}
@@ -446,11 +439,6 @@ export default function DashboardOperatorKpiGrid({
                     </p>
                     {!glassShell ? (
                       <p className={kpiTileSubLine}>{item.sub}</p>
-                    ) : null}
-                    {glassShell && item.glassExplainSub ? (
-                      <p className="w-full min-w-0 pt-1 text-[11px] font-medium leading-snug text-white/82 sm:text-[12px] sm:leading-snug">
-                        {item.glassExplainSub}
-                      </p>
                     ) : null}
                     {item.bollePendingHref && item.bollePendingCta && k.bolleInAttesa > 0 ? (
                       <span
