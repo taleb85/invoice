@@ -22,8 +22,6 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
   APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_PAGE_HEADER_STRIP_H1_CLASS,
-  APP_SECTION_STICKY_TOP_INNER_X_CLASS,
-  APP_SECTION_STICKY_TOP_STACK_CLASS,
   APP_SHELL_SECTION_PAGE_BODY_FILL_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_FILL_CLASS,
 } from '@/lib/app-shell-layout'
@@ -169,13 +167,6 @@ export default async function FatturePage(props: {
     .reduce((s, f) => s + (Number(f.importo) || 0), 0)
   const totaleImporto = Math.max(0, totaleImportoRaw - dupDel.surplusImporto - creditNoteTotal)
   const duplicatePayload = serializeFatturaDuplicateDeletionPayload(dupDel)
-  const fattureMergedSummary = {
-    label: t.common.total,
-    primary: (
-      <span className={APP_SECTION_AMOUNT_POSITIVE_CLASS}>{formatCurrency(totaleImporto, currency, locale)}</span>
-    ),
-    secondary: `${fatture.length} ${t.fatture.countLabel}`,
-  }
 
   const exportPeriod = String(fiscal?.labelYear ?? searchParams.fy ?? new Date().getFullYear())
   const exportRows: ExportRow[] = fatture.map(f => ({
@@ -186,6 +177,20 @@ export default async function FatturePage(props: {
     stato: f.bolla_id ? 'Associata' : 'Senza bolla',
     sede: null,
   }))
+
+  const fattureMergedSummary = {
+    label: t.common.total,
+    primary: (
+      <span className={APP_SECTION_AMOUNT_POSITIVE_CLASS}>{formatCurrency(totaleImporto, currency, locale)}</span>
+    ),
+    secondary: `${fatture.length} ${t.fatture.countLabel}`,
+    trailing: (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <DashboardDuplicateFattureButton alwaysShowLabel />
+        <ExportButton rows={exportRows} type="fatture" period={exportPeriod} />
+      </div>
+    ),
+  }
 
   const showApprovalBadge = isMasterAdmin || isBranchSedeStaffRole(effectiveRole)
 
@@ -216,11 +221,9 @@ export default async function FatturePage(props: {
   }))
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_FILL_CLASS}>
-      <div className={`${APP_SECTION_STICKY_TOP_STACK_CLASS} shrink-0`}>
-        <div className={APP_SECTION_STICKY_TOP_INNER_X_CLASS}>
+      <div className="shrink-0">
         <AppPageHeaderStrip
           accent="emerald"
-          flushBottom
           mergedSummary={fattureMergedSummary}
           leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
           icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}
@@ -228,13 +231,8 @@ export default async function FatturePage(props: {
           <AppPageHeaderTitleWithDashboardShortcut>
             <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.fatture.title}</h1>
           </AppPageHeaderTitleWithDashboardShortcut>
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
-            <DashboardDuplicateFattureButton alwaysShowLabel />
-            <ExportButton rows={exportRows} type="fatture" period={exportPeriod} />
-            <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
-          </div>
+          <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
         </AppPageHeaderStrip>
-        </div>
       </div>
 
       {!sedeId && !isMasterAdmin ? (
