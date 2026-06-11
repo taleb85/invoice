@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { getRequestAuth, createServiceClient } from '@/utils/supabase/server'
-import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
+import { getT, getLocale, getTimezone, getCurrency, formatDate as fmtDate } from '@/lib/locale-server'
+import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
@@ -114,10 +115,11 @@ export default async function BollePage(props: {
   const pendingOnly = sp.pending === '1' || sp.pending === 'true'
   const bolleReturn = bolleListReturnPath(sp)
 
-  const [tz, t, locale, sedeId, { supabase }] = await Promise.all([
+  const [tz, t, locale, currency, sedeId, { supabase }] = await Promise.all([
     getTimezone(),
     getT(),
     getLocale(),
+    getCurrency(),
     getListSedeId(),
     getRequestAuth(),
   ])
@@ -169,10 +171,17 @@ export default async function BollePage(props: {
   }
   const dupPayload = serializeFatturaDuplicateDeletionPayload(dupAnalysis)
   const formatDate = (d: string) => fmtDate(d, locale, tz)
-  const bolleWithDateLabel = bolle.map(b => ({
-    ...b,
-    dateLabel: formatDate(b.data),
-  }))
+  const bolleWithDateLabel = bolle.map((b) => {
+    const importoRaw = (b as Record<string, unknown>).importo as number | null
+    return {
+      ...b,
+      dateLabel: formatDate(b.data),
+      importoLabel:
+        importoRaw != null && Number.isFinite(Number(importoRaw))
+          ? formatCurrency(Number(importoRaw), currency, locale)
+          : null,
+    }
+  })
 
   const exportPeriod = String(fiscal?.labelYear ?? sp.fy ?? new Date().getFullYear())
   const exportRows: ExportRow[] = bolle.map(b => ({

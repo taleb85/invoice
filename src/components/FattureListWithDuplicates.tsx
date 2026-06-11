@@ -25,7 +25,7 @@ import {
   APP_SECTION_TABLE_THEAD_STICKY,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
-import { standardBadgeClassName } from '@/components/ui/StandardBadge'
+import { StandardBadge, standardBadgeClassName } from '@/components/ui/StandardBadge'
 import { ActionButton } from '@/components/ui/ActionButton'
 import { ApprovalBadge } from '@/components/approval/approval-badge'
 import { tipoDocumentoToLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
@@ -411,6 +411,7 @@ export default function FattureListWithDuplicates({
       <table className={fattureTableClass}>
         <colgroup>
           <col />
+          <col />
           <col className="w-[6.5rem]" />
           <col />
           <col className="w-[7.5rem]" />
@@ -419,6 +420,7 @@ export default function FattureListWithDuplicates({
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
             <th className={fattureTh}>{t.common.supplier}</th>
+            <th className={fattureThNumero}>{t.fatture.colNumFattura}</th>
             <th className={fattureTh}>
               <button
                 type="button"
@@ -429,7 +431,7 @@ export default function FattureListWithDuplicates({
                 <SortIcon dir={sortKey === 'dataDocumento' ? sortDir : null} />
               </button>
             </th>
-            <th className={fattureThNumero}>{t.fatture.colNumFattura}</th>
+            <th className={fattureTh}>{t.common.status}</th>
             <th className={fattureThImporto}>{t.statements.colAmount}</th>
             <th className={`${fattureThRight} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
           </tr>
@@ -465,9 +467,6 @@ export default function FattureListWithDuplicates({
                     {f.fornitoreNome ?? '—'}
                   </span>
                 )}
-              </td>
-              <td className={`${fattureTd} whitespace-nowrap`}>
-                <span className="text-app-fg-muted">{f.dataDocumentoLabel ?? '—'}</span>
               </td>
               <td className={`${fattureTdNumero} align-top`}>
                 <div className="mx-auto min-w-0 max-w-full text-center" title={f.numero_fattura?.trim() || undefined}>
@@ -506,15 +505,6 @@ export default function FattureListWithDuplicates({
                       {attachKind ? ` · ${attachKind}` : ''}
                     </p>
                   ) : null}
-                  {f.approval_status && f.approval_status !== 'approved' ? (
-                    <div className="mt-1 flex justify-center">
-                      <ApprovalBadge
-                        status={f.approval_status as 'pending' | 'approved' | 'rejected'}
-                        rejectionReason={f.rejection_reason}
-                        size="sm"
-                      />
-                    </div>
-                  ) : null}
                   {excessSet.has(f.id) ? (
                     <div className="mt-1 flex justify-center">
                       <ActionButton
@@ -529,6 +519,31 @@ export default function FattureListWithDuplicates({
                           : t.fatture.duplicateRemoveCopy}
                       </ActionButton>
                     </div>
+                  ) : null}
+                </div>
+              </td>
+              <td className={`${fattureTd} whitespace-nowrap`}>
+                <span className="text-app-fg-muted">{f.dataDocumentoLabel ?? '—'}</span>
+              </td>
+              <td className={fattureTd}>
+                <div className="flex flex-wrap items-center gap-2">
+                  {f.bolla_id ? (
+                    <Link href={`/bolle/${f.bolla_id}`} className="inline-flex transition-opacity hover:opacity-90">
+                      <StandardBadge variant="success" dot="emerald" className="normal-case">
+                        {t.fatture.statusAssociata}
+                      </StandardBadge>
+                    </Link>
+                  ) : (
+                    <StandardBadge variant="pending" className="normal-case">
+                      {t.fatture.statusSenzaBolla}
+                    </StandardBadge>
+                  )}
+                  {f.approval_status && f.approval_status !== 'approved' ? (
+                    <ApprovalBadge
+                      status={f.approval_status as 'pending' | 'approved' | 'rejected'}
+                      rejectionReason={f.rejection_reason}
+                      size="sm"
+                    />
                   ) : null}
                 </div>
               </td>

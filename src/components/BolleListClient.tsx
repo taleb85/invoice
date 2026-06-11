@@ -16,6 +16,7 @@ import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
 import { deleteDuplicateRow } from '@/lib/duplicate-invoice-actions'
 import {
+  APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
   APP_SECTION_TABLE_CELL_LINK,
@@ -39,6 +40,7 @@ type BollaListRow = {
   numero_bolla?: string | null
   fornitori?: { nome: string; display_name?: string | null } | null
   email_sync_auto_saved_at?: string | null
+  importoLabel?: string | null
 }
 
 function daysBetweenIsoCalendarDates(fromYmd: string, toYmd: string): number {
@@ -272,14 +274,23 @@ export default function BolleListClient({
         })}
       </div>
 
-      <table className="hidden w-full text-sm min-[640px]:table">
+      <table className="hidden w-full min-w-0 table-fixed text-sm min-[640px]:table">
+        <colgroup>
+          <col />
+          <col />
+          <col className="w-[6.5rem]" />
+          <col />
+          <col className="w-[7.5rem]" />
+          <col className="w-[4.25rem]" />
+        </colgroup>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('violet')}>
-            <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
-            <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
+            <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
+            <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
-            <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.common.actions}</th>
+            <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
+            <th className={`${APP_SECTION_TABLE_TH_RIGHT} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
           </tr>
         </thead>
         <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -293,11 +304,9 @@ export default function BolleListClient({
                 className={APP_SECTION_TABLE_TR_GROUP}
                 onContextMenu={(e) => handleContextMenu(e, b)}
               >
-                <td
-                  className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
-                >
-                  <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={APP_SECTION_TABLE_CELL_LINK}>
-                    {b.dateLabel}
+                <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0 font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
+                  <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={`${APP_SECTION_TABLE_CELL_LINK} line-clamp-2 leading-snug`} title={supplierLabel || undefined}>
+                    {supplierLabel || <span className="text-app-fg-muted">—</span>}
                   </ReturnToLink>
                 </td>
                 <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[10rem] font-mono text-app-fg-muted`}>
@@ -323,9 +332,11 @@ export default function BolleListClient({
                     deleteFailedPrefix={t.appStrings.deleteFailed}
                   />
                 </td>
-                <td className={`${APP_SECTION_TABLE_TD_COMPACT} font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
+                <td
+                  className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
+                >
                   <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={APP_SECTION_TABLE_CELL_LINK}>
-                    {supplierLabel || <span className="text-app-fg-muted">—</span>}
+                    {b.dateLabel}
                   </ReturnToLink>
                 </td>
                 <td className={APP_SECTION_TABLE_TD_COMPACT}>
@@ -355,7 +366,16 @@ export default function BolleListClient({
                     ) : null}
                   </div>
                 </td>
-                <td className={APP_SECTION_TABLE_TD_COMPACT}>
+                <td
+                  className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap pr-0.5 pl-2 text-right font-mono text-[13px] font-semibold tabular-nums ${
+                    b.importoLabel ? APP_SECTION_AMOUNT_POSITIVE_CLASS : 'text-app-fg-muted'
+                  }`}
+                >
+                  <span className="block truncate" title={b.importoLabel ?? undefined}>
+                    {b.importoLabel ?? '—'}
+                  </span>
+                </td>
+                <td className={`${APP_SECTION_TABLE_TD_COMPACT} w-[4.25rem] pr-0.5`}>
                   <div className="flex flex-nowrap items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                     {b.file_url ? (
                       <DocumentRowActions
