@@ -25,6 +25,8 @@ import {
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR_GROUP,
+  APP_SECTION_TABLE_DESKTOP_MIN_CLASS,
+  APP_SECTION_TABLE_SCROLL_WRAP_CLASS,
   APP_SECTION_TABLE_THEAD_STICKY,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
@@ -423,7 +425,8 @@ export default function FattureListWithDuplicates({
         ))}
       </div>
 
-      <table className="hidden min-[640px]:table w-full text-sm">
+      <div className={APP_SECTION_TABLE_SCROLL_WRAP_CLASS}>
+      <table className={`hidden min-[640px]:table ${APP_SECTION_TABLE_DESKTOP_MIN_CLASS}`}>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
             <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
@@ -588,6 +591,7 @@ export default function FattureListWithDuplicates({
           ))}
         </tbody>
       </table>
+      </div>
 
       <AiAnalysisModal
         open={aiAnalysisForFattura !== null}
