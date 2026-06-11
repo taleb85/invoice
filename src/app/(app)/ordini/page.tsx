@@ -14,6 +14,7 @@ import {
   getCurrency,
   getCookieStore,
   formatDate as fmtDate,
+  formatDateTime as fmtDateTime,
 } from '@/lib/locale-server'
 import { formatCurrency } from '@/lib/locale-shared'
 import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
@@ -164,6 +165,8 @@ export default async function OrdiniOverviewPage(props: {
       dataLabel: dataOrdine ? formatDate(dataOrdine) : null,
       numeroLabel: r.numero_ordine?.trim() || r.titolo?.trim() || r.file_name?.trim() || null,
       importoLabel: importo != null ? formatCurrency(importo, currency, locale) : null,
+      syncLabel: r.created_at ? fmtDateTime(r.created_at, locale, tz, true) : null,
+      syncFull: r.created_at ?? null,
     }
   })
   const excessVisible = rows.filter((r) => ordDupPayload.excessIds.includes(r.id)).length
@@ -263,6 +266,7 @@ export default async function OrdiniOverviewPage(props: {
                 <col />
                 <col />
                 <col className="w-[6.5rem]" />
+                <col className="w-[7.25rem]" />
                 <col />
                 <col className="w-[7.5rem]" />
                 <col className="w-[4.25rem]" />
@@ -272,6 +276,7 @@ export default async function OrdiniOverviewPage(props: {
                   <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
+                  <th className={APP_SECTION_TABLE_TH}>{t.fatture.colDataSync}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
                   <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
                   <th className={`${APP_SECTION_TABLE_TH_RIGHT} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
@@ -308,6 +313,12 @@ export default async function OrdiniOverviewPage(props: {
                     </td>
                     <td className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap font-medium text-app-fg-muted`}>
                       {r.dataLabel ?? '—'}
+                    </td>
+                    <td
+                      className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap text-[12px] text-app-fg-muted`}
+                      title={r.syncFull ?? undefined}
+                    >
+                      {r.syncLabel ?? '—'}
                     </td>
                     <td className={APP_SECTION_TABLE_TD_COMPACT}>
                       {r.data_ordine ? (
