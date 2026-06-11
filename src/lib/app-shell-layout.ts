@@ -12,7 +12,7 @@ export const APP_FORNITORE_FORM_PAGE_SHELL_CLASS =
 
 /** Stack verticale (header strip → contenuto) come la dashboard KPI; corpo trasparente sul canvas workspace. */
 export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
-  'mx-auto flex w-full min-w-0 max-w-[var(--app-layout-max-width)] flex-col gap-3 overflow-x-hidden md:gap-4 app-shell-page-padding'
+  'mx-auto flex w-full min-w-0 max-w-[var(--app-layout-max-width)] flex-col gap-3 md:gap-4 app-shell-page-padding'
 
 /**
  * Come `APP_SHELL_SECTION_PAGE_STACK_CLASS` ma riempie l’altezza utile su desktop (`#app-main` → corpo scrollabile).

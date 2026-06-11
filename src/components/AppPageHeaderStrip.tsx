@@ -13,24 +13,24 @@ import { APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS } from '@/lib/app-shell-layou
 
 /** Riga interna standard: titolo e azioni sulla stessa riga anche su mobile. */
 const innerClsBase =
-  'flex w-full min-w-0 flex-row flex-nowrap items-center gap-x-3 py-2 pl-4 pr-2 sm:gap-x-6 sm:py-2.5 sm:pl-5 sm:pr-2 md:gap-x-8 md:py-3 md:pl-6 md:pr-2.5 lg:gap-x-10 lg:pl-8 lg:pr-3 xl:pl-10 xl:pr-3'
+  'flex w-full min-w-0 flex-row flex-wrap items-center gap-x-3 gap-y-2 py-2 pl-4 pr-2 sm:gap-x-6 sm:py-2.5 sm:pl-5 sm:pr-2 md:gap-x-8 md:py-3 md:pl-6 md:pr-2.5 lg:gap-x-10 lg:pl-8 lg:pr-3 xl:pl-10 xl:pr-3'
 
 /**
  * Con pulsante «indietro»: `pl-0` su tutta la riga così il back è il più a sinistra possibile (senza margini negativi:
  * il guscio card ha `overflow-hidden` e taglierebbe il bottone).
  */
 const innerClsBaseLeading =
-  'flex w-full min-w-0 flex-row flex-nowrap items-center gap-x-2 py-2 pl-0 pr-2 sm:gap-x-4 sm:py-2.5 sm:pl-0 sm:pr-2 md:gap-x-7 md:py-3 md:pl-0 md:pr-2.5 lg:gap-x-8 lg:pl-0 lg:pr-3 xl:pl-0 xl:pr-3'
+  'flex w-full min-w-0 flex-row flex-wrap items-center gap-x-2 gap-y-2 py-2 pl-0 pr-2 sm:gap-x-4 sm:py-2.5 sm:pl-0 sm:pr-2 md:gap-x-7 md:py-3 md:pl-0 md:pr-2.5 lg:gap-x-8 lg:pl-0 lg:pr-3 xl:pl-0 xl:pr-3'
 
 const innerClsDenseBase =
-  `flex w-full min-w-0 flex-row flex-nowrap items-center gap-x-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:gap-x-3`
+  `flex w-full min-w-0 flex-row flex-wrap items-center gap-x-2 gap-y-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:gap-x-3`
 
-/** Destra strip: `shrink-0` così Esporta/FY non vengono coperti dalla colonna titolo su mobile. */
+/** Destra strip: può andare a capo sotto il titolo se lo spazio orizzontale non basta. */
 const innerRightClsBase =
-  'flex min-h-0 min-w-0 shrink-0 flex-row flex-nowrap content-end justify-end gap-x-2 sm:items-center sm:gap-x-4 md:gap-x-5'
+  'flex min-h-0 w-full min-w-0 flex-[1_1_100%] flex-row flex-wrap content-end items-center justify-end gap-x-2 gap-y-2 sm:w-auto sm:flex-[1_1_auto] sm:gap-x-4 md:gap-x-5'
 
 const innerRightClsDenseBase =
-  'flex min-h-0 min-w-0 shrink-0 flex-nowrap content-end justify-end gap-2 sm:gap-x-3 md:gap-3'
+  'flex min-h-0 w-full min-w-0 flex-[1_1_100%] flex-wrap content-end items-center justify-end gap-2 gap-y-2 sm:w-auto sm:flex-[1_1_auto] sm:gap-x-3 md:gap-3'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` + barra `.app-card-bar-accent` solo se `accent` è impostato.
