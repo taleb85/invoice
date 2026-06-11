@@ -200,9 +200,15 @@ export default function FornitoreAnomalieTab({
   const renderRowActions = (row: SupplierAnomalieApiRow) => {
     const docItem = documentActionItemFromAnomalieRow(row, fornitoreId, '')
     return (
-    <div className="flex flex-nowrap items-center justify-end gap-1.5">
+    <div className="inline-flex max-w-full flex-nowrap items-center justify-end gap-1.5">
       {docItem ? (
-        <DocumentRowActions item={docItem} fileUrl={row.fileUrl} fornitoreId={fornitoreId} />
+        <DocumentRowActions
+          item={docItem}
+          fileUrl={row.fileUrl}
+          fornitoreId={fornitoreId}
+          iconOnly
+          className="inline-flex shrink-0 items-center gap-1"
+        />
       ) : null}
       {row.kind === 'prezzo_listino' && row.id.startsWith('pl-') && row.id !== 'rekki-summary' ? (
         <button
@@ -225,7 +231,7 @@ export default function FornitoreAnomalieTab({
       ) : row.kind === 'documento_coda' ? (
         <Link
           href={fornitoreDocumentiQueueHref(pathname, searchParams, 'tutti')}
-          className="rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-200"
+          className="inline-flex shrink-0 items-center rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold whitespace-nowrap text-cyan-200"
         >
           {t.fornitori.anomalieApriCoda}
         </Link>
@@ -318,33 +324,25 @@ export default function FornitoreAnomalieTab({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
-            <colgroup>
-              <col className="w-[7.25rem]" />
-              <col className="w-[26%]" />
-              <col />
-              <col className="w-[5.75rem]" />
-              <col className="w-[7.5rem]" />
-              <col className="w-[11.5rem]" />
-            </colgroup>
+          <table className="w-full min-w-[52rem] border-collapse text-sm">
             <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
               <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.common.date}
                 </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className="min-w-[9.5rem] px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.fornitori.anomalieColIssue}
                 </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className="min-w-[10rem] px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.fornitori.anomalieColDocument}
                 </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.bolle.colAttachmentKind}
                 </th>
-                <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.statements.colAmount}
                 </th>
-                <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.common.actions}
                 </th>
               </tr>
@@ -354,10 +352,10 @@ export default function FornitoreAnomalieTab({
                 const regDateHint = registeredDateHint(row, t, formatDate)
                 return (
                 <tr key={row.id} className={APP_SECTION_TABLE_TR}>
-                  <td className="align-top px-4 py-3 font-medium whitespace-nowrap tabular-nums text-app-fg-muted md:px-5">
+                  <td className="w-[1%] align-top px-4 py-3 font-medium whitespace-nowrap tabular-nums text-app-fg-muted md:px-5">
                     {formatDate(row.data)}
                   </td>
-                  <td className="align-top px-4 py-3 md:px-5">
+                  <td className="max-w-[14rem] align-top overflow-hidden px-4 py-3 md:px-5">
                     <span
                       className={`inline-flex max-w-full rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase leading-tight ${issueBadgeClass(row)}`}
                     >
@@ -370,7 +368,7 @@ export default function FornitoreAnomalieTab({
                       <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-amber-200/90">{regDateHint}</p>
                     ) : null}
                   </td>
-                  <td className="align-top px-4 py-3 min-w-0 md:px-5">
+                  <td className="min-w-[10rem] max-w-[18rem] align-top overflow-hidden px-4 py-3 md:px-5">
                     <p className="truncate font-medium text-app-fg" title={row.title}>
                       {row.title}
                     </p>
@@ -380,11 +378,13 @@ export default function FornitoreAnomalieTab({
                       </p>
                     ) : null}
                   </td>
-                  <td className="align-top px-4 py-3 whitespace-nowrap md:px-5">{renderAttachment(row)}</td>
-                  <td className="align-top px-4 py-3 text-right font-mono text-xs font-semibold whitespace-nowrap tabular-nums text-app-fg md:px-5">
+                  <td className="w-[1%] align-top px-4 py-3 whitespace-nowrap md:px-5">{renderAttachment(row)}</td>
+                  <td className="w-[1%] align-top px-4 py-3 text-right font-mono text-xs font-semibold whitespace-nowrap tabular-nums text-app-fg md:px-5">
                     {row.importo != null ? formatCurrency(row.importo, currency, locale) : '—'}
                   </td>
-                  <td className="align-top px-4 py-3 md:px-5">{renderRowActions(row)}</td>
+                  <td className="w-[1%] align-top px-4 py-3 whitespace-nowrap md:px-5">
+                    {renderRowActions(row)}
+                  </td>
                 </tr>
               )})}
             </tbody>
