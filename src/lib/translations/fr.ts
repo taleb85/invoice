@@ -1248,6 +1248,7 @@ const translations: Translations = {
     stmtReceived: 'Relevés reçus',
     stmtListCumulativeHint:
       'Les relevés plus anciens entièrement inclus dans un plus récent sont masqués (relevés cumulatifs hebdomadaires).',
+    stmtListFiscalYearHint: 'Uniquement les relevés de l’exercice fiscal {year}.',
     stmtProcessing: 'Relevé en cours de traitement — réessayez dans quelques secondes.',
     stmtEmpty: 'Aucun relevé reçu',
     stmtEmptyHint: 'Les relevés arrivent automatiquement par email.',

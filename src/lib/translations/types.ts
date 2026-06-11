@@ -1692,6 +1692,7 @@ export type Translations = {
     statusRekkiPrezzo: string
     stmtReceived: string
     stmtListCumulativeHint: string
+    stmtListFiscalYearHint: string
     stmtProcessing: string
     stmtEmpty: string
     stmtEmptyHint: string

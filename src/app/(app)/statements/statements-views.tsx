@@ -39,7 +39,7 @@ import { inferPendingDocumentKindForQueueRow, statementEmailSubjectLooksLikePaym
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { extractNumeroFromDocStrings } from '@/lib/extract-numero-from-doc'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
-import { sortStatementsByDocumentDateDesc } from '@/lib/statement-list-dedup'
+import { sortStatementsByDocumentDateDesc, statementListDocumentDateKey } from '@/lib/statement-list-dedup'
 import { statementOfficialDateIso } from '@/lib/statement-official-date'
 import { processingDocumentDateYmdFromMetadata } from '@/lib/safe-date'
 import type { StatementAnomalyCountByStatus } from '@/lib/statement-anomaly-preview'
@@ -65,6 +65,11 @@ import {
   effectivePendingDocDayIso,
   isYmdInHalfOpenRange,
 } from '@/lib/documenti-queue-period'
+import {
+  defaultFiscalYearLabel,
+  formatFiscalYearShort,
+  getFiscalYearPgBounds,
+} from '@/lib/fiscal-year'
 import { safeDate } from '@/lib/safe-date'
 import {
   GlyphCheck,
@@ -4539,6 +4544,29 @@ export function VerificationStatusTab({
     verificaDeepLinkOpenedRef.current = null
   }, [sedeId, fornitoreId])
 
+  /** Scheda fornitore: solo estratti la cui data documento cade nell'anno fiscale in corso. */
+  const currentFiscalYearFilter = useMemo(() => {
+    if (!fornitoreId) return null
+    const cc = countryCode ?? 'UK'
+    const label = defaultFiscalYearLabel(cc, new Date())
+    const { dateFrom, dateToExclusive } = getFiscalYearPgBounds(cc, label)
+    return {
+      dateFrom,
+      dateToExclusive,
+      display: formatFiscalYearShort(cc, label),
+    }
+  }, [fornitoreId, countryCode])
+
+  const stmtsForDisplay = useMemo(() => {
+    if (!currentFiscalYearFilter) return stmts
+    const { dateFrom, dateToExclusive } = currentFiscalYearFilter
+    return stmts.filter((s) => {
+      const day = statementListDocumentDateKey(s).slice(0, 10)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false
+      return isYmdInHalfOpenRange(day, dateFrom, dateToExclusive)
+    })
+  }, [stmts, currentFiscalYearFilter])
+
   /**
    * After the statement list loads, silently re-verify any statement that shows
    * missing_rows = 0 but might be stale (processed before the "bolle obbligatorie" rule).
@@ -4577,12 +4605,12 @@ export function VerificationStatusTab({
 
   useEffect(() => {
     if (stmtsLoading || !selectedStmt) return
-    if (stmts.some(s => s.id === selectedStmt.id)) return
+    if (stmtsForDisplay.some(s => s.id === selectedStmt.id)) return
     setSelectedStmt(null)
     setCheckResults(null)
     checkResultsRef.current = null
     setCheckError(null)
-  }, [stmts, stmtsLoading, selectedStmt])
+  }, [stmtsForDisplay, stmtsLoading, selectedStmt])
 
   /**
    * Pre-fill della modale "Crea fattura anche": quando si apre, scarica i dati
@@ -4710,7 +4738,7 @@ export function VerificationStatusTab({
   /** Ricalcolo triple-check su tutti gli estratti visibili in lista (scheda fornitore / filtro attivo). */
   async function runAllStmtsRecheck() {
     if (!sedeId) return
-    const targets = stmts.filter((s) => s.status === 'done')
+    const targets = stmtsForDisplay.filter((s) => s.status === 'done')
     if (targets.length === 0) {
       showToast(t.statements.recheckTripleCheckNoStmts, 'info')
       return
@@ -4873,12 +4901,12 @@ export function VerificationStatusTab({
 
   /** Stesso ordine della lista (più recenti in alto); esclude parsing fallito e ricevute pagamento. */
   const accountStatementStmts = useMemo(
-    () => stmts.filter((s) => !statementEmailSubjectLooksLikePaymentReceipt(s.email_subject)),
-    [stmts],
+    () => stmtsForDisplay.filter((s) => !statementEmailSubjectLooksLikePaymentReceipt(s.email_subject)),
+    [stmtsForDisplay],
   )
   const paymentReceiptStmts = useMemo(
-    () => stmts.filter((s) => statementEmailSubjectLooksLikePaymentReceipt(s.email_subject)),
-    [stmts],
+    () => stmtsForDisplay.filter((s) => statementEmailSubjectLooksLikePaymentReceipt(s.email_subject)),
+    [stmtsForDisplay],
   )
 
   const navigableStmts = useMemo(
@@ -4890,7 +4918,7 @@ export function VerificationStatusTab({
   useEffect(() => {
     if (verificaMode !== 'statementsPanel') return
     if (!fornitoreId) return
-    if (stmtsLoading || stmts.length === 0) return
+    if (stmtsLoading || stmtsForDisplay.length === 0) return
     if (selectedStmt && checkResults) return
 
     const wantsOpen = apriEstratto || verificaProdottoRaw.length > 0
@@ -4928,7 +4956,7 @@ export function VerificationStatusTab({
     verificaMode,
     fornitoreId,
     stmtsLoading,
-    stmts.length,
+    stmtsForDisplay.length,
     navigableStmts,
     verificaProdottoRaw,
     checkFilter,
@@ -5063,6 +5091,16 @@ export function VerificationStatusTab({
               >
                 {t.statements.stmtReceived}
               </p>
+              {fornitoreId && currentFiscalYearFilter && !selectedStmt && (
+                <p
+                  className={`mt-0.5 leading-snug text-app-fg-muted ${vsCompactS1 ? 'text-[10px]' : 'text-[11px]'}`}
+                >
+                  {t.statements.stmtListFiscalYearHint.replace(
+                    '{year}',
+                    currentFiscalYearFilter.display,
+                  )}
+                </p>
+              )}
               {fornitoreId && !selectedStmt && (
                 <p
                   className={`mt-0.5 leading-snug text-app-fg-muted ${vsCompactS1 ? 'text-[10px]' : 'text-[11px]'}`}
@@ -5283,13 +5321,13 @@ export function VerificationStatusTab({
             </button>
             <button
               type="button"
-              disabled={stmtRecheckBusy || stmtHeaderRefreshPending || stmtsLoading || stmts.length === 0}
+              disabled={stmtRecheckBusy || stmtHeaderRefreshPending || stmtsLoading || stmtsForDisplay.length === 0}
               aria-busy={stmtRecheckBusy}
               title={
-                stmts.length > 0
+                stmtsForDisplay.length > 0
                   ? fornitoreId
-                    ? t.statements.recheckTripleCheckAllTitleFornitore.replace('{n}', String(stmts.filter((s) => s.status === 'done').length))
-                    : t.statements.recheckTripleCheckAllTitle.replace('{n}', String(stmts.filter((s) => s.status === 'done').length))
+                    ? t.statements.recheckTripleCheckAllTitleFornitore.replace('{n}', String(stmtsForDisplay.filter((s) => s.status === 'done').length))
+                    : t.statements.recheckTripleCheckAllTitle.replace('{n}', String(stmtsForDisplay.filter((s) => s.status === 'done').length))
                   : t.statements.recheckTripleCheckSelectStmt
               }
               onClick={() => {

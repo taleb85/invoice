@@ -1248,6 +1248,7 @@ const translations: Translations = {
     stmtReceived: 'Empfangene Kontoauszüge',
     stmtListCumulativeHint:
       'Ältere Auszüge, die vollständig in einem neueren enthalten sind, werden ausgeblendet (wöchentliche kumulative Auszüge).',
+    stmtListFiscalYearHint: 'Nur Kontoauszüge des Geschäftsjahres {year}.',
     stmtProcessing: 'Kontoauszug wird noch verarbeitet — bitte in wenigen Sekunden erneut versuchen.',
     stmtEmpty: 'Noch keine Kontoauszüge empfangen',
     stmtEmptyHint: 'Kontoauszüge kommen automatisch per E-Mail.',

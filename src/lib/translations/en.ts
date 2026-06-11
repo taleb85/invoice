@@ -1305,6 +1305,7 @@ const translations: Translations = {
     stmtReceived: 'Received Statements',
     stmtListCumulativeHint:
       'Older statements fully contained in a newer one are hidden (weekly cumulative statements).',
+    stmtListFiscalYearHint: 'Showing statements for fiscal year {year} only.',
     stmtProcessing: 'Statement still processing — please try again in a moment.',
     stmtEmpty: 'No statements received yet',
     stmtEmptyHint: 'Statements arrive automatically by email.',
