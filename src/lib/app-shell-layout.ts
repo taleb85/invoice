@@ -23,11 +23,9 @@ export const APP_SHELL_SECTION_PAGE_STACK_FILL_CLASS = `${APP_SHELL_SECTION_PAGE
 export const APP_SHELL_SECTION_PAGE_BODY_FILL_CLASS =
   'min-w-0 min-h-0 md:min-h-0 md:flex-1 md:overflow-y-auto md:overflow-x-hidden'
 
-/** Wrapper scroll orizzontale per tabelle desktop (liste sezione affollate). */
-export const APP_SECTION_TABLE_SCROLL_WRAP_CLASS = 'hidden min-w-0 overflow-x-auto min-[640px]:block'
-
-/** Larghezza minima tabella desktop in liste affollate (scroll nel wrap se lo schermo è stretto). */
-export const APP_SECTION_TABLE_DESKTOP_MIN_CLASS = 'w-full min-w-[52rem] text-sm'
+/** Tabella desktop fluida: colonne proporzionate alla larghezza disponibile (no scroll orizzontale). */
+export const APP_SECTION_TABLE_DESKTOP_FLUID_CLASS =
+  'hidden w-full min-w-0 table-fixed text-sm min-[640px]:table'
 
 /**
  * Fascia sticky in cima al contenuto scrollabile (`#app-main`): header (+ eventuali filtri).

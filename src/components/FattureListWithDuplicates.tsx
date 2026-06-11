@@ -25,8 +25,7 @@ import {
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR_GROUP,
-  APP_SECTION_TABLE_DESKTOP_MIN_CLASS,
-  APP_SECTION_TABLE_SCROLL_WRAP_CLASS,
+  APP_SECTION_TABLE_DESKTOP_FLUID_CLASS,
   APP_SECTION_TABLE_THEAD_STICKY,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
@@ -425,8 +424,16 @@ export default function FattureListWithDuplicates({
         ))}
       </div>
 
-      <div className={APP_SECTION_TABLE_SCROLL_WRAP_CLASS}>
-      <table className={`hidden min-[640px]:table ${APP_SECTION_TABLE_DESKTOP_MIN_CLASS}`}>
+      <table className={APP_SECTION_TABLE_DESKTOP_FLUID_CLASS}>
+        <colgroup>
+          <col className="w-[23%]" />
+          <col className="w-[11%]" />
+          <col className="w-[14%]" />
+          <col className="w-[18%]" />
+          <col className="w-[8%]" />
+          <col className="w-[13%]" />
+          <col className="w-[13%]" />
+        </colgroup>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
             <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
@@ -459,33 +466,35 @@ export default function FattureListWithDuplicates({
         <tbody className={APP_SECTION_TABLE_TBODY}>
           {sortedRows.map((f) => (
             <tr key={f.id} className={`${APP_SECTION_TABLE_TR_GROUP} ${highlightedIds.has(f.id) ? highlightRowCls : ''}`} onContextMenu={(e) => handleContextMenu(e, f)}>
-              <td className={APP_SECTION_TABLE_TD_COMPACT}>
-                <span className="inline-flex items-baseline gap-1.5">
-                  {f.fornitore_id ? (
-                    <Link href={`/fornitori/${f.fornitore_id}`} className={APP_SECTION_TABLE_CELL_LINK} title={f.fornitoreNome && f.fornitoreNome.length > 50 ? f.fornitoreNome : undefined}>
-                      {f.fornitoreNome && f.fornitoreNome.length > 50 ? `${f.fornitoreNome.substring(0, 50)}…` : f.fornitoreNome ?? '—'}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-app-fg" title={f.fornitoreNome && f.fornitoreNome.length > 50 ? f.fornitoreNome : undefined}>
-                      {f.fornitoreNome && f.fornitoreNome.length > 50 ? `${f.fornitoreNome.substring(0, 50)}…` : f.fornitoreNome ?? '—'}
-                    </span>
-                  )}
-                </span>
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0`}>
+                {f.fornitore_id ? (
+                  <Link
+                    href={`/fornitori/${f.fornitore_id}`}
+                    className={`${APP_SECTION_TABLE_CELL_LINK} block truncate`}
+                    title={f.fornitoreNome ?? undefined}
+                  >
+                    {f.fornitoreNome ?? '—'}
+                  </Link>
+                ) : (
+                  <span className="block truncate font-semibold text-app-fg" title={f.fornitoreNome ?? undefined}>
+                    {f.fornitoreNome ?? '—'}
+                  </span>
+                )}
               </td>
-              <td className={APP_SECTION_TABLE_TD_COMPACT}>
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0`}>
                 {f.dataDocumentoLabel ? (
-                  <span className="whitespace-nowrap text-app-fg-muted">
+                  <span className="block truncate text-app-fg-muted" title={f.dataDocumentoLabel}>
                     {f.dataDocumentoLabel}
                   </span>
                 ) : (
                   <span className="text-app-fg-muted">—</span>
                 )}
               </td>
-              <td className={APP_SECTION_TABLE_TD_COMPACT}>
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0`}>
                 {f.dataSincronizzazioneLabel ? (
                   <span
-                    className="whitespace-nowrap text-app-fg-muted"
-                    title={extendedDateTime(f.dataSincronizzazioneFull) ?? undefined}
+                    className="block truncate text-[11px] leading-tight text-app-fg-muted"
+                    title={extendedDateTime(f.dataSincronizzazioneFull) ?? f.dataSincronizzazioneLabel}
                   >
                     {f.dataSincronizzazioneLabel}
                   </span>
@@ -493,9 +502,9 @@ export default function FattureListWithDuplicates({
                   <span className="text-app-fg-muted">—</span>
                 )}
               </td>
-              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[11rem]`}>
-                <span title={f.numero_fattura?.trim() || undefined}>
-                  {f.numero_fattura?.trim() || '—'}
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0`}>
+                <span className="block min-w-0" title={f.numero_fattura?.trim() || undefined}>
+                  <span className="block truncate">{f.numero_fattura?.trim() || '—'}</span>
                   {f.numero_fattura?.trim() && (
                     <span className="mt-0.5 block font-sans text-[10px] font-normal not-italic text-app-fg-muted/60">
                       {(f.file_url ? tipoByFileUrl[f.file_url.trim()] : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
@@ -529,9 +538,9 @@ export default function FattureListWithDuplicates({
                   </div>
                 ) : null}
               </td>
-              <td className={APP_SECTION_TABLE_TD_COMPACT}>
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0`}>
                 {f.file_url ? (
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                  <span className="block truncate text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
                     {attachmentKindFromFileUrl(f.file_url) === 'pdf'
                       ? t.bolle.attachmentKindPdf
                       : attachmentKindFromFileUrl(f.file_url) === 'image'
@@ -543,7 +552,7 @@ export default function FattureListWithDuplicates({
                 )}
               </td>
               <td
-                className={`${APP_SECTION_TABLE_TD_COMPACT} text-right font-mono tabular-nums whitespace-nowrap ${
+                className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0 text-right font-mono text-[11px] tabular-nums leading-tight ${
                   f.importoLabel
                     ? f.is_credit_note
                       ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
@@ -551,8 +560,8 @@ export default function FattureListWithDuplicates({
                     : 'text-app-fg-muted'
                 }`}
               >
-                <div className="flex flex-col items-end gap-1">
-                  <span>{f.importoLabel ?? '—'}</span>
+                <div className="flex min-w-0 flex-col items-end gap-0.5">
+                  <span className="truncate">{f.importoLabel ?? '—'}</span>
                   {f.is_credit_note ? (
                     <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/35">
                       Credit Note
@@ -572,8 +581,8 @@ export default function FattureListWithDuplicates({
                   ) : null}
                 </div>
               </td>
-              <td className={`${APP_SECTION_TABLE_TD_COMPACT} text-right`}>
-                <div className="flex flex-nowrap items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0 text-right`}>
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                   {f.file_url ? (
                     <DocumentRowActions
                       item={documentActionItemForFattura(
@@ -583,6 +592,7 @@ export default function FattureListWithDuplicates({
                       )}
                       fileUrl={f.file_url}
                       fornitoreId={f.fornitore_id}
+                      className="flex min-w-0 flex-wrap items-center justify-end gap-1"
                     />
                   ) : null}
                 </div>
@@ -591,7 +601,6 @@ export default function FattureListWithDuplicates({
           ))}
         </tbody>
       </table>
-      </div>
 
       <AiAnalysisModal
         open={aiAnalysisForFattura !== null}
