@@ -65,9 +65,12 @@ export function useServiceWorkerUpdate() {
       void checkForNewWorker()
     }, 60 * 60 * 1000)
 
-    // When the new SW takes control, reload the page to get the fresh assets
+    // Ricarica solo se c’era già un controller (aggiornamento deploy). Alla prima installazione
+    // PWA `skipWaiting` attiva il SW subito: un reload qui su mobile sembra “l’app non si avvia”.
+    const hadControllerAtLoad = !!navigator.serviceWorker.controller
     let refreshing = false
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadControllerAtLoad) return
       if (!refreshing) {
         refreshing = true
         window.location.reload()

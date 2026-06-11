@@ -3,7 +3,7 @@
  *
  * Bump quando cambi strategia cache — activate pulisce le vecchie.
  */
-const CACHE_NAME = 'fluxo-v13'
+const CACHE_NAME = 'fluxo-v14'
 const OFFLINE_URL = '/offline'
 
 // API routes to cache with NetworkFirst strategy (fallback to cache when offline)
@@ -111,6 +111,16 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Flight RSC (Next App Router): mai cache-first — dopo un deploy cache stale = schermata bianca / app che non parte.
+  const accept = request.headers.get('Accept') ?? ''
+  if (
+    request.headers.get('Rsc') === '1' ||
+    request.headers.get('Next-Router-State-Tree') ||
+    accept.includes('text/x-component')
+  ) {
+    return
+  }
+
   // Navigazione → solo rete (non cacheare HTML autenticato: evita risposte stale tipo /login su URL app)
   if (request.mode === 'navigate') {
     event.respondWith(
@@ -119,7 +129,29 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Assets statici → Cache first, poi network
+  // Bundle Next (`/_next/static/*`) → network-first: su mobile/PWA dopo deploy i chunk in cache-first
+  // non corrispondono più all’HTML fresco e l’app resta bloccata sullo splash.
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      fetch(request)
+        .then(async (res) => {
+          if (res.ok) {
+            const clone = res.clone()
+            const cache = await caches.open(CACHE_NAME)
+            cache.put(request, clone)
+          }
+          return res
+        })
+        .catch(async () => {
+          const cached = await caches.match(request, { cacheName: CACHE_NAME })
+          if (cached) return cached
+          return Response.error()
+        })
+    )
+    return
+  }
+
+  // Altri asset statici (icone, font, immagini) → cache first, poi network
   event.respondWith(
     caches.match(request).then(
       (cached) =>
