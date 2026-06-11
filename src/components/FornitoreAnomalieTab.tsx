@@ -15,10 +15,10 @@ import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 import {
   APP_SECTION_DIVIDE_ROWS,
   APP_SECTION_MOBILE_LIST,
+  APP_SECTION_TABLE_HEAD_ROW,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_THEAD_STICKY,
   APP_SECTION_TABLE_TR,
-  appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
 import { createClient } from '@/utils/supabase/client'
 import { fornitoreBollaDeepLink, fornitoreFatturaDeepLink, fornitoreDocumentiQueueHref } from '@/lib/fornitore-supplier-url'
@@ -200,7 +200,7 @@ export default function FornitoreAnomalieTab({
   const renderRowActions = (row: SupplierAnomalieApiRow) => {
     const docItem = documentActionItemFromAnomalieRow(row, fornitoreId, '')
     return (
-    <div className="flex flex-wrap items-center justify-end gap-1.5">
+    <div className="flex flex-nowrap items-center justify-end gap-1.5">
       {docItem ? (
         <DocumentRowActions item={docItem} fileUrl={row.fileUrl} fornitoreId={fornitoreId} />
       ) : null}
@@ -316,27 +316,35 @@ export default function FornitoreAnomalieTab({
         ) : null}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
-        <div className="hidden md:block">
-          <table className="w-full min-w-[640px] text-sm">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[56rem] table-fixed border-collapse text-sm">
+            <colgroup>
+              <col className="w-[7.25rem]" />
+              <col className="w-[26%]" />
+              <col />
+              <col className="w-[5.75rem]" />
+              <col className="w-[7.5rem]" />
+              <col className="w-[11.5rem]" />
+            </colgroup>
             <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
-              <tr className={appSectionTableHeadRowAccentClass('amber')}>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+              <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.common.date}
                 </th>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.fornitori.anomalieColIssue}
                 </th>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.fornitori.anomalieColDocument}
                 </th>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.bolle.colAttachmentKind}
                 </th>
-                <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.statements.colAmount}
                 </th>
-                <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
                   {t.common.actions}
                 </th>
               </tr>
@@ -346,33 +354,37 @@ export default function FornitoreAnomalieTab({
                 const regDateHint = registeredDateHint(row, t, formatDate)
                 return (
                 <tr key={row.id} className={APP_SECTION_TABLE_TR}>
-                  <td className="px-5 py-3 font-medium tabular-nums text-app-fg-muted">
+                  <td className="align-top px-4 py-3 font-medium whitespace-nowrap tabular-nums text-app-fg-muted md:px-5">
                     {formatDate(row.data)}
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="align-top px-4 py-3 md:px-5">
                     <span
-                      className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${issueBadgeClass(row)}`}
+                      className={`inline-flex max-w-full rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase leading-tight ${issueBadgeClass(row)}`}
                     >
                       {issueLabel(row, t, countryCode)}
                     </span>
                     {row.subtitle ? (
-                      <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-app-fg-muted">{row.subtitle}</p>
+                      <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-app-fg-muted">{row.subtitle}</p>
                     ) : null}
                     {regDateHint ? (
-                      <p className="mt-1 max-w-[14rem] text-[11px] leading-snug text-amber-200/90">{regDateHint}</p>
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-amber-200/90">{regDateHint}</p>
                     ) : null}
                   </td>
-                  <td className="px-5 py-3">
-                    <p className="font-medium text-app-fg">{row.title}</p>
+                  <td className="align-top px-4 py-3 min-w-0 md:px-5">
+                    <p className="truncate font-medium text-app-fg" title={row.title}>
+                      {row.title}
+                    </p>
                     {row.numero ? (
-                      <p className="mt-0.5 font-mono text-xs text-app-fg-muted">{row.numero}</p>
+                      <p className="mt-0.5 truncate font-mono text-xs text-app-fg-muted" title={row.numero}>
+                        {row.numero}
+                      </p>
                     ) : null}
                   </td>
-                  <td className="px-5 py-3">{renderAttachment(row)}</td>
-                  <td className="px-5 py-3 text-right font-mono text-xs font-semibold tabular-nums text-app-fg">
+                  <td className="align-top px-4 py-3 whitespace-nowrap md:px-5">{renderAttachment(row)}</td>
+                  <td className="align-top px-4 py-3 text-right font-mono text-xs font-semibold whitespace-nowrap tabular-nums text-app-fg md:px-5">
                     {row.importo != null ? formatCurrency(row.importo, currency, locale) : '—'}
                   </td>
-                  <td className="px-5 py-3">{renderRowActions(row)}</td>
+                  <td className="align-top px-4 py-3 md:px-5">{renderRowActions(row)}</td>
                 </tr>
               )})}
             </tbody>
