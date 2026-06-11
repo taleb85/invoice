@@ -14,7 +14,6 @@ import {
   getCurrency,
   getCookieStore,
   formatDate as fmtDate,
-  formatDateTime as fmtDateTime,
 } from '@/lib/locale-server'
 import { formatCurrency } from '@/lib/locale-shared'
 import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
