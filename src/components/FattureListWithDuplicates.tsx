@@ -283,6 +283,8 @@ export default function FattureListWithDuplicates({
     'px-2 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted md:px-2.5 lg:py-2'
   const fattureThRight = `${fattureTh} text-right`
   const fattureTd = 'px-2 py-1.5 text-[13px] align-middle md:px-2.5 lg:py-2'
+  const fattureTdNumero = `${fattureTd} pl-4 md:pl-5`
+  const fattureThNumero = `${fattureTh} pl-4 md:pl-5`
 
   return (
     <>
@@ -400,11 +402,11 @@ export default function FattureListWithDuplicates({
 
       <table className={fattureTableClass}>
         <colgroup>
-          <col className="w-[34%]" />
+          <col className="w-[40%]" />
           <col className="w-[12%]" />
-          <col className="w-[28%]" />
+          <col className="w-[16%]" />
           <col className="w-[14%]" />
-          <col className="w-[12%]" />
+          <col className="w-[18%]" />
         </colgroup>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
@@ -419,7 +421,7 @@ export default function FattureListWithDuplicates({
                 <SortIcon dir={sortKey === 'dataDocumento' ? sortDir : null} />
               </button>
             </th>
-            <th className={fattureTh}>{t.fatture.colNumFattura}</th>
+            <th className={fattureThNumero}>{t.fatture.colNumFattura}</th>
             <th className={fattureThRight}>{t.statements.colAmount}</th>
             <th className={fattureThRight}>{t.common.actions}</th>
           </tr>
@@ -459,7 +461,7 @@ export default function FattureListWithDuplicates({
               <td className={`${fattureTd} whitespace-nowrap`}>
                 <span className="text-app-fg-muted">{f.dataDocumentoLabel ?? '—'}</span>
               </td>
-              <td className={`${fattureTd} align-top`}>
+              <td className={`${fattureTdNumero} align-top`}>
                 <div className="min-w-0" title={f.numero_fattura?.trim() || undefined}>
                   <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                     <span className="font-medium text-app-fg">{f.numero_fattura?.trim() || '—'}</span>
