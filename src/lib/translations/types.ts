@@ -2948,6 +2948,14 @@ export type Translations = {
     kpiAttention: string
     kpiCritical: string
     filterEmptyCategory: string
+    detailColProdotto: string
+    detailColPrezzo: string
+    detailColRilevazioni: string
+    detailLoading: string
+    detailLoadError: string
+    detailEmpty: string
+    detailSummary: string
+    openListino: string
     tableColStato: string
     tableColFornitore: string
     tableColProdotti: string

@@ -1,17 +1,24 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { ChevronDown, ExternalLink, Loader2, RefreshCw } from 'lucide-react'
 import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
+import { useLocale } from '@/lib/locale-context'
+import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
-import type { SupplierPriceHealth } from '@/lib/price-intelligence'
+import type {
+  PriceAnomalia,
+  PriceIntelligenceReport,
+  PriceTrend,
+  SupplierPriceHealth,
+} from '@/lib/price-intelligence'
 import { interpolateTemplate } from '@/lib/interpolate-template'
 
 type DashboardData = {
@@ -57,14 +64,150 @@ function StatusIcon({ score }: { score: number }) {
   return <span className="text-red-400 text-lg">🔴</span>
 }
 
+type DetailCacheEntry =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'ready'; report: PriceIntelligenceReport }
+
+function sortTrendsForDisplay(trends: PriceTrend[], anomalie: PriceAnomalia[]): PriceTrend[] {
+  const anomalyCount = new Map<string, number>()
+  for (const a of anomalie) {
+    anomalyCount.set(a.prodotto, (anomalyCount.get(a.prodotto) ?? 0) + 1)
+  }
+  return [...trends].sort((a, b) => {
+    const ac = anomalyCount.get(a.prodotto) ?? 0
+    const bc = anomalyCount.get(b.prodotto) ?? 0
+    if (bc !== ac) return bc - ac
+    return Math.abs(b.variazione_percent ?? 0) - Math.abs(a.variazione_percent ?? 0)
+  })
+}
+
+function SupplierProductsDetail({
+  fornitoreId,
+  entry,
+  ap,
+  locale,
+}: {
+  fornitoreId: string
+  entry: DetailCacheEntry | undefined
+  ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi']
+  locale: string
+}) {
+  if (!entry || entry.status === 'loading') {
+    return (
+      <div className="flex items-center gap-2 px-3 py-4 text-xs text-white/50">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" aria-hidden />
+        {ap.detailLoading}
+      </div>
+    )
+  }
+
+  if (entry.status === 'error') {
+    return <p className="px-3 py-4 text-xs text-rose-300/90">{ap.detailLoadError}</p>
+  }
+
+  const { report } = entry
+  const trends = sortTrendsForDisplay(report.trends, report.anomalie)
+  const anomalyCount = new Map<string, number>()
+  for (const a of report.anomalie) {
+    anomalyCount.set(a.prodotto, (anomalyCount.get(a.prodotto) ?? 0) + 1)
+  }
+
+  if (trends.length === 0) {
+    return <p className="px-3 py-4 text-xs text-white/40">{ap.detailEmpty}</p>
+  }
+
+  return (
+    <div className="space-y-2 px-1 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+          {interpolateTemplate(
+            ap.detailSummary,
+            {
+              up: report.riepilogo.in_aumento,
+              down: report.riepilogo.in_calo,
+              stable: report.riepilogo.stabili,
+            },
+            `${report.riepilogo.in_aumento} up · ${report.riepilogo.in_calo} down`,
+          )}
+        </p>
+        <Link
+          href={`/fornitori/${fornitoreId}?tab=listino`}
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-300/90 transition-colors hover:text-cyan-200"
+        >
+          {ap.openListino}
+          <ExternalLink className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+        </Link>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-white/[0.06] bg-black/20">
+        <table className="w-full min-w-[32rem] text-xs">
+          <thead>
+            <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-wider text-white/35">
+              <th className="px-2 py-1.5 text-left font-semibold">{ap.detailColProdotto}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColPrezzo}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColTrend}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColVolatilita}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColRilevazioni}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColAnomalie}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trends.map((trend) => {
+              const anomalies = anomalyCount.get(trend.prodotto) ?? 0
+              const varPct = trend.variazione_percent
+              return (
+                <tr key={trend.prodotto} className="border-b border-white/[0.04] last:border-0">
+                  <td className="max-w-[14rem] px-2 py-2 font-medium text-white/85">
+                    <span className="line-clamp-2" title={trend.prodotto}>{trend.prodotto}</span>
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/70">
+                    {formatCurrency(trend.prezzo_attuale, 'GBP', locale)}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+                    <span className={`font-semibold ${
+                      varPct != null && varPct > 0
+                        ? 'text-red-400'
+                        : varPct != null && varPct < 0
+                          ? 'text-emerald-400'
+                          : 'text-white/40'
+                    }`}>
+                      {varPct != null
+                        ? `${varPct > 0 ? '+' : ''}${varPct}%`
+                        : '—'}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/60">
+                    {trend.volatilita > 0 ? `${(trend.volatilita * 100).toFixed(0)}%` : '—'}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/50">
+                    {trend.num_rilevazioni}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+                    <span className={anomalies > 0 ? 'font-semibold text-red-400' : 'text-white/35'}>
+                      {anomalies}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function AnalisiPrezziPage() {
   const t = useT()
+  const { locale } = useLocale()
   const { showToast } = useToast()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncStatusText, setSyncStatusText] = useState<string | null>(null)
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('all')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [detailCache, setDetailCache] = useState<Record<string, DetailCacheEntry>>({})
 
   const ap = t.strumentiAnalisiPrezzi
 
@@ -75,8 +218,37 @@ export default function AnalisiPrezziPage() {
   const filteredSuppliers =
     data?.suppliers.filter((s) => matchesHealthFilter(s.punteggio_salute, healthFilter)) ?? []
 
+  const loadSupplierDetail = useCallback(async (fornitoreId: string) => {
+    setDetailCache((prev) => ({ ...prev, [fornitoreId]: { status: 'loading' } }))
+    try {
+      const res = await fetch(`/api/listino/price-intelligence?fornitore_id=${encodeURIComponent(fornitoreId)}`)
+      if (!res.ok) {
+        throw new Error(
+          interpolateTemplate(t.common.httpError, { code: res.status }, `Error ${res.status}`),
+        )
+      }
+      const report = (await res.json()) as PriceIntelligenceReport
+      setDetailCache((prev) => ({ ...prev, [fornitoreId]: { status: 'ready', report } }))
+    } catch {
+      setDetailCache((prev) => ({ ...prev, [fornitoreId]: { status: 'error' } }))
+    }
+  }, [t.common.httpError])
+
+  const toggleSupplierExpanded = useCallback((fornitoreId: string) => {
+    setExpandedId((prev) => (prev === fornitoreId ? null : fornitoreId))
+  }, [])
+
+  useEffect(() => {
+    if (!expandedId) return
+    const current = detailCache[expandedId]
+    if (current?.status === 'loading' || current?.status === 'ready') return
+    void loadSupplierDetail(expandedId)
+  }, [detailCache, expandedId, loadSupplierDetail])
+
   const loadData = useCallback(async () => {
     setLoading(true)
+    setExpandedId(null)
+    setDetailCache({})
     try {
       const res = await fetch('/api/listino/price-intelligence')
       if (!res.ok) {
@@ -288,44 +460,67 @@ export default function AnalisiPrezziPage() {
                     </td>
                   </tr>
                 ) : null}
-                {filteredSuppliers.map((s) => (
-                  <tr key={s.fornitore_id} className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]">
-                    <td className="px-2 py-2.5">
-                      <StatusIcon score={s.punteggio_salute} />
-                    </td>
-                    <td className="px-2 py-2.5">
-                      <Link
-                        href={`/fornitori/${s.fornitore_id}?tab=listino`}
-                        className="font-semibold text-white transition-colors hover:text-sky-400"
-                      >
-                        {s.fornitore_nome}
-                      </Link>
-                    </td>
-                    <td className="px-2 py-2.5 text-white/60">{s.prodotti_analizzati}</td>
-                    <td className="px-2 py-2.5">
-                      <span className={`text-xs font-semibold ${
-                        s.trend_complessivo > 0 ? 'text-red-400'
-                        : s.trend_complessivo < 0 ? 'text-emerald-400'
-                        : 'text-white/40'
-                      }`}>
-                        {s.trend_complessivo > 0 ? `+${s.trend_complessivo}%` : s.trend_complessivo < 0 ? `${s.trend_complessivo}%` : '—'}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2.5 text-white/60">
-                      {s.volatilita_media > 0 ? `${(s.volatilita_media * 100).toFixed(0)}%` : '—'}
-                    </td>
-                    <td className="px-2 py-2.5">
-                      <span className={`text-xs font-semibold ${
-                        s.anomalie_attive > 0 ? 'text-red-400' : 'text-white/40'
-                      }`}>
-                        {s.anomalie_attive}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2.5">
-                      <HealthBar score={s.punteggio_salute} />
-                    </td>
-                  </tr>
-                ))}
+                {filteredSuppliers.map((s) => {
+                  const isExpanded = expandedId === s.fornitore_id
+                  return (
+                    <Fragment key={s.fornitore_id}>
+                      <tr className={`border-b border-white/[0.04] transition-colors ${isExpanded ? 'bg-white/[0.03]' : 'hover:bg-white/[0.02]'}`}>
+                        <td className="px-2 py-2.5">
+                          <StatusIcon score={s.punteggio_salute} />
+                        </td>
+                        <td className="px-2 py-2.5">
+                          <button
+                            type="button"
+                            aria-expanded={isExpanded}
+                            onClick={() => toggleSupplierExpanded(s.fornitore_id)}
+                            className="group flex max-w-full items-center gap-1.5 text-left font-semibold text-white transition-colors hover:text-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 rounded"
+                          >
+                            <ChevronDown
+                              className={`h-3.5 w-3.5 shrink-0 text-white/40 transition-transform group-hover:text-sky-300 ${isExpanded ? 'rotate-180 text-sky-400' : ''}`}
+                              aria-hidden
+                            />
+                            <span className="truncate">{s.fornitore_nome}</span>
+                          </button>
+                        </td>
+                        <td className="px-2 py-2.5 text-white/60">{s.prodotti_analizzati}</td>
+                        <td className="px-2 py-2.5">
+                          <span className={`text-xs font-semibold ${
+                            s.trend_complessivo > 0 ? 'text-red-400'
+                            : s.trend_complessivo < 0 ? 'text-emerald-400'
+                            : 'text-white/40'
+                          }`}>
+                            {s.trend_complessivo > 0 ? `+${s.trend_complessivo}%` : s.trend_complessivo < 0 ? `${s.trend_complessivo}%` : '—'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2.5 text-white/60">
+                          {s.volatilita_media > 0 ? `${(s.volatilita_media * 100).toFixed(0)}%` : '—'}
+                        </td>
+                        <td className="px-2 py-2.5">
+                          <span className={`text-xs font-semibold ${
+                            s.anomalie_attive > 0 ? 'text-red-400' : 'text-white/40'
+                          }`}>
+                            {s.anomalie_attive}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2.5">
+                          <HealthBar score={s.punteggio_salute} />
+                        </td>
+                      </tr>
+                      {isExpanded ? (
+                        <tr className="border-b border-white/[0.04] bg-black/10">
+                          <td colSpan={7} className="px-2 py-1">
+                            <SupplierProductsDetail
+                              fornitoreId={s.fornitore_id}
+                              entry={detailCache[s.fornitore_id]}
+                              ap={ap}
+                              locale={locale}
+                            />
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>
