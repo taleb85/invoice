@@ -1032,6 +1032,7 @@ const translations: Translations = {
     kpiHealthOk: 'Salud OK (≥70 %)',
     kpiAttention: 'Atención (50-69 %)',
     kpiCritical: 'Críticos (<50 %)',
+    filterEmptyCategory: 'Ningún proveedor en esta categoría.',
     tableColStato: 'Estado',
     tableColFornitore: 'Proveedor',
     tableColProdotti: 'Productos',

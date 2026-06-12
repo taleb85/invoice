@@ -2947,6 +2947,7 @@ export type Translations = {
     kpiHealthOk: string
     kpiAttention: string
     kpiCritical: string
+    filterEmptyCategory: string
     tableColStato: string
     tableColFornitore: string
     tableColProdotti: string

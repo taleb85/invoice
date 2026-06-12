@@ -22,6 +22,19 @@ type DashboardData = {
   ok: number
 }
 
+type HealthFilter = 'all' | 'ok' | 'attenzione' | 'critici'
+
+function supplierHealthCategory(score: number): Exclude<HealthFilter, 'all'> {
+  if (score >= 70) return 'ok'
+  if (score >= 50) return 'attenzione'
+  return 'critici'
+}
+
+function matchesHealthFilter(score: number, filter: HealthFilter): boolean {
+  if (filter === 'all') return true
+  return supplierHealthCategory(score) === filter
+}
+
 function HealthBar({ score }: { score: number }) {
   const color = score >= 70 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-red-500'
   return (
@@ -51,8 +64,16 @@ export default function AnalisiPrezziPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncStatusText, setSyncStatusText] = useState<string | null>(null)
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>('all')
 
   const ap = t.strumentiAnalisiPrezzi
+
+  const toggleHealthFilter = useCallback((next: HealthFilter) => {
+    setHealthFilter((prev) => (prev === next ? 'all' : next))
+  }, [])
+
+  const filteredSuppliers =
+    data?.suppliers.filter((s) => matchesHealthFilter(s.punteggio_salute, healthFilter)) ?? []
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -196,22 +217,54 @@ export default function AnalisiPrezziPage() {
       ) : data && data.totali > 0 ? (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-2xl font-bold text-white">{data.totali}</div>
-              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiSuppliersAnalyzed}</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-2xl font-bold text-emerald-400">{data.ok}</div>
-              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiHealthOk}</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-2xl font-bold text-amber-400">{data.attenzione}</div>
-              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiAttention}</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-2xl font-bold text-red-400">{data.critici}</div>
-              <div className="text-[11px] text-white/40">{t.strumentiAnalisiPrezzi.kpiCritical}</div>
-            </div>
+            {([
+              {
+                key: 'all' as const,
+                value: data.totali,
+                label: ap.kpiSuppliersAnalyzed,
+                valueClass: 'text-white',
+                activeClass: 'border-cyan-400/50 bg-cyan-500/10 ring-1 ring-cyan-400/25',
+              },
+              {
+                key: 'ok' as const,
+                value: data.ok,
+                label: ap.kpiHealthOk,
+                valueClass: 'text-emerald-400',
+                activeClass: 'border-emerald-400/50 bg-emerald-500/10 ring-1 ring-emerald-400/25',
+              },
+              {
+                key: 'attenzione' as const,
+                value: data.attenuzione,
+                label: ap.kpiAttention,
+                valueClass: 'text-amber-400',
+                activeClass: 'border-amber-400/50 bg-amber-500/10 ring-1 ring-amber-400/25',
+              },
+              {
+                key: 'critici' as const,
+                value: data.critici,
+                label: ap.kpiCritical,
+                valueClass: 'text-red-400',
+                activeClass: 'border-red-400/50 bg-red-500/10 ring-1 ring-red-400/25',
+              },
+            ]).map((kpi) => {
+              const isActive = healthFilter === kpi.key
+              return (
+                <button
+                  key={kpi.key}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => toggleHealthFilter(kpi.key)}
+                  className={`rounded-xl border p-4 text-left transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 ${
+                    isActive
+                      ? kpi.activeClass
+                      : 'border-white/10 bg-white/[0.03]'
+                  }`}
+                >
+                  <div className={`text-2xl font-bold tabular-nums ${kpi.valueClass}`}>{kpi.value}</div>
+                  <div className="text-[11px] text-white/40">{kpi.label}</div>
+                </button>
+              )
+            })}
           </div>
 
           <div className="overflow-x-auto">
@@ -228,7 +281,14 @@ export default function AnalisiPrezziPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.suppliers.map((s) => (
+                {filteredSuppliers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-2 py-8 text-center text-sm text-white/40">
+                      {ap.filterEmptyCategory}
+                    </td>
+                  </tr>
+                ) : null}
+                {filteredSuppliers.map((s) => (
                   <tr key={s.fornitore_id} className="border-b border-white/[0.04] transition-colors hover:bg-white/[0.02]">
                     <td className="px-2 py-2.5">
                       <StatusIcon score={s.punteggio_salute} />
