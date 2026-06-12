@@ -1138,6 +1138,9 @@ export type Translations = {
     listinoLastIncrease: string
     listinoLastDecrease: string
     listinoLastFlat: string
+    listinoSummaryFlatTitle: string
+    listinoSummaryUpTitle: string
+    listinoSummaryDownTitle: string
     listinoAnomalyPrefix: string
     listinoVsReferenceHint: string
     listinoOriginInvoice: string

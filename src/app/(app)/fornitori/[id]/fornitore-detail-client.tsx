@@ -5358,22 +5358,27 @@ function ListinoTab({
                   month: 'short',
                   year: 'numeric',
                 })
-                const fillListinoSummary = (template: string, deltaMoney: string) =>
-                  template
-                    .replace('{data}', priceChangeDateLabel)
-                    .replace('{delta}', deltaMoney)
-                    .replace('{pct}', pctLabel)
-                const summaryLine =
+                const hasPriceAnomalyRecord = unresolvedAnomalies.some((a) =>
+                  productNamesMatchForVerifica(a.prodotto, prodotto),
+                )
+                const hasRecordedAnomaly = hasPriceAnomalyRecord
+                const listinoRowSummary =
                   ref == null
                     ? null
-                    : up
-                      ? fillListinoSummary(t.fornitori.listinoLastIncrease, fmtMoney(priceDelta))
-                      : down
-                        ? fillListinoSummary(
-                            t.fornitori.listinoLastDecrease,
-                            fmtMoney(Math.abs(priceDelta)),
-                          )
-                        : fillListinoSummary(t.fornitori.listinoLastFlat, '')
+                    : {
+                        kind: up ? ('up' as const) : down ? ('down' as const) : ('flat' as const),
+                        title: hasRecordedAnomaly
+                          ? t.fornitori.listinoRowBadgeAnomaly
+                          : up
+                            ? t.fornitori.listinoSummaryUpTitle
+                            : down
+                              ? t.fornitori.listinoSummaryDownTitle
+                              : t.fornitori.listinoSummaryFlatTitle,
+                        meta:
+                          up || down
+                            ? `${priceChangeDateLabel} · ${fmtMoney(Math.abs(priceDelta))} (${pctLabel})`
+                            : priceChangeDateLabel,
+                      }
                 const showCodiceBadge =
                   parsed.codice &&
                   !isGenericListinoCodice(parsed.codice) &&
@@ -5421,10 +5426,6 @@ function ListinoTab({
                   skipOrigin: Boolean(originLine),
                 })
                 const priceTrendUp = Boolean(ref && up && pct > 0)
-                const hasPriceAnomalyRecord = unresolvedAnomalies.some((a) =>
-                  productNamesMatchForVerifica(a.prodotto, prodotto),
-                )
-                const hasRecordedAnomaly = hasPriceAnomalyRecord
                 const showListinoVerificaAction = hasRecordedAnomaly
                 const listinoScrollKey = listinoGroupKey({ prodotto, note: displayRow.note })
                 let verificaHref = ''
@@ -5599,9 +5600,9 @@ function ListinoTab({
 
                       {/* ── COLONNA 3: Stato + origine + Rekki (affiancati) ── */}
                       <div className="relative min-w-0 flex flex-wrap content-start items-stretch gap-1.5 border-t border-app-line-22/90 pt-1.5 md:col-start-3 md:border-t-0 md:pr-9 md:pt-0 xl:pr-0">
-                        {summaryLine ? (
+                        {listinoRowSummary ? (
                           <div
-                            className={`min-w-0 flex-[1_1_calc(50%-0.375rem)] rounded px-2 py-1 ${
+                            className={`min-w-0 flex-[1_1_100%] rounded px-2 py-1.5 ${
                               hasRecordedAnomaly
                                 ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]'
                                 : priceTrendUp
@@ -5609,8 +5610,8 @@ function ListinoTab({
                                   : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'
                             }`}
                           >
-                            <p
-                              className={`flex items-start gap-1 text-[10px] font-semibold leading-tight ${
+                            <div
+                              className={`flex items-start gap-1.5 ${
                                 hasRecordedAnomaly
                                   ? 'text-red-200'
                                   : priceTrendUp
@@ -5619,15 +5620,19 @@ function ListinoTab({
                               }`}
                             >
                               {hasRecordedAnomaly ? (
-                                <GlyphWarningTriangle className="mt-0.5 h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
+                                <GlyphWarningTriangle className="mt-px h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
                               ) : (
-                                <GlyphCheck className="mt-0.5 h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
+                                <GlyphCheck className="mt-px h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
                               )}
-                              <span>
-                                {hasRecordedAnomaly ? t.fornitori.listinoAnomalyPrefix : ''}
-                                {summaryLine}
-                              </span>
-                            </p>
+                              <div className="min-w-0">
+                                <p className="text-[9px] font-bold uppercase leading-tight tracking-wide">
+                                  {listinoRowSummary.title}
+                                </p>
+                                <p className="mt-0.5 text-[10px] font-medium leading-snug tabular-nums opacity-90">
+                                  {listinoRowSummary.meta}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         ) : null}
 
