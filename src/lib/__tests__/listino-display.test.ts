@@ -451,14 +451,18 @@ describe('resolveVerificaDisplayRows', () => {
 })
 
 describe('formatListinoPriceChangePct', () => {
-  it('caps extreme values', () => {
-    expect(formatListinoPriceChangePct(3496.6)).toBe('+999%+')
-    expect(formatListinoPriceChangePct(-1200)).toBe('-999%+')
+  it('formats large Italian percentages with thousands separator', () => {
+    expect(formatListinoPriceChangePct(3496.6, 'it')).toBe('+3.497%')
+    expect(formatListinoPriceChangePct(-1200, 'it')).toBe('-1.200%')
+  })
+
+  it('formats English locale', () => {
+    expect(formatListinoPriceChangePct(3496.6, 'en')).toBe('+3,497%')
   })
 
   it('rounds medium and small changes', () => {
-    expect(formatListinoPriceChangePct(12.4)).toBe('+12%')
-    expect(formatListinoPriceChangePct(3.45)).toBe('+3.5%')
-    expect(formatListinoPriceChangePct(0)).toBe('0%')
+    expect(formatListinoPriceChangePct(12.4, 'it')).toBe('+12%')
+    expect(formatListinoPriceChangePct(3.45, 'it')).toBe('+3,5%')
+    expect(formatListinoPriceChangePct(0, 'it')).toBe('0%')
   })
 })

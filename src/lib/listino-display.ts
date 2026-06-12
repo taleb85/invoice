@@ -1,6 +1,7 @@
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 import { resolveListinoUnitPriceForDisplay } from '@/lib/listino-invoice-line-normalize'
 import type { ListinoImportDocTipo } from '@/lib/listino-import-document'
+import type { Locale } from '@/lib/translations/types'
 
 export type { ListinoImportDocTipo }
 
@@ -255,16 +256,27 @@ export function calendarMonthBefore(isoDate: string): { y: number; m: number } {
   return { y, m: mo - 1 }
 }
 
-/** Percentuale variazione listino compatta per badge UI (es. +3496% → +999%+). */
-export function formatListinoPriceChangePct(pct: number): string {
+const INTL_LOCALE: Record<Locale, string> = {
+  it: 'it-IT',
+  en: 'en-GB',
+  es: 'es-ES',
+  fr: 'fr-FR',
+  de: 'de-DE',
+}
+
+/** Percentuale variazione listino leggibile (es. 3496,6 → «+3.497%» in it-IT). */
+export function formatListinoPriceChangePct(pct: number, locale: Locale = 'it'): string {
   if (!Number.isFinite(pct)) return '0%'
   const abs = Math.abs(pct)
   if (abs < 0.05) return '0%'
   const sign = pct > 0 ? '+' : '-'
-  if (abs >= 999) return `${sign}999%+`
-  if (abs >= 100) return `${sign}${Math.round(abs)}%`
-  if (abs >= 10) return `${sign}${Math.round(abs)}%`
-  return `${sign}${abs.toFixed(1)}%`
+  const maximumFractionDigits = abs >= 100 ? 0 : abs >= 10 ? 0 : 1
+  const formatted = new Intl.NumberFormat(INTL_LOCALE[locale] ?? 'it-IT', {
+    maximumFractionDigits,
+    minimumFractionDigits: 0,
+    useGrouping: true,
+  }).format(abs)
+  return `${sign}${formatted}%`
 }
 
 /**

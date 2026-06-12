@@ -5314,7 +5314,7 @@ function ListinoTab({
                     : 0
                 const up = Boolean(ref && priceDelta > 0.0001)
                 const down = Boolean(ref && priceDelta < -0.0001)
-                const pctLabel = formatListinoPriceChangePct(pct)
+                const pctLabel = formatListinoPriceChangePct(pct, locale)
                 const priceChangeDateLabel = formatDateLib(displayRow.data_prezzo, locale, timezone, {
                   day: 'numeric',
                   month: 'short',
