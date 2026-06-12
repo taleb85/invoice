@@ -597,13 +597,7 @@ function ProductPriceCompareSection({
                     className={`cursor-pointer border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.04] ${isCheapest ? 'bg-emerald-500/[0.06]' : ''}`}
                   >
                     <td className="px-2 py-2">
-                      <Link
-                        href={`/fornitori/${row.fornitore_id}?tab=listino`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-semibold text-white transition-colors hover:text-sky-400"
-                      >
-                        {row.fornitore_nome}
-                      </Link>
+                      <span className="font-semibold text-white">{row.fornitore_nome}</span>
                       {isCheapest ? (
                         <span className="ml-1.5 inline-flex rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-300">
                           {ap.compareCheapestBadge}
@@ -611,7 +605,9 @@ function ProductPriceCompareSection({
                       ) : null}
                     </td>
                     <td className="max-w-[14rem] px-2 py-2 text-white/70">
-                      <span className="line-clamp-2" title={row.prodotto}>{row.prodotto}</span>
+                      <span className="line-clamp-2 underline decoration-white/15 decoration-dotted underline-offset-2" title={row.prodotto}>
+                        {row.prodotto}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-white/55">
                       {compareFormatoLabel(row, ap)}
