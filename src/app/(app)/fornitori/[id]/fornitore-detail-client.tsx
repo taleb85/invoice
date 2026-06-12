@@ -37,11 +37,9 @@ import {
   LISTINO_SRC_FATTURA_MARK,
   buildListinoByProduct,
   listinoProductEntriesByLatestDateDesc,
-  listinoGroupAliasNames,
   cleanListinoProductNameForGrouping,
   extractListinoInvoiceRefFromProductName,
   findListinoFatturaRowByInvoiceRef,
-  listinoGroupAliasNamesForDisplay,
   listinoCodiceShownInTitle,
   isGenericListinoCodice,
   listinoNoteTailForDisplay,
@@ -5376,7 +5374,6 @@ function ListinoTab({
                             fmtMoney(Math.abs(priceDelta)),
                           )
                         : fillListinoSummary(t.fornitori.listinoLastFlat, '')
-                const aliasNames = listinoGroupAliasNamesForDisplay(prezzi, prodotto)
                 const showCodiceBadge =
                   parsed.codice &&
                   !isGenericListinoCodice(parsed.codice) &&
@@ -5507,11 +5504,6 @@ function ListinoTab({
                             ) : null}
                           </div>
                         </div>
-                        {aliasNames.length > 0 ? (
-                          <p className="mt-0.5 line-clamp-1 text-[10px] leading-snug text-app-fg-muted lg:line-clamp-2 lg:text-[11px]">
-                            {aliasNames.join(' · ')}
-                          </p>
-                        ) : null}
                         {showCodiceBadge || showUnitaBadge ? (
                           <div className="mt-1 hidden flex-wrap items-center gap-1 xl:flex">
                             {showCodiceBadge ? (
