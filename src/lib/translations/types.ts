@@ -2965,8 +2965,8 @@ export type Translations = {
     productSearchLoading: string
     productSearchEmpty: string
     compareColProdottoMatch: string
+    compareColPrezzoConfezione: string
     compareColPrezzoUnita: string
-    compareColPrezzoListino: string
     compareColFormato: string
     compareColData: string
     compareColVsCheapest: string
