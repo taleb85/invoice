@@ -8,7 +8,7 @@ export default function AppPageHeaderDesktopTray({ className }: { className?: st
       data-app-page-header-embedded-tray
       className={`hidden shrink-0 items-center gap-2 md:flex ${className ?? ''}`}
     >
-      <ConnectionStatusDot />
+      <ConnectionStatusDot className="h-8 px-2.5" />
     </div>
   )
 }

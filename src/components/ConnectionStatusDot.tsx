@@ -5,7 +5,7 @@ import { useLocale } from '@/lib/locale-context'
 /**
  * Pallino verde/rosso stato connessione (navigator + probe opzionale).
  */
-export default function ConnectionStatusDot() {
+export default function ConnectionStatusDot({ className }: { className?: string }) {
   const net = useNetworkStatusOptional()
   const { t: tr } = useLocale()
   if (!net) return null
@@ -31,7 +31,12 @@ export default function ConnectionStatusDot() {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border border-app-soft-border bg-white/[0.06] px-2 py-1 shadow-[0_0_16px_-4px_rgba(34,211,238,0.12)] md:py-0.5"
+      className={[
+        'inline-flex items-center gap-1.5 rounded-full border border-app-soft-border bg-white/[0.06] shadow-[0_0_16px_-4px_rgba(34,211,238,0.12)]',
+        className ?? 'px-2 py-1 md:py-0.5',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       title={label}
       role="status"
       aria-label={label}
