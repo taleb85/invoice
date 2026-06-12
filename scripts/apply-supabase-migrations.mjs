@@ -88,6 +88,7 @@ const MIGRATIONS = [
   'supabase/migrations/20260605000004_restore_rls_helper_execute_authenticated.sql',
   'supabase/migrations/20260611120000_file_retention_hot_months.sql',
   'supabase/migrations/20260611130000_file_url_nullable_after_retention.sql',
+  'supabase/migrations/20260612100000_action_learning_normalize_contesto.sql',
 ]
 
 function loadEnvLocal() {

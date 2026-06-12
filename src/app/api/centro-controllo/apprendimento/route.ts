@@ -7,6 +7,7 @@ export interface ApprendimentoStats {
   conferme_totali: number
   suggerimenti_totali: number
   pattern_auto_eseguibili: number
+  pattern_confermati_3: number
   azioni_piu_comuni: { azione_id: string; label: string; count: number }[]
   log_recenti: {
     id: string
@@ -54,6 +55,7 @@ export async function GET(req: Request) {
   const confermeTotali = patterns.reduce((acc, p) => acc + (p.totali_conferme || 0), 0)
   const suggerimentiTotali = patterns.reduce((acc, p) => acc + (p.totali_suggerimenti || 0), 0)
   const patternAutoEseguibili = patterns.filter((p) => (p.totali_conferme || 0) >= 10).length
+  const patternConfermati3 = patterns.filter((p) => (p.totali_conferme || 0) >= 3).length
 
   const azioneCount = new Map<string, number>()
   for (const p of patterns) {
@@ -122,6 +124,7 @@ export async function GET(req: Request) {
     conferme_totali: confermeTotali,
     suggerimenti_totali: suggerimentiTotali,
     pattern_auto_eseguibili: patternAutoEseguibili,
+    pattern_confermati_3: patternConfermati3,
     azioni_piu_comuni: azioniPiuComuni,
     log_recenti: logs.map((l) => {
       const azioneId = (l as { azione_eseguita?: string; azione_id?: string }).azione_eseguita

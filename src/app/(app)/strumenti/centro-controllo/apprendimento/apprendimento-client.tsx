@@ -166,7 +166,7 @@ export default function ApprendimentoClient({ sedeId }: Props) {
               />
               <ProgressRow
                 label={t.apprendimento.progressPatternsConfirmed3}
-                value={stats.azioni_piu_comuni.reduce((acc, a) => acc + a.count, 0)}
+                value={stats.pattern_confermati_3}
                 max={stats.pattern_totali || 1}
                 color="bg-teal-500"
               />
