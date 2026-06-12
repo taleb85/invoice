@@ -5435,15 +5435,15 @@ function ListinoTab({
                     id={`listino-prod-${listinoScrollKey}`}
                     className={`group scroll-mt-24 border-l-4 ${APP_SECTION_TABLE_ROW_HOVER} ${rowAccentBorder}`}
                   >
-                    <div className="flex flex-col gap-2.5 px-3 py-3 sm:px-4 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(8rem,auto)] md:items-start md:gap-5 md:py-2.5 md:pl-4 md:pr-5">
+                    <div className="flex flex-col gap-1.5 px-2.5 py-2 sm:px-3 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start md:gap-x-3 md:gap-y-1.5 md:py-2 md:px-3 lg:gap-x-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(7rem,auto)] xl:gap-5 xl:py-2.5 xl:pl-4 xl:pr-5">
                       {/* ── COLONNA 1: Nome Prodotto + Codice/Unità ── */}
-                      <div className="min-w-0 md:pr-2">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <h3 className="min-w-0 shrink text-base font-bold leading-tight tracking-tight text-white md:shrink md:flex-1 md:text-xl">
+                      <div className="min-w-0 xl:pr-2">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <h3 className="min-w-0 shrink text-sm font-bold leading-snug tracking-tight text-white sm:text-[15px] lg:text-base xl:text-lg">
                             {prodotto}
                           </h3>
                           {parsed.codice || parsed.unita ? (
-                            <div className="flex shrink-0 flex-wrap items-center gap-1 md:hidden">
+                            <div className="flex shrink-0 flex-wrap items-center gap-1 xl:hidden">
                               {parsed.codice ? (
                                 <StatusBadge
                                   tone="orange"
@@ -5462,7 +5462,7 @@ function ListinoTab({
                               ) : null}
                             </div>
                           ) : null}
-                          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1 md:hidden">
+                          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1 xl:hidden">
                             {isPromo ? (
                               <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
                             ) : hasAnomaly ? (
@@ -5473,12 +5473,12 @@ function ListinoTab({
                           </div>
                         </div>
                         {aliasNames.length > 0 ? (
-                          <p className="mt-1 text-[11px] leading-snug text-app-fg-muted">
+                          <p className="mt-0.5 line-clamp-1 text-[10px] leading-snug text-app-fg-muted lg:line-clamp-2 lg:text-[11px]">
                             {aliasNames.join(' · ')}
                           </p>
                         ) : null}
                         {parsed.codice || parsed.unita ? (
-                          <div className="mt-2 hidden flex-wrap items-center gap-1.5 md:flex">
+                          <div className="mt-1 hidden flex-wrap items-center gap-1 xl:flex">
                             {parsed.codice ? (
                               <StatusBadge
                                 tone="orange"
@@ -5498,16 +5498,16 @@ function ListinoTab({
                           </div>
                         ) : null}
                         {noteDisplay ? (
-                          <p className="mt-2 text-xs leading-relaxed font-medium text-app-fg-muted">{noteDisplay}</p>
+                          <p className="mt-1 line-clamp-1 text-[10px] leading-snug font-medium text-app-fg-muted lg:line-clamp-2 lg:text-xs">{noteDisplay}</p>
                         ) : null}
                       </div>
 
                       {/* ── COLONNA 2: Prezzo + Status + Metadati + Rekki ── */}
-                      <div className="min-w-0 flex flex-col gap-2 border-t border-app-line-22/90 pt-2.5 md:gap-2.5 md:border-t-0 md:pt-0">
-                        <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex flex-col gap-1.5 border-t border-app-line-22/90 pt-1.5 md:border-t-0 md:pt-0 lg:gap-2 xl:gap-2.5">
+                        <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p
-                              className={`text-2xl font-bold font-mono tabular-nums tracking-tight md:text-[1.65rem] ${
+                              className={`text-lg font-bold font-mono tabular-nums tracking-tight sm:text-xl lg:text-2xl xl:text-[1.65rem] ${
                                 hasAnomaly
                                   ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
                                   : listinoPriceStale
@@ -5518,13 +5518,13 @@ function ListinoTab({
                               {fmtMoney(displayUnitPrice)}
                             </p>
                             {perPieceHint ? (
-                              <p className="mt-0.5 text-sm font-medium font-mono tabular-nums text-app-fg-muted">
+                              <p className="mt-0.5 text-[11px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-xs">
                                 {t.fornitori.listinoPerPiecePrice
                                   .replace('{price}', fmtMoney(perPieceHint.perPiecePrice))
                                   .replace('{n}', String(perPieceHint.packSize))}
                               </p>
                             ) : null}
-                            <div className="mt-1 text-[11px] font-medium text-app-fg-muted md:hidden">
+                            <div className="mt-0.5 text-[10px] font-medium text-app-fg-muted xl:hidden">
                               {formatDateLib(displayRow.data_prezzo, locale, timezone, {
                                 day: 'numeric',
                                 month: 'short',
@@ -5532,10 +5532,10 @@ function ListinoTab({
                               })}
                             </div>
                           </div>
-                          <div className="flex shrink-0 flex-col items-end gap-1">
+                          <div className="flex shrink-0 flex-col items-end gap-0.5">
                             {ref && Math.abs(priceDelta) > 0.001 ? (
                               <span
-                                className={`inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                                className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums lg:rounded-md lg:px-2 lg:text-[11px] ${
                                   up
                                     ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40'
                                     : 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
@@ -5546,7 +5546,7 @@ function ListinoTab({
                                 <span className="opacity-70">({pctLabel})</span>
                               </span>
                             ) : null}
-                            <div className="hidden flex-wrap items-center justify-end gap-1.5 md:flex">
+                            <div className="hidden flex-wrap items-center justify-end gap-1 xl:flex">
                               {isPromo ? (
                                 <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
                               ) : hasAnomaly ? (
@@ -5567,7 +5567,7 @@ function ListinoTab({
                               ) : null}
                             </div>
                             {rekkiLinked && ultimo.rekki_product_id ? (
-                              <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide md:hidden">
+                              <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide xl:hidden">
                                 <GlyphCheck className="h-3 w-3" aria-hidden />
                                 Rekki
                               </StatusBadge>
@@ -5577,12 +5577,12 @@ function ListinoTab({
 
                         {/* Riga Stato Anomalie */}
                         {summaryLine ? (
-                          <div className={`rounded-md px-2.5 py-1.5 ${hasAnomaly ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]' : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'}`}>
-                            <p className={`flex items-start gap-1 text-xs font-semibold leading-tight ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
+                          <div className={`rounded px-2 py-1 lg:px-2.5 lg:py-1.5 ${hasAnomaly ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]' : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'}`}>
+                            <p className={`flex items-start gap-1 text-[10px] font-semibold leading-tight lg:text-xs ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
                               {hasAnomaly ? (
-                                <GlyphWarningTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                                <GlyphWarningTriangle className="mt-0.5 h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
                               ) : (
-                                <GlyphCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                                <GlyphCheck className="mt-0.5 h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
                               )}
                               <span>
                                 {hasAnomaly ? t.fornitori.listinoAnomalyPrefix : ''}
@@ -5593,18 +5593,18 @@ function ListinoTab({
                         ) : null}
 
                         {listinoPriceStale ? (
-                          <div className="rounded-md border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-2.5 py-1.5">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
+                          <div className="rounded border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-2 py-1 lg:px-2.5 lg:py-1.5">
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-amber-200 lg:text-[10px]">
                               {t.fornitori.listinoPriceStaleBadge}
                             </p>
-                            <p className="mt-0.5 text-[9px] leading-snug text-amber-300/80">
+                            <p className="mt-0.5 line-clamp-1 text-[9px] leading-snug text-amber-300/80 lg:line-clamp-none">
                               {t.fornitori.listinoPriceStaleHint}
                             </p>
                           </div>
                         ) : null}
 
                         {/* Metadati (desktop) — su mobile data/unità accanto al prezzo */}
-                        <div className="hidden flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-app-fg-muted md:flex">
+                        <div className="hidden flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-app-fg-muted xl:flex">
                           <span className="font-medium">
                             {formatDateLib(displayRow.data_prezzo, locale, timezone, {
                               day: 'numeric',
@@ -5635,7 +5635,7 @@ function ListinoTab({
                             const openInvoiceHref = `${pathname}?${openInvoiceQ.toString()}`
                             return (
                               <>
-                                <p className="text-xs leading-snug font-medium text-violet-300 md:hidden">
+                                <p className="text-[10px] leading-snug font-medium text-violet-300 xl:hidden">
                                   <Link
                                     href={openInvoiceHref}
                                     scroll={false}
@@ -5644,7 +5644,7 @@ function ListinoTab({
                                     {originLineMobile ?? originLine}
                                   </Link>
                                 </p>
-                                <p className="hidden text-xs leading-snug font-medium text-violet-300 md:block">
+                                <p className="hidden text-xs leading-snug font-medium text-violet-300 xl:block">
                                   <Link
                                     href={openInvoiceHref}
                                     scroll={false}
@@ -5657,10 +5657,10 @@ function ListinoTab({
                             )
                           })() : (
                             <>
-                              <p className="text-xs leading-snug font-medium text-violet-300 md:hidden">
+                              <p className="text-[10px] leading-snug font-medium text-violet-300 xl:hidden">
                                 {originLineMobile ?? originLine}
                               </p>
-                              <p className="hidden text-xs leading-snug font-medium text-violet-300 md:block">
+                              <p className="hidden text-xs leading-snug font-medium text-violet-300 xl:block">
                                 {originLine}
                               </p>
                             </>
@@ -5669,7 +5669,7 @@ function ListinoTab({
 
                         {/* Codice Rekki inline */}
                         {rekkiLinked && !readOnly ? (
-                          <div className="flex items-center gap-2 rounded-md bg-violet-950/20 px-2.5 py-1.5 border border-[rgba(34,211,238,0.15)]">
+                          <div className="flex items-center gap-1.5 rounded bg-violet-950/20 px-2 py-1 border border-[rgba(34,211,238,0.15)] lg:gap-2 lg:rounded-md lg:px-2.5 lg:py-1.5">
                             <span className="text-[10px] font-bold uppercase tracking-wide text-violet-300/80">
                               Rekki ID:
                             </span>
@@ -5753,15 +5753,48 @@ function ListinoTab({
                             )}
                           </div>
                         ) : null}
+
+                        {!readOnly ? (
+                          <div className="flex items-center gap-1.5 pt-0.5 xl:hidden">
+                            <Link
+                              href={verificaHref}
+                              className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-cyan-600/20 px-2 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30 touch-manipulation"
+                              title={t.fornitori.listinoVerifyAnomaliesTitle}
+                            >
+                              <svg className={`h-3 w-3 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                              {t.fornitori.listinoVerifyAnomalies}
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(ultimo.id)}
+                              disabled={deletingId === ultimo.id}
+                              title={t.common.delete}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40 touch-manipulation"
+                            >
+                              {deletingId === ultimo.id ? (
+                                <svg className={`h-3 w-3 animate-spin ${icon.destructive}`} fill="none" viewBox="0 0 24 24" aria-hidden>
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                              ) : (
+                                <svg className={`h-3 w-3 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
 
-                      {/* ── COLONNA 3: Azioni ── */}
-                      <div className="flex min-w-0 flex-row items-center gap-2 border-t border-app-line-22/90 pt-2.5 md:flex-col md:items-end md:border-t-0 md:border-l md:border-app-line-22/70 md:pl-4 md:pt-0">
+                      {/* ── COLONNA 3: Azioni (solo xl+) ── */}
+                      <div className="hidden min-w-0 flex-col items-end gap-2 border-l border-app-line-22/70 pl-4 xl:flex">
                         {!readOnly ? (
                           <>
                             <Link
                               href={verificaHref}
-                              className="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-lg bg-cyan-600/20 px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30 touch-manipulation md:min-h-0 md:flex-none md:rounded-md md:py-1.5"
+                              className="flex items-center justify-center gap-1.5 rounded-md bg-cyan-600/20 px-2.5 py-1.5 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30"
                               title={t.fornitori.listinoVerifyAnomaliesTitle}
                             >
                               <svg className={`h-3.5 w-3.5 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -5769,13 +5802,13 @@ function ListinoTab({
                               </svg>
                               {t.fornitori.listinoVerifyAnomalies}
                             </Link>
-                            <div className="flex shrink-0 justify-end opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                            <div className="flex shrink-0 justify-end opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
                               <button
                                 type="button"
                                 onClick={() => handleDelete(ultimo.id)}
                                 disabled={deletingId === ultimo.id}
                                 title={t.common.delete}
-                                className="flex h-10 w-10 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40 touch-manipulation md:h-7 md:w-7"
+                                className="flex h-7 w-7 items-center justify-center rounded-md border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
                               >
                                 {deletingId === ultimo.id ? (
                                   <svg className={`h-3.5 w-3.5 animate-spin ${icon.destructive}`} fill="none" viewBox="0 0 24 24" aria-hidden>
@@ -5796,7 +5829,7 @@ function ListinoTab({
 
                     {sorted.length > 1 ? (
                       <details className="group/history border-t border-app-line-22/90">
-                        <summary className="cursor-pointer list-none px-4 py-2.5 text-xs font-semibold text-cyan-300/90 transition-colors hover:text-cyan-200 sm:px-5 [&::-webkit-details-marker]:hidden">
+                        <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-cyan-300/90 transition-colors hover:text-cyan-200 sm:px-4 lg:py-2.5 [&::-webkit-details-marker]:hidden">
                           <span className="inline-flex items-center gap-1.5">
                             <svg
                               className="h-3.5 w-3.5 shrink-0 transition-transform group-open/history:rotate-90"
