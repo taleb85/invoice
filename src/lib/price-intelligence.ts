@@ -359,6 +359,121 @@ export async function analyzeSupplierPriceTrends(
   }
 }
 
+export type ProductSupplierPriceRow = {
+  fornitore_id: string
+  fornitore_nome: string
+  prodotto: string
+  prezzo_attuale: number
+  data_prezzo: string
+  num_rilevazioni: number
+  variazione_percent: number | null
+}
+
+export type ProductPriceComparison = {
+  query: string
+  matches: ProductSupplierPriceRow[]
+  prezzo_minimo: number | null
+  fornitore_migliore_id: string | null
+}
+
+function escapeIlikeFragment(raw: string): string {
+  return raw.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+}
+
+function fornitoreNomeFromJoin(
+  join: { nome: string; display_name?: string | null } | { nome: string; display_name?: string | null }[] | null | undefined,
+): string {
+  if (!join) return 'Sconosciuto'
+  const row = Array.isArray(join) ? join[0] : join
+  const display = row?.display_name?.trim()
+  return display || row?.nome?.trim() || 'Sconosciuto'
+}
+
+/** Ultimo prezzo listino per fornitore su prodotti il cui nome contiene `query`. */
+export async function compareProductPricesAcrossSuppliers(
+  supabase: SupabaseClient,
+  query: string,
+  opts?: { sedeId?: string | null; limit?: number },
+): Promise<ProductPriceComparison> {
+  const trimmed = query.trim()
+  if (trimmed.length < 2) {
+    return { query: trimmed, matches: [], prezzo_minimo: null, fornitore_migliore_id: null }
+  }
+
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const pattern = `%${escapeIlikeFragment(trimmed)}%`
+  const rowLimit = Math.min(Math.max(opts?.limit ?? 400, 50), 800)
+
+  const { data: rows, error } = await supabase
+    .from('listino_prezzi')
+    .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name, sede_id)')
+    .ilike('prodotto', pattern)
+    .gt('prezzo', 0)
+    .lte('data_prezzo', todayIso)
+    .order('data_prezzo', { ascending: true })
+    .limit(rowLimit)
+
+  if (error || !rows?.length) {
+    return { query: trimmed, matches: [], prezzo_minimo: null, fornitore_migliore_id: null }
+  }
+
+  type RawRow = PriceRow & {
+    fornitori?: { nome: string; display_name?: string | null; sede_id?: string | null }
+      | { nome: string; display_name?: string | null; sede_id?: string | null }[]
+  }
+
+  const byKey = new Map<string, { nome: string; prodotto: string; entries: RawRow[] }>()
+
+  for (const row of rows as RawRow[]) {
+    if (!isListinoCatalogRow({ prodotto: row.prodotto, note: row.note })) continue
+    const join = row.fornitori
+    const sedeId = Array.isArray(join) ? join[0]?.sede_id : join?.sede_id
+    if (opts?.sedeId && sedeId !== opts.sedeId) continue
+
+    const prodotto = row.prodotto.trim()
+    const key = `${row.fornitore_id}|${prodotto.toLowerCase()}`
+    const nome = fornitoreNomeFromJoin(join)
+    const bucket = byKey.get(key)
+    if (bucket) bucket.entries.push(row)
+    else byKey.set(key, { nome, prodotto, entries: [row] })
+  }
+
+  const matches: ProductSupplierPriceRow[] = []
+
+  for (const [key, bucket] of byKey) {
+    const sorted = [...bucket.entries].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+    const filtered = filterOutliersForTrend(sorted)
+    const series = filtered.length >= 2 ? filtered : sorted
+    const ultimo = series[series.length - 1]!
+    const precedente = series.length >= 2 ? series[series.length - 2] : null
+    const variazione = precedente
+      ? safePctChange(ultimo.prezzo, precedente.prezzo)
+      : null
+
+    matches.push({
+      fornitore_id: key.split('|')[0]!,
+      fornitore_nome: bucket.nome,
+      prodotto: bucket.prodotto,
+      prezzo_attuale: ultimo.prezzo,
+      data_prezzo: ultimo.data_prezzo,
+      num_rilevazioni: series.length,
+      variazione_percent: variazione != null ? Math.round(variazione * 10000) / 100 : null,
+    })
+  }
+
+  matches.sort((a, b) => a.prezzo_attuale - b.prezzo_attuale)
+
+  const prezzoMinimo = matches.length > 0 ? matches[0]!.prezzo_attuale : null
+  const fornitoreMiglioreId = matches.length > 0 ? matches[0]!.fornitore_id : null
+
+  return {
+    query: trimmed,
+    matches,
+    prezzo_minimo: prezzoMinimo,
+    fornitore_migliore_id: fornitoreMiglioreId,
+  }
+}
+
 export async function analyzeAllSuppliers(
   supabase: SupabaseClient,
   fornitoreIds: string[],

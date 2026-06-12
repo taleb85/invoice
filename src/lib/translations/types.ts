@@ -2958,6 +2958,16 @@ export type Translations = {
     detailEmpty: string
     detailSummary: string
     openListino: string
+    productSearchTitle: string
+    productSearchHint: string
+    productSearchPlaceholder: string
+    productSearchMinChars: string
+    productSearchLoading: string
+    productSearchEmpty: string
+    compareColProdottoMatch: string
+    compareColData: string
+    compareColVsCheapest: string
+    compareCheapestBadge: string
     tableColStato: string
     tableColFornitore: string
     tableColProdotti: string

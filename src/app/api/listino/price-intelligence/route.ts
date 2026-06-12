@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
-import { analyzeSupplierPriceTrends, analyzeAllSuppliers } from '@/lib/price-intelligence'
+import {
+  analyzeSupplierPriceTrends,
+  analyzeAllSuppliers,
+  compareProductPricesAcrossSuppliers,
+} from '@/lib/price-intelligence'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +19,19 @@ export async function GET(req: NextRequest) {
   const service = createServiceClient()
   const { searchParams } = new URL(req.url)
   const fornitoreId = searchParams.get('fornitore_id')
+  const productQuery =
+    searchParams.get('prodotto')?.trim()
+    || searchParams.get('q')?.trim()
+    || ''
+
+  if (productQuery.length >= 2) {
+    const isMaster = isMasterAdminRole(profile.role)
+    const sedeId = isMaster
+      ? searchParams.get('sede_id')?.trim() || null
+      : profile.sede_id
+    const comparison = await compareProductPricesAcrossSuppliers(service, productQuery, { sedeId })
+    return NextResponse.json(comparison)
+  }
 
   if (fornitoreId) {
     const report = await analyzeSupplierPriceTrends(service, fornitoreId)

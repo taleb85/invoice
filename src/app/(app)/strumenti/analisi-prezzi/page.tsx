@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ChevronDown, ExternalLink, Loader2, RefreshCw } from 'lucide-react'
+import { ChevronDown, ExternalLink, Loader2, RefreshCw, Search } from 'lucide-react'
 import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -17,6 +17,7 @@ import type {
   PriceAnomalia,
   PriceIntelligenceReport,
   PriceTrend,
+  ProductPriceComparison,
   Raccomandazione,
   SupplierPriceHealth,
 } from '@/lib/price-intelligence'
@@ -227,6 +228,162 @@ function SupplierProductsDetail({
   )
 }
 
+function ProductPriceCompareSection({
+  ap,
+  locale,
+}: {
+  ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi']
+  locale: string
+}) {
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [comparison, setComparison] = useState<ProductPriceComparison | null>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  useEffect(() => {
+    if (debouncedQuery.length < 2) {
+      setComparison(null)
+      setSearchLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setSearchLoading(true)
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/listino/price-intelligence?prodotto=${encodeURIComponent(debouncedQuery)}`,
+          { cache: 'no-store' },
+        )
+        if (!res.ok) return
+        const json = (await res.json()) as ProductPriceComparison
+        if (!cancelled) setComparison(json)
+      } catch {
+        if (!cancelled) setComparison(null)
+      } finally {
+        if (!cancelled) setSearchLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [debouncedQuery])
+
+  const minPrice = comparison?.prezzo_minimo ?? null
+
+  return (
+    <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="mb-3">
+        <h2 className="text-sm font-semibold text-white">{ap.productSearchTitle}</h2>
+        <p className="mt-0.5 text-[11px] text-white/40">{ap.productSearchHint}</p>
+      </div>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" aria-hidden />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={ap.productSearchPlaceholder}
+          className="w-full rounded-lg border border-white/10 bg-black/20 py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-white/35 focus:border-cyan-500/40 focus:outline-none focus:ring-1 focus:ring-cyan-500/30"
+          aria-label={ap.productSearchPlaceholder}
+        />
+      </div>
+
+      {query.trim().length > 0 && query.trim().length < 2 ? (
+        <p className="mt-2 text-xs text-white/40">{ap.productSearchMinChars}</p>
+      ) : null}
+
+      {searchLoading ? (
+        <div className="mt-4 flex items-center gap-2 text-xs text-white/50">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" aria-hidden />
+          {ap.productSearchLoading}
+        </div>
+      ) : null}
+
+      {!searchLoading && debouncedQuery.length >= 2 && comparison && comparison.matches.length === 0 ? (
+        <p className="mt-4 text-xs text-white/40">{ap.productSearchEmpty}</p>
+      ) : null}
+
+      {!searchLoading && comparison && comparison.matches.length > 0 ? (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[36rem] text-xs">
+            <thead>
+              <tr className="border-b border-white/[0.08] text-[10px] uppercase tracking-wider text-white/35">
+                <th className="px-2 py-1.5 text-left font-semibold">{ap.tableColFornitore}</th>
+                <th className="px-2 py-1.5 text-left font-semibold">{ap.compareColProdottoMatch}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColPrezzo}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColData}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColTrend}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColVsCheapest}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.matches.map((row) => {
+                const isCheapest = row.fornitore_id === comparison.fornitore_migliore_id
+                const deltaPct =
+                  minPrice != null && minPrice > 0 && !isCheapest
+                    ? Math.round(((row.prezzo_attuale - minPrice) / minPrice) * 10000) / 100
+                    : null
+                return (
+                  <tr
+                    key={`${row.fornitore_id}|${row.prodotto}`}
+                    className={`border-b border-white/[0.04] last:border-0 ${isCheapest ? 'bg-emerald-500/[0.06]' : ''}`}
+                  >
+                    <td className="px-2 py-2">
+                      <Link
+                        href={`/fornitori/${row.fornitore_id}?tab=listino`}
+                        className="font-semibold text-white transition-colors hover:text-sky-400"
+                      >
+                        {row.fornitore_nome}
+                      </Link>
+                      {isCheapest ? (
+                        <span className="ml-1.5 inline-flex rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-300">
+                          {ap.compareCheapestBadge}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="max-w-[14rem] px-2 py-2 text-white/70">
+                      <span className="line-clamp-2" title={row.prodotto}>{row.prodotto}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right font-semibold tabular-nums text-white">
+                      {formatCurrency(row.prezzo_attuale, 'GBP', locale)}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/50">
+                      {row.data_prezzo}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums">
+                      <span className={`font-semibold ${
+                        row.variazione_percent != null && row.variazione_percent > 0
+                          ? 'text-red-400'
+                          : row.variazione_percent != null && row.variazione_percent < 0
+                            ? 'text-emerald-400'
+                            : 'text-white/35'
+                      }`}>
+                        {row.variazione_percent != null
+                          ? `${row.variazione_percent > 0 ? '+' : ''}${row.variazione_percent}%`
+                          : '—'}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/50">
+                      {isCheapest ? '—' : deltaPct != null ? `+${deltaPct}%` : '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 export default function AnalisiPrezziPage() {
   const t = useT()
   const { locale } = useLocale()
@@ -406,6 +563,8 @@ export default function AnalisiPrezziPage() {
           {syncStatusText}
         </p>
       ) : null}
+
+      <ProductPriceCompareSection ap={ap} locale={locale} />
 
       {loading ? (
         <div className="space-y-3">
