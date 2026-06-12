@@ -37,6 +37,9 @@ import {
   LISTINO_SRC_FATTURA_MARK,
   buildListinoByProduct,
   listinoGroupAliasNames,
+  listinoGroupAliasNamesForDisplay,
+  listinoCodiceShownInTitle,
+  listinoNoteTailForDisplay,
   listinoGroupKey,
   parseListinoNoteParts,
   pickDisplayListinoRow,
@@ -44,7 +47,6 @@ import {
   formatListinoPriceChangePct,
   listinoPerPiecePriceHint,
   referencePriceForListinoRow,
-  stripListinoSrcMachineSuffix,
   productNamesMatchForVerifica,
 } from '@/lib/listino-display'
 import {
@@ -5350,7 +5352,9 @@ function ListinoTab({
                     .filter((r) => r.id !== displayRow.id)
                     .map((r) => displayListinoUnitPrice(r, sorted)),
                 })
-                const aliasNames = listinoGroupAliasNames(prezzi, prodotto)
+                const aliasNames = listinoGroupAliasNamesForDisplay(prezzi, prodotto)
+                const showCodiceBadge = parsed.codice && !listinoCodiceShownInTitle(prodotto, parsed.codice)
+                const showUnitaBadge = Boolean(parsed.unita)
                 const srcDoc = extractListinoSrcDocument(displayRow.note)
                 const fid = extractListinoSrcFatturaId(displayRow.note)
                 const originRow = srcDoc
@@ -5371,7 +5375,9 @@ function ListinoTab({
                 const originLineMobile = originLine?.includes(' · ')
                   ? originLine.replace(/\s*·\s*[^·]+$/, '')
                   : originLine
-                const noteDisplay = stripListinoSrcMachineSuffix(displayRow.note)
+                const noteDisplay = listinoNoteTailForDisplay(parsed.humanTail, {
+                  skipOrigin: Boolean(originLine),
+                })
                 const priceTrendUp = Boolean(ref && up && pct > 0)
                 const hasPriceAnomalyRecord = unresolvedAnomalies.some((a) =>
                   productNamesMatchForVerifica(a.prodotto, prodotto),
@@ -5426,9 +5432,9 @@ function ListinoTab({
                           <h3 className="min-w-0 shrink text-sm font-bold leading-snug tracking-tight text-white sm:text-[15px] lg:text-base xl:text-lg">
                             {prodotto}
                           </h3>
-                          {parsed.codice || parsed.unita ? (
+                          {showCodiceBadge || showUnitaBadge ? (
                             <div className="flex shrink-0 flex-wrap items-center gap-1 xl:hidden">
-                              {parsed.codice ? (
+                              {showCodiceBadge ? (
                                 <StatusBadge
                                   tone="orange"
                                   className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none font-mono"
@@ -5436,7 +5442,7 @@ function ListinoTab({
                                   {parsed.codice}
                                 </StatusBadge>
                               ) : null}
-                              {parsed.unita ? (
+                              {showUnitaBadge ? (
                                 <StatusBadge
                                   tone="orange"
                                   className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none"
@@ -5461,9 +5467,9 @@ function ListinoTab({
                             {aliasNames.join(' · ')}
                           </p>
                         ) : null}
-                        {parsed.codice || parsed.unita ? (
+                        {showCodiceBadge || showUnitaBadge ? (
                           <div className="mt-1 hidden flex-wrap items-center gap-1 xl:flex">
-                            {parsed.codice ? (
+                            {showCodiceBadge ? (
                               <StatusBadge
                                 tone="orange"
                                 className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none font-mono"
@@ -5471,7 +5477,7 @@ function ListinoTab({
                                 {parsed.codice}
                               </StatusBadge>
                             ) : null}
-                            {parsed.unita ? (
+                            {showUnitaBadge ? (
                               <StatusBadge
                                 tone="orange"
                                 className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none"

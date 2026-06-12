@@ -201,6 +201,73 @@ export function listinoGroupAliasNames(
   return [...new Set(rows.map((r) => r.prodotto.trim()).filter((n) => n && n.toLowerCase() !== norm))]
 }
 
+/** True se il codice articolo compare già nel titolo riga (es. suffisso tra parentesi). */
+export function listinoCodiceShownInTitle(
+  productTitle: string,
+  codice: string | null | undefined,
+): boolean {
+  const c = codice?.trim()
+  if (!c) return false
+  return new RegExp(`\\b${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(productTitle.trim())
+}
+
+function stripParentheticalSuffix(name: string): string {
+  return name.trim().replace(/\s*\([^)]*\)\s*$/g, '').trim()
+}
+
+function listinoNameTokens(name: string): string[] {
+  return normalizeListinoProductName(stripParentheticalSuffix(name))
+    .toLowerCase()
+    .split(/[\s/·—]+/)
+    .map((t) => t.replace(/[^\w]/g, ''))
+    .filter(Boolean)
+}
+
+function aliasTokensSubsumedByMain(alias: string, displayLabel: string): boolean {
+  const aliasTokens = listinoNameTokens(alias)
+  if (aliasTokens.length === 0) return true
+  const mainSet = new Set(listinoNameTokens(displayLabel))
+  return aliasTokens.every((t) => mainSet.has(t))
+}
+
+/** Alias OCR da mostrare: esclude varianti quasi identiche al titolo riga. */
+export function listinoGroupAliasNamesForDisplay(
+  rows: { prodotto: string }[],
+  displayLabel: string,
+): string[] {
+  const aliases = listinoGroupAliasNames(rows, displayLabel)
+  const mainNorm = normalizeListinoProductName(displayLabel).toLowerCase()
+  const mainCore = normalizeListinoProductName(stripParentheticalSuffix(displayLabel)).toLowerCase()
+  return aliases.filter((alias) => {
+    if (aliasTokensSubsumedByMain(alias, displayLabel)) return false
+    const full = normalizeListinoProductName(alias).toLowerCase()
+    const core = normalizeListinoProductName(stripParentheticalSuffix(alias)).toLowerCase()
+    if (full === mainNorm || core === mainCore) return false
+    if (mainNorm.includes(full) || full.includes(mainNorm)) return false
+    if (mainCore.includes(core) || core.includes(mainCore)) return false
+    return true
+  })
+}
+
+/** Resto nota listino senza «Origine:» se già mostrata come link in riga. */
+export function listinoNoteTailForDisplay(
+  humanTail: string | null | undefined,
+  opts?: { skipOrigin?: boolean },
+): string | null {
+  if (!humanTail?.trim()) return null
+  let parts = humanTail
+    .split(/\s*(?:—|·)\s*/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+  if (opts?.skipOrigin) {
+    parts = parts.filter((p) => !/^Origine(\s+listino)?\s*:/i.test(p))
+  }
+  const joined = parts.join(' · ').trim()
+  if (!joined) return null
+  if (/^\d{4}-?$/.test(joined)) return null
+  return joined
+}
+
 export function groupListinoRowsByProduct<T extends { prodotto: string; note?: string | null }>(
   rows: T[],
 ): Map<string, T[]> {

@@ -3,6 +3,9 @@ import {
   buildListinoByProduct,
   listinoDisplayLabelForGroup,
   listinoGroupAliasNames,
+  listinoGroupAliasNamesForDisplay,
+  listinoCodiceShownInTitle,
+  listinoNoteTailForDisplay,
   listinoGroupKey,
   parseListinoNoteParts,
   isNonProductListinoRow,
@@ -115,6 +118,58 @@ describe('listino product grouping', () => {
     expect(grouped['Goods/Services (807131)']).toHaveLength(1)
     expect(grouped['Goods/Services (809302)']).toHaveLength(1)
     expect(listinoDisplayLabelForGroup([rows[0]!])).toBe('Goods/Services (807131)')
+  })
+})
+
+describe('listinoGroupAliasNamesForDisplay', () => {
+  it('drops aliases subsumed by the main display label', () => {
+    const label = 'Chianti Classico 22 Castellani 6/75 (G7186122)'
+    const rows = [
+      { prodotto: label },
+      { prodotto: 'Chianti Classico Castellani' },
+      { prodotto: 'Chianti Classico 22 Castellani 6/75' },
+    ]
+    expect(listinoGroupAliasNamesForDisplay(rows, label)).toEqual([])
+  })
+
+  it('keeps meaningfully different OCR aliases', () => {
+    const label = '500cc BLACK MICROWAVE CONTAINER & LIDS (MWB500)'
+    const rows = [
+      { prodotto: label },
+      { prodotto: '500cc BLACK MICROWAVE CONTAINER & LIDS RETURNS' },
+      { prodotto: 'MW CONTAINER 500cc BLACK' },
+    ]
+    expect(listinoGroupAliasNamesForDisplay(rows, label)).toEqual(['MW CONTAINER 500cc BLACK'])
+  })
+})
+
+describe('listinoNoteTailForDisplay', () => {
+  it('omits Origine when already shown as origin link', () => {
+    const tail = 'Origine: Fattura SN8121977 — promo estate'
+    expect(listinoNoteTailForDisplay(tail, { skipOrigin: true })).toBe('promo estate')
+  })
+
+  it('keeps Origine when skipOrigin is false', () => {
+    const tail = 'Origine: Fattura SN8121977 — 2026-'
+    expect(listinoNoteTailForDisplay(tail)).toBe('Origine: Fattura SN8121977 · 2026-')
+  })
+
+  it('returns null for empty tail', () => {
+    expect(listinoNoteTailForDisplay(null)).toBeNull()
+    expect(listinoNoteTailForDisplay('Origine: Fattura SN8121977', { skipOrigin: true })).toBeNull()
+  })
+
+  it('hides year-only OCR fragments', () => {
+    expect(listinoNoteTailForDisplay('2026-')).toBeNull()
+    expect(listinoNoteTailForDisplay('Origine: Fattura SN8121977 — 2026-', { skipOrigin: true })).toBeNull()
+  })
+})
+
+describe('listinoCodiceShownInTitle', () => {
+  it('detects codice in product title', () => {
+    expect(listinoCodiceShownInTitle('Chianti Classico (G7186122)', 'G7186122')).toBe(true)
+    expect(listinoCodiceShownInTitle('Beer Menabrea 61025', '61025')).toBe(true)
+    expect(listinoCodiceShownInTitle('Goods/Services', '807131')).toBe(false)
   })
 })
 
