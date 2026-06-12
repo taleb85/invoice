@@ -5371,40 +5371,33 @@ function ListinoTab({
                   ? originLine.replace(/\s*·\s*[^·]+$/, '')
                   : originLine
                 const noteDisplay = stripListinoSrcMachineSuffix(displayRow.note)
-                const hasAnomaly = Boolean(ref && up && pct > 0)
+                const priceTrendUp = Boolean(ref && up && pct > 0)
                 const hasPriceAnomalyRecord = unresolvedAnomalies.some((a) =>
                   productNamesMatchForVerifica(a.prodotto, prodotto),
                 )
+                const hasRecordedAnomaly = hasPriceAnomalyRecord
+                const showListinoVerificaAction = hasRecordedAnomaly
                 const listinoScrollKey = listinoGroupKey({ prodotto, note: displayRow.note })
-                const verificaQ = new URLSearchParams(searchParams.toString())
-                fornitoreSupplierClearDocParams(verificaQ)
-                verificaQ.delete('listino_scroll')
-                verificaQ.delete('listino_focus')
-                verificaQ.delete('verifica_prodotto')
-                verificaQ.delete('verifica_codice')
-                verificaQ.delete('apri_estratto')
-                verificaQ.delete('stato')
-
-                let verificaHref: string
-                if (hasPriceAnomalyRecord) {
-                  /** Anomalia salvata in DB: pannello in cima al listino. */
+                let verificaHref = ''
+                if (showListinoVerificaAction) {
+                  const verificaQ = new URLSearchParams(searchParams.toString())
+                  fornitoreSupplierClearDocParams(verificaQ)
+                  verificaQ.delete('listino_scroll')
+                  verificaQ.delete('verifica_prodotto')
+                  verificaQ.delete('verifica_codice')
+                  verificaQ.delete('apri_estratto')
+                  verificaQ.delete('stato')
                   verificaQ.set('tab', 'listino')
                   verificaQ.set('listino_focus', prodotto)
                   verificaHref = `${pathname}?${verificaQ.toString()}`
-                } else {
-                  /** Trend listino o controllo manuale → tab Verifica (estratti / Rekki). */
-                  verificaQ.set('tab', 'verifica')
-                  verificaQ.set('verifica_prodotto', prodotto)
-                  verificaQ.set('apri_estratto', '1')
-                  if (parsed.codice) verificaQ.set('verifica_codice', parsed.codice)
-                  if (rekkiLinked) verificaQ.set('stato', 'rekki_prezzo_discordanza')
-                  verificaHref = `${pathname}?${verificaQ.toString()}`
                 }
-                const rowAccentBorder = hasAnomaly
+                const rowAccentBorder = hasRecordedAnomaly
                   ? 'border-l-[#FF3131]'
-                  : ref
-                    ? 'border-l-[#39FF14]'
-                    : 'border-l-app-line-28/80'
+                  : priceTrendUp
+                    ? 'border-l-amber-500/70'
+                    : ref
+                      ? 'border-l-[#39FF14]'
+                      : 'border-l-app-line-28/80'
                 const todayIso = new Date().toISOString().slice(0, 10)
                 /*
                  * Soglia "prezzo scaduto" dinamica: invece di 60gg fissi,
@@ -5455,7 +5448,7 @@ function ListinoTab({
                           <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1 md:hidden">
                             {isPromo ? (
                               <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
-                            ) : hasAnomaly ? (
+                            ) : hasRecordedAnomaly ? (
                               <StatusBadge tone="red">{t.fornitori.listinoRowBadgeAnomaly}</StatusBadge>
                             ) : ref ? (
                               <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
@@ -5496,7 +5489,7 @@ function ListinoTab({
                       <div className="flex flex-col gap-0.5 border-t border-app-line-22/90 pt-1.5 md:col-start-2 md:border-t-0 md:items-end md:pt-0 md:text-right">
                         <p
                           className={`text-lg font-bold font-mono tabular-nums tracking-tight sm:text-xl lg:text-xl xl:text-[1.65rem] ${
-                            hasAnomaly
+                            hasRecordedAnomaly
                               ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
                               : listinoPriceStale
                                 ? 'text-app-fg-muted'
@@ -5541,10 +5534,10 @@ function ListinoTab({
                           ) : null}
                           {isPromo ? (
                             <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
-                          ) : hasAnomaly ? (
+                          ) : hasRecordedAnomaly ? (
                             <StatusBadge
                               tone="red"
-                              className={hasAnomaly ? '!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45' : ''}
+                              className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"
                             >
                               {t.fornitori.listinoRowBadgeAnomaly}
                             </StatusBadge>
@@ -5563,15 +5556,31 @@ function ListinoTab({
                       {/* ── COLONNA 3: Stato + origine + Rekki (affiancati) ── */}
                       <div className="min-w-0 flex flex-wrap content-start items-stretch gap-1.5 border-t border-app-line-22/90 pt-1.5 md:col-start-3 md:border-t-0 md:pt-0">
                         {summaryLine ? (
-                          <div className={`min-w-0 flex-[1_1_calc(50%-0.375rem)] rounded px-2 py-1 ${hasAnomaly ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]' : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'}`}>
-                            <p className={`flex items-start gap-1 text-[10px] font-semibold leading-tight ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
-                              {hasAnomaly ? (
+                          <div
+                            className={`min-w-0 flex-[1_1_calc(50%-0.375rem)] rounded px-2 py-1 ${
+                              hasRecordedAnomaly
+                                ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]'
+                                : priceTrendUp
+                                  ? 'bg-amber-500/10 border border-amber-500/20'
+                                  : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'
+                            }`}
+                          >
+                            <p
+                              className={`flex items-start gap-1 text-[10px] font-semibold leading-tight ${
+                                hasRecordedAnomaly
+                                  ? 'text-red-200'
+                                  : priceTrendUp
+                                    ? 'text-amber-200'
+                                    : 'text-emerald-200'
+                              }`}
+                            >
+                              {hasRecordedAnomaly ? (
                                 <GlyphWarningTriangle className="mt-0.5 h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
                               ) : (
                                 <GlyphCheck className="mt-0.5 h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
                               )}
                               <span>
-                                {hasAnomaly ? t.fornitori.listinoAnomalyPrefix : ''}
+                                {hasRecordedAnomaly ? t.fornitori.listinoAnomalyPrefix : ''}
                                 {summaryLine}
                               </span>
                             </p>
@@ -5711,17 +5720,25 @@ function ListinoTab({
                         ) : null}
 
                         {!readOnly ? (
-                          <div className="flex min-w-0 w-full flex-[1_1_100%] items-center gap-1.5 md:flex-[1_1_calc(50%-0.375rem)] xl:hidden">
-                            <Link
-                              href={verificaHref}
-                              className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-cyan-600/20 px-2 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30 touch-manipulation"
-                              title={t.fornitori.listinoVerifyAnomaliesTitle}
-                            >
-                              <svg className={`h-3 w-3 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                              </svg>
-                              {t.fornitori.listinoVerifyAnomalies}
-                            </Link>
+                          <div
+                            className={`flex min-w-0 items-center gap-1.5 ${
+                              showListinoVerificaAction
+                                ? 'w-full flex-[1_1_100%] md:flex-[1_1_calc(50%-0.375rem)] xl:hidden'
+                                : 'ml-auto w-auto xl:hidden'
+                            }`}
+                          >
+                            {showListinoVerificaAction ? (
+                              <Link
+                                href={verificaHref}
+                                className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-cyan-600/20 px-2 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30 touch-manipulation"
+                                title={t.fornitori.listinoVerifyAnomaliesTitle}
+                              >
+                                <svg className={`h-3 w-3 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                {t.fornitori.listinoVerifyAnomalies}
+                              </Link>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => handleDelete(ultimo.id)}
@@ -5748,16 +5765,18 @@ function ListinoTab({
                       <div className="hidden min-w-0 flex-col items-end justify-center gap-2 border-l border-app-line-22/70 pl-3 xl:col-start-4 xl:flex">
                         {!readOnly ? (
                           <>
-                            <Link
-                              href={verificaHref}
-                              className="flex items-center justify-center gap-1.5 rounded-md bg-cyan-600/20 px-2.5 py-1.5 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30"
-                              title={t.fornitori.listinoVerifyAnomaliesTitle}
-                            >
-                              <svg className={`h-3.5 w-3.5 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                              </svg>
-                              {t.fornitori.listinoVerifyAnomalies}
-                            </Link>
+                            {showListinoVerificaAction ? (
+                              <Link
+                                href={verificaHref}
+                                className="flex items-center justify-center gap-1.5 rounded-md bg-cyan-600/20 px-2.5 py-1.5 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30"
+                                title={t.fornitori.listinoVerifyAnomaliesTitle}
+                              >
+                                <svg className={`h-3.5 w-3.5 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                {t.fornitori.listinoVerifyAnomalies}
+                              </Link>
+                            ) : null}
                             <div className="flex shrink-0 justify-end opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
                               <button
                                 type="button"
