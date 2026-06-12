@@ -5,6 +5,7 @@ import {
   analyzeSupplierPriceTrends,
   analyzeAllSuppliers,
   compareProductPricesAcrossSuppliers,
+  getProductListinoDetail,
 } from '@/lib/price-intelligence'
 
 export const dynamic = 'force-dynamic'
@@ -18,11 +19,22 @@ export async function GET(req: NextRequest) {
 
   const service = createServiceClient()
   const { searchParams } = new URL(req.url)
-  const fornitoreId = searchParams.get('fornitore_id')
+  const fornitoreId = searchParams.get('fornitore_id')?.trim() || null
+  const prodottoNome = searchParams.get('prodotto_nome')?.trim() || null
   const productQuery =
     searchParams.get('prodotto')?.trim()
     || searchParams.get('q')?.trim()
     || ''
+
+  if (fornitoreId && prodottoNome) {
+    const isMaster = isMasterAdminRole(profile.role)
+    const sedeId = isMaster
+      ? searchParams.get('sede_id')?.trim() || null
+      : profile.sede_id
+    const detail = await getProductListinoDetail(service, fornitoreId, prodottoNome, { sedeId })
+    if (!detail) return NextResponse.json({ error: 'Prodotto non trovato' }, { status: 404 })
+    return NextResponse.json(detail)
+  }
 
   if (productQuery.length >= 2) {
     const isMaster = isMasterAdminRole(profile.role)

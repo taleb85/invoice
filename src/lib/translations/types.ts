@@ -2972,6 +2972,12 @@ export type Translations = {
     compareColData: string
     compareColVsCheapest: string
     compareCheapestBadge: string
+    compareModalHistory: string
+    compareModalNote: string
+    compareModalLoading: string
+    compareModalLoadError: string
+    compareModalEmptyHistory: string
+    compareModalClose: string
     compareFormatoSingolo: string
     compareFormatoConfezione: string
     compareFormatoCassa: string

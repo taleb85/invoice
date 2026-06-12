@@ -1,8 +1,9 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { ChevronDown, ExternalLink, Loader2, RefreshCw, Search } from 'lucide-react'
+import { ChevronDown, ExternalLink, Loader2, RefreshCw, Search, X } from 'lucide-react'
 import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -17,6 +18,7 @@ import type {
   PriceAnomalia,
   PriceIntelligenceReport,
   PriceTrend,
+  ProductListinoDetail,
   ProductPriceComparison,
   ProductSupplierPriceRow,
   Raccomandazione,
@@ -257,6 +259,196 @@ function compareFormatoLabel(
   return ap.compareFormatoSingolo
 }
 
+function ProductCompareDetailModal({
+  row,
+  ap,
+  locale,
+  onClose,
+}: {
+  row: CompareDisplayRow
+  ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi']
+  locale: string
+  onClose: () => void
+}) {
+  const titleId = useId()
+  const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [detail, setDetail] = useState<ProductListinoDetail | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+    setDetail(null)
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/listino/price-intelligence?fornitore_id=${encodeURIComponent(row.fornitore_id)}&prodotto_nome=${encodeURIComponent(row.prodotto)}`,
+          { cache: 'no-store' },
+        )
+        if (!res.ok) {
+          if (!cancelled) setError(true)
+          return
+        }
+        const json = (await res.json()) as ProductListinoDetail
+        if (!cancelled) setDetail(json)
+      } catch {
+        if (!cancelled) setError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [row.fornitore_id, row.prodotto])
+
+  if (!mounted) return null
+
+  const colConfezione = ap.compareColPrezzoConfezione || 'Prezzo confezione'
+  const colCompare = row.prezzo_kg != null
+    ? (ap.compareColPrezzoKg || 'Prezzo / kg')
+    : (ap.compareColPrezzoUnita || 'Prezzo unità')
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="relative mx-auto flex max-h-[min(90dvh,calc(100dvh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0d1528] shadow-2xl shadow-black/55 ring-1 ring-cyan-400/20"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div className="min-w-0 flex-1">
+            <p id={titleId} className="text-sm font-semibold leading-snug text-white">
+              {row.prodotto}
+            </p>
+            <p className="mt-1 text-xs text-white/50">{row.fornitore_nome}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label={ap.compareModalClose}
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 border-b border-white/[0.06] px-5 py-3 text-xs sm:grid-cols-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-white/35">{ap.compareColFormato}</p>
+            <p className="mt-0.5 font-medium text-white/80">{compareFormatoLabel(row, ap)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-white/35">{colConfezione}</p>
+            <p className="mt-0.5 font-medium tabular-nums text-white/80">
+              {formatCurrency(row.prezzo_confezione, 'GBP', locale)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-white/35">{colCompare}</p>
+            <p className="mt-0.5 font-semibold tabular-nums text-white">
+              {row.prezzo_kg != null
+                ? formatCurrency(row.prezzo_kg, 'GBP', locale)
+                : formatCurrency(row.prezzo_unita, 'GBP', locale)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-white/35">{ap.compareColData}</p>
+            <p className="mt-0.5 font-medium tabular-nums text-white/80">{row.data_prezzo}</p>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/40">
+              {ap.compareModalHistory}
+            </h3>
+            <Link
+              href={`/fornitori/${row.fornitore_id}?tab=listino`}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-300/90 transition-colors hover:text-cyan-200"
+            >
+              {ap.openListino}
+              <ExternalLink className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center gap-2 py-6 text-xs text-white/50">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" aria-hidden />
+              {ap.compareModalLoading}
+            </div>
+          ) : null}
+
+          {!loading && error ? (
+            <p className="py-4 text-xs text-rose-300/90">{ap.compareModalLoadError}</p>
+          ) : null}
+
+          {!loading && !error && detail && detail.history.length === 0 ? (
+            <p className="py-4 text-xs text-white/40">{ap.compareModalEmptyHistory}</p>
+          ) : null}
+
+          {!loading && !error && detail && detail.history.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-white/[0.06] bg-black/20">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-wider text-white/35">
+                    <th className="px-3 py-2 text-left font-semibold">{ap.compareColData}</th>
+                    <th className="px-3 py-2 text-right font-semibold">{ap.detailColPrezzo}</th>
+                    <th className="px-3 py-2 text-left font-semibold">{ap.compareModalNote}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detail.history.map((entry, index) => (
+                    <tr
+                      key={`${entry.data_prezzo}|${entry.prezzo}|${index}`}
+                      className="border-b border-white/[0.04] last:border-0"
+                    >
+                      <td className="whitespace-nowrap px-3 py-2 tabular-nums text-white/70">
+                        {entry.data_prezzo}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-white">
+                        {formatCurrency(entry.prezzo, 'GBP', locale)}
+                      </td>
+                      <td className="max-w-[14rem] px-3 py-2 text-[11px] text-white/45">
+                        <span className="line-clamp-2" title={entry.note ?? undefined}>
+                          {entry.note?.replace(/\|listino_src_[^|]+\|/g, '').trim() || '—'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="border-t border-white/10 px-5 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 text-xs font-semibold text-white/80 transition-colors hover:bg-white/[0.08]"
+          >
+            {ap.compareModalClose}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 function ProductPriceCompareSection({
   ap,
   locale,
@@ -268,6 +460,7 @@ function ProductPriceCompareSection({
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [searchLoading, setSearchLoading] = useState(false)
   const [comparison, setComparison] = useState<ProductPriceComparison | null>(null)
+  const [selectedRow, setSelectedRow] = useState<CompareDisplayRow | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query.trim()), 300)
@@ -332,6 +525,7 @@ function ProductPriceCompareSection({
     : (ap.compareColPrezzoUnita || 'Prezzo unità')
 
   return (
+    <>
     <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
       <div className="mb-3">
         <h2 className="text-sm font-semibold text-white">{ap.productSearchTitle}</h2>
@@ -391,11 +585,21 @@ function ProductPriceCompareSection({
                 return (
                   <tr
                     key={`${row.fornitore_id}|${row.prodotto}`}
-                    className={`border-b border-white/[0.04] last:border-0 ${isCheapest ? 'bg-emerald-500/[0.06]' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedRow(row)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setSelectedRow(row)
+                      }
+                    }}
+                    className={`cursor-pointer border-b border-white/[0.04] transition-colors last:border-0 hover:bg-white/[0.04] ${isCheapest ? 'bg-emerald-500/[0.06]' : ''}`}
                   >
                     <td className="px-2 py-2">
                       <Link
                         href={`/fornitori/${row.fornitore_id}?tab=listino`}
+                        onClick={(e) => e.stopPropagation()}
                         className="font-semibold text-white transition-colors hover:text-sky-400"
                       >
                         {row.fornitore_nome}
@@ -447,6 +651,15 @@ function ProductPriceCompareSection({
         </div>
       ) : null}
     </section>
+    {selectedRow ? (
+      <ProductCompareDetailModal
+        row={selectedRow}
+        ap={ap}
+        locale={locale}
+        onClose={() => setSelectedRow(null)}
+      />
+    ) : null}
+    </>
   )
 }
 

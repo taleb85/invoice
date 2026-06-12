@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { filterOutliersForTrend, isListinoCatalogRow } from '@/lib/listino-display'
+import { filterOutliersForTrend, isListinoCatalogRow, parseListinoNoteParts } from '@/lib/listino-display'
 import { normalizeCompareBatch, resolveComparableListinoPrice } from '@/lib/listino-compare-normalize'
 import {
   buildProductSearchOrFilter,
@@ -548,6 +548,78 @@ export async function compareProductPricesAcrossSuppliers(
     matches,
     prezzo_minimo: prezzoMinimo,
     fornitore_migliore_id: fornitoreMiglioreId,
+  }
+}
+
+export type ProductListinoHistoryEntry = {
+  prezzo: number
+  data_prezzo: string
+  note: string | null
+}
+
+export type ProductListinoDetail = {
+  fornitore_id: string
+  fornitore_nome: string
+  prodotto: string
+  unita: string | null
+  history: ProductListinoHistoryEntry[]
+}
+
+export async function getProductListinoDetail(
+  supabase: SupabaseClient,
+  fornitoreId: string,
+  prodotto: string,
+  opts?: { sedeId?: string | null },
+): Promise<ProductListinoDetail | null> {
+  const nome = prodotto.trim()
+  if (!fornitoreId || !nome) return null
+
+  const todayIso = new Date().toISOString().slice(0, 10)
+
+  const { data: rows, error } = await supabase
+    .from('listino_prezzi')
+    .select('prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name, sede_id)')
+    .eq('fornitore_id', fornitoreId)
+    .eq('prodotto', nome)
+    .gt('prezzo', 0)
+    .lte('data_prezzo', todayIso)
+    .order('data_prezzo', { ascending: false })
+    .limit(40)
+
+  if (error || !rows?.length) return null
+
+  type RawRow = {
+    prodotto: string
+    prezzo: number
+    data_prezzo: string
+    note: string | null
+    fornitori?: { nome: string; display_name?: string | null; sede_id?: string | null }
+      | { nome: string; display_name?: string | null; sede_id?: string | null }[]
+  }
+
+  const first = rows[0] as RawRow
+  const join = first.fornitori
+  const sedeId = Array.isArray(join) ? join[0]?.sede_id : join?.sede_id
+  if (opts?.sedeId && sedeId !== opts.sedeId) return null
+
+  const unita = parseListinoNoteParts(first.note).unita
+
+  const history: ProductListinoHistoryEntry[] = (rows as RawRow[])
+    .filter((row) => isListinoCatalogRow({ prodotto: row.prodotto, note: row.note }))
+    .map((row) => ({
+      prezzo: row.prezzo,
+      data_prezzo: row.data_prezzo,
+      note: row.note,
+    }))
+
+  if (history.length === 0) return null
+
+  return {
+    fornitore_id: fornitoreId,
+    fornitore_nome: fornitoreNomeFromJoin(join),
+    prodotto: nome,
+    unita,
+    history,
   }
 }
 
