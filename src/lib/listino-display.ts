@@ -257,6 +257,11 @@ function isListinoNoteDateOnlyPart(part: string): boolean {
   return false
 }
 
+/** OCR «per 4» / «per 6x75cl»: quantità confezione già nel badge Unità. */
+function isListinoNoteRedundantPackPart(part: string): boolean {
+  return /^per\s+\d/i.test(part.trim())
+}
+
 /** Resto nota listino senza «Origine:» se già mostrata come link in riga. */
 export function listinoNoteTailForDisplay(
   humanTail: string | null | undefined,
@@ -270,7 +275,7 @@ export function listinoNoteTailForDisplay(
   if (opts?.skipOrigin) {
     parts = parts.filter((p) => !/^Origine(\s+listino)?\s*:/i.test(p))
   }
-  parts = parts.filter((p) => !isListinoNoteDateOnlyPart(p))
+  parts = parts.filter((p) => !isListinoNoteDateOnlyPart(p) && !isListinoNoteRedundantPackPart(p))
   const joined = parts.join(' · ').trim()
   if (!joined) return null
   if (isListinoNoteDateOnlyPart(joined)) return null

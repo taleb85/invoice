@@ -184,6 +184,12 @@ describe('listinoNoteTailForDisplay', () => {
     expect(listinoNoteTailForDisplay('Origine: Fattura SN8121977 — 2026-05-08', { skipOrigin: true })).toBeNull()
     expect(listinoNoteTailForDisplay('promo estate — 2026-05-08')).toBe('promo estate')
   })
+
+  it('hides redundant OCR pack hints (per N)', () => {
+    expect(listinoNoteTailForDisplay('per 4')).toBeNull()
+    expect(listinoNoteTailForDisplay('per 6x75cl')).toBeNull()
+    expect(listinoNoteTailForDisplay('promo Natale — per 24x33cl')).toBe('promo Natale')
+  })
 })
 
 describe('listinoCodiceShownInTitle', () => {
