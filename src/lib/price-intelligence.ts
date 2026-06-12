@@ -521,10 +521,17 @@ export async function compareProductPricesAcrossSuppliers(
     }
   })
 
-  matches.sort((a, b) => a.prezzo_confronto - b.prezzo_confronto)
+  matches.sort((a, b) => b.data_prezzo.localeCompare(a.data_prezzo))
 
-  const prezzoMinimo = matches.length > 0 ? matches[0]!.prezzo_confronto : null
-  const fornitoreMiglioreId = matches.length > 0 ? matches[0]!.fornitore_id : null
+  const prezzoMinimo =
+    matches.length > 0
+      ? matches.reduce(
+          (min, row) => (row.prezzo_confronto < min ? row.prezzo_confronto : min),
+          matches[0]!.prezzo_confronto,
+        )
+      : null
+  const fornitoreMiglioreId =
+    matches.find((row) => row.prezzo_confronto === prezzoMinimo)?.fornitore_id ?? null
 
   return {
     query: trimmed,

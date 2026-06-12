@@ -299,13 +299,16 @@ function ProductPriceCompareSection({
   const displayMatches = useMemo(() => {
     if (!comparison?.matches.length) return []
     const rows = normalizeCompareDisplayRows(comparison.matches) as CompareDisplayRow[]
-    return [...rows].sort((a, b) => a.prezzo_unita - b.prezzo_unita)
+    return [...rows].sort((a, b) => b.data_prezzo.localeCompare(a.data_prezzo))
   }, [comparison])
 
-  const minPrice =
-    displayMatches.length > 0
-      ? displayMatches[0]!.prezzo_unita
-      : comparison?.prezzo_minimo ?? null
+  const minPrice = useMemo(() => {
+    if (displayMatches.length === 0) return comparison?.prezzo_minimo ?? null
+    return displayMatches.reduce(
+      (min, row) => (row.prezzo_unita < min ? row.prezzo_unita : min),
+      displayMatches[0]!.prezzo_unita,
+    )
+  }, [comparison?.prezzo_minimo, displayMatches])
 
   const colConfezione = ap.compareColPrezzoConfezione || 'Prezzo confezione'
   const colUnita = ap.compareColPrezzoUnita || 'Prezzo unità'
