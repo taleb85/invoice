@@ -166,6 +166,26 @@ describe('listino product grouping', () => {
     expect(listinoDisplayLabelForGroup(rows)).toBe('SAFFRON CHIQUILIN 50x125mg PACKETS')
   })
 
+  it('merges duplicate rows with the same product name (1CASEX06 vs no codice)', () => {
+    const rows = [
+      {
+        prodotto: 'CANTUCCI MANDORLA BUSTA x1kg PACKETS MASINI',
+        note: 'unita:PACKETS 0',
+        data_prezzo: '2026-05-08',
+      },
+      {
+        prodotto: 'CANTUCCI MANDORLA BUSTA x1kg PACKETS MASINI',
+        note: 'codice:1CASEX06 — CASE x1kg',
+        data_prezzo: '2026-04-23',
+      },
+    ]
+    expect(listinoGroupKey(rows[0]!)).toBe(listinoGroupKey(rows[1]!))
+    const grouped = buildListinoByProduct(rows)
+    expect(Object.keys(grouped)).toHaveLength(1)
+    expect(Object.values(grouped)[0]).toHaveLength(2)
+    expect(listinoDisplayLabelForGroup(rows)).toBe('CANTUCCI MANDORLA BUSTA x1kg PACKETS MASINI')
+  })
+
   it('orders product entries by latest data_prezzo descending', () => {
     const byProduct = buildListinoByProduct([
       { prodotto: 'Old Wine', note: 'codice:OLD1', data_prezzo: '2025-01-10' },

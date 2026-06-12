@@ -206,7 +206,17 @@ export function isGenericListinoCodice(codice: string | null | undefined): boole
   ) {
     return true
   }
-  return /^CASEX\d+$/i.test(c)
+  return /CASEX\d+/i.test(c)
+}
+
+/** Nome troppo generico per raggruppare solo per descrizione (es. Goods/Services). */
+function isAmbiguousListinoProductName(name: string): boolean {
+  const n = cleanListinoProductNameForGrouping(name).toLowerCase()
+  if (!n) return true
+  if (/^goods\/?services$/i.test(n)) return true
+  if (/^(goods|services|miscellaneous|misc|product|item|articolo|merce)\b/i.test(n)) return true
+  if (significantListinoNameTokens(name).length <= 1 && n.length < 14) return true
+  return false
 }
 
 /** Pulisce descrizioni OCR prima di raggruppare o mostrare il titolo. */
@@ -253,14 +263,18 @@ export function listinoProductNamesCompatibleForGroup(a: string, b: string): boo
 }
 
 /**
- * Chiave di raggruppamento listino: preferisce `codice` dalla nota (es. MWB500),
- * altrimenti nome normalizzato. Evita doppie voci per lo stesso SKU.
+ * Chiave di raggruppamento listino: stesso nome → stesso prodotto.
+ * Il codice articolo distingue solo descrizioni OCR generiche (Goods/Services).
  */
 export function listinoGroupKey(row: { prodotto: string; note?: string | null }): string {
   const parsed = parseListinoNoteParts(row.note)
   const codice = parsed.codice?.trim()
   const nameKey = `name:${listinoNameSignature(row.prodotto)}`
-  if (codice && !isGenericListinoCodice(codice)) {
+  if (
+    codice &&
+    !isGenericListinoCodice(codice) &&
+    isAmbiguousListinoProductName(row.prodotto)
+  ) {
     return `cod:${codice.toUpperCase()}\0${nameKey}`
   }
   return nameKey
