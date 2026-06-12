@@ -179,17 +179,55 @@ const LISTINO_GROUP_STOP_TOKENS = new Set([
   'and',
   'masini',
   'robo',
+  'units',
+  'unit',
 ])
 
+/** Codici OCR non univoci (colonna «Units», case generico, ecc.) — non usati per raggruppare. */
+export function isGenericListinoCodice(codice: string | null | undefined): boolean {
+  const c = (codice ?? '').trim().toUpperCase()
+  if (!c) return false
+  if (
+    c === 'UNITS' ||
+    c === 'UNIT' ||
+    c === 'PACKETS' ||
+    c === 'PACKET' ||
+    c === 'PACK' ||
+    c === 'PACKS' ||
+    c === 'CASE' ||
+    c === 'CASES' ||
+    c === 'EACH' ||
+    c === 'ITEM' ||
+    c === 'GOODS' ||
+    c === 'SERVICES' ||
+    c === 'PRODUCT' ||
+    c === 'UNID' ||
+    c === 'UN'
+  ) {
+    return true
+  }
+  return /^CASEX\d+$/i.test(c)
+}
+
+/** Pulisce descrizioni OCR prima di raggruppare o mostrare il titolo. */
+export function cleanListinoProductNameForGrouping(name: string): string {
+  return normalizeListinoProductName(name)
+    .replace(/^\d+\s+/, '')
+    .replace(/\s+units?\s*$/i, '')
+    .trim()
+}
+
 function significantListinoNameTokens(name: string): string[] {
-  return listinoNameTokens(name).filter((t) => t.length > 2 && !LISTINO_GROUP_STOP_TOKENS.has(t))
+  return listinoNameTokens(cleanListinoProductNameForGrouping(name)).filter(
+    (t) => t.length > 2 && !LISTINO_GROUP_STOP_TOKENS.has(t),
+  )
 }
 
 /** Impronta nome per distinguere SKU diversi con lo stesso codice OCR (es. CASEX06). */
 export function listinoNameSignature(prodotto: string): string {
   const tokens = significantListinoNameTokens(prodotto)
   if (tokens.length > 0) return tokens.slice(0, 5).join('-')
-  return normalizeListinoProductName(prodotto)
+  return cleanListinoProductNameForGrouping(prodotto)
     .toLowerCase()
     .replace(/\s+/g, '-')
     .slice(0, 32)
@@ -200,8 +238,8 @@ export function listinoNameSignature(prodotto: string): string {
  * con codice fattura condiviso per errore.
  */
 export function listinoProductNamesCompatibleForGroup(a: string, b: string): boolean {
-  const aNorm = normalizeListinoProductName(a).toLowerCase()
-  const bNorm = normalizeListinoProductName(b).toLowerCase()
+  const aNorm = cleanListinoProductNameForGrouping(a).toLowerCase()
+  const bNorm = cleanListinoProductNameForGrouping(b).toLowerCase()
   if (aNorm === bNorm) return true
   if (aNorm.includes(bNorm) || bNorm.includes(aNorm)) return true
   const tokensA = significantListinoNameTokens(a)
@@ -221,10 +259,11 @@ export function listinoProductNamesCompatibleForGroup(a: string, b: string): boo
 export function listinoGroupKey(row: { prodotto: string; note?: string | null }): string {
   const parsed = parseListinoNoteParts(row.note)
   const codice = parsed.codice?.trim()
-  if (codice) {
-    return `cod:${codice.toUpperCase()}\0name:${listinoNameSignature(row.prodotto)}`
+  const nameKey = `name:${listinoNameSignature(row.prodotto)}`
+  if (codice && !isGenericListinoCodice(codice)) {
+    return `cod:${codice.toUpperCase()}\0${nameKey}`
   }
-  return `name:${normalizeListinoProductName(row.prodotto).toLowerCase()}`
+  return nameKey
 }
 
 /** Etichetta UI per un gruppo di righe (nome più completo, senza RETURNS se possibile). */
@@ -244,10 +283,12 @@ export function listinoDisplayLabelForGroup(
   rows: { prodotto: string; note?: string | null; data_prezzo?: string }[],
 ): string {
   const name = rows.some((r) => r.data_prezzo?.trim())
-    ? [...rows].sort((a, b) => a.data_prezzo!.localeCompare(b.data_prezzo!)).at(-1)!.prodotto.trim()
-    : listinoDisplayLabel(rows)
+    ? cleanListinoProductNameForGrouping(
+        [...rows].sort((a, b) => a.data_prezzo!.localeCompare(b.data_prezzo!)).at(-1)!.prodotto,
+      )
+    : cleanListinoProductNameForGrouping(listinoDisplayLabel(rows))
   const codice = parseListinoNoteParts(rows[0]?.note ?? null).codice?.trim()
-  if (!codice) return name
+  if (!codice || isGenericListinoCodice(codice)) return name
   const codiceInName = new RegExp(`\\b${codice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(
     name,
   )
@@ -320,9 +361,10 @@ function isListinoNoteDateOnlyPart(part: string): boolean {
   return false
 }
 
-/** OCR «per 4» / «per 6x75cl»: quantità confezione già nel badge Unità. */
+/** OCR «per 4» / «per 6x75cl» / «Qtà fattura:»: già nel badge o non utile in UI. */
 function isListinoNoteRedundantPackPart(part: string): boolean {
-  return /^per\s+\d/i.test(part.trim())
+  const p = part.trim()
+  return /^per\s+\d/i.test(p) || /^qt[aà]\s+fattura\s*:/i.test(p)
 }
 
 /** Resto nota listino senza «Origine:» se già mostrata come link in riga. */

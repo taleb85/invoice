@@ -140,6 +140,32 @@ describe('listino product grouping', () => {
     expect(listinoDisplayLabelForGroup([rows[1]!])).toContain('CARCIOFI')
   })
 
+  it('merges OCR variants of the same product (generic UNITS codice, leading 0)', () => {
+    const rows = [
+      {
+        prodotto: 'SAFFRON CHIQUILIN 50x125mg PACKETS UNITS',
+        note: 'Qtà fattura: 2',
+        data_prezzo: '2026-06-03',
+      },
+      {
+        prodotto: '0 SAFFRON CHIQUILIN 50x125mg PACKETS UNITS',
+        note: 'unita:50x125mg PACKETS',
+        data_prezzo: '2026-05-22',
+      },
+      {
+        prodotto: 'SAFFRON CHIQUILIN 50x125mg PACKETS',
+        note: 'codice:UNITS',
+        data_prezzo: '2026-05-08',
+      },
+    ]
+    expect(listinoGroupKey(rows[0]!)).toBe(listinoGroupKey(rows[1]!))
+    expect(listinoGroupKey(rows[1]!)).toBe(listinoGroupKey(rows[2]!))
+    const grouped = buildListinoByProduct(rows)
+    expect(Object.keys(grouped)).toHaveLength(1)
+    expect(Object.values(grouped)[0]).toHaveLength(3)
+    expect(listinoDisplayLabelForGroup(rows)).toBe('SAFFRON CHIQUILIN 50x125mg PACKETS')
+  })
+
   it('orders product entries by latest data_prezzo descending', () => {
     const byProduct = buildListinoByProduct([
       { prodotto: 'Old Wine', note: 'codice:OLD1', data_prezzo: '2025-01-10' },
@@ -207,6 +233,7 @@ describe('listinoNoteTailForDisplay', () => {
   it('hides redundant OCR pack hints (per N)', () => {
     expect(listinoNoteTailForDisplay('per 4')).toBeNull()
     expect(listinoNoteTailForDisplay('per 6x75cl')).toBeNull()
+    expect(listinoNoteTailForDisplay('Qtà fattura: 2')).toBeNull()
     expect(listinoNoteTailForDisplay('promo Natale — per 24x33cl')).toBe('promo Natale')
   })
 })

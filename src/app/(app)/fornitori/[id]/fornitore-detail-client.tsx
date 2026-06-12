@@ -38,8 +38,10 @@ import {
   buildListinoByProduct,
   listinoProductEntriesByLatestDateDesc,
   listinoGroupAliasNames,
+  cleanListinoProductNameForGrouping,
   listinoGroupAliasNamesForDisplay,
   listinoCodiceShownInTitle,
+  isGenericListinoCodice,
   listinoNoteTailForDisplay,
   listinoGroupKey,
   parseListinoNoteParts,
@@ -5367,7 +5369,10 @@ function ListinoTab({
                     .map((r) => displayListinoUnitPrice(r, sorted)),
                 })
                 const aliasNames = listinoGroupAliasNamesForDisplay(prezzi, prodotto)
-                const showCodiceBadge = parsed.codice && !listinoCodiceShownInTitle(prodotto, parsed.codice)
+                const showCodiceBadge =
+                  parsed.codice &&
+                  !isGenericListinoCodice(parsed.codice) &&
+                  !listinoCodiceShownInTitle(prodotto, parsed.codice)
                 const showUnitaBadge = Boolean(parsed.unita)
                 const srcDoc = extractListinoSrcDocument(displayRow.note)
                 const fid = extractListinoSrcFatturaId(displayRow.note)
