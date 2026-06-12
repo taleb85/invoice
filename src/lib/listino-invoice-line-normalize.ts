@@ -185,6 +185,17 @@ export function resolveUnitPriceFromInvoiceValue(
       : prezzo
   const unitFromLine = roundMoney(line / qty)
 
+  /** Senza importo riga: non dividere un prezzo già plausibile come unitario (es. 3,50÷16). */
+  if (
+    importo_linea == null &&
+    prezzo >= 1 &&
+    prezzo <= 80 &&
+    unitFromLine > 0 &&
+    unitFromLine < 1
+  ) {
+    return { unit: roundMoney(prezzo), lineTotal: roundMoney(prezzo * qty), quantita: qty }
+  }
+
   return { unit: unitFromLine, lineTotal: line, quantita: qty }
 }
 

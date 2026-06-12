@@ -59,6 +59,12 @@ describe('resolveUnitPriceFromInvoiceValue', () => {
     const r = resolveUnitPriceFromInvoiceValue(23.4, 6, null)
     expect(r.unit).toBe(3.9)
   })
+
+  it('non divide unitario 3,50 quando manca importo_linea e qty OCR è alta', () => {
+    const r = resolveUnitPriceFromInvoiceValue(3.5, 16, null)
+    expect(r.unit).toBe(3.5)
+    expect(r.lineTotal).toBe(56)
+  })
 })
 
 describe('resolveAmbiguousInvoiceLinePrice', () => {

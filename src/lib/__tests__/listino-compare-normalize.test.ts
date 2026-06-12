@@ -4,6 +4,7 @@ import {
   listinoPackagePriceForCompare,
   normalizeCompareBatch,
   normalizeCompareDisplayRows,
+  repairUnderpricedRetailPackPrice,
   resolveComparableListinoPrice,
 } from '@/lib/listino-compare-normalize'
 
@@ -120,6 +121,34 @@ describe('listinoPackagePriceForCompare', () => {
         [3.5, 3.6],
       ),
     ).toBe(3.5)
+  })
+
+  it('ripara prezzo listino 0,22 salvato per errore (3,50÷16)', () => {
+    const note =
+      'Unità: 250 GR BAG — Qtà fattura: 4 — Origine: Fattura 22806|listino_src_fattura:abc|'
+    expect(
+      repairUnderpricedRetailPackPrice(
+        0.22,
+        'MOZZ. DI BUFALA TRECCIA 250 GR BAG',
+        note,
+        [],
+      ),
+    ).toBe(3.52)
+
+    const rows = normalizeCompareDisplayRows([
+      {
+        prodotto: 'MOZZ. DI BUFALA TRECCIA 250 GR BAG',
+        prezzo_attuale: 0.22,
+        prezzo_listino: 0.22,
+        prezzo_confronto: 0.22,
+        note,
+        unita: '250 GR BAG',
+        formato: 'singolo',
+      },
+    ])
+
+    expect(rows[0]!.prezzo_confezione).toBe(3.52)
+    expect(rows[0]!.prezzo_kg).toBe(14.08)
   })
 })
 

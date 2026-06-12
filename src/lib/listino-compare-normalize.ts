@@ -3,7 +3,67 @@ import {
   parseListinoNoteParts,
   parsePackSizeFromListinoUnita,
 } from '@/lib/listino-display'
-import { resolveListinoUnitPriceForDisplay } from '@/lib/listino-invoice-line-normalize'
+import {
+  parseListinoNoteOrderQty,
+  resolveListinoUnitPriceForDisplay,
+} from '@/lib/listino-invoice-line-normalize'
+
+const RETAIL_PACK_PRICE_MULTS = [2, 3, 4, 6, 8, 10, 12, 16, 20, 24] as const
+
+/**
+ * Corregge prezzi confezione retail salvati troppo bassi (es. 3,50÷16 → 0,22 su mozzarella 250g).
+ */
+export function repairUnderpricedRetailPackPrice(
+  rawPrezzo: number,
+  prodotto: string,
+  note: string | null | undefined,
+  otherPrices: number[],
+): number {
+  if (!Number.isFinite(rawPrezzo) || rawPrezzo <= 0 || rawPrezzo >= 1) return rawPrezzo
+
+  const parsed = parseListinoNoteParts(note)
+  const pesoKg = parseProductWeightKg(prodotto, parsed.unita, note)
+  if (!pesoKg || pesoKg > 2 || pesoKg < 0.04) return rawPrezzo
+
+  const orderQty = parseListinoNoteOrderQty(note)
+  const candidates = new Set<number>([rawPrezzo])
+  if (orderQty != null && orderQty > 1) {
+    candidates.add(roundMoney(rawPrezzo * orderQty))
+  }
+  for (const mult of RETAIL_PACK_PRICE_MULTS) {
+    candidates.add(roundMoney(rawPrezzo * mult))
+  }
+
+  const peerPack = medianPositive(otherPrices.filter((p) => p >= 1))
+  let best = rawPrezzo
+  let bestScore = -Infinity
+
+  for (const pack of candidates) {
+    if (pack < 1 || pack > 60) continue
+    const perKg = pack / pesoKg
+    if (perKg < 4 || perKg > 200) continue
+
+    let score = 0
+    if (perKg >= 8 && perKg <= 50) score += 10
+    else if (perKg >= 4 && perKg <= 80) score += 5
+    if (pack >= 1.5 && pack <= 25) score += 3
+    if (pesoKg <= 0.5) {
+      if (pack >= 2 && pack <= 5) score += 5
+      else if (pack > 8) score -= 3
+      if (perKg >= 12 && perKg <= 16) score += 6
+      else if (perKg >= 10 && perKg <= 20) score += 3
+    }
+    if (peerPack != null && nearRatio(pack, peerPack, 0.35)) score += 4
+    if (orderQty != null && roundMoney(rawPrezzo * orderQty) === pack && pack >= 1) score += 2
+
+    if (score > bestScore || (score === bestScore && pack > best)) {
+      bestScore = score
+      best = pack
+    }
+  }
+
+  return bestScore > 0 ? best : rawPrezzo
+}
 
 /** Prezzo confezione per confronto: non divide per «Qtà fattura» su pack a peso (es. 250g). */
 export function listinoPackagePriceForCompare(
@@ -15,10 +75,11 @@ export function listinoPackagePriceForCompare(
   if (!Number.isFinite(rawPrezzo) || rawPrezzo <= 0) return rawPrezzo
   const parsed = parseListinoNoteParts(note)
   const pesoKg = parseProductWeightKg(prodotto, parsed.unita, note)
+  const repaired = repairUnderpricedRetailPackPrice(rawPrezzo, prodotto, note, otherPrices)
   if (pesoKg && pesoKg <= 2) {
-    return rawPrezzo
+    return repaired
   }
-  return resolveListinoUnitPriceForDisplay(rawPrezzo, note, otherPrices)
+  return resolveListinoUnitPriceForDisplay(repaired, note, otherPrices)
 }
 
 export type ComparableListinoPrice = {
