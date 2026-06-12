@@ -1091,6 +1091,8 @@ const translations: Translations = {
     detailColProdotto: 'Product',
     detailColPrezzo: 'Current price',
     detailColRilevazioni: 'Samples',
+    detailColDescrizione: 'Description',
+    detailNoInsight: 'No anomaly or note',
     detailLoading: 'Loading products…',
     detailLoadError: 'Could not load product details.',
     detailEmpty: 'No analysable products for this supplier.',

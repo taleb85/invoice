@@ -2951,6 +2951,8 @@ export type Translations = {
     detailColProdotto: string
     detailColPrezzo: string
     detailColRilevazioni: string
+    detailColDescrizione: string
+    detailNoInsight: string
     detailLoading: string
     detailLoadError: string
     detailEmpty: string

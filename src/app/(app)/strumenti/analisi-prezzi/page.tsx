@@ -17,6 +17,7 @@ import type {
   PriceAnomalia,
   PriceIntelligenceReport,
   PriceTrend,
+  Raccomandazione,
   SupplierPriceHealth,
 } from '@/lib/price-intelligence'
 import { interpolateTemplate } from '@/lib/interpolate-template'
@@ -68,6 +69,26 @@ type DetailCacheEntry =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; report: PriceIntelligenceReport }
+
+function productInsightText(
+  prodotto: string,
+  anomalie: PriceAnomalia[],
+  raccomandazioni: Raccomandazione[],
+): string | null {
+  const anomalyLines = anomalie
+    .filter((a) => a.prodotto === prodotto)
+    .map((a) => a.descrizione.trim())
+    .filter(Boolean)
+  if (anomalyLines.length > 0) return anomalyLines.join(' · ')
+
+  const recLines = raccomandazioni
+    .filter((r) => r.prodotto === prodotto)
+    .map((r) => r.descrizione.trim())
+    .filter(Boolean)
+  if (recLines.length > 0) return recLines.join(' · ')
+
+  return null
+}
 
 function sortTrendsForDisplay(trends: PriceTrend[], anomalie: PriceAnomalia[]): PriceTrend[] {
   const anomalyCount = new Map<string, number>()
@@ -140,25 +161,34 @@ function SupplierProductsDetail({
         </Link>
       </div>
       <div className="overflow-x-auto rounded-lg border border-white/[0.06] bg-black/20">
-        <table className="w-full min-w-[32rem] text-xs">
+        <table className="w-full min-w-[44rem] text-xs">
           <thead>
             <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-wider text-white/35">
-              <th className="px-2 py-1.5 text-left font-semibold">{ap.detailColProdotto}</th>
-              <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColPrezzo}</th>
-              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColTrend}</th>
-              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColVolatilita}</th>
-              <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColRilevazioni}</th>
-              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColAnomalie}</th>
+              <th className="px-2 py-1.5 text-left font-semibold">{ap.detailColProdotto ?? 'Prodotto'}</th>
+              <th className="min-w-[10rem] px-2 py-1.5 text-left font-semibold">{ap.detailColDescrizione ?? 'Descrizione'}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColPrezzo ?? 'Prezzo'}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColTrend ?? 'Trend'}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColVolatilita ?? 'Volatilità'}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColRilevazioni ?? 'Rilevazioni'}</th>
+              <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColAnomalie ?? 'Anomalie'}</th>
             </tr>
           </thead>
           <tbody>
             {trends.map((trend) => {
               const anomalies = anomalyCount.get(trend.prodotto) ?? 0
+              const insight = productInsightText(trend.prodotto, report.anomalie, report.raccomandazioni)
               const varPct = trend.variazione_percent
               return (
                 <tr key={trend.prodotto} className="border-b border-white/[0.04] last:border-0">
-                  <td className="max-w-[14rem] px-2 py-2 font-medium text-white/85">
+                  <td className="max-w-[12rem] px-2 py-2 font-medium text-white/85">
                     <span className="line-clamp-2" title={trend.prodotto}>{trend.prodotto}</span>
+                  </td>
+                  <td className="max-w-[18rem] px-2 py-2 text-left text-[11px] leading-snug text-white/55">
+                    {insight ? (
+                      <span className="line-clamp-3" title={insight}>{insight}</span>
+                    ) : (
+                      <span className="text-white/30">{ap.detailNoInsight ?? '—'}</span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/70">
                     {formatCurrency(trend.prezzo_attuale, 'GBP', locale)}
