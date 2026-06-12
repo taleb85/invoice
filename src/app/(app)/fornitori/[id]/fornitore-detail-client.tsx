@@ -182,6 +182,9 @@ const MOBILE_SELF_HEADED_TABS: Tab[] = ['verifica', 'documenti']
 /** Altezza uniforme pulsanti barra sticky fornitore (desktop). */
 const SUPPLIER_DESKTOP_HEADER_ACTION_H = 'h-7'
 
+/** Altezza riga tab + navigatore periodo (allineati). */
+const SUPPLIER_DESKTOP_TAB_ROW_H = 'h-7 xl:h-8'
+
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
 
@@ -7008,14 +7011,14 @@ function FornitoreDetailClient({
 
           {/* Tab bar + navigatore mese: solo le tab scrollano; periodo a destra a larghezza intrinseca (pulsanti sempre visibili). */}
           <div className="w-full min-w-0 border-t border-app-line-35 pt-0.5 pb-0 xl:pt-0.5 xl:pb-0">
-            <div className="flex w-full min-w-0 items-end gap-2 xl:gap-2.5">
-              <div className="flex min-h-6 min-w-0 flex-1 items-end gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-8">
+            <div className="flex w-full min-w-0 items-stretch gap-2 xl:gap-2.5">
+              <div className={`flex ${SUPPLIER_DESKTOP_TAB_ROW_H} min-w-0 flex-1 items-stretch gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden`}>
                 {tabs.map((tb) => (
                   <button
                     key={tb.id}
                     type="button"
                     onClick={() => setTab(tb.id)}
-                    className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[10px] font-semibold leading-none transition-colors border-b-2 -mb-px lg:min-h-7 lg:text-[11px] xl:min-h-8 xl:px-2.5 ${
+                    className={`box-border flex ${SUPPLIER_DESKTOP_TAB_ROW_H} shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[10px] font-semibold leading-none transition-colors border-b-2 -mb-px lg:text-[11px] xl:px-2.5 ${
                       tab === tb.id
                         ? `${SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE[tb.id]} bg-transparent text-app-fg`
                         : 'border-b-transparent bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
@@ -7041,16 +7044,16 @@ function FornitoreDetailClient({
 
               <div
                 ref={periodPickerRef}
-                className="-mb-px relative flex h-6 min-h-6 w-[22.5rem] max-w-full shrink-0 flex-col self-end rounded-lg border border-app-line-35 bg-white/[0.025] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:min-h-8 xl:w-[24.5rem]"
+                className={`relative flex ${SUPPLIER_DESKTOP_TAB_ROW_H} w-[22.5rem] max-w-full shrink-0 flex-col rounded-lg border border-app-line-35 bg-white/[0.025] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:w-[24.5rem]`}
               >
-                <div className="grid w-full min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-0.5">
+                <div className="grid h-full w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-0.5">
                   <div className="flex shrink-0 items-center gap-px">
                     <button
                       type="button"
                       onClick={() => shiftLedgerYear(-1)}
                       title={t.appStrings.monthNavPrevYearTitle}
                       aria-label={t.appStrings.monthNavPrevYearTitle}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-7 xl:w-7"
                     >
                       <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
@@ -7061,7 +7064,7 @@ function FornitoreDetailClient({
                       onClick={() => shiftLedgerMonth(-1)}
                       title={t.appStrings.monthNavPrevMonthTitle}
                       aria-label={t.appStrings.monthNavPrevMonthTitle}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-7 xl:w-7"
                     >
                       <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -7077,7 +7080,7 @@ function FornitoreDetailClient({
                     title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                     aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                     onClick={() => setPeriodPickerOpen((o) => !o)}
-                    className="min-w-0 justify-self-stretch truncate text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:leading-8"
+                    className="flex h-full min-w-0 items-center justify-center justify-self-stretch truncate text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg"
                   >
                     {periodTriggerLabel}
                   </button>
@@ -7088,7 +7091,7 @@ function FornitoreDetailClient({
                       disabled={!canShiftLedgerMonthForward}
                       title={t.appStrings.monthNavNextMonthTitle}
                       aria-label={t.appStrings.monthNavNextMonthTitle}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-7 xl:w-7"
                     >
                       <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -7100,7 +7103,7 @@ function FornitoreDetailClient({
                       disabled={!canShiftLedgerYearForward}
                       title={t.appStrings.monthNavNextYearTitle}
                       aria-label={t.appStrings.monthNavNextYearTitle}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-7 xl:w-7"
                     >
                       <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
@@ -7112,14 +7115,14 @@ function FornitoreDetailClient({
                         onClick={() => setLedgerPeriod(currentMonthBounds)}
                         title={t.appStrings.monthNavResetTitle}
                         aria-label={t.appStrings.monthNavResetTitle}
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-7 xl:w-7"
                       >
                         <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
                         </svg>
                       </button>
                     ) : (
-                      <span className="inline-flex h-5 w-5 shrink-0 xl:h-6 xl:w-6" aria-hidden />
+                      <span className="inline-flex h-6 w-6 shrink-0 xl:h-7 xl:w-7" aria-hidden />
                     )}
                   </div>
                 </div>
