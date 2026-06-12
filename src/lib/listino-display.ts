@@ -155,6 +155,65 @@ export function normalizeListinoProductName(name: string): string {
     .replace(/[\s.,;:\-]+$/g, '')
 }
 
+const LISTINO_GROUP_STOP_TOKENS = new Set([
+  'packets',
+  'packet',
+  'pack',
+  'packs',
+  'case',
+  'cases',
+  'busta',
+  'buste',
+  'kg',
+  'gr',
+  'g',
+  'lt',
+  'ml',
+  'cl',
+  'ltr',
+  'per',
+  'alla',
+  'con',
+  'del',
+  'the',
+  'and',
+  'masini',
+  'robo',
+])
+
+function significantListinoNameTokens(name: string): string[] {
+  return listinoNameTokens(name).filter((t) => t.length > 2 && !LISTINO_GROUP_STOP_TOKENS.has(t))
+}
+
+/** Impronta nome per distinguere SKU diversi con lo stesso codice OCR (es. CASEX06). */
+export function listinoNameSignature(prodotto: string): string {
+  const tokens = significantListinoNameTokens(prodotto)
+  if (tokens.length > 0) return tokens.slice(0, 5).join('-')
+  return normalizeListinoProductName(prodotto)
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .slice(0, 32)
+}
+
+/**
+ * Due descrizioni OCR dello stesso articolo (varianti / RETURNS) vs prodotti distinti
+ * con codice fattura condiviso per errore.
+ */
+export function listinoProductNamesCompatibleForGroup(a: string, b: string): boolean {
+  const aNorm = normalizeListinoProductName(a).toLowerCase()
+  const bNorm = normalizeListinoProductName(b).toLowerCase()
+  if (aNorm === bNorm) return true
+  if (aNorm.includes(bNorm) || bNorm.includes(aNorm)) return true
+  const tokensA = significantListinoNameTokens(a)
+  const tokensB = significantListinoNameTokens(b)
+  if (tokensA.length === 0 || tokensB.length === 0) return false
+  const setB = new Set(tokensB)
+  let overlap = 0
+  for (const t of tokensA) if (setB.has(t)) overlap++
+  const minLen = Math.min(tokensA.length, tokensB.length)
+  return overlap >= Math.max(2, Math.ceil(minLen * 0.45))
+}
+
 /**
  * Chiave di raggruppamento listino: preferisce `codice` dalla nota (es. MWB500),
  * altrimenti nome normalizzato. Evita doppie voci per lo stesso SKU.
@@ -162,7 +221,9 @@ export function normalizeListinoProductName(name: string): string {
 export function listinoGroupKey(row: { prodotto: string; note?: string | null }): string {
   const parsed = parseListinoNoteParts(row.note)
   const codice = parsed.codice?.trim()
-  if (codice) return `cod:${codice.toUpperCase()}`
+  if (codice) {
+    return `cod:${codice.toUpperCase()}\0name:${listinoNameSignature(row.prodotto)}`
+  }
   return `name:${normalizeListinoProductName(row.prodotto).toLowerCase()}`
 }
 
@@ -180,9 +241,11 @@ export function listinoDisplayLabel(rows: { prodotto: string }[]): string {
  * con codici diversi resta in gruppi separati.
  */
 export function listinoDisplayLabelForGroup(
-  rows: { prodotto: string; note?: string | null }[],
+  rows: { prodotto: string; note?: string | null; data_prezzo?: string }[],
 ): string {
-  const name = listinoDisplayLabel(rows)
+  const name = rows.some((r) => r.data_prezzo?.trim())
+    ? [...rows].sort((a, b) => a.data_prezzo!.localeCompare(b.data_prezzo!)).at(-1)!.prodotto.trim()
+    : listinoDisplayLabel(rows)
   const codice = parseListinoNoteParts(rows[0]?.note ?? null).codice?.trim()
   if (!codice) return name
   const codiceInName = new RegExp(`\\b${codice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(

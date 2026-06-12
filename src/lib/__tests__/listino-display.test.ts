@@ -121,6 +121,25 @@ describe('listino product grouping', () => {
     expect(listinoDisplayLabelForGroup([rows[0]!])).toBe('Goods/Services (807131)')
   })
 
+  it('keeps separate groups when the same codice OCR is reused for different products', () => {
+    const rows = [
+      {
+        prodotto: 'CANTUCCI MANDORLA BUSTA x1kg PACKETS MASINI',
+        note: 'codice:CASEX06',
+        data_prezzo: '2026-01-01',
+      },
+      {
+        prodotto: 'PACKETS CARCIOFI ALLA ROMANA CON GAMBO 2.4kg ROBO',
+        note: 'codice:CASEX06',
+        data_prezzo: '2026-05-29',
+      },
+    ]
+    expect(listinoGroupKey(rows[0]!)).not.toBe(listinoGroupKey(rows[1]!))
+    const grouped = buildListinoByProduct(rows)
+    expect(Object.keys(grouped)).toHaveLength(2)
+    expect(listinoDisplayLabelForGroup([rows[1]!])).toContain('CARCIOFI')
+  })
+
   it('orders product entries by latest data_prezzo descending', () => {
     const byProduct = buildListinoByProduct([
       { prodotto: 'Old Wine', note: 'codice:OLD1', data_prezzo: '2025-01-10' },
