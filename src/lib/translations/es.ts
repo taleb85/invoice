@@ -1044,7 +1044,7 @@ const translations: Translations = {
     detailSummary: '{up} al alza · {down} a la baja · {stable} estables',
     openListino: 'Abrir listino del proveedor',
     productSearchTitle: 'Comparación de precio entre proveedores',
-    productSearchHint: 'Comparación por precio unitario (botella/pieza). Los precios de pack y caja se normalizan automáticamente.',
+    productSearchHint: 'Comparación por precio unitario. Búsqueda en italiano o inglés con sinónimos automáticos.',
     productSearchPlaceholder: 'Buscar producto (ej. menabrea, mozzarella…)',
     productSearchMinChars: 'Escribe al menos 2 caracteres.',
     productSearchLoading: 'Buscando…',

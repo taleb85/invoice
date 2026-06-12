@@ -1099,7 +1099,7 @@ const translations: Translations = {
     detailSummary: '{up} up · {down} down · {stable} stable',
     openListino: 'Open supplier price list',
     productSearchTitle: 'Cross-supplier price comparison',
-    productSearchHint: 'Compares per-unit price (bottle/piece). Pack and case prices are normalized automatically.',
+    productSearchHint: 'Compares per-unit price (bottle/piece). Search works in Italian or English with automatic synonyms.',
     productSearchPlaceholder: 'Search product (e.g. menabrea, mozzarella…)',
     productSearchMinChars: 'Type at least 2 characters.',
     productSearchLoading: 'Searching…',

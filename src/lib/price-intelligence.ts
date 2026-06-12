@@ -1,6 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { filterOutliersForTrend, isListinoCatalogRow } from '@/lib/listino-display'
 import { normalizeCompareBatch, resolveComparableListinoPrice } from '@/lib/listino-compare-normalize'
+import {
+  buildProductSearchOrFilter,
+  matchesProductSearchQuery,
+} from '@/lib/listino-product-search'
 
 export type PriceTrend = {
   prodotto: string
@@ -410,19 +414,23 @@ export async function compareProductPricesAcrossSuppliers(
   }
 
   const todayIso = new Date().toISOString().slice(0, 10)
-  const pattern = `%${escapeIlikeFragment(trimmed)}%`
-  const rowLimit = Math.min(Math.max(opts?.limit ?? 400, 50), 800)
+  const rowLimit = Math.min(Math.max(opts?.limit ?? 500, 80), 1000)
+  const orFilter = buildProductSearchOrFilter(trimmed, escapeIlikeFragment)
 
   const { data: rows, error } = await supabase
     .from('listino_prezzi')
     .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name, sede_id)')
-    .ilike('prodotto', pattern)
+    .or(orFilter)
     .gt('prezzo', 0)
     .lte('data_prezzo', todayIso)
     .order('data_prezzo', { ascending: true })
     .limit(rowLimit)
 
-  if (error || !rows?.length) {
+  const matchedRows = (rows ?? []).filter((row) =>
+    matchesProductSearchQuery(trimmed, row.prodotto),
+  )
+
+  if (error || !matchedRows.length) {
     return { query: trimmed, matches: [], prezzo_minimo: null, fornitore_migliore_id: null }
   }
 
@@ -433,7 +441,7 @@ export async function compareProductPricesAcrossSuppliers(
 
   const byKey = new Map<string, { nome: string; prodotto: string; entries: RawRow[] }>()
 
-  for (const row of rows as RawRow[]) {
+  for (const row of matchedRows as RawRow[]) {
     if (!isListinoCatalogRow({ prodotto: row.prodotto, note: row.note })) continue
     const join = row.fornitori
     const sedeId = Array.isArray(join) ? join[0]?.sede_id : join?.sede_id

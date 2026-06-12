@@ -1044,7 +1044,7 @@ const translations: Translations = {
     detailSummary: '{up} steigend · {down} fallend · {stable} stabil',
     openListino: 'Lieferantenpreisliste öffnen',
     productSearchTitle: 'Preisvergleich zwischen Lieferanten',
-    productSearchHint: 'Vergleich zum Stückpreis (Flasche/Einheit). Gebinde- und Kistenpreise werden automatisch normalisiert.',
+    productSearchHint: 'Vergleich zum Stückpreis. Suche auf Italienisch oder Englisch mit automatischen Synonymen.',
     productSearchPlaceholder: 'Produkt suchen (z. B. menabrea, mozzarella…)',
     productSearchMinChars: 'Mindestens 2 Zeichen eingeben.',
     productSearchLoading: 'Suche läuft…',

@@ -1102,7 +1102,7 @@ const translations: Translations = {
     detailSummary: '{up} in aumento · {down} in calo · {stable} stabili',
     openListino: 'Apri listino fornitore',
     productSearchTitle: 'Confronto prezzo tra fornitori',
-    productSearchHint: 'Confronto sul prezzo a unità (bottiglia/pezzo). I prezzi confezione vengono normalizzati automaticamente.',
+    productSearchHint: 'Confronto sul prezzo a unità (bottiglia/pezzo). Ricerca in italiano o inglese con sinonimi automatici.',
     productSearchPlaceholder: 'Cerca prodotto (es. menabrea, mozzarella…)',
     productSearchMinChars: 'Digita almeno 2 caratteri.',
     productSearchLoading: 'Ricerca in corso…',
