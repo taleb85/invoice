@@ -5575,7 +5575,7 @@ function ListinoTab({
                       </div>
 
                       {/* ── COLONNA 3: Stato + origine + Rekki (affiancati) ── */}
-                      <div className="min-w-0 flex flex-wrap content-start items-stretch gap-1.5 border-t border-app-line-22/90 pt-1.5 md:col-start-3 md:border-t-0 md:pt-0">
+                      <div className="relative min-w-0 flex flex-wrap content-start items-stretch gap-1.5 border-t border-app-line-22/90 pt-1.5 md:col-start-3 md:border-t-0 md:pr-9 md:pt-0 xl:pr-0">
                         {summaryLine ? (
                           <div
                             className={`min-w-0 flex-[1_1_calc(50%-0.375rem)] rounded px-2 py-1 ${
@@ -5740,32 +5740,24 @@ function ListinoTab({
                           </div>
                         ) : null}
 
-                        {!readOnly ? (
-                          <div
-                            className={`flex min-w-0 items-center gap-1.5 ${
-                              showListinoVerificaAction
-                                ? 'w-full flex-[1_1_100%] md:flex-[1_1_calc(50%-0.375rem)] xl:hidden'
-                                : 'ml-auto w-auto xl:hidden'
-                            }`}
-                          >
-                            {showListinoVerificaAction ? (
-                              <Link
-                                href={verificaHref}
-                                className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-cyan-600/20 px-2 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30 touch-manipulation"
-                                title={t.fornitori.listinoVerifyAnomaliesTitle}
-                              >
-                                <svg className={`h-3 w-3 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                                {t.fornitori.listinoVerifyAnomalies}
-                              </Link>
-                            ) : null}
+                        {!readOnly && showListinoVerificaAction ? (
+                          <div className="flex min-w-0 flex-[1_1_calc(50%-0.375rem)] items-center gap-1.5 xl:hidden">
+                            <Link
+                              href={verificaHref}
+                              className="flex min-h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-md bg-cyan-600/20 px-2 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30 touch-manipulation"
+                              title={t.fornitori.listinoVerifyAnomaliesTitle}
+                            >
+                              <svg className={`h-3 w-3 shrink-0 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                              <span className="truncate">{t.fornitori.listinoVerifyAnomalies}</span>
+                            </Link>
                             <button
                               type="button"
                               onClick={() => handleDelete(ultimo.id)}
                               disabled={deletingId === ultimo.id}
                               title={t.common.delete}
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40 touch-manipulation"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40 touch-manipulation"
                             >
                               {deletingId === ultimo.id ? (
                                 <svg className={`h-3 w-3 animate-spin ${icon.destructive}`} fill="none" viewBox="0 0 24 24" aria-hidden>
@@ -5779,6 +5771,27 @@ function ListinoTab({
                               )}
                             </button>
                           </div>
+                        ) : null}
+
+                        {!readOnly && !showListinoVerificaAction ? (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(ultimo.id)}
+                            disabled={deletingId === ultimo.id}
+                            title={t.common.delete}
+                            className="absolute right-0 top-0 z-[1] flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-app-line-25 bg-app-line-10/80 text-app-fg-muted opacity-0 transition-[opacity,colors] duration-200 hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 focus-visible:opacity-100 disabled:opacity-40 group-hover:opacity-100 group-focus-within:opacity-100 xl:hidden"
+                          >
+                            {deletingId === ultimo.id ? (
+                              <svg className={`h-3 w-3 animate-spin ${icon.destructive}`} fill="none" viewBox="0 0 24 24" aria-hidden>
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className={`h-3 w-3 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </button>
                         ) : null}
                       </div>
 
