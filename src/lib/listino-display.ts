@@ -899,6 +899,55 @@ export function listinoDisplayPrimaryAndPackPrices(opts: {
   }
 }
 
+/** Prezzo per unità da mostrare in UI (riga principale e storico), allineato a `listinoDisplayPrimaryAndPackPrices`. */
+function listinoRowPrimaryDisplayPriceResolved(
+  row: PriceRow,
+  sortedByDateAsc: PriceRow[],
+  unita: string | null | undefined,
+  displayUnitPrice: number,
+): number {
+  const otherPrices = sortedByDateAsc
+    .filter((r) => r.id !== row.id)
+    .map((r) => displayListinoUnitPrice(r, sortedByDateAsc))
+  return listinoDisplayPrimaryAndPackPrices({
+    displayUnitPrice,
+    unita,
+    otherPrices,
+  }).primaryPrice
+}
+
+export function listinoRowPrimaryDisplayPrice(
+  row: PriceRow,
+  sortedByDateAsc: PriceRow[],
+  unita: string | null | undefined,
+): number {
+  const others = sortedByDateAsc.filter((r) => r.id !== row.id)
+  const rawOthers = others.map((r) => r.prezzo)
+  let displayUnitPrice = displayListinoUnitPrice(row, sortedByDateAsc)
+
+  if (others.length >= 2 && isBadListinoOcrPrice(row.prezzo, rawOthers)) {
+    const packSize = parsePackSizeFromListinoUnita(unita)
+    const caseCluster = packSize ? rawOthers.filter((p) => p >= packSize * 2.5) : []
+    if (caseCluster.length > 0) {
+      const corrected =
+        Math.round((listinoHistRefForLineInference(caseCluster) / packSize!) * 100) / 100
+      if (corrected > displayUnitPrice * 1.35) {
+        displayUnitPrice = corrected
+      }
+    } else {
+      const peerPrimaries = others.map((r) =>
+        listinoRowPrimaryDisplayPrice(r, sortedByDateAsc, unita),
+      )
+      const ref = listinoHistRefForLineInference(peerPrimaries)
+      if (ref > displayUnitPrice * 1.35) {
+        displayUnitPrice = ref
+      }
+    }
+  }
+
+  return listinoRowPrimaryDisplayPriceResolved(row, sortedByDateAsc, unita, displayUnitPrice)
+}
+
 /**
  * Soglia dinamica "prezzo storico/scaduto" per un singolo prodotto, in giorni.
  *

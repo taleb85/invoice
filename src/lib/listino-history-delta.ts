@@ -1,4 +1,4 @@
-import { filterOutliersForTrend } from '@/lib/listino-display'
+import { filterOutliersForTrend, listinoRowPrimaryDisplayPrice } from '@/lib/listino-display'
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 
 export type ListinoHistoryRow = { id: string; prezzo: number; data_prezzo: string }
@@ -45,4 +45,18 @@ export function listinoHistoryDeltaPercent(
 ): number | null {
   if (previousPlausible == null || !(previousPlausible > 0)) return null
   return ((entryPrice - previousPlausible) / previousPlausible) * 100
+}
+
+/**
+ * Come `previousPlausiblePriceByRowId`, ma sui prezzi a unità normalizzati (6×75cl, OCR, ecc.).
+ */
+export function previousPlausiblePrimaryPriceByRowId<T extends ListinoHistoryRow>(
+  sortedAsc: T[],
+  unita: string | null | undefined,
+): Map<string, number | null> {
+  const normalized = sortedAsc.map((row) => ({
+    ...row,
+    prezzo: listinoRowPrimaryDisplayPrice(row, sortedAsc, unita),
+  }))
+  return previousPlausiblePriceByRowId(normalized)
 }

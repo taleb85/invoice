@@ -49,6 +49,7 @@ import {
   displayListinoUnitPrice,
   formatListinoPriceChangePct,
   listinoDisplayPrimaryAndPackPrices,
+  listinoRowPrimaryDisplayPrice,
   referencePriceForListinoRow,
   productNamesMatchForVerifica,
 } from '@/lib/listino-display'
@@ -60,7 +61,7 @@ import {
 } from '@/lib/listino-invoice-line-normalize'
 import {
   listinoHistoryDeltaPercent,
-  previousPlausiblePriceByRowId,
+  previousPlausiblePrimaryPriceByRowId,
 } from '@/lib/listino-history-delta'
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 import {
@@ -5460,7 +5461,10 @@ function ListinoTab({
                   : dynamicStaleThresholdDays(sorted.map((r) => r.data_prezzo.slice(0, 10)))
                 const listinoPriceStale =
                   calendarDaysBetweenIso(displayRow.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
-                const prevPlausibleById = previousPlausiblePriceByRowId(sorted)
+                const prevPrimaryPlausibleById = previousPlausiblePrimaryPriceByRowId(
+                  sorted,
+                  parsed.unita,
+                )
                 const listinoRowStatusBadge = isPromo ? (
                   <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
                 ) : hasRecordedAnomaly ? (
@@ -5879,15 +5883,22 @@ function ListinoTab({
                         </summary>
                         {(() => {
                           const historyEntries = [...sorted].reverse().map((entry) => {
+                            const historyDisplayPrice = listinoRowPrimaryDisplayPrice(
+                              entry,
+                              sorted,
+                              parsed.unita,
+                            )
                             const likelyOcrQty =
                               sorted.length >= 2 &&
-                              isBadListinoOcrPrice(
+                              (isBadListinoOcrPrice(
                                 entry.prezzo,
                                 sorted.filter((g) => g.id !== entry.id).map((g) => g.prezzo),
-                              )
+                              ) ||
+                                Math.abs(historyDisplayPrice - entry.prezzo) >
+                                  Math.max(0.05, entry.prezzo * 0.08))
                             const deltaPct = listinoHistoryDeltaPercent(
-                              entry.prezzo,
-                              prevPlausibleById.get(entry.id),
+                              historyDisplayPrice,
+                              prevPrimaryPlausibleById.get(entry.id),
                             )
                             const isDisplay = entry.id === displayRow.id
                             const rowSrc = extractListinoSrcDocument(entry.note)
@@ -5936,6 +5947,7 @@ function ListinoTab({
                                   : 'text-emerald-300'
                             return {
                               entry,
+                              historyDisplayPrice,
                               likelyOcrQty,
                               deltaPct,
                               isDisplay,
@@ -5986,7 +5998,7 @@ function ListinoTab({
                                               : 'text-app-fg'
                                           }`}
                                         >
-                                          {fmtMoney(h.entry.prezzo)}
+                                          {fmtMoney(h.historyDisplayPrice)}
                                         </p>
                                         <p className={`mt-0.5 font-mono text-xs tabular-nums ${h.deltaTone}`}>
                                           {h.deltaLabel}
@@ -6033,7 +6045,7 @@ function ListinoTab({
                                                 : 'text-app-fg'
                                             }
                                           >
-                                            {fmtMoney(h.entry.prezzo)}
+                                            {fmtMoney(h.historyDisplayPrice)}
                                           </span>
                                           {h.likelyOcrQty ? (
                                             <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-300/80">

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   listinoHistoryDeltaPercent,
   previousPlausiblePriceByRowId,
+  previousPlausiblePrimaryPriceByRowId,
 } from '@/lib/listino-history-delta'
 
 describe('listinoHistoryDeltaPercent', () => {
@@ -17,5 +18,18 @@ describe('listinoHistoryDeltaPercent', () => {
     const pct = listinoHistoryDeltaPercent(35.66, prev.get('4'))
     expect(pct).not.toBeNull()
     expect(Math.abs(pct!)).toBeLessThan(5)
+  })
+})
+
+describe('previousPlausiblePrimaryPriceByRowId', () => {
+  it('computes delta on per-bottle prices for 6x75cl', () => {
+    const sorted = [
+      { id: '1', prezzo: 63.66, data_prezzo: '2025-01-01' },
+      { id: '2', prezzo: 64.2, data_prezzo: '2026-01-01' },
+    ]
+    const prev = previousPlausiblePrimaryPriceByRowId(sorted, '6x75cl')
+    const pct = listinoHistoryDeltaPercent(10.7, prev.get('2'))
+    expect(pct).not.toBeNull()
+    expect(Math.abs(pct!)).toBeLessThan(2)
   })
 })
