@@ -5461,6 +5461,18 @@ function ListinoTab({
                 const listinoPriceStale =
                   calendarDaysBetweenIso(displayRow.data_prezzo.slice(0, 10), todayIso) > staleThresholdDays
                 const prevPlausibleById = previousPlausiblePriceByRowId(sorted)
+                const listinoRowStatusBadge = isPromo ? (
+                  <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
+                ) : hasRecordedAnomaly ? (
+                  <StatusBadge
+                    tone="red"
+                    className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"
+                  >
+                    {t.fornitori.listinoRowBadgeAnomaly}
+                  </StatusBadge>
+                ) : ref ? (
+                  <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
+                ) : null
 
                 return (
                   <div
@@ -5496,13 +5508,7 @@ function ListinoTab({
                             </div>
                           ) : null}
                           <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1 md:hidden">
-                            {isPromo ? (
-                              <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
-                            ) : hasRecordedAnomaly ? (
-                              <StatusBadge tone="red">{t.fornitori.listinoRowBadgeAnomaly}</StatusBadge>
-                            ) : ref ? (
-                              <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
-                            ) : null}
+                            {listinoRowStatusBadge}
                           </div>
                         </div>
                         {showCodiceBadge || showUnitaBadge ? (
@@ -5532,17 +5538,20 @@ function ListinoTab({
 
                       {/* ── COLONNA 2: Prezzo ── */}
                       <div className="flex flex-col gap-0.5 border-t border-app-line-22/90 pt-1.5 md:col-start-2 md:border-t-0 md:items-end md:pt-0 md:text-right">
-                        <p
-                          className={`text-lg font-bold font-mono tabular-nums tracking-tight sm:text-xl lg:text-xl xl:text-[1.65rem] ${
-                            hasRecordedAnomaly
-                              ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
-                              : listinoPriceStale
-                                ? 'text-app-fg-muted'
-                                : 'text-white'
-                          }`}
-                        >
-                          {fmtMoney(listinoPrices.primaryPrice)}
-                        </p>
+                        <div className="flex flex-wrap items-center justify-end gap-1.5">
+                          <p
+                            className={`text-lg font-bold font-mono tabular-nums tracking-tight sm:text-xl lg:text-xl xl:text-[1.65rem] ${
+                              hasRecordedAnomaly
+                                ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
+                                : listinoPriceStale
+                                  ? 'text-app-fg-muted'
+                                  : 'text-white'
+                            }`}
+                          >
+                            {fmtMoney(listinoPrices.primaryPrice)}
+                          </p>
+                          <div className="hidden shrink-0 md:block">{listinoRowStatusBadge}</div>
+                        </div>
                         {listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
                           <p className="text-[10px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-[11px]">
                             {t.fornitori.listinoPackPrice
@@ -5576,18 +5585,6 @@ function ListinoTab({
                               {fmtMoney(Math.abs(priceDelta))}
                               <span className="opacity-70">({pctLabel})</span>
                             </span>
-                          ) : null}
-                          {isPromo ? (
-                            <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
-                          ) : hasRecordedAnomaly ? (
-                            <StatusBadge
-                              tone="red"
-                              className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"
-                            >
-                              {t.fornitori.listinoRowBadgeAnomaly}
-                            </StatusBadge>
-                          ) : ref ? (
-                            <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
                           ) : null}
                           {rekkiLinked && ultimo.rekki_product_id ? (
                             <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide">
