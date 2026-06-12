@@ -331,6 +331,7 @@ describe('filterOutliersForTrend', () => {
 describe('parsePackSizeFromListinoUnita', () => {
   it('reads pack count from 6x75cl style unit strings', () => {
     expect(parsePackSizeFromListinoUnita('6x75cl')).toBe(6)
+    expect(parsePackSizeFromListinoUnita('6/75cl')).toBe(6)
     expect(parsePackSizeFromListinoUnita('24x33cl')).toBe(24)
     expect(parsePackSizeFromListinoUnita('X6')).toBe(6)
   })
@@ -375,6 +376,15 @@ describe('listinoPerPiecePriceHint', () => {
       otherPrices: [58, 60, 62],
     })
     expect(hint).toEqual({ packSize: 6, perPiecePrice: 10.25 })
+  })
+
+  it('shows per-piece for slash unit format (Gavi 6/75cl)', () => {
+    const hint = listinoPerPiecePriceHint({
+      displayUnitPrice: 62.64,
+      unita: '6/75cl',
+      otherPrices: [60, 61.5, 62],
+    })
+    expect(hint).toEqual({ packSize: 6, perPiecePrice: 10.44 })
   })
 })
 

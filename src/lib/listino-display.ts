@@ -572,13 +572,13 @@ export function isListinoCaseUnitFormat(unita: string | null | undefined): boole
 }
 
 /**
- * Pezzi per confezione da `Unità:` in nota listino (es. 6 da `6x75cl`, 24 da `24x33cl`).
+ * Pezzi per confezione da `Unità:` in nota listino (es. 6 da `6x75cl` o `6/75cl`, 24 da `24x33cl`).
  * Non è la quantità ordinata in fattura (`Qtà fattura:`) né il formato cassa `x 12`.
  */
 export function parsePackSizeFromListinoUnita(unita: string | null | undefined): number | null {
   const u = (unita ?? '').trim()
   if (!u || isListinoCaseUnitFormat(u)) return null
-  const nx = u.match(/^(\d{1,3})\s*[xX×]\d/)
+  const nx = u.match(/^(\d{1,3})\s*[xX×/]\s*\d/)
   if (nx) {
     const n = parseInt(nx[1]!, 10)
     if (n >= 2 && n <= 999) return n
@@ -596,9 +596,9 @@ function listinoPriceAmountsClose(a: number, b: number, rel = 0.18): boolean {
   return Math.abs(a - b) / Math.abs(b) <= rel
 }
 
-/** Confezione vino/spirits tipo `6x75cl` (non cassa UK `x 12`). */
+/** Confezione vino/spirits tipo `6x75cl` / `6/75cl` (non cassa UK `x 12`). */
 function listinoUnitaIsBottlePack(unita: string | null | undefined): boolean {
-  return /\d\s*[xX×]\s*\d+\s*cl/i.test((unita ?? '').trim())
+  return /\d\s*[xX×/]\s*\d+\s*cl/i.test((unita ?? '').trim())
 }
 
 /**
