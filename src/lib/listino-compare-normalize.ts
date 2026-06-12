@@ -5,6 +5,22 @@ import {
 } from '@/lib/listino-display'
 import { resolveListinoUnitPriceForDisplay } from '@/lib/listino-invoice-line-normalize'
 
+/** Prezzo confezione per confronto: non divide per «Qtà fattura» su pack a peso (es. 250g). */
+export function listinoPackagePriceForCompare(
+  rawPrezzo: number,
+  prodotto: string,
+  note: string | null | undefined,
+  otherPrices: number[],
+): number {
+  if (!Number.isFinite(rawPrezzo) || rawPrezzo <= 0) return rawPrezzo
+  const parsed = parseListinoNoteParts(note)
+  const pesoKg = parseProductWeightKg(prodotto, parsed.unita, note)
+  if (pesoKg && pesoKg <= 2) {
+    return rawPrezzo
+  }
+  return resolveListinoUnitPriceForDisplay(rawPrezzo, note, otherPrices)
+}
+
 export type ComparableListinoPrice = {
   /** Prezzo come in listino (può essere confezione/cassa). */
   prezzo_listino: number
@@ -157,7 +173,12 @@ export function resolveComparableListinoPrice(
 ): ComparableListinoPrice {
   const parsed = parseListinoNoteParts(opts.note)
   const unita = parsed.unita?.trim() || null
-  const display = resolveListinoUnitPriceForDisplay(opts.prezzo, opts.note, opts.otherPrices)
+  const display = listinoPackagePriceForCompare(
+    opts.prezzo,
+    opts.prodotto,
+    opts.note,
+    opts.otherPrices,
+  )
   const peerUnitPrices =
     opts.peerUnitPrices ??
     (opts.searchMedianUnit != null && opts.searchMedianUnit > 0 ? [opts.searchMedianUnit] : [])
@@ -193,7 +214,12 @@ export function normalizeCompareBatch(items: CompareNormalizeInput[]): Comparabl
   if (items.length === 0) return []
 
   let unitCandidates = items.map((item) => {
-    const display = resolveListinoUnitPriceForDisplay(item.prezzo, item.note, item.otherPrices)
+    const display = listinoPackagePriceForCompare(
+      item.prezzo,
+      item.prodotto,
+      item.note,
+      item.otherPrices,
+    )
     const hint = detectListinoPackHint(item.note, item.prodotto)
     if (!hint) return display
     const perPiece = roundMoney(display / hint.packSize)
@@ -267,6 +293,10 @@ export function parseProductWeightKg(
   return null
 }
 
+function isRetailWeightPack(pesoKg: number, listino: number): boolean {
+  return pesoKg > 0 && pesoKg <= 2 && listino >= 0.5 && listino <= 120
+}
+
 function resolveWeightBasedPrices(
   listino: number,
   pesoKg: number,
@@ -274,6 +304,10 @@ function resolveWeightBasedPrices(
 ): { prezzo_confezione: number; prezzo_kg: number } {
   const perKgFromPack = roundMoney(listino / pesoKg)
   const peer = medianPositive(peerKgPrices)
+
+  if (isRetailWeightPack(pesoKg, listino)) {
+    return { prezzo_confezione: listino, prezzo_kg: perKgFromPack }
+  }
 
   if (peer != null) {
     if (nearRatio(perKgFromPack, peer)) {
@@ -340,7 +374,13 @@ export function displayCompareRowPrices(
   },
   peerComparePrices: number[] = [],
 ): CompareRowDisplay {
-  const listino = row.prezzo_listino ?? row.prezzo_attuale ?? 0
+  const rawListino = row.prezzo_listino ?? row.prezzo_attuale ?? 0
+  const listino = listinoPackagePriceForCompare(
+    rawListino,
+    row.prodotto,
+    row.note,
+    [],
+  )
   const unit = row.prezzo_confronto ?? row.prezzo_attuale ?? listino
   const peerMedian = medianPositive(peerComparePrices)
 

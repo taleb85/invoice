@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   inferPackCountFromProductName,
+  listinoPackagePriceForCompare,
   normalizeCompareBatch,
   normalizeCompareDisplayRows,
   resolveComparableListinoPrice,
@@ -109,6 +110,19 @@ describe('normalizeCompareDisplayRows', () => {
   })
 })
 
+describe('listinoPackagePriceForCompare', () => {
+  it('non divide il prezzo confezione 250g per Qtà fattura OCR', () => {
+    expect(
+      listinoPackagePriceForCompare(
+        3.5,
+        'MOZZ. DI BUFALA TRECCIA 250 GR BAG',
+        'Codice: ABC — Qtà fattura: 16 · unita: 250 GR BAG',
+        [3.5, 3.6],
+      ),
+    ).toBe(3.5)
+  })
+})
+
 describe('parseProductWeightKg', () => {
   it('calcola prezzo confezione e per kg per mozzarella 3kg', () => {
     const rows = normalizeCompareDisplayRows([
@@ -130,9 +144,10 @@ describe('parseProductWeightKg', () => {
       },
       {
         prodotto: 'MOZZ. DI BUFALA TRECCIA 250 GR BAG',
-        prezzo_attuale: 5.5,
-        prezzo_listino: 5.5,
-        prezzo_confronto: 5.5,
+        prezzo_attuale: 3.5,
+        prezzo_listino: 3.5,
+        prezzo_confronto: 3.5,
+        note: 'Codice: ABC — Qtà fattura: 16 · unita: 250 GR BAG',
         unita: '250 GR BAG',
         formato: 'singolo',
       },
@@ -143,7 +158,7 @@ describe('parseProductWeightKg', () => {
     expect(rows[0]!.prezzo_kg).toBe(6.45)
     expect(rows[1]!.prezzo_kg).toBe(114)
     expect(rows[2]!.peso_kg).toBe(0.25)
-    expect(rows[2]!.prezzo_confezione).toBe(5.5)
-    expect(rows[2]!.prezzo_kg).toBe(22)
+    expect(rows[2]!.prezzo_confezione).toBe(3.5)
+    expect(rows[2]!.prezzo_kg).toBe(14)
   })
 })

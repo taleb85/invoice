@@ -1,5 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { filterOutliersForTrend, isListinoCatalogRow, parseListinoNoteParts } from '@/lib/listino-display'
+import {
+  filterOutliersForTrend,
+  isListinoCatalogRow,
+  parseListinoNoteParts,
+  pickDisplayListinoRow,
+} from '@/lib/listino-display'
 import { normalizeCompareBatch, resolveComparableListinoPrice } from '@/lib/listino-compare-normalize'
 import {
   buildProductSearchOrFilter,
@@ -470,11 +475,12 @@ export async function compareProductPricesAcrossSuppliers(
 
   for (const [key, bucket] of byKey) {
     const sorted = [...bucket.entries].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
-    const filtered = filterOutliersForTrend(sorted)
-    const series = filtered.length >= 2 ? filtered : sorted
-    const ultimo = series[series.length - 1]!
-    const precedente = series.length >= 2 ? series[series.length - 2] : null
-    const otherPrices = series.map((r) => r.prezzo)
+    const ultimo = pickDisplayListinoRow(sorted)
+    const ultimoIdx = sorted.findIndex((r) => r.id === ultimo.id)
+    const precedente = ultimoIdx > 0 ? sorted[ultimoIdx - 1]! : null
+    const otherPrices = sorted
+      .filter((r) => r.id !== ultimo.id)
+      .map((r) => r.prezzo)
 
     drafts.push({
       fornitore_id: key.split('|')[0]!,
@@ -483,7 +489,7 @@ export async function compareProductPricesAcrossSuppliers(
       ultimo,
       precedente,
       otherPrices,
-      num_rilevazioni: series.length,
+      num_rilevazioni: sorted.length,
     })
   }
 
