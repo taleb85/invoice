@@ -11,6 +11,7 @@ import {
 import { findSameDomainPeersForFornitore } from '@/lib/fornitore-same-domain'
 import { fetchFilteredConfermeOrdine } from '@/lib/conferme-ordine-query'
 import { pendingDocLedgerPeriodOrFilter } from '@/lib/documenti-queue-period'
+import { buildListinoByProduct } from '@/lib/listino-display'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
       fattureRes,
       bolleRowsRes,
       listinoRes,
+      listinoAllRes,
       stmtsRes,
       anomalieRes,
       pendingRes,
@@ -56,7 +58,18 @@ export async function GET(req: NextRequest) {
         .eq('fornitore_id', fornitoreId)
         .gte('data', from)
         .lt('data', to),
-      service.from('listino_prezzi').select('prodotto').eq('fornitore_id', fornitoreId).gte('data_prezzo', from).lt('data_prezzo', to).limit(8000),
+      service
+        .from('listino_prezzi')
+        .select('prodotto, note, data_prezzo')
+        .eq('fornitore_id', fornitoreId)
+        .gte('data_prezzo', from)
+        .lt('data_prezzo', to)
+        .limit(8000),
+      service
+        .from('listino_prezzi')
+        .select('prodotto, note, data_prezzo')
+        .eq('fornitore_id', fornitoreId)
+        .limit(8000),
       service.from('statements').select('missing_rows, received_at, extracted_pdf_dates').eq('fornitore_id', fornitoreId).order('received_at', { ascending: false }).limit(800),
       service.from('price_anomalies').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('resolved', false),
       service
@@ -124,9 +137,19 @@ export async function GET(req: NextRequest) {
     ])
     const totaleSpesa = Math.max(0, totaleSpesaLordo - dup.surplusImporto - creditNoteTotal)
 
-    const listinoRowsData = (listinoRes.data ?? []) as { prodotto: string }[]
+    const listinoRowsData = (listinoRes.data ?? []) as {
+      prodotto: string
+      note?: string | null
+      data_prezzo: string
+    }[]
+    const listinoAllRowsData = (listinoAllRes.data ?? []) as {
+      prodotto: string
+      note?: string | null
+      data_prezzo: string
+    }[]
     const listinoRows = listinoRowsData.length
-    const listinoProdottiDistinti = new Set(listinoRowsData.map((r) => String(r.prodotto ?? '').trim()).filter(Boolean)).size
+    const listinoProdottiDistinti = Object.keys(buildListinoByProduct(listinoRowsData)).length
+    const listinoProdottiTotali = Object.keys(buildListinoByProduct(listinoAllRowsData)).length
 
     const stmtData = (stmtsRes.data ?? []) as { missing_rows: number | null; received_at: string; extracted_pdf_dates: unknown }[]
     const statementsInPeriod = stmtData.filter((s) => {
@@ -148,6 +171,7 @@ export async function GET(req: NextRequest) {
       totaleSpesa,
       listinoRows,
       listinoProdottiDistinti,
+      listinoProdottiTotali,
       statementsInPeriod,
       statementsWithIssues,
       rekkiPriceAnomalies: rekkiStmt + rekkiBolle,

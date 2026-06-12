@@ -470,6 +470,8 @@ type SupplierPeriodStats = {
   listinoRows: number
   /** Prodotti distinti tra quelle righe (stesso periodo). */
   listinoProdottiDistinti: number
+  /** Prodotti distinti nel listino (tutti i periodi). */
+  listinoProdottiTotali: number
   statementsInPeriod: number
   statementsWithIssues: number
   /** Stessa logica del KPI listino dashboard: anomalie Rekki (estratto + bolla vs `prezzo_rekki`). */
@@ -491,6 +493,7 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   totaleSpesa: 0,
   listinoRows: 0,
   listinoProdottiDistinti: 0,
+  listinoProdottiTotali: 0,
   statementsInPeriod: 0,
   statementsWithIssues: 0,
   rekkiPriceAnomalies: 0,
@@ -671,7 +674,7 @@ function buildSupplierKpiItems(
     },
     {
       label: t.fornitori.kpiListinoProdottiPeriodo,
-      value: stats?.listinoProdottiDistinti ?? 0,
+      value: stats?.listinoProdottiTotali ?? stats?.listinoProdottiDistinti ?? 0,
       tab: 'listino',
       accent: l.accent,
       accentHex: l.hex,
