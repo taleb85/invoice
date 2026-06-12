@@ -255,6 +255,18 @@ export function calendarMonthBefore(isoDate: string): { y: number; m: number } {
   return { y, m: mo - 1 }
 }
 
+/** Percentuale variazione listino compatta per badge UI (es. +3496% → +999%+). */
+export function formatListinoPriceChangePct(pct: number): string {
+  if (!Number.isFinite(pct)) return '0%'
+  const abs = Math.abs(pct)
+  if (abs < 0.05) return '0%'
+  const sign = pct > 0 ? '+' : '-'
+  if (abs >= 999) return `${sign}999%+`
+  if (abs >= 100) return `${sign}${Math.round(abs)}%`
+  if (abs >= 10) return `${sign}${Math.round(abs)}%`
+  return `${sign}${abs.toFixed(1)}%`
+}
+
 /**
  * Reference price: latest entry in the calendar month before `ultimo.data_prezzo`;
  * if none, uses chronologically previous row (penultimate in sorted list).

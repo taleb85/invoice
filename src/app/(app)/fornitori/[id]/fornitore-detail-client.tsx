@@ -41,6 +41,7 @@ import {
   parseListinoNoteParts,
   pickDisplayListinoRow,
   displayListinoUnitPrice,
+  formatListinoPriceChangePct,
   listinoPerPiecePriceHint,
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
@@ -5313,7 +5314,7 @@ function ListinoTab({
                     : 0
                 const up = Boolean(ref && priceDelta > 0.0001)
                 const down = Boolean(ref && priceDelta < -0.0001)
-                const pctLabel = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`
+                const pctLabel = formatListinoPriceChangePct(pct)
                 const priceChangeDateLabel = formatDateLib(displayRow.data_prezzo, locale, timezone, {
                   day: 'numeric',
                   month: 'short',

@@ -14,6 +14,7 @@ import {
   parsePackSizeFromListinoUnita,
   pickDisplayListinoRow,
   dynamicStaleThresholdDays,
+  formatListinoPriceChangePct,
   productNamesMatchForVerifica,
   checkResultMatchesVerificaProdotto,
   resolveVerificaDisplayRows,
@@ -446,5 +447,18 @@ describe('resolveVerificaDisplayRows', () => {
     })
     expect(r.mode).toBe('all_fallback')
     expect(r.rows).toHaveLength(1)
+  })
+})
+
+describe('formatListinoPriceChangePct', () => {
+  it('caps extreme values', () => {
+    expect(formatListinoPriceChangePct(3496.6)).toBe('+999%+')
+    expect(formatListinoPriceChangePct(-1200)).toBe('-999%+')
+  })
+
+  it('rounds medium and small changes', () => {
+    expect(formatListinoPriceChangePct(12.4)).toBe('+12%')
+    expect(formatListinoPriceChangePct(3.45)).toBe('+3.5%')
+    expect(formatListinoPriceChangePct(0)).toBe('0%')
   })
 })
