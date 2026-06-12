@@ -1051,6 +1051,7 @@ const translations: Translations = {
     productSearchEmpty: 'No se encontraron precios para esta búsqueda.',
     compareColProdottoMatch: 'Producto en listino',
     compareColPrezzoConfezione: 'Precio pack',
+    compareColPrezzoKg: 'Precio / kg',
     compareColPrezzoUnita: 'Precio unitario',
     compareColFormato: 'Formato',
     compareColData: 'Fecha precio',

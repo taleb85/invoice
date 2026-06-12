@@ -104,7 +104,46 @@ describe('normalizeCompareDisplayRows', () => {
 
     expect(rows[2]!.prezzo_confezione).toBe(60.06)
     expect(rows[2]!.prezzo_unita).toBe(10.01)
-    expect(rows[0]!.prezzo_confezione).toBeNull()
+    expect(rows[0]!.prezzo_confezione).toBe(10.25)
     expect(rows[0]!.prezzo_unita).toBe(10.25)
+  })
+})
+
+describe('parseProductWeightKg', () => {
+  it('calcola prezzo confezione e per kg per mozzarella 3kg', () => {
+    const rows = normalizeCompareDisplayRows([
+      {
+        prodotto: '3kg Cubed Mozzarella Tray',
+        prezzo_attuale: 19.35,
+        prezzo_listino: 19.35,
+        prezzo_confronto: 19.35,
+        unita: null,
+        formato: 'singolo',
+      },
+      {
+        prodotto: 'Mozzarella di Bufala DOP 100g (Tre Stelle)',
+        prezzo_attuale: 11.4,
+        prezzo_listino: 11.4,
+        prezzo_confronto: 11.4,
+        unita: null,
+        formato: 'singolo',
+      },
+      {
+        prodotto: 'MOZZ. DI BUFALA TRECCIA 250 GR BAG',
+        prezzo_attuale: 5.5,
+        prezzo_listino: 5.5,
+        prezzo_confronto: 5.5,
+        unita: '250 GR BAG',
+        formato: 'singolo',
+      },
+    ])
+
+    expect(rows[0]!.peso_kg).toBe(3)
+    expect(rows[0]!.prezzo_confezione).toBe(19.35)
+    expect(rows[0]!.prezzo_kg).toBe(6.45)
+    expect(rows[1]!.prezzo_kg).toBe(114)
+    expect(rows[2]!.peso_kg).toBe(0.25)
+    expect(rows[2]!.prezzo_confezione).toBe(5.5)
+    expect(rows[2]!.prezzo_kg).toBe(22)
   })
 })

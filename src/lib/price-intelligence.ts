@@ -376,6 +376,7 @@ export type ProductSupplierPriceRow = {
   prezzo_attuale: number
   pack_size: number | null
   unita: string | null
+  note: string | null
   formato: 'singolo' | 'confezione' | 'cassa'
   data_prezzo: string
   num_rilevazioni: number
@@ -522,6 +523,7 @@ export async function compareProductPricesAcrossSuppliers(
       prezzo_attuale: normalized.prezzo_confronto,
       pack_size: normalized.pack_size,
       unita: normalized.unita,
+      note: d.ultimo.note ?? null,
       formato: normalized.formato,
       data_prezzo: d.ultimo.data_prezzo,
       num_rilevazioni: d.num_rilevazioni,

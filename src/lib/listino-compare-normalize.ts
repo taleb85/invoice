@@ -228,10 +228,87 @@ export function normalizeCompareBatch(items: CompareNormalizeInput[]): Comparabl
 }
 
 export type CompareRowDisplay = {
-  prezzo_confezione: number | null
+  prezzo_confezione: number
+  prezzo_kg: number | null
+  peso_kg: number | null
   prezzo_unita: number
   pack_size: number | null
   formato: ComparableListinoPrice['formato']
+}
+
+/** Peso confezione in kg da nome prodotto, unità o nota (es. 3kg, 250g, per 5kg). */
+export function parseProductWeightKg(
+  prodotto: string,
+  unita?: string | null,
+  note?: string | null,
+): number | null {
+  const parsedNote = parseListinoNoteParts(note)
+  const sources = [
+    prodotto,
+    unita ?? '',
+    parsedNote.unita ?? '',
+    parsedNote.humanTail ?? '',
+  ].filter((s) => s.trim().length > 0)
+
+  for (const source of sources) {
+    const kgMatch = source.match(/\b(\d+(?:[.,]\d+)?)\s*kg\b/i)
+    if (kgMatch) {
+      const kg = parseFloat(kgMatch[1]!.replace(',', '.'))
+      if (kg > 0 && kg <= 1000) return roundMoney(kg)
+    }
+
+    const gMatch = source.match(/\b(\d+(?:[.,]\d+)?)\s*g(?:r|rams?)?\b/i)
+    if (gMatch) {
+      const grams = parseFloat(gMatch[1]!.replace(',', '.'))
+      if (grams > 0 && grams <= 500_000) return roundMoney(grams / 1000)
+    }
+  }
+
+  return null
+}
+
+function resolveWeightBasedPrices(
+  listino: number,
+  pesoKg: number,
+  peerKgPrices: number[],
+): { prezzo_confezione: number; prezzo_kg: number } {
+  const perKgFromPack = roundMoney(listino / pesoKg)
+  const peer = medianPositive(peerKgPrices)
+
+  if (peer != null) {
+    if (nearRatio(perKgFromPack, peer)) {
+      return { prezzo_confezione: listino, prezzo_kg: perKgFromPack }
+    }
+    if (nearRatio(listino, peer)) {
+      return {
+        prezzo_confezione: roundMoney(listino * pesoKg),
+        prezzo_kg: listino,
+      }
+    }
+    if (
+      perKgFromPack >= 2 &&
+      perKgFromPack <= 150 &&
+      listino >= perKgFromPack * pesoKg * 0.85
+    ) {
+      return { prezzo_confezione: listino, prezzo_kg: perKgFromPack }
+    }
+    if (listino >= peer * pesoKg * 0.55) {
+      return { prezzo_confezione: listino, prezzo_kg: perKgFromPack }
+    }
+    return {
+      prezzo_confezione: roundMoney(listino * pesoKg),
+      prezzo_kg: listino,
+    }
+  }
+
+  if (listino >= 1.5 || pesoKg >= 0.2) {
+    return { prezzo_confezione: listino, prezzo_kg: perKgFromPack }
+  }
+
+  return {
+    prezzo_confezione: roundMoney(listino * pesoKg),
+    prezzo_kg: listino,
+  }
 }
 
 function detectPackSizeFromCompareRow(row: {
@@ -257,14 +334,28 @@ export function displayCompareRowPrices(
     prezzo_confronto?: number
     prezzo_attuale?: number
     unita?: string | null
+    note?: string | null
     pack_size?: number | null
     formato?: ComparableListinoPrice['formato']
   },
-  peerUnitPrices: number[] = [],
+  peerComparePrices: number[] = [],
 ): CompareRowDisplay {
   const listino = row.prezzo_listino ?? row.prezzo_attuale ?? 0
-  let unit = row.prezzo_confronto ?? row.prezzo_attuale ?? listino
-  const peerMedian = medianPositive(peerUnitPrices)
+  const unit = row.prezzo_confronto ?? row.prezzo_attuale ?? listino
+  const peerMedian = medianPositive(peerComparePrices)
+
+  const pesoKg = parseProductWeightKg(row.prodotto, row.unita, row.note)
+  if (pesoKg && pesoKg > 0 && listino > 0) {
+    const weightPrices = resolveWeightBasedPrices(listino, pesoKg, peerComparePrices)
+    return {
+      prezzo_confezione: weightPrices.prezzo_confezione,
+      prezzo_kg: weightPrices.prezzo_kg,
+      peso_kg: pesoKg,
+      prezzo_unita: weightPrices.prezzo_kg,
+      pack_size: null,
+      formato: 'singolo',
+    }
+  }
 
   if (
     row.formato &&
@@ -274,6 +365,8 @@ export function displayCompareRowPrices(
   ) {
     return {
       prezzo_confezione: listino,
+      prezzo_kg: null,
+      peso_kg: null,
       prezzo_unita: row.prezzo_confronto,
       pack_size: row.pack_size ?? detectPackSizeFromCompareRow({ ...row, unita: row.unita ?? null }),
       formato: row.formato,
@@ -298,6 +391,8 @@ export function displayCompareRowPrices(
     if (looksLikePackTotal) {
       return {
         prezzo_confezione: listino,
+        prezzo_kg: null,
+        peso_kg: null,
         prezzo_unita: perUnit,
         pack_size: packSize,
         formato: isListinoCaseUnitFormat(row.unita) ? 'cassa' : 'confezione',
@@ -310,6 +405,8 @@ export function displayCompareRowPrices(
     if (nearRatio(perUnit, peerMedian)) {
       return {
         prezzo_confezione: listino,
+        prezzo_kg: null,
+        peso_kg: null,
         prezzo_unita: perUnit,
         pack_size: packSize,
         formato: 'confezione',
@@ -318,7 +415,9 @@ export function displayCompareRowPrices(
   }
 
   return {
-    prezzo_confezione: null,
+    prezzo_confezione: listino,
+    prezzo_kg: null,
+    peso_kg: null,
     prezzo_unita: unit,
     pack_size: null,
     formato: 'singolo',
@@ -332,17 +431,40 @@ export function normalizeCompareDisplayRows<
     prezzo_confronto?: number
     prezzo_attuale?: number
     unita?: string | null
+    note?: string | null
     pack_size?: number | null
     formato?: ComparableListinoPrice['formato']
   },
 >(rows: T[]): Array<T & CompareRowDisplay> {
-  const tentativeUnits = rows.map((row) =>
-    displayCompareRowPrices(row).prezzo_unita,
-  )
+  const tentativeCompare = rows.map((row) => displayCompareRowPrices(row).prezzo_unita)
+
+  for (let pass = 0; pass < 3; pass++) {
+    const next: number[] = []
+    for (let i = 0; i < rows.length; i++) {
+      const peers = tentativeCompare.filter((_, j) => j !== i)
+      next.push(displayCompareRowPrices(rows[i]!, peers).prezzo_unita)
+    }
+    const changed = next.some((v, i) => Math.abs(v - tentativeCompare[i]!) > 0.009)
+    tentativeCompare.splice(0, tentativeCompare.length, ...next)
+    if (!changed) break
+  }
 
   return rows.map((row, index) => {
-    const peers = tentativeUnits.filter((_, j) => j !== index)
+    const peers = tentativeCompare.filter((_, j) => j !== index)
     const display = displayCompareRowPrices(row, peers)
     return { ...row, ...display }
   })
+}
+
+export function compareDisplayPrice(row: CompareRowDisplay): number {
+  return row.prezzo_kg ?? row.prezzo_unita
+}
+
+export function formatCompareWeightLabel(pesoKg: number | null | undefined): string | null {
+  if (!pesoKg || pesoKg <= 0) return null
+  if (pesoKg >= 1) {
+    const rounded = roundMoney(pesoKg)
+    return Number.isInteger(rounded) ? `${rounded} kg` : `${rounded} kg`
+  }
+  return `${Math.round(pesoKg * 1000)} g`
 }
