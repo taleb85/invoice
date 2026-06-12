@@ -22,6 +22,11 @@ import {
   productNamesMatchForVerifica,
   checkResultMatchesVerificaProdotto,
   resolveVerificaDisplayRows,
+  stripListinoOcrInvoiceHeaderFromProductName,
+  extractListinoInvoiceRefFromProductName,
+  findListinoFatturaRowByInvoiceRef,
+  listinoInvoiceRefsMatch,
+  cleanListinoProductNameForGrouping,
 } from '@/lib/listino-display'
 
 describe('parseListinoNoteParts', () => {
@@ -301,6 +306,69 @@ describe('isNonProductListinoRow', () => {
       },
     ])
     expect(Object.keys(grouped)).toHaveLength(1)
+  })
+})
+
+describe('stripListinoOcrInvoiceHeaderFromProductName', () => {
+  const ocrTitle =
+    'Invoice No. INV853038: Inv. No. INV853038 - Shpt. No. SH853041: Chardonnay Vigna San Francesco, Tasca (547877-22) 75cl'
+
+  it('strips invoice/shipment OCR prefix from product title', () => {
+    expect(stripListinoOcrInvoiceHeaderFromProductName(ocrTitle)).toBe(
+      'Chardonnay Vigna San Francesco, Tasca (547877-22) 75cl',
+    )
+  })
+
+  it('extracts invoice ref from OCR title', () => {
+    expect(extractListinoInvoiceRefFromProductName(ocrTitle)).toBe('INV853038')
+  })
+
+  it('groups Enotria OCR title under clean wine name', () => {
+    const grouped = buildListinoByProduct([
+      {
+        id: '1',
+        prodotto: ocrTitle,
+        prezzo: 33.93,
+        data_prezzo: '2025-09-22',
+        note: null,
+      },
+    ])
+    expect(Object.keys(grouped)).toEqual([
+      'Chardonnay Vigna San Francesco, Tasca (547877-22) 75cl',
+    ])
+  })
+
+  it('does not strip normal colon-separated product names', () => {
+    expect(stripListinoOcrInvoiceHeaderFromProductName('Wine: Red Bordeaux')).toBe('Wine: Red Bordeaux')
+  })
+})
+
+describe('findListinoFatturaRowByInvoiceRef', () => {
+  const rows = [
+    { id: 'f1', tipo: 'fattura', numero: 'INV853038', data: '2025-09-22' },
+    { id: 'f2', tipo: 'fattura', numero: 'INV900001', data: '2025-01-01' },
+    { id: 'b1', tipo: 'bolla', numero: 'SH853041', data: '2025-09-20' },
+  ]
+
+  it('matches fattura by invoice ref', () => {
+    expect(findListinoFatturaRowByInvoiceRef(rows, 'INV853038')?.id).toBe('f1')
+  })
+
+  it('prefers fattura on listino date hint', () => {
+    expect(
+      findListinoFatturaRowByInvoiceRef(
+        [
+          ...rows,
+          { id: 'f3', tipo: 'fattura', numero: 'INV853038', data: '2024-06-01' },
+        ],
+        'INV853038',
+        '2025-09-22',
+      )?.id,
+    ).toBe('f1')
+  })
+
+  it('matches flexible invoice number forms', () => {
+    expect(listinoInvoiceRefsMatch('853038', 'INV853038')).toBe(true)
   })
 })
 

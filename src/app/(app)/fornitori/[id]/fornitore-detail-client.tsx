@@ -39,6 +39,8 @@ import {
   listinoProductEntriesByLatestDateDesc,
   listinoGroupAliasNames,
   cleanListinoProductNameForGrouping,
+  extractListinoInvoiceRefFromProductName,
+  findListinoFatturaRowByInvoiceRef,
   listinoGroupAliasNamesForDisplay,
   listinoCodiceShownInTitle,
   isGenericListinoCodice,
@@ -5375,10 +5377,28 @@ function ListinoTab({
                   !listinoCodiceShownInTitle(prodotto, parsed.codice)
                 const showUnitaBadge = Boolean(parsed.unita)
                 const srcDoc = extractListinoSrcDocument(displayRow.note)
-                const fid = extractListinoSrcFatturaId(displayRow.note)
-                const originRow = srcDoc
+                let fid = extractListinoSrcFatturaId(displayRow.note)
+                let originRow = srcDoc
                   ? rows.find((r) => r.tipo === srcDoc.tipo && r.id === srcDoc.id)
                   : null
+                if (!originRow) {
+                  const invoiceRef =
+                    extractListinoInvoiceRefFromProductName(displayRow.prodotto) ??
+                    prezzi
+                      .map((r) => extractListinoInvoiceRefFromProductName(r.prodotto))
+                      .find(Boolean)
+                  if (invoiceRef) {
+                    const matched = findListinoFatturaRowByInvoiceRef(
+                      rows,
+                      invoiceRef,
+                      displayRow.data_prezzo,
+                    )
+                    if (matched) {
+                      originRow = matched
+                      fid = matched.id
+                    }
+                  }
+                }
                 const originLine = originRow
                   ? srcDoc?.tipo === 'bolla'
                     ? `Bolla ${originRow.numero ?? '—'} · ${formatDate(originRow.data)} · ${fornitoreNome}`

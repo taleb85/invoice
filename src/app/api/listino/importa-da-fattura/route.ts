@@ -53,7 +53,7 @@ Rules:
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
 import { extractPdfText } from '@/lib/pdf-parse-utils'
-import { isNonProductListinoRow } from '@/lib/listino-display'
+import { isNonProductListinoRow, cleanListinoProductNameForGrouping } from '@/lib/listino-display'
 import {
   existingListinoPricesForImport,
   inferCodiceFromProductName,
@@ -97,9 +97,11 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
         // Strip trailing punctuation (`.`, `,`, `:`, `;`, `-`) per evitare
         // che lo stesso prodotto venga raggruppato in 2 serie distinte
         // (`Beer Menabrea Blonde` vs `Beer Menabrea Blonde.`).
-        const prodottoNorm = String(i.prodotto)
-          .trim()
-          .replace(/[\s.,;:\-]+$/, '')
+        const prodottoNorm = cleanListinoProductNameForGrouping(
+          String(i.prodotto)
+            .trim()
+            .replace(/[\s.,;:\-]+$/, ''),
+        )
         const prezzoRaw =
           typeof i.prezzo === 'number' ? i.prezzo : parseFloat(String(i.prezzo)) || 0
         const quantitaRaw = parseOptionalPositiveNumber(i.quantita ?? i.qty ?? i.quantity)

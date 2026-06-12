@@ -219,12 +219,90 @@ function isAmbiguousListinoProductName(name: string): boolean {
   return false
 }
 
+/** Intestazione fattura/spedizione OCR finita nel campo `prodotto` (es. Enotria). */
+function listinoProductNameHasOcrInvoiceHeader(name: string): boolean {
+  return /\b(?:invoice\s+no\.?|inv\.?\s*no\.?)\b/i.test(name.trim())
+}
+
+/**
+ * Rimuove prefissi tipo «Invoice No. INV…: Inv. No. … - Shpt. No. …:» lasciando
+ * solo la descrizione articolo.
+ */
+export function stripListinoOcrInvoiceHeaderFromProductName(name: string): string {
+  const s = name.trim()
+  if (!listinoProductNameHasOcrInvoiceHeader(s)) return s
+  const parts = s.split(/\s*:\s*/)
+  if (parts.length < 2) return s
+  const head = parts.slice(0, -1).join(': ')
+  if (!/\b(?:invoice|inv\.?)\s+no\.?|\bshpt\.?\s+no\.?/i.test(head)) return s
+  return parts[parts.length - 1]!.trim()
+}
+
+/** Numero fattura OCR nel titolo prodotto (es. INV853038), se presente. */
+export function extractListinoInvoiceRefFromProductName(name: string): string | null {
+  const m = name.match(/\b(?:invoice\s+no\.?|inv\.?\s*no\.?)\s*:?\s*([A-Z]{0,4}\d[\w-]*)/i)
+  return m?.[1]?.trim().toUpperCase() ?? null
+}
+
+function normalizeListinoInvoiceRefForMatch(ref: string): string {
+  return ref.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+}
+
+/** Confronto flessibile INV853038 ↔ 853038 / INV-853038. */
+export function listinoInvoiceRefsMatch(stored: string, ref: string): boolean {
+  const a = normalizeListinoInvoiceRefForMatch(stored)
+  const b = normalizeListinoInvoiceRefForMatch(ref)
+  if (!a || !b) return false
+  if (a === b) return true
+  const stripInv = (s: string) => s.replace(/^INV/, '')
+  const aCore = stripInv(a)
+  const bCore = stripInv(b)
+  return aCore === bCore || a.endsWith(bCore) || b.endsWith(aCore)
+}
+
+type ListinoFatturaLookupRow = {
+  id: string
+  tipo: string
+  numero: string | null
+  data: string
+}
+
+/** Risolve la fattura d'origine quando manca `|listino_src_fattura:|` ma il numero è nel titolo OCR. */
+export function findListinoFatturaRowByInvoiceRef(
+  rows: ListinoFatturaLookupRow[],
+  invoiceRef: string,
+  dataHint?: string | null,
+): ListinoFatturaLookupRow | null {
+  const candidates = rows.filter(
+    (r) =>
+      r.tipo === 'fattura' &&
+      r.numero?.trim() &&
+      listinoInvoiceRefsMatch(r.numero, invoiceRef),
+  )
+  if (candidates.length === 0) return null
+  if (candidates.length === 1) return candidates[0]!
+  const hint = dataHint?.trim().slice(0, 10)
+  if (hint) {
+    const onDate = candidates.find((r) => r.data.slice(0, 10) === hint)
+    if (onDate) return onDate
+    const sorted = [...candidates].sort(
+      (a, b) =>
+        Math.abs(new Date(a.data).getTime() - new Date(hint).getTime()) -
+        Math.abs(new Date(b.data).getTime() - new Date(hint).getTime()),
+    )
+    return sorted[0]!
+  }
+  return [...candidates].sort((a, b) => b.data.localeCompare(a.data))[0]!
+}
+
 /** Pulisce descrizioni OCR prima di raggruppare o mostrare il titolo. */
 export function cleanListinoProductNameForGrouping(name: string): string {
-  return normalizeListinoProductName(name)
-    .replace(/^\d+\s+/, '')
-    .replace(/\s+units?\s*$/i, '')
-    .trim()
+  return stripListinoOcrInvoiceHeaderFromProductName(
+    normalizeListinoProductName(name)
+      .replace(/^\d+\s+/, '')
+      .replace(/\s+units?\s*$/i, '')
+      .trim(),
+  )
 }
 
 function significantListinoNameTokens(name: string): string[] {
@@ -357,6 +435,10 @@ export function listinoGroupAliasNamesForDisplay(
   const mainNorm = normalizeListinoProductName(displayLabel).toLowerCase()
   const mainCore = normalizeListinoProductName(stripParentheticalSuffix(displayLabel)).toLowerCase()
   return aliases.filter((alias) => {
+    if (listinoProductNameHasOcrInvoiceHeader(alias)) {
+      const cleaned = cleanListinoProductNameForGrouping(alias)
+      if (cleaned.toLowerCase() === mainNorm || cleaned.toLowerCase() === mainCore) return false
+    }
     if (aliasTokensSubsumedByMain(alias, displayLabel)) return false
     const full = normalizeListinoProductName(alias).toLowerCase()
     const core = normalizeListinoProductName(stripParentheticalSuffix(alias)).toLowerCase()
