@@ -234,7 +234,7 @@ export default function AnalisiPrezziPage() {
               },
               {
                 key: 'attenzione' as const,
-                value: data.attenuzione,
+                value: data.attenzione,
                 label: ap.kpiAttention,
                 valueClass: 'text-amber-400',
                 activeClass: 'border-amber-400/50 bg-amber-500/10 ring-1 ring-amber-400/25',
