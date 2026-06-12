@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   inferPackCountFromProductName,
   normalizeCompareBatch,
+  normalizeCompareDisplayRows,
   resolveComparableListinoPrice,
 } from '@/lib/listino-compare-normalize'
 
@@ -69,5 +70,41 @@ describe('normalizeCompareBatch', () => {
     expect(rows[0]!.prezzo_confronto).toBe(10.44)
     expect(rows[1]!.prezzo_confronto).toBe(10.25)
     expect(rows[2]!.prezzo_confronto).toBe(11.5)
+  })
+})
+
+describe('normalizeCompareDisplayRows', () => {
+  it('splits stale API rows using unita 6x75cl', () => {
+    const rows = normalizeCompareDisplayRows([
+      {
+        prodotto: 'Gavi di Gavi Minaia 25-Bergaglio 6/75',
+        prezzo_attuale: 10.25,
+        prezzo_listino: 10.25,
+        prezzo_confronto: 10.25,
+        unita: '6/75cl',
+        formato: 'singolo',
+      },
+      {
+        prodotto: 'Gavi di Gavi 2024 Bisio',
+        prezzo_attuale: 11.5,
+        prezzo_listino: 11.5,
+        prezzo_confronto: 11.5,
+        unita: 'pcs',
+        formato: 'singolo',
+      },
+      {
+        prodotto: 'Gavi di Gavi Minaia 23 Bergaglio',
+        prezzo_attuale: 60.06,
+        prezzo_listino: 60.06,
+        prezzo_confronto: 60.06,
+        unita: '6x75cl',
+        formato: 'singolo',
+      },
+    ])
+
+    expect(rows[2]!.prezzo_confezione).toBe(60.06)
+    expect(rows[2]!.prezzo_unita).toBe(10.01)
+    expect(rows[0]!.prezzo_confezione).toBeNull()
+    expect(rows[0]!.prezzo_unita).toBe(10.25)
   })
 })

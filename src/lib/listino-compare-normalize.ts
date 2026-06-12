@@ -226,3 +226,123 @@ export function normalizeCompareBatch(items: CompareNormalizeInput[]): Comparabl
     })
   })
 }
+
+export type CompareRowDisplay = {
+  prezzo_confezione: number | null
+  prezzo_unita: number
+  pack_size: number | null
+  formato: ComparableListinoPrice['formato']
+}
+
+function detectPackSizeFromCompareRow(row: {
+  unita: string | null | undefined
+  prodotto: string
+  prezzo_listino?: number
+  prezzo_attuale?: number
+  pack_size?: number | null
+}): number | null {
+  if (row.pack_size && row.pack_size >= 2) return row.pack_size
+  const fromUnita = parsePackSizeFromListinoUnita(row.unita)
+  if (fromUnita) return fromUnita
+  const listino = row.prezzo_listino ?? row.prezzo_attuale ?? 0
+  if (listino >= 18) return inferPackCountFromProductName(row.prodotto)
+  return null
+}
+
+/** Prezzi da mostrare in tabella confronto (anche se l'API non ha normalizzato). */
+export function displayCompareRowPrices(
+  row: {
+    prodotto: string
+    prezzo_listino?: number
+    prezzo_confronto?: number
+    prezzo_attuale?: number
+    unita?: string | null
+    pack_size?: number | null
+    formato?: ComparableListinoPrice['formato']
+  },
+  peerUnitPrices: number[] = [],
+): CompareRowDisplay {
+  const listino = row.prezzo_listino ?? row.prezzo_attuale ?? 0
+  let unit = row.prezzo_confronto ?? row.prezzo_attuale ?? listino
+  const peerMedian = medianPositive(peerUnitPrices)
+
+  if (
+    row.formato &&
+    row.formato !== 'singolo' &&
+    row.prezzo_confronto != null &&
+    row.prezzo_confronto < listino * 0.9
+  ) {
+    return {
+      prezzo_confezione: listino,
+      prezzo_unita: row.prezzo_confronto,
+      pack_size: row.pack_size ?? detectPackSizeFromCompareRow({ ...row, unita: row.unita ?? null }),
+      formato: row.formato,
+    }
+  }
+
+  const packSize = detectPackSizeFromCompareRow({
+    unita: row.unita ?? null,
+    prodotto: row.prodotto,
+    prezzo_listino: listino,
+    prezzo_attuale: row.prezzo_attuale,
+    pack_size: row.pack_size,
+  })
+
+  if (packSize && packSize >= 2 && listino > 0) {
+    const perUnit = roundMoney(listino / packSize)
+    const looksLikePackTotal =
+      listino >= 18 &&
+      listino >= perUnit * 1.8 &&
+      (peerMedian == null || listino > peerMedian * 1.6 || nearRatio(perUnit, peerMedian))
+
+    if (looksLikePackTotal) {
+      return {
+        prezzo_confezione: listino,
+        prezzo_unita: perUnit,
+        pack_size: packSize,
+        formato: isListinoCaseUnitFormat(row.unita) ? 'cassa' : 'confezione',
+      }
+    }
+  }
+
+  if (peerMedian != null && unit > peerMedian * 2.2 && packSize && packSize >= 2) {
+    const perUnit = roundMoney(listino / packSize)
+    if (nearRatio(perUnit, peerMedian)) {
+      return {
+        prezzo_confezione: listino,
+        prezzo_unita: perUnit,
+        pack_size: packSize,
+        formato: 'confezione',
+      }
+    }
+  }
+
+  return {
+    prezzo_confezione: null,
+    prezzo_unita: unit,
+    pack_size: null,
+    formato: 'singolo',
+  }
+}
+
+export function normalizeCompareDisplayRows<
+  T extends {
+    prodotto: string
+    prezzo_listino?: number
+    prezzo_confronto?: number
+    prezzo_attuale?: number
+    unita?: string | null
+    pack_size?: number | null
+    formato?: ComparableListinoPrice['formato']
+  },
+>(rows: T[]): Array<T & CompareRowDisplay> {
+  const tentativeUnits = rows.map((row) =>
+    displayCompareRowPrices(row).prezzo_unita,
+  )
+
+  return rows.map((row, index) => {
+    const peers = tentativeUnits.filter((_, j) => j !== index)
+    const display = displayCompareRowPrices(row, peers)
+    return { ...row, ...display }
+  })
+}

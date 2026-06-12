@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ChevronDown, ExternalLink, Loader2, RefreshCw, Search } from 'lucide-react'
 import { useToast } from '@/lib/toast-context'
@@ -23,6 +23,7 @@ import type {
   SupplierPriceHealth,
 } from '@/lib/price-intelligence'
 import { interpolateTemplate } from '@/lib/interpolate-template'
+import { normalizeCompareDisplayRows } from '@/lib/listino-compare-normalize'
 
 type DashboardData = {
   suppliers: SupplierPriceHealth[]
@@ -229,8 +230,13 @@ function SupplierProductsDetail({
   )
 }
 
+type CompareDisplayRow = ProductSupplierPriceRow & {
+  prezzo_confezione: number | null
+  prezzo_unita: number
+}
+
 function compareFormatoLabel(
-  row: ProductSupplierPriceRow,
+  row: CompareDisplayRow,
   ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi'],
 ): string {
   if (row.formato === 'confezione' && row.pack_size) {
@@ -290,7 +296,19 @@ function ProductPriceCompareSection({
     }
   }, [debouncedQuery])
 
-  const minPrice = comparison?.prezzo_minimo ?? null
+  const displayMatches = useMemo(() => {
+    if (!comparison?.matches.length) return []
+    const rows = normalizeCompareDisplayRows(comparison.matches) as CompareDisplayRow[]
+    return [...rows].sort((a, b) => a.prezzo_unita - b.prezzo_unita)
+  }, [comparison])
+
+  const minPrice =
+    displayMatches.length > 0
+      ? displayMatches[0]!.prezzo_unita
+      : comparison?.prezzo_minimo ?? null
+
+  const colConfezione = ap.compareColPrezzoConfezione || 'Prezzo confezione'
+  const colUnita = ap.compareColPrezzoUnita || 'Prezzo unità'
 
   return (
     <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
@@ -325,7 +343,7 @@ function ProductPriceCompareSection({
         <p className="mt-4 text-xs text-white/40">{ap.productSearchEmpty}</p>
       ) : null}
 
-      {!searchLoading && comparison && comparison.matches.length > 0 ? (
+      {!searchLoading && displayMatches.length > 0 ? (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[36rem] text-xs">
             <thead>
@@ -333,21 +351,21 @@ function ProductPriceCompareSection({
                 <th className="px-2 py-1.5 text-left font-semibold">{ap.tableColFornitore}</th>
                 <th className="px-2 py-1.5 text-left font-semibold">{ap.compareColProdottoMatch}</th>
                 <th className="px-2 py-1.5 text-left font-semibold">{ap.compareColFormato}</th>
-                <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColPrezzoConfezione}</th>
-                <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColPrezzoUnita}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{colConfezione}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{colUnita}</th>
                 <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColData}</th>
                 <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColTrend}</th>
                 <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColVsCheapest}</th>
               </tr>
             </thead>
             <tbody>
-              {comparison.matches.map((row) => {
-                const isCheapest = row.fornitore_id === comparison.fornitore_migliore_id
+              {displayMatches.map((row) => {
+                const isCheapest =
+                  minPrice != null && Math.abs(row.prezzo_unita - minPrice) < 0.01
                 const deltaPct =
                   minPrice != null && minPrice > 0 && !isCheapest
-                    ? Math.round(((row.prezzo_confronto - minPrice) / minPrice) * 10000) / 100
+                    ? Math.round(((row.prezzo_unita - minPrice) / minPrice) * 10000) / 100
                     : null
-                const isPackPrice = row.formato !== 'singolo'
                 return (
                   <tr
                     key={`${row.fornitore_id}|${row.prodotto}`}
@@ -373,12 +391,12 @@ function ProductPriceCompareSection({
                       {compareFormatoLabel(row, ap)}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/70">
-                      {isPackPrice
-                        ? formatCurrency(row.prezzo_listino, 'GBP', locale)
+                      {row.prezzo_confezione != null
+                        ? formatCurrency(row.prezzo_confezione, 'GBP', locale)
                         : '—'}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right font-semibold tabular-nums text-white">
-                      {formatCurrency(row.prezzo_confronto, 'GBP', locale)}
+                      {formatCurrency(row.prezzo_unita, 'GBP', locale)}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/50">
                       {row.data_prezzo}
