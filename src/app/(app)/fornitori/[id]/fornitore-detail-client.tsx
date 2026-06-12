@@ -180,7 +180,7 @@ const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'ver
 const MOBILE_SELF_HEADED_TABS: Tab[] = ['verifica', 'documenti']
 
 /** Altezza uniforme pulsanti barra sticky fornitore (desktop). */
-const SUPPLIER_DESKTOP_HEADER_ACTION_H = 'h-8'
+const SUPPLIER_DESKTOP_HEADER_ACTION_H = 'h-7'
 
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
@@ -6913,7 +6913,7 @@ function FornitoreDetailClient({
               <FornitoreAvatar
                 nome={fornitoreLabelAvatar}
                 logoUrl={fornitore.logo_url}
-                sizeClass="h-8 w-8 shrink-0"
+                sizeClass="h-7 w-7 shrink-0"
               />
               <div className="min-w-0 flex-1">
                 <h1 className="app-page-title truncate text-[13px] font-bold leading-tight text-app-fg">
@@ -6945,7 +6945,7 @@ function FornitoreDetailClient({
                   onClick={() => void runAnalisiCompletaFornitore()}
                   disabled={analisiCompletaBusy}
                   title={t.fornitori.analisiCompletaButtonTitle}
-                  className={`inline-flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} max-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/10 px-2.5 text-[11px] font-bold leading-none text-teal-100 transition-colors hover:bg-teal-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-none`}
+                  className={`inline-flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} max-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold leading-none text-teal-100 transition-colors hover:bg-teal-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-none`}
                 >
                   {analisiCompletaBusy ? (
                     <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
@@ -6975,7 +6975,7 @@ function FornitoreDetailClient({
               <Link
                 href={hrefWithReturnTo(`/bolle/new?fornitore_id=${fornitore.id}`, supplierReturnPath)}
                 onClick={() => saveScrollForListPath(supplierReturnPath)}
-                className={`app-glow-cyan inline-flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} shrink-0 items-center gap-1.5 rounded-md bg-app-cyan-500 px-3 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600`}
+                className={`app-glow-cyan inline-flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} shrink-0 items-center gap-1 rounded-md bg-app-cyan-500 px-2.5 text-[10px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 sm:text-[11px]`}
               >
                 <svg className="h-3.5 w-3.5 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -6986,7 +6986,7 @@ function FornitoreDetailClient({
                 href={hrefWithReturnTo(`/fornitori/${fornitore.id}/edit`, supplierReturnPath)}
                 onClick={() => saveScrollForListPath(supplierReturnPath)}
                 title={t.fornitori.editTitle}
-                className={`flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} w-8 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg`}
+                className={`flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} w-7 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg`}
               >
                 <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
