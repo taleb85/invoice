@@ -36,6 +36,7 @@ import {
   listinoOriginNoteWithSrc,
   LISTINO_SRC_FATTURA_MARK,
   buildListinoByProduct,
+  listinoProductEntriesByLatestDateDesc,
   listinoGroupAliasNames,
   listinoGroupAliasNamesForDisplay,
   listinoCodiceShownInTitle,
@@ -4431,6 +4432,10 @@ function ListinoTab({
 
   const nListinoProducts = Object.keys(listinoByProduct).length
   const nFilteredProducts = Object.keys(filteredListinoByProduct).length
+  const filteredListinoEntries = useMemo(
+    () => listinoProductEntriesByLatestDateDesc(filteredListinoByProduct),
+    [filteredListinoByProduct],
+  )
 
   const copy = () => {
     navigator.clipboard.writeText(MIGRATION_SQL).then(() => {
@@ -5286,7 +5291,7 @@ function ListinoTab({
           {/* Product rows */}
           {nListinoProducts > 0 && nFilteredProducts > 0 && (
             <div className={APP_SECTION_DIVIDE_ROWS}>
-              {Object.entries(filteredListinoByProduct).map(([prodotto, prezzi]) => {
+              {filteredListinoEntries.map(([prodotto, prezzi]) => {
                 const sorted = [...prezzi].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
                 const ultimo = sorted[sorted.length - 1]!
                 const displayRow = isPromoListinoRow({ prodotto, note: ultimo.note })

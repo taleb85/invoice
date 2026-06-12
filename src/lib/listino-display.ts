@@ -294,6 +294,19 @@ export function buildListinoByProduct<T extends { prodotto: string; note?: strin
   return out
 }
 
+/** Voci listino ordinate per data ultima rilevazione (più recenti prima). */
+export function listinoProductEntriesByLatestDateDesc<T extends { data_prezzo: string }>(
+  byProduct: Record<string, T[]>,
+): [string, T[]][] {
+  return Object.entries(byProduct).sort(([nameA, rowsA], [nameB, rowsB]) => {
+    const latestA = rowsA.reduce((best, r) => (r.data_prezzo > best ? r.data_prezzo : best), '')
+    const latestB = rowsB.reduce((best, r) => (r.data_prezzo > best ? r.data_prezzo : best), '')
+    const byDate = latestB.localeCompare(latestA)
+    if (byDate !== 0) return byDate
+    return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' })
+  })
+}
+
 type PriceRow = { id: string; data_prezzo: string; prezzo: number; note?: string | null }
 
 /** Latest row in calendar month of `dataYmd` (YYYY-MM-DD), excluding `excludeId` if set. */

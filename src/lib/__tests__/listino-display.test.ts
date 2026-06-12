@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildListinoByProduct,
+  listinoProductEntriesByLatestDateDesc,
   listinoDisplayLabelForGroup,
   listinoGroupAliasNames,
   listinoGroupAliasNamesForDisplay,
@@ -118,6 +119,20 @@ describe('listino product grouping', () => {
     expect(grouped['Goods/Services (807131)']).toHaveLength(1)
     expect(grouped['Goods/Services (809302)']).toHaveLength(1)
     expect(listinoDisplayLabelForGroup([rows[0]!])).toBe('Goods/Services (807131)')
+  })
+
+  it('orders product entries by latest data_prezzo descending', () => {
+    const byProduct = buildListinoByProduct([
+      { prodotto: 'Old Wine', note: 'codice:OLD1', data_prezzo: '2025-01-10' },
+      { prodotto: 'New Wine', note: 'codice:NEW1', data_prezzo: '2026-03-19' },
+      { prodotto: 'Mid Wine', note: 'codice:MID1', data_prezzo: '2025-08-05' },
+      { prodotto: 'Mid Wine RETURNS', note: 'codice:MID1', data_prezzo: '2025-06-01' },
+    ])
+    expect(listinoProductEntriesByLatestDateDesc(byProduct).map(([name]) => name)).toEqual([
+      'New Wine (NEW1)',
+      'Mid Wine (MID1)',
+      'Old Wine (OLD1)',
+    ])
   })
 })
 
