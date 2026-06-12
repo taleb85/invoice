@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { filterOutliersForTrend, isListinoCatalogRow } from '@/lib/listino-display'
-import { resolveComparableListinoPrice } from '@/lib/listino-compare-normalize'
+import { normalizeCompareBatch, resolveComparableListinoPrice } from '@/lib/listino-compare-normalize'
 
 export type PriceTrend = {
   prodotto: string
@@ -478,39 +478,29 @@ export async function compareProductPricesAcrossSuppliers(
     })
   }
 
-  const firstPassUnits = drafts.map((d) =>
-    resolveComparableListinoPrice({
+  const normalizedLatest = normalizeCompareBatch(
+    drafts.map((d) => ({
       prezzo: d.ultimo.prezzo,
       note: d.ultimo.note,
       prodotto: d.prodotto,
       otherPrices: d.otherPrices,
-    }).prezzo_confronto,
+    })),
   )
-  const sortedUnits = [...firstPassUnits].filter((p) => p > 0).sort((a, b) => a - b)
-  const searchMedianUnit =
-    sortedUnits.length > 0
-      ? sortedUnits.length % 2 === 1
-        ? sortedUnits[Math.floor(sortedUnits.length / 2)]!
-        : (sortedUnits[sortedUnits.length / 2 - 1]! + sortedUnits[sortedUnits.length / 2]!) / 2
-      : null
 
-  const matches: ProductSupplierPriceRow[] = drafts.map((d) => {
-    const normalized = resolveComparableListinoPrice({
-      prezzo: d.ultimo.prezzo,
-      note: d.ultimo.note,
-      prodotto: d.prodotto,
-      otherPrices: d.otherPrices,
-      searchMedianUnit,
-    })
+  const peerUnits = normalizedLatest.map((n) => n.prezzo_confronto)
+
+  const matches: ProductSupplierPriceRow[] = drafts.map((d, index) => {
+    const normalized = normalizedLatest[index]!
 
     let variazione: number | null = null
     if (d.precedente) {
+      const peers = peerUnits.filter((_, j) => j !== index)
       const prevNorm = resolveComparableListinoPrice({
         prezzo: d.precedente.prezzo,
         note: d.precedente.note,
         prodotto: d.prodotto,
         otherPrices: d.otherPrices,
-        searchMedianUnit,
+        peerUnitPrices: peers,
       })
       variazione = safePctChange(normalized.prezzo_confronto, prevNorm.prezzo_confronto)
     }

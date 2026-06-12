@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   inferPackCountFromProductName,
+  normalizeCompareBatch,
   resolveComparableListinoPrice,
 } from '@/lib/listino-compare-normalize'
 
@@ -15,42 +16,58 @@ describe('inferPackCountFromProductName', () => {
 })
 
 describe('resolveComparableListinoPrice', () => {
-  it('keeps per-bottle price when already near search median', () => {
+  it('keeps per-bottle price when already near peer units', () => {
     const r = resolveComparableListinoPrice({
       prezzo: 10.25,
-      note: null,
+      note: 'Codice: 25366125 — Unità: 6/75cl',
       prodotto: 'Gavi di Gavi Minaia 25-Bergaglio 6/75',
-      otherPrices: [10.1, 10.3],
-      searchMedianUnit: 10.5,
+      otherPrices: [10.25],
+      peerUnitPrices: [10.44, 11.5],
     })
     expect(r.prezzo_confronto).toBe(10.25)
-    expect(r.prezzo_listino).toBe(10.25)
     expect(r.formato).toBe('singolo')
   })
 
-  it('normalizes case price to per bottle using pack hint in note', () => {
+  it('normalizes 6x75cl case price using peer bottle prices', () => {
     const r = resolveComparableListinoPrice({
-      prezzo: 60.06,
-      note: 'codice:123 · unita:6x75cl',
-      prodotto: 'Gavi di Gavi Minaia 23 Bergaglio',
-      otherPrices: [58.5, 61.2],
-      searchMedianUnit: 10.5,
+      prezzo: 62.64,
+      note: 'codice:25366125 · unita:6x75cl · per 6x75cl',
+      prodotto: 'Gavi di Gavi Minaia 25 Bergaglio',
+      otherPrices: [62.64, 61.5],
+      peerUnitPrices: [10.25, 11.5],
     })
-    expect(r.prezzo_listino).toBe(60.06)
-    expect(r.prezzo_confronto).toBe(10.01)
+    expect(r.prezzo_listino).toBe(62.64)
+    expect(r.prezzo_confronto).toBe(10.44)
     expect(r.pack_size).toBe(6)
     expect(r.formato).toBe('confezione')
   })
+})
 
-  it('normalizes high case price using product name pack when median is known', () => {
-    const r = resolveComparableListinoPrice({
-      prezzo: 60.06,
-      note: null,
-      prodotto: 'Gavi di Gavi Minaia 23 Bergaglio 6/75',
-      otherPrices: [60.06],
-      searchMedianUnit: 11.5,
-    })
-    expect(r.prezzo_confronto).toBe(10.01)
-    expect(r.prezzo_listino).toBe(60.06)
+describe('normalizeCompareBatch', () => {
+  it('normalizes mixed gavi search results together', () => {
+    const rows = normalizeCompareBatch([
+      {
+        prezzo: 62.64,
+        note: 'codice:25366125 · unita:6x75cl',
+        prodotto: 'Gavi di Gavi Minaia 25 Bergaglio 6/75',
+        otherPrices: [62.64],
+      },
+      {
+        prezzo: 10.25,
+        note: 'Codice: 25366125 — Unità: 6/75cl',
+        prodotto: 'Gavi di Gavi Minaia 25-Bergaglio 6/75',
+        otherPrices: [10.25],
+      },
+      {
+        prezzo: 11.5,
+        note: null,
+        prodotto: 'Gavi di Gavi 2024 Bisio',
+        otherPrices: [11.5],
+      },
+    ])
+
+    expect(rows[0]!.prezzo_confronto).toBe(10.44)
+    expect(rows[1]!.prezzo_confronto).toBe(10.25)
+    expect(rows[2]!.prezzo_confronto).toBe(11.5)
   })
 })

@@ -1,6 +1,5 @@
 import {
   isListinoCaseUnitFormat,
-  listinoPerPiecePriceHint,
   parseListinoNoteParts,
   parsePackSizeFromListinoUnita,
 } from '@/lib/listino-display'
@@ -17,11 +16,24 @@ export type ComparableListinoPrice = {
   formato: 'singolo' | 'confezione' | 'cassa'
 }
 
+export type CompareNormalizeInput = {
+  prezzo: number
+  note: string | null | undefined
+  prodotto: string
+  otherPrices: number[]
+}
+
+type PackHint = {
+  packSize: number
+  /** unita_nx = 6x75cl (prezzo quasi sempre per confezione) */
+  source: 'unita_nx' | 'unita_case' | 'unita_slash' | 'product_name'
+}
+
 function roundMoney(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-function median(values: number[]): number | null {
+export function medianPositive(values: number[]): number | null {
   const sorted = values.filter((v) => Number.isFinite(v) && v > 0).sort((a, b) => a - b)
   if (sorted.length === 0) return null
   const mid = Math.floor(sorted.length / 2)
@@ -56,104 +68,112 @@ export function inferPackCountFromProductName(name: string): number | null {
   return null
 }
 
-function pickPackSplitPrice(
-  displayPrice: number,
-  packSize: number,
-  refUnit: number | null,
-): number | null {
-  if (packSize < 2 || !Number.isFinite(displayPrice) || displayPrice <= 0) return null
-  const perPiece = roundMoney(displayPrice / packSize)
-  if (perPiece <= 0 || perPiece >= displayPrice * 0.999) return null
-
-  if (refUnit != null && refUnit > 0) {
-    if (displayPrice >= refUnit * 0.85 && displayPrice <= refUnit * 1.25) {
-      return displayPrice
-    }
-    if (perPiece >= refUnit * 0.55 && perPiece <= refUnit * 1.65) {
-      return perPiece
-    }
-    return null
-  }
-
-  if (displayPrice >= 18 && perPiece <= displayPrice * 0.45) {
-    return perPiece
-  }
-  return null
+function parseSlashPackFromUnita(unita: string | null | undefined): number | null {
+  const u = (unita ?? '').trim()
+  if (!u) return null
+  const m = u.match(/^(\d{1,2})\s*\/\s*(\d{2,3})\s*cl$/i)
+  if (!m) return null
+  const n = parseInt(m[1]!, 10)
+  return n >= 2 && n <= 48 ? n : null
 }
 
-/**
- * Normalizza un prezzo listino a unità confrontabile (bottiglia/pezzo).
- * Usa nota, formato unità e contesto degli altri risultati della ricerca.
- */
-export function resolveComparableListinoPrice(opts: {
-  prezzo: number
-  note: string | null | undefined
-  prodotto: string
-  otherPrices: number[]
-  searchMedianUnit?: number | null
-}): ComparableListinoPrice {
-  const parsed = parseListinoNoteParts(opts.note)
+function detectListinoPackHint(
+  note: string | null | undefined,
+  prodotto: string,
+): PackHint | null {
+  const parsed = parseListinoNoteParts(note)
   const unita = parsed.unita?.trim() || null
-  const display = resolveListinoUnitPriceForDisplay(opts.prezzo, opts.note, opts.otherPrices)
-  const refUnit = opts.searchMedianUnit ?? median(opts.otherPrices)
 
-  const hint = listinoPerPiecePriceHint({
-    displayUnitPrice: display,
-    unita,
-    otherPrices: opts.otherPrices,
-  })
-  if (hint) {
-    return {
-      prezzo_listino: display,
-      prezzo_confronto: hint.perPiecePrice,
-      pack_size: hint.packSize,
-      unita,
-      formato: isListinoCaseUnitFormat(unita) ? 'cassa' : 'confezione',
-    }
-  }
-
-  const packFromUnita = parsePackSizeFromListinoUnita(unita)
-  if (packFromUnita) {
-    const split = pickPackSplitPrice(display, packFromUnita, refUnit)
-    if (split != null && split < display * 0.95) {
-      return {
-        prezzo_listino: display,
-        prezzo_confronto: split,
-        pack_size: packFromUnita,
-        unita,
-        formato: 'confezione',
-      }
-    }
+  const fromNx = parsePackSizeFromListinoUnita(unita)
+  if (fromNx) {
+    return { packSize: fromNx, source: 'unita_nx' }
   }
 
   if (isListinoCaseUnitFormat(unita)) {
     const caseMatch = unita?.match(/^[xX×]\s*(\d{1,3})/) ?? unita?.match(/^[xX×](\d{2,3})/)
     const caseSize = caseMatch ? parseInt(caseMatch[1]!, 10) : null
     if (caseSize && caseSize >= 2) {
-      const split = pickPackSplitPrice(display, caseSize, refUnit)
-      if (split != null && split < display * 0.95) {
-        return {
-          prezzo_listino: display,
-          prezzo_confronto: split,
-          pack_size: caseSize,
-          unita,
-          formato: 'cassa',
-        }
-      }
+      return { packSize: caseSize, source: 'unita_case' }
     }
   }
 
-  const packFromName = inferPackCountFromProductName(opts.prodotto)
-  if (packFromName) {
-    const split = pickPackSplitPrice(display, packFromName, refUnit)
-    if (split != null && split < display * 0.95) {
-      return {
-        prezzo_listino: display,
-        prezzo_confronto: split,
-        pack_size: packFromName,
-        unita,
-        formato: 'confezione',
-      }
+  const fromSlash = parseSlashPackFromUnita(unita)
+  if (fromSlash) {
+    return { packSize: fromSlash, source: 'unita_slash' }
+  }
+
+  const fromName = inferPackCountFromProductName(prodotto)
+  if (fromName) {
+    return { packSize: fromName, source: 'product_name' }
+  }
+
+  return null
+}
+
+function nearRatio(value: number, target: number, tolerance = 0.35): boolean {
+  if (!Number.isFinite(value) || !Number.isFinite(target) || target <= 0) return false
+  return value >= target * (1 - tolerance) && value <= target * (1 + tolerance)
+}
+
+function shouldUsePackTotalPrice(
+  displayPrice: number,
+  packSize: number,
+  hint: PackHint,
+  peerUnitPrices: number[],
+): boolean {
+  const perPiece = roundMoney(displayPrice / packSize)
+  if (perPiece <= 0 || perPiece >= displayPrice * 0.999) return false
+
+  const peerMedian = medianPositive(peerUnitPrices)
+
+  if (hint.source === 'unita_nx' || hint.source === 'unita_case') {
+    if (peerMedian == null) {
+      return displayPrice >= 15 && displayPrice / perPiece >= 2
+    }
+    if (nearRatio(displayPrice, peerMedian)) return false
+    if (nearRatio(perPiece, peerMedian)) return true
+    if (nearRatio(displayPrice, peerMedian * packSize, 0.25)) return true
+    return displayPrice > peerMedian * 2.2
+  }
+
+  if (peerMedian == null) {
+    return displayPrice >= 18 && displayPrice / perPiece >= 2.5
+  }
+  if (nearRatio(displayPrice, peerMedian)) return false
+  if (nearRatio(perPiece, peerMedian)) return true
+  if (nearRatio(displayPrice, peerMedian * packSize, 0.25)) return true
+  return false
+}
+
+/**
+ * Normalizza un prezzo listino a unità confrontabile (bottiglia/pezzo).
+ * `peerUnitPrices` = altri prezzi unitari già stimati nella stessa ricerca (non lo storico grezzo).
+ */
+export function resolveComparableListinoPrice(
+  opts: CompareNormalizeInput & {
+    peerUnitPrices?: number[]
+    searchMedianUnit?: number | null
+  },
+): ComparableListinoPrice {
+  const parsed = parseListinoNoteParts(opts.note)
+  const unita = parsed.unita?.trim() || null
+  const display = resolveListinoUnitPriceForDisplay(opts.prezzo, opts.note, opts.otherPrices)
+  const peerUnitPrices =
+    opts.peerUnitPrices ??
+    (opts.searchMedianUnit != null && opts.searchMedianUnit > 0 ? [opts.searchMedianUnit] : [])
+
+  const packHint = detectListinoPackHint(opts.note, opts.prodotto)
+  if (packHint && shouldUsePackTotalPrice(display, packHint.packSize, packHint, peerUnitPrices)) {
+    const perPiece = roundMoney(display / packHint.packSize)
+    return {
+      prezzo_listino: display,
+      prezzo_confronto: perPiece,
+      pack_size: packHint.packSize,
+      unita,
+      formato:
+        packHint.source === 'unita_case' || isListinoCaseUnitFormat(unita)
+          ? 'cassa'
+          : 'confezione',
     }
   }
 
@@ -164,4 +184,45 @@ export function resolveComparableListinoPrice(opts: {
     unita,
     formato: 'singolo',
   }
+}
+
+/**
+ * Normalizza un batch di risultati ricerca con convergenza sui prezzi unitari tra peer.
+ */
+export function normalizeCompareBatch(items: CompareNormalizeInput[]): ComparableListinoPrice[] {
+  if (items.length === 0) return []
+
+  let unitCandidates = items.map((item) => {
+    const display = resolveListinoUnitPriceForDisplay(item.prezzo, item.note, item.otherPrices)
+    const hint = detectListinoPackHint(item.note, item.prodotto)
+    if (!hint) return display
+    const perPiece = roundMoney(display / hint.packSize)
+    if (hint.source === 'unita_nx' || hint.source === 'unita_case') {
+      return perPiece
+    }
+    return display
+  })
+
+  for (let pass = 0; pass < 3; pass++) {
+    const next: number[] = []
+    for (let i = 0; i < items.length; i++) {
+      const peers = unitCandidates.filter((_, j) => j !== i)
+      const normalized = resolveComparableListinoPrice({
+        ...items[i]!,
+        peerUnitPrices: peers,
+      })
+      next.push(normalized.prezzo_confronto)
+    }
+    const changed = next.some((v, i) => Math.abs(v - unitCandidates[i]!) > 0.009)
+    unitCandidates = next
+    if (!changed) break
+  }
+
+  return items.map((item, i) => {
+    const peers = unitCandidates.filter((_, j) => j !== i)
+    return resolveComparableListinoPrice({
+      ...item,
+      peerUnitPrices: peers,
+    })
+  })
 }
