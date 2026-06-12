@@ -165,8 +165,8 @@ describe('listinoNoteTailForDisplay', () => {
   })
 
   it('keeps Origine when skipOrigin is false', () => {
-    const tail = 'Origine: Fattura SN8121977 — 2026-'
-    expect(listinoNoteTailForDisplay(tail)).toBe('Origine: Fattura SN8121977 · 2026-')
+    const tail = 'Origine: Fattura SN8121977 — promo estate'
+    expect(listinoNoteTailForDisplay(tail)).toBe('Origine: Fattura SN8121977 · promo estate')
   })
 
   it('returns null for empty tail', () => {
@@ -177,6 +177,12 @@ describe('listinoNoteTailForDisplay', () => {
   it('hides year-only OCR fragments', () => {
     expect(listinoNoteTailForDisplay('2026-')).toBeNull()
     expect(listinoNoteTailForDisplay('Origine: Fattura SN8121977 — 2026-', { skipOrigin: true })).toBeNull()
+  })
+
+  it('hides ISO date fragments already shown in the price column', () => {
+    expect(listinoNoteTailForDisplay('2026-05-08')).toBeNull()
+    expect(listinoNoteTailForDisplay('Origine: Fattura SN8121977 — 2026-05-08', { skipOrigin: true })).toBeNull()
+    expect(listinoNoteTailForDisplay('promo estate — 2026-05-08')).toBe('promo estate')
   })
 })
 

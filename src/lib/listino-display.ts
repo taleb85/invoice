@@ -249,6 +249,14 @@ export function listinoGroupAliasNamesForDisplay(
   })
 }
 
+function isListinoNoteDateOnlyPart(part: string): boolean {
+  const p = part.trim()
+  if (/^\d{4}-?$/.test(p)) return true
+  if (/^\d{4}-\d{2}-\d{2}$/.test(p)) return true
+  if (/^\d{4}-\d{2}$/.test(p)) return true
+  return false
+}
+
 /** Resto nota listino senza «Origine:» se già mostrata come link in riga. */
 export function listinoNoteTailForDisplay(
   humanTail: string | null | undefined,
@@ -262,9 +270,10 @@ export function listinoNoteTailForDisplay(
   if (opts?.skipOrigin) {
     parts = parts.filter((p) => !/^Origine(\s+listino)?\s*:/i.test(p))
   }
+  parts = parts.filter((p) => !isListinoNoteDateOnlyPart(p))
   const joined = parts.join(' · ').trim()
   if (!joined) return null
-  if (/^\d{4}-?$/.test(joined)) return null
+  if (isListinoNoteDateOnlyPart(joined)) return null
   return joined
 }
 
