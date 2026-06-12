@@ -754,54 +754,49 @@ function SupplierDesktopKpiGrid({
           key={k.label}
           type="button"
           onClick={() => onTabChange(k.tab)}
-          className="supplier-desktop-kpi-card group relative flex h-full min-h-[56px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98] sm:min-h-[60px] lg:min-h-[118px] xl:min-h-[136px]"
+          className="supplier-desktop-kpi-card group relative flex h-full min-h-[48px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98] sm:min-h-[50px] lg:min-h-[100px] xl:min-h-[118px]"
           style={{
             boxShadow: supplierDesktopKpiOuterShadow(),
             ['--supplier-kpi-rgb' as string]: hexToRgbTuple(k.accentHex),
           }}
         >
-          <div className="relative z-[1] flex min-h-0 flex-1 flex-col p-1.5 sm:p-2 lg:p-2.5 xl:p-3">
+          <div className="relative z-[1] flex min-h-0 flex-1 flex-col p-1 sm:p-1.5 lg:p-2 xl:p-2.5">
             {/* Compatto sotto lg: icona+label a sinistra, valore a destra */}
             <div className="flex h-full items-center justify-between gap-1 lg:hidden">
-              <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center sm:h-6 sm:w-6 [&>svg]:h-3 [&>svg]:w-3 sm:[&>svg]:h-3.5 sm:[&>svg]:w-3.5">
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center sm:h-[1.125rem] sm:w-[1.125rem] [&>svg]:h-2.5 [&>svg]:w-2.5 sm:[&>svg]:h-3 sm:[&>svg]:w-3">
                   {k.icon}
                 </span>
-                <div className="min-w-0">
-                  <p className="min-w-0 truncate text-[8px] font-semibold uppercase tracking-wide text-app-fg-muted sm:text-[9px]">
-                    {k.label}
-                  </p>
-                  <p className={`mt-0.5 line-clamp-1 text-[9px] font-medium leading-tight sm:text-[10px] ${k.subColor}`}>
-                    {k.sub}
-                  </p>
-                </div>
+                <p className="min-w-0 truncate text-[8px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                  {k.label}
+                </p>
               </div>
-              <p className="shrink-0 text-xs font-bold tabular-nums leading-none tracking-tight text-white sm:text-sm">
+              <p className="shrink-0 text-[11px] font-bold tabular-nums leading-none tracking-tight text-white sm:text-xs">
                 {k.value}
               </p>
             </div>
             {/* Desktop largo: layout verticale */}
             <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-              <div className={`flex min-h-0 shrink-0 items-center justify-between gap-2 pb-1.5 lg:min-h-[2rem] xl:min-h-[2.5rem] xl:pb-2 ${k.headerRule}`}>
-                <p className="min-w-0 flex-1 pr-1 text-left text-[10px] font-semibold uppercase leading-snug tracking-wider text-app-fg-muted line-clamp-2 xl:text-[11px]">
+              <div className={`flex min-h-0 shrink-0 items-center justify-between gap-1.5 pb-1 lg:min-h-[1.75rem] xl:min-h-[2rem] xl:pb-1.5 ${k.headerRule}`}>
+                <p className="min-w-0 flex-1 pr-0.5 text-left text-[9px] font-semibold uppercase leading-snug tracking-wider text-app-fg-muted line-clamp-2 xl:text-[10px]">
                   {k.label}
                 </p>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center xl:h-8 xl:w-8 [&>svg]:h-[1.05rem] [&>svg]:w-[1.05rem] xl:[&>svg]:h-[1.2rem] xl:[&>svg]:w-[1.2rem] [&>svg]:shrink-0">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center xl:h-7 xl:w-7 [&>svg]:h-4 [&>svg]:w-4 xl:[&>svg]:h-[1.05rem] xl:[&>svg]:w-[1.05rem] [&>svg]:shrink-0">
                   {k.icon}
                 </span>
               </div>
-              <div className="flex min-h-0 flex-1 flex-col justify-end gap-0.5 pt-1 xl:gap-1 xl:pt-1.5">
-                <div className="flex min-h-[2rem] shrink-0 flex-col justify-end xl:min-h-[2.85rem]">
-                  <p className={`line-clamp-2 text-left text-[10px] font-medium leading-snug xl:text-[11px] ${k.subColor}`}>{k.sub}</p>
+              <div className="flex min-h-0 flex-1 flex-col justify-end gap-0.5 pt-0.5 xl:pt-1">
+                <div className="flex min-h-[1.5rem] shrink-0 flex-col justify-end xl:min-h-[2rem]">
+                  <p className={`line-clamp-2 text-left text-[9px] font-medium leading-snug xl:text-[10px] ${k.subColor}`}>{k.sub}</p>
                 </div>
                 <div className="flex shrink-0 items-end justify-between gap-1">
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="truncate text-lg font-bold tabular-nums leading-none tracking-tight text-app-fg xl:text-xl">{k.value}</p>
+                    <p className="truncate text-base font-bold tabular-nums leading-none tracking-tight text-app-fg xl:text-lg">{k.value}</p>
                     {k.valueSupplement ? (
-                      <p className="mt-0.5 truncate text-[9px] font-medium leading-tight text-app-fg-muted xl:text-[10px]">{k.valueSupplement}</p>
+                      <p className="mt-0.5 truncate text-[8px] font-medium leading-tight text-app-fg-muted xl:text-[9px]">{k.valueSupplement}</p>
                     ) : null}
                   </div>
-                  <svg className={`mb-0.5 h-3 w-3 shrink-0 self-end transition-colors xl:h-3.5 xl:w-3.5 ${k.chevronClass} ${k.chevronHoverClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg className={`mb-0.5 h-2.5 w-2.5 shrink-0 self-end transition-colors xl:h-3 xl:w-3 ${k.chevronClass} ${k.chevronHoverClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -7178,7 +7173,7 @@ function FornitoreDetailClient({
             </div>
           </div>
 
-          <div className="border-t border-app-line-35 px-2 pb-2 pt-2 sm:px-2.5 md:pb-2.5 md:pt-2.5">
+          <div className="border-t border-app-line-35 px-2 pb-1.5 pt-1.5 sm:px-2.5 md:pb-2 md:pt-2">
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
           </div>
         </div>

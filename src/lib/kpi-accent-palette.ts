@@ -7,7 +7,7 @@
  * Griglia KPI scheda fornitore desktop (6 tile): 2 → 3 → 6 colonne.
  */
 export const SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS =
-  'mb-0 grid w-full max-w-none grid-cols-2 gap-1.5 sm:gap-2 md:grid-cols-3 md:gap-2 lg:mb-4 lg:gap-2.5 xl:mb-5 xl:grid-cols-6 xl:gap-2'
+  'mb-0 grid w-full max-w-none grid-cols-2 gap-1 sm:gap-1.5 md:grid-cols-3 lg:mb-3 lg:gap-2 xl:mb-4 xl:grid-cols-6 xl:gap-1.5'
 
 /**
  * Dashboard operatore: **5 KPI** (senza tile Fornitori).
