@@ -5435,7 +5435,7 @@ function ListinoTab({
                     id={`listino-prod-${listinoScrollKey}`}
                     className={`group scroll-mt-24 border-l-4 ${APP_SECTION_TABLE_ROW_HOVER} ${rowAccentBorder}`}
                   >
-                    <div className="flex flex-col gap-1.5 px-2.5 py-2 sm:px-3 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start md:gap-x-3 md:gap-y-1.5 md:py-2 md:px-3 lg:gap-x-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(7rem,auto)] xl:gap-5 xl:py-2.5 xl:pl-4 xl:pr-5">
+                    <div className="flex flex-col gap-1.5 px-2.5 py-2 sm:px-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start md:gap-x-3 md:gap-y-1 md:py-2 md:px-3 lg:gap-x-4 xl:grid-cols-[minmax(0,1.4fr)_auto_minmax(0,1.15fr)_minmax(6.5rem,auto)] xl:gap-x-5 xl:py-2.5 xl:pl-4 xl:pr-5">
                       {/* ── COLONNA 1: Nome Prodotto + Codice/Unità ── */}
                       <div className="min-w-0 xl:pr-2">
                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -5462,7 +5462,7 @@ function ListinoTab({
                               ) : null}
                             </div>
                           ) : null}
-                          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1 xl:hidden">
+                          <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1 md:hidden">
                             {isPromo ? (
                               <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
                             ) : hasAnomaly ? (
@@ -5502,83 +5502,79 @@ function ListinoTab({
                         ) : null}
                       </div>
 
-                      {/* ── COLONNA 2: Prezzo + Status + Metadati + Rekki ── */}
-                      <div className="min-w-0 flex flex-col gap-1.5 border-t border-app-line-22/90 pt-1.5 md:border-t-0 md:pt-0 lg:gap-2 xl:gap-2.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p
-                              className={`text-lg font-bold font-mono tabular-nums tracking-tight sm:text-xl lg:text-2xl xl:text-[1.65rem] ${
-                                hasAnomaly
-                                  ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
-                                  : listinoPriceStale
-                                    ? 'text-app-fg-muted'
-                                    : 'text-white'
+                      {/* ── COLONNA 2: Prezzo ── */}
+                      <div className="flex flex-col gap-0.5 border-t border-app-line-22/90 pt-1.5 md:col-start-2 md:border-t-0 md:items-end md:pt-0 md:text-right">
+                        <p
+                          className={`text-lg font-bold font-mono tabular-nums tracking-tight sm:text-xl lg:text-xl xl:text-[1.65rem] ${
+                            hasAnomaly
+                              ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
+                              : listinoPriceStale
+                                ? 'text-app-fg-muted'
+                                : 'text-white'
+                          }`}
+                        >
+                          {fmtMoney(displayUnitPrice)}
+                        </p>
+                        {perPieceHint ? (
+                          <p className="text-[10px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-[11px]">
+                            {t.fornitori.listinoPerPiecePrice
+                              .replace('{price}', fmtMoney(perPieceHint.perPiecePrice))
+                              .replace('{n}', String(perPieceHint.packSize))}
+                          </p>
+                        ) : null}
+                        <p className="text-[10px] font-medium text-app-fg-muted">
+                          {formatDateLib(displayRow.data_prezzo, locale, timezone, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                          {sorted.length > 1 ? (
+                            <span className="hidden xl:inline">
+                              {' '}
+                              · {t.fornitori.listinoHistoryDepth.replace('{n}', String(sorted.length - 1))}
+                            </span>
+                          ) : null}
+                        </p>
+                        <div className="mt-0.5 hidden flex-wrap items-center justify-end gap-1 md:flex">
+                          {ref && Math.abs(priceDelta) > 0.001 ? (
+                            <span
+                              className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                                up
+                                  ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40'
+                                  : 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
                               }`}
                             >
-                              {fmtMoney(displayUnitPrice)}
-                            </p>
-                            {perPieceHint ? (
-                              <p className="mt-0.5 text-[11px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-xs">
-                                {t.fornitori.listinoPerPiecePrice
-                                  .replace('{price}', fmtMoney(perPieceHint.perPiecePrice))
-                                  .replace('{n}', String(perPieceHint.packSize))}
-                              </p>
-                            ) : null}
-                            <div className="mt-0.5 text-[10px] font-medium text-app-fg-muted xl:hidden">
-                              {formatDateLib(displayRow.data_prezzo, locale, timezone, {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 flex-col items-end gap-0.5">
-                            {ref && Math.abs(priceDelta) > 0.001 ? (
-                              <span
-                                className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums lg:rounded-md lg:px-2 lg:text-[11px] ${
-                                  up
-                                    ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40'
-                                    : 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-                                }`}
-                              >
-                                {up ? '▲' : '▼'}
-                                {fmtMoney(Math.abs(priceDelta))}
-                                <span className="opacity-70">({pctLabel})</span>
-                              </span>
-                            ) : null}
-                            <div className="hidden flex-wrap items-center justify-end gap-1 xl:flex">
-                              {isPromo ? (
-                                <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
-                              ) : hasAnomaly ? (
-                                <StatusBadge
-                                  tone="red"
-                                  className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"
-                                >
-                                  {t.fornitori.listinoRowBadgeAnomaly}
-                                </StatusBadge>
-                              ) : ref ? (
-                                <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
-                              ) : null}
-                              {rekkiLinked && ultimo.rekki_product_id ? (
-                                <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide">
-                                  <GlyphCheck className="h-3 w-3" aria-hidden />
-                                  Rekki
-                                </StatusBadge>
-                              ) : null}
-                            </div>
-                            {rekkiLinked && ultimo.rekki_product_id ? (
-                              <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide xl:hidden">
-                                <GlyphCheck className="h-3 w-3" aria-hidden />
-                                Rekki
-                              </StatusBadge>
-                            ) : null}
-                          </div>
+                              {up ? '▲' : '▼'}
+                              {fmtMoney(Math.abs(priceDelta))}
+                              <span className="opacity-70">({pctLabel})</span>
+                            </span>
+                          ) : null}
+                          {isPromo ? (
+                            <StatusBadge tone="orange">{t.fornitori.listinoRowBadgePromo}</StatusBadge>
+                          ) : hasAnomaly ? (
+                            <StatusBadge
+                              tone="red"
+                              className={hasAnomaly ? '!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45' : ''}
+                            >
+                              {t.fornitori.listinoRowBadgeAnomaly}
+                            </StatusBadge>
+                          ) : ref ? (
+                            <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
+                          ) : null}
+                          {rekkiLinked && ultimo.rekki_product_id ? (
+                            <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide">
+                              <GlyphCheck className="h-3 w-3" aria-hidden />
+                              Rekki
+                            </StatusBadge>
+                          ) : null}
                         </div>
+                      </div>
 
-                        {/* Riga Stato Anomalie */}
+                      {/* ── COLONNA 3: Stato + origine + Rekki (affiancati) ── */}
+                      <div className="min-w-0 flex flex-wrap content-start items-stretch gap-1.5 border-t border-app-line-22/90 pt-1.5 md:col-start-3 md:border-t-0 md:pt-0">
                         {summaryLine ? (
-                          <div className={`rounded px-2 py-1 lg:px-2.5 lg:py-1.5 ${hasAnomaly ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]' : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'}`}>
-                            <p className={`flex items-start gap-1 text-[10px] font-semibold leading-tight lg:text-xs ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
+                          <div className={`min-w-0 flex-[1_1_calc(50%-0.375rem)] rounded px-2 py-1 ${hasAnomaly ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]' : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'}`}>
+                            <p className={`flex items-start gap-1 text-[10px] font-semibold leading-tight ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
                               {hasAnomaly ? (
                                 <GlyphWarningTriangle className="mt-0.5 h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" aria-hidden />
                               ) : (
@@ -5593,31 +5589,15 @@ function ListinoTab({
                         ) : null}
 
                         {listinoPriceStale ? (
-                          <div className="rounded border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-2 py-1 lg:px-2.5 lg:py-1.5">
-                            <p className="text-[9px] font-bold uppercase tracking-wide text-amber-200 lg:text-[10px]">
+                          <div className="min-w-0 flex-[1_1_calc(50%-0.375rem)] rounded border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-2 py-1">
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-amber-200">
                               {t.fornitori.listinoPriceStaleBadge}
                             </p>
-                            <p className="mt-0.5 line-clamp-1 text-[9px] leading-snug text-amber-300/80 lg:line-clamp-none">
+                            <p className="mt-0.5 line-clamp-2 text-[9px] leading-snug text-amber-300/80">
                               {t.fornitori.listinoPriceStaleHint}
                             </p>
                           </div>
                         ) : null}
-
-                        {/* Metadati (desktop) — su mobile data/unità accanto al prezzo */}
-                        <div className="hidden flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-app-fg-muted xl:flex">
-                          <span className="font-medium">
-                            {formatDateLib(displayRow.data_prezzo, locale, timezone, {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </span>
-                          {sorted.length > 1 ? (
-                            <span>
-                              · {t.fornitori.listinoHistoryDepth.replace('{n}', String(sorted.length - 1))}
-                            </span>
-                          ) : null}
-                        </div>
 
                         {originLine ? (
                           /*
@@ -5634,42 +5614,28 @@ function ListinoTab({
                             openInvoiceQ.delete('bolla')
                             const openInvoiceHref = `${pathname}?${openInvoiceQ.toString()}`
                             return (
-                              <>
-                                <p className="text-[10px] leading-snug font-medium text-violet-300 xl:hidden">
-                                  <Link
-                                    href={openInvoiceHref}
-                                    scroll={false}
-                                    className="underline decoration-violet-500/40 underline-offset-2 transition-colors hover:text-violet-200 hover:decoration-violet-300"
-                                  >
-                                    {originLineMobile ?? originLine}
-                                  </Link>
-                                </p>
-                                <p className="hidden text-xs leading-snug font-medium text-violet-300 xl:block">
-                                  <Link
-                                    href={openInvoiceHref}
-                                    scroll={false}
-                                    className="underline decoration-violet-500/40 underline-offset-2 transition-colors hover:text-violet-200 hover:decoration-violet-300"
-                                  >
-                                    {originLine}
-                                  </Link>
-                                </p>
-                              </>
+                              <p className="min-w-0 flex-[1_1_100%] text-[10px] leading-snug font-medium text-violet-300 md:flex-[1_1_calc(50%-0.375rem)] xl:text-[11px]">
+                                <Link
+                                  href={openInvoiceHref}
+                                  scroll={false}
+                                  className="underline decoration-violet-500/40 underline-offset-2 transition-colors hover:text-violet-200 hover:decoration-violet-300"
+                                >
+                                  <span className="xl:hidden">{originLineMobile ?? originLine}</span>
+                                  <span className="hidden xl:inline">{originLine}</span>
+                                </Link>
+                              </p>
                             )
                           })() : (
-                            <>
-                              <p className="text-[10px] leading-snug font-medium text-violet-300 xl:hidden">
-                                {originLineMobile ?? originLine}
-                              </p>
-                              <p className="hidden text-xs leading-snug font-medium text-violet-300 xl:block">
-                                {originLine}
-                              </p>
-                            </>
+                            <p className="min-w-0 flex-[1_1_100%] text-[10px] leading-snug font-medium text-violet-300 md:flex-[1_1_calc(50%-0.375rem)] xl:text-[11px]">
+                              <span className="xl:hidden">{originLineMobile ?? originLine}</span>
+                              <span className="hidden xl:inline">{originLine}</span>
+                            </p>
                           )
                         ) : null}
 
                         {/* Codice Rekki inline */}
                         {rekkiLinked && !readOnly ? (
-                          <div className="flex items-center gap-1.5 rounded bg-violet-950/20 px-2 py-1 border border-[rgba(34,211,238,0.15)] lg:gap-2 lg:rounded-md lg:px-2.5 lg:py-1.5">
+                          <div className="flex min-w-0 w-full flex-[1_1_100%] items-center gap-1.5 rounded bg-violet-950/20 px-2 py-1 border border-[rgba(34,211,238,0.15)] md:flex-[1_1_calc(50%-0.375rem)]">
                             <span className="text-[10px] font-bold uppercase tracking-wide text-violet-300/80">
                               Rekki ID:
                             </span>
@@ -5755,7 +5721,7 @@ function ListinoTab({
                         ) : null}
 
                         {!readOnly ? (
-                          <div className="flex items-center gap-1.5 pt-0.5 xl:hidden">
+                          <div className="flex min-w-0 w-full flex-[1_1_100%] items-center gap-1.5 md:flex-[1_1_calc(50%-0.375rem)] xl:hidden">
                             <Link
                               href={verificaHref}
                               className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-cyan-600/20 px-2 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30 touch-manipulation"
@@ -5788,8 +5754,8 @@ function ListinoTab({
                         ) : null}
                       </div>
 
-                      {/* ── COLONNA 3: Azioni (solo xl+) ── */}
-                      <div className="hidden min-w-0 flex-col items-end gap-2 border-l border-app-line-22/70 pl-4 xl:flex">
+                      {/* ── COLONNA 4: Azioni (solo xl+) ── */}
+                      <div className="hidden min-w-0 flex-col items-end justify-center gap-2 border-l border-app-line-22/70 pl-3 xl:col-start-4 xl:flex">
                         {!readOnly ? (
                           <>
                             <Link
