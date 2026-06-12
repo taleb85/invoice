@@ -5378,36 +5378,26 @@ function ListinoTab({
                 const listinoScrollKey = listinoGroupKey({ prodotto, note: displayRow.note })
                 const verificaQ = new URLSearchParams(searchParams.toString())
                 fornitoreSupplierClearDocParams(verificaQ)
+                verificaQ.delete('listino_scroll')
+                verificaQ.delete('listino_focus')
+                verificaQ.delete('verifica_prodotto')
+                verificaQ.delete('verifica_codice')
+                verificaQ.delete('apri_estratto')
+                verificaQ.delete('stato')
+
                 let verificaHref: string
                 if (hasPriceAnomalyRecord) {
+                  /** Anomalia salvata in DB: pannello in cima al listino. */
                   verificaQ.set('tab', 'listino')
                   verificaQ.set('listino_focus', prodotto)
-                  verificaQ.delete('listino_scroll')
-                  verificaQ.delete('stato')
-                  verificaQ.delete('verifica_prodotto')
-                  verificaQ.delete('verifica_codice')
-                  verificaQ.delete('apri_estratto')
-                  verificaHref = `${pathname}?${verificaQ.toString()}`
-                } else if (hasAnomaly) {
-                  verificaQ.set('tab', 'listino')
-                  verificaQ.set('listino_scroll', listinoScrollKey)
-                  verificaQ.delete('listino_focus')
-                  verificaQ.delete('stato')
-                  verificaQ.delete('verifica_prodotto')
-                  verificaQ.delete('verifica_codice')
-                  verificaQ.delete('apri_estratto')
                   verificaHref = `${pathname}?${verificaQ.toString()}`
                 } else {
+                  /** Trend listino o controllo manuale → tab Verifica (estratti / Rekki). */
                   verificaQ.set('tab', 'verifica')
                   verificaQ.set('verifica_prodotto', prodotto)
                   verificaQ.set('apri_estratto', '1')
                   if (parsed.codice) verificaQ.set('verifica_codice', parsed.codice)
-                  else verificaQ.delete('verifica_codice')
-                  if (rekkiLinked) {
-                    verificaQ.set('stato', 'rekki_prezzo_discordanza')
-                  } else {
-                    verificaQ.delete('stato')
-                  }
+                  if (rekkiLinked) verificaQ.set('stato', 'rekki_prezzo_discordanza')
                   verificaHref = `${pathname}?${verificaQ.toString()}`
                 }
                 const rowAccentBorder = hasAnomaly
