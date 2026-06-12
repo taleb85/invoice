@@ -1,4 +1,4 @@
-import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
+import { isBadListinoOcrPrice, listinoHistRefForLineInference } from '@/lib/listino-price-sanity'
 import { resolveListinoUnitPriceForDisplay } from '@/lib/listino-invoice-line-normalize'
 import type { ListinoImportDocTipo } from '@/lib/listino-import-document'
 import type { Locale } from '@/lib/translations/types'
@@ -569,6 +569,16 @@ export function parsePackSizeFromListinoUnita(unita: string | null | undefined):
   return null
 }
 
+function listinoPriceAmountsClose(a: number, b: number, rel = 0.18): boolean {
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return false
+  return Math.abs(a - b) / Math.abs(b) <= rel
+}
+
+/** Confezione vino/spirits tipo `6x75cl` (non cassa UK `x 12`). */
+function listinoUnitaIsBottlePack(unita: string | null | undefined): boolean {
+  return /\d\s*[xX×]\s*\d+\s*cl/i.test((unita ?? '').trim())
+}
+
 /**
  * Quando il prezzo in evidenza è per l'intera confezione (es. £63,66 per 6×75cl),
  * restituisce il prezzo a pezzo da mostrare sotto il totale confezione.
@@ -582,17 +592,28 @@ export function listinoPerPiecePriceHint(opts: {
   if (!packSize || packSize < 2) return null
   if (!Number.isFinite(opts.displayUnitPrice) || opts.displayUnitPrice <= 0) return null
 
-  const hist = opts.otherPrices.filter((p) => Number.isFinite(p) && p > 0)
-  if (hist.length > 0) {
-    const refMax = Math.max(...hist)
-    if (opts.displayUnitPrice <= refMax * 1.2) return null
-    const refMin = Math.min(...hist)
-    if (opts.displayUnitPrice <= refMin * 1.35) return null
-  }
-
   const perPiecePrice = Math.round((opts.displayUnitPrice / packSize) * 100) / 100
   if (!Number.isFinite(perPiecePrice) || perPiecePrice <= 0) return null
   if (perPiecePrice >= opts.displayUnitPrice * 0.999) return null
+
+  const unita = opts.unita ?? ''
+  const bottlePack = listinoUnitaIsBottlePack(unita)
+  const minCaseTotalForHint = packSize * 2.5
+
+  // Prezzo già a bottiglia/pezzo (es. £10,61 con unità 6x75cl), non dividere.
+  if (bottlePack && opts.displayUnitPrice < minCaseTotalForHint) return null
+
+  const hist = opts.otherPrices.filter((p) => Number.isFinite(p) && p > 0)
+  if (hist.length > 0) {
+    const ref = listinoHistRefForLineInference(hist)
+    if (listinoPriceAmountsClose(opts.displayUnitPrice, ref, 0.18)) {
+      return { packSize, perPiecePrice }
+    }
+    if (opts.displayUnitPrice > ref * 1.2) {
+      return { packSize, perPiecePrice }
+    }
+    return null
+  }
 
   return { packSize, perPiecePrice }
 }

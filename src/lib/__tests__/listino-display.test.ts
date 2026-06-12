@@ -346,6 +346,15 @@ describe('listinoPerPiecePriceHint', () => {
       }),
     ).toBeNull()
   })
+
+  it('shows per-piece when history is case-level (Gavi 6x75cl)', () => {
+    const hint = listinoPerPiecePriceHint({
+      displayUnitPrice: 61.5,
+      unita: '6x75cl',
+      otherPrices: [58, 60, 62],
+    })
+    expect(hint).toEqual({ packSize: 6, perPiecePrice: 10.25 })
+  })
 })
 
 describe('pickDisplayListinoRow', () => {
