@@ -2965,9 +2965,15 @@ export type Translations = {
     productSearchLoading: string
     productSearchEmpty: string
     compareColProdottoMatch: string
+    compareColPrezzoUnita: string
+    compareColPrezzoListino: string
+    compareColFormato: string
     compareColData: string
     compareColVsCheapest: string
     compareCheapestBadge: string
+    compareFormatoSingolo: string
+    compareFormatoConfezione: string
+    compareFormatoCassa: string
     tableColStato: string
     tableColFornitore: string
     tableColProdotti: string

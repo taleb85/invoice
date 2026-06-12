@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { filterOutliersForTrend, isListinoCatalogRow } from '@/lib/listino-display'
+import { resolveComparableListinoPrice } from '@/lib/listino-compare-normalize'
 
 export type PriceTrend = {
   prodotto: string
@@ -363,7 +364,15 @@ export type ProductSupplierPriceRow = {
   fornitore_id: string
   fornitore_nome: string
   prodotto: string
+  /** Prezzo listino originale (confezione/cassa se applicabile). */
+  prezzo_listino: number
+  /** Prezzo a unità singola per confronto tra fornitori. */
+  prezzo_confronto: number
+  /** @deprecated Usare prezzo_confronto; mantenuto per compatibilità API. */
   prezzo_attuale: number
+  pack_size: number | null
+  unita: string | null
+  formato: 'singolo' | 'confezione' | 'cassa'
   data_prezzo: string
   num_rilevazioni: number
   variazione_percent: number | null
@@ -438,7 +447,17 @@ export async function compareProductPricesAcrossSuppliers(
     else byKey.set(key, { nome, prodotto, entries: [row] })
   }
 
-  const matches: ProductSupplierPriceRow[] = []
+  type DraftMatch = {
+    fornitore_id: string
+    fornitore_nome: string
+    prodotto: string
+    ultimo: RawRow
+    precedente: RawRow | null
+    otherPrices: number[]
+    num_rilevazioni: number
+  }
+
+  const drafts: DraftMatch[] = []
 
   for (const [key, bucket] of byKey) {
     const sorted = [...bucket.entries].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
@@ -446,24 +465,75 @@ export async function compareProductPricesAcrossSuppliers(
     const series = filtered.length >= 2 ? filtered : sorted
     const ultimo = series[series.length - 1]!
     const precedente = series.length >= 2 ? series[series.length - 2] : null
-    const variazione = precedente
-      ? safePctChange(ultimo.prezzo, precedente.prezzo)
-      : null
+    const otherPrices = series.map((r) => r.prezzo)
 
-    matches.push({
+    drafts.push({
       fornitore_id: key.split('|')[0]!,
       fornitore_nome: bucket.nome,
       prodotto: bucket.prodotto,
-      prezzo_attuale: ultimo.prezzo,
-      data_prezzo: ultimo.data_prezzo,
+      ultimo,
+      precedente,
+      otherPrices,
       num_rilevazioni: series.length,
-      variazione_percent: variazione != null ? Math.round(variazione * 10000) / 100 : null,
     })
   }
 
-  matches.sort((a, b) => a.prezzo_attuale - b.prezzo_attuale)
+  const firstPassUnits = drafts.map((d) =>
+    resolveComparableListinoPrice({
+      prezzo: d.ultimo.prezzo,
+      note: d.ultimo.note,
+      prodotto: d.prodotto,
+      otherPrices: d.otherPrices,
+    }).prezzo_confronto,
+  )
+  const sortedUnits = [...firstPassUnits].filter((p) => p > 0).sort((a, b) => a - b)
+  const searchMedianUnit =
+    sortedUnits.length > 0
+      ? sortedUnits.length % 2 === 1
+        ? sortedUnits[Math.floor(sortedUnits.length / 2)]!
+        : (sortedUnits[sortedUnits.length / 2 - 1]! + sortedUnits[sortedUnits.length / 2]!) / 2
+      : null
 
-  const prezzoMinimo = matches.length > 0 ? matches[0]!.prezzo_attuale : null
+  const matches: ProductSupplierPriceRow[] = drafts.map((d) => {
+    const normalized = resolveComparableListinoPrice({
+      prezzo: d.ultimo.prezzo,
+      note: d.ultimo.note,
+      prodotto: d.prodotto,
+      otherPrices: d.otherPrices,
+      searchMedianUnit,
+    })
+
+    let variazione: number | null = null
+    if (d.precedente) {
+      const prevNorm = resolveComparableListinoPrice({
+        prezzo: d.precedente.prezzo,
+        note: d.precedente.note,
+        prodotto: d.prodotto,
+        otherPrices: d.otherPrices,
+        searchMedianUnit,
+      })
+      variazione = safePctChange(normalized.prezzo_confronto, prevNorm.prezzo_confronto)
+    }
+
+    return {
+      fornitore_id: d.fornitore_id,
+      fornitore_nome: d.fornitore_nome,
+      prodotto: d.prodotto,
+      prezzo_listino: normalized.prezzo_listino,
+      prezzo_confronto: normalized.prezzo_confronto,
+      prezzo_attuale: normalized.prezzo_confronto,
+      pack_size: normalized.pack_size,
+      unita: normalized.unita,
+      formato: normalized.formato,
+      data_prezzo: d.ultimo.data_prezzo,
+      num_rilevazioni: d.num_rilevazioni,
+      variazione_percent: variazione != null ? Math.round(variazione * 10000) / 100 : null,
+    }
+  })
+
+  matches.sort((a, b) => a.prezzo_confronto - b.prezzo_confronto)
+
+  const prezzoMinimo = matches.length > 0 ? matches[0]!.prezzo_confronto : null
   const fornitoreMiglioreId = matches.length > 0 ? matches[0]!.fornitore_id : null
 
   return {

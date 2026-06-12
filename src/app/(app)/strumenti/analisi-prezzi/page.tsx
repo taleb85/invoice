@@ -18,6 +18,7 @@ import type {
   PriceIntelligenceReport,
   PriceTrend,
   ProductPriceComparison,
+  ProductSupplierPriceRow,
   Raccomandazione,
   SupplierPriceHealth,
 } from '@/lib/price-intelligence'
@@ -228,6 +229,20 @@ function SupplierProductsDetail({
   )
 }
 
+function compareFormatoLabel(
+  row: ProductSupplierPriceRow,
+  ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi'],
+): string {
+  if (row.formato === 'confezione' && row.pack_size) {
+    return ap.compareFormatoConfezione.replace('{n}', String(row.pack_size))
+  }
+  if (row.formato === 'cassa' && row.pack_size) {
+    return ap.compareFormatoCassa.replace('{n}', String(row.pack_size))
+  }
+  if (row.unita) return row.unita
+  return ap.compareFormatoSingolo
+}
+
 function ProductPriceCompareSection({
   ap,
   locale,
@@ -317,7 +332,9 @@ function ProductPriceCompareSection({
               <tr className="border-b border-white/[0.08] text-[10px] uppercase tracking-wider text-white/35">
                 <th className="px-2 py-1.5 text-left font-semibold">{ap.tableColFornitore}</th>
                 <th className="px-2 py-1.5 text-left font-semibold">{ap.compareColProdottoMatch}</th>
-                <th className="px-2 py-1.5 text-right font-semibold">{ap.detailColPrezzo}</th>
+                <th className="px-2 py-1.5 text-left font-semibold">{ap.compareColFormato}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColPrezzoUnita}</th>
+                <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColPrezzoListino}</th>
                 <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColData}</th>
                 <th className="px-2 py-1.5 text-right font-semibold">{ap.tableColTrend}</th>
                 <th className="px-2 py-1.5 text-right font-semibold">{ap.compareColVsCheapest}</th>
@@ -328,8 +345,10 @@ function ProductPriceCompareSection({
                 const isCheapest = row.fornitore_id === comparison.fornitore_migliore_id
                 const deltaPct =
                   minPrice != null && minPrice > 0 && !isCheapest
-                    ? Math.round(((row.prezzo_attuale - minPrice) / minPrice) * 10000) / 100
+                    ? Math.round(((row.prezzo_confronto - minPrice) / minPrice) * 10000) / 100
                     : null
+                const listinoDiffers =
+                  Math.abs(row.prezzo_listino - row.prezzo_confronto) > 0.009
                 return (
                   <tr
                     key={`${row.fornitore_id}|${row.prodotto}`}
@@ -351,8 +370,16 @@ function ProductPriceCompareSection({
                     <td className="max-w-[14rem] px-2 py-2 text-white/70">
                       <span className="line-clamp-2" title={row.prodotto}>{row.prodotto}</span>
                     </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-white/55">
+                      {compareFormatoLabel(row, ap)}
+                    </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right font-semibold tabular-nums text-white">
-                      {formatCurrency(row.prezzo_attuale, 'GBP', locale)}
+                      {formatCurrency(row.prezzo_confronto, 'GBP', locale)}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/45">
+                      {listinoDiffers
+                        ? formatCurrency(row.prezzo_listino, 'GBP', locale)
+                        : '—'}
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-right tabular-nums text-white/50">
                       {row.data_prezzo}
