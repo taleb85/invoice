@@ -846,6 +846,59 @@ export function listinoPerPiecePriceHint(opts: {
   return { packSize, perPiecePrice }
 }
 
+/** Normalizza un prezzo storico a unità quando il listino è per confezione (es. 6×75cl). */
+function listinoNormalizePriceToPerPiece(
+  price: number,
+  packSize: number,
+  unita: string | null | undefined,
+): number {
+  if (!Number.isFinite(price) || price <= 0) return price
+  const bottlePack = listinoUnitaIsBottlePack(unita)
+  const minCaseTotal = packSize * 2.5
+  if (bottlePack && price < minCaseTotal) return price
+  const perPiece = Math.round((price / packSize) * 100) / 100
+  return perPiece > 0 ? perPiece : price
+}
+
+/**
+ * Prezzi listino per UI: principale sempre a unità; secondario = totale confezione se applicabile.
+ */
+export function listinoDisplayPrimaryAndPackPrices(opts: {
+  displayUnitPrice: number
+  refUnitPrice?: number | null
+  unita: string | null | undefined
+  otherPrices: number[]
+}): {
+  primaryPrice: number
+  packPrice: number | null
+  packSize: number | null
+  refPrimaryPrice: number | null
+} {
+  const hint = listinoPerPiecePriceHint({
+    displayUnitPrice: opts.displayUnitPrice,
+    unita: opts.unita,
+    otherPrices: opts.otherPrices,
+  })
+  if (!hint) {
+    return {
+      primaryPrice: opts.displayUnitPrice,
+      packPrice: null,
+      packSize: null,
+      refPrimaryPrice: opts.refUnitPrice ?? null,
+    }
+  }
+  const refPrimary =
+    opts.refUnitPrice != null
+      ? listinoNormalizePriceToPerPiece(opts.refUnitPrice, hint.packSize, opts.unita)
+      : null
+  return {
+    primaryPrice: hint.perPiecePrice,
+    packPrice: opts.displayUnitPrice,
+    packSize: hint.packSize,
+    refPrimaryPrice: refPrimary,
+  }
+}
+
 /**
  * Soglia dinamica "prezzo storico/scaduto" per un singolo prodotto, in giorni.
  *

@@ -1157,6 +1157,7 @@ export type Translations = {
     listinoPriceStaleBadge: string
     listinoPriceStaleHint: string
     listinoPerPiecePrice: string
+    listinoPackPrice: string
     preferredLanguageEmail: string
     /** Toggle "il fornitore emette DDT separati dalla fattura?" (default true). */
     emetteBolleLabel: string

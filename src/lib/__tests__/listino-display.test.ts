@@ -14,6 +14,7 @@ import {
   filterOutliersForTrend,
   displayListinoUnitPrice,
   listinoPerPiecePriceHint,
+  listinoDisplayPrimaryAndPackPrices,
   isListinoCaseUnitFormat,
   parsePackSizeFromListinoUnita,
   pickDisplayListinoRow,
@@ -525,6 +526,40 @@ describe('listinoPerPiecePriceHint', () => {
       otherPrices: [60, 61.5, 62],
     })
     expect(hint).toEqual({ packSize: 6, perPiecePrice: 10.44 })
+  })
+})
+
+describe('listinoDisplayPrimaryAndPackPrices', () => {
+  it('uses per-unit as primary and pack total as secondary (Gavi 6/75cl)', () => {
+    expect(
+      listinoDisplayPrimaryAndPackPrices({
+        displayUnitPrice: 62.64,
+        refUnitPrice: 60,
+        unita: '6/75cl',
+        otherPrices: [60, 61.5, 62],
+      }),
+    ).toEqual({
+      primaryPrice: 10.44,
+      packPrice: 62.64,
+      packSize: 6,
+      refPrimaryPrice: 10,
+    })
+  })
+
+  it('keeps single-unit price when no pack hint', () => {
+    expect(
+      listinoDisplayPrimaryAndPackPrices({
+        displayUnitPrice: 3.5,
+        refUnitPrice: 3.2,
+        unita: null,
+        otherPrices: [3.2, 3.4],
+      }),
+    ).toEqual({
+      primaryPrice: 3.5,
+      packPrice: null,
+      packSize: null,
+      refPrimaryPrice: 3.2,
+    })
   })
 })
 

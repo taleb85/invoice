@@ -50,7 +50,7 @@ import {
   pickDisplayListinoRow,
   displayListinoUnitPrice,
   formatListinoPriceChangePct,
-  listinoPerPiecePriceHint,
+  listinoDisplayPrimaryAndPackPrices,
   referencePriceForListinoRow,
   productNamesMatchForVerifica,
 } from '@/lib/listino-display'
@@ -5327,10 +5327,30 @@ function ListinoTab({
                   : referencePriceForListinoRow(trendInput, displayForTrend)
                 const displayUnitPrice = displayListinoUnitPrice(displayRow, sorted)
                 const refUnitPrice = ref ? displayListinoUnitPrice(ref, sorted) : null
-                const priceDelta = refUnitPrice != null ? displayUnitPrice - refUnitPrice : 0
+                const parsed = (() => {
+                  for (const r of prezzi) {
+                    const p = parseListinoNoteParts(r.note)
+                    if (p.codice || p.unita) return p
+                  }
+                  return parseListinoNoteParts(displayRow.note)
+                })()
+                const listinoOtherPrices = sorted
+                  .filter((r) => r.id !== displayRow.id)
+                  .map((r) => displayListinoUnitPrice(r, sorted))
+                const listinoPrices = listinoDisplayPrimaryAndPackPrices({
+                  displayUnitPrice,
+                  refUnitPrice,
+                  unita: parsed.unita,
+                  otherPrices: listinoOtherPrices,
+                })
+                const priceDelta =
+                  listinoPrices.refPrimaryPrice != null
+                    ? listinoPrices.primaryPrice - listinoPrices.refPrimaryPrice
+                    : 0
                 const pct =
-                  refUnitPrice != null && Math.abs(refUnitPrice) > 1e-9
-                    ? (priceDelta / refUnitPrice) * 100
+                  listinoPrices.refPrimaryPrice != null &&
+                  Math.abs(listinoPrices.refPrimaryPrice) > 1e-9
+                    ? (priceDelta / listinoPrices.refPrimaryPrice) * 100
                     : 0
                 const up = Boolean(ref && priceDelta > 0.0001)
                 const down = Boolean(ref && priceDelta < -0.0001)
@@ -5356,20 +5376,6 @@ function ListinoTab({
                             fmtMoney(Math.abs(priceDelta)),
                           )
                         : fillListinoSummary(t.fornitori.listinoLastFlat, '')
-                const parsed = (() => {
-                  for (const r of prezzi) {
-                    const p = parseListinoNoteParts(r.note)
-                    if (p.codice || p.unita) return p
-                  }
-                  return parseListinoNoteParts(displayRow.note)
-                })()
-                const perPieceHint = listinoPerPiecePriceHint({
-                  displayUnitPrice,
-                  unita: parsed.unita,
-                  otherPrices: sorted
-                    .filter((r) => r.id !== displayRow.id)
-                    .map((r) => displayListinoUnitPrice(r, sorted)),
-                })
                 const aliasNames = listinoGroupAliasNamesForDisplay(prezzi, prodotto)
                 const showCodiceBadge =
                   parsed.codice &&
@@ -5542,13 +5548,13 @@ function ListinoTab({
                                 : 'text-white'
                           }`}
                         >
-                          {fmtMoney(displayUnitPrice)}
+                          {fmtMoney(listinoPrices.primaryPrice)}
                         </p>
-                        {perPieceHint ? (
+                        {listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
                           <p className="text-[10px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-[11px]">
-                            {t.fornitori.listinoPerPiecePrice
-                              .replace('{price}', fmtMoney(perPieceHint.perPiecePrice))
-                              .replace('{n}', String(perPieceHint.packSize))}
+                            {t.fornitori.listinoPackPrice
+                              .replace('{price}', fmtMoney(listinoPrices.packPrice))
+                              .replace('{n}', String(listinoPrices.packSize))}
                           </p>
                         ) : null}
                         <p className="text-[10px] font-medium text-app-fg-muted">
