@@ -5403,7 +5403,7 @@ function ListinoTab({
                       displayRow.data_prezzo,
                     )
                     if (matched) {
-                      originRow = matched
+                      originRow = rows.find((r) => r.id === matched.id) ?? null
                       fid = matched.id
                     }
                   }
