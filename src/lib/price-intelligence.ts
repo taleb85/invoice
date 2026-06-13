@@ -450,7 +450,11 @@ export async function compareProductPricesAcrossSuppliers(
   for (const row of matchedRows as RawRow[]) {
     if (!isListinoCatalogRow({ prodotto: row.prodotto, note: row.note })) continue
     const join = row.fornitori
-    const sedeId = Array.isArray(join) ? join[0]?.sede_id : join?.sede_id
+    const joinRow = Array.isArray(join) ? join[0] : join
+    const sedeId =
+      joinRow && typeof joinRow === 'object' && 'sede_id' in joinRow
+        ? joinRow.sede_id
+        : undefined
     if (opts?.sedeId && sedeId !== opts.sedeId) continue
 
     const prodotto = row.prodotto.trim()

@@ -8,6 +8,7 @@ import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatCurrency } from '@/lib/locale-shared'
+import type { Locale } from '@/lib/translations/types'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
 import {
@@ -121,7 +122,7 @@ function SupplierProductsDetail({
   fornitoreId: string
   entry: DetailCacheEntry | undefined
   ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi']
-  locale: string
+  locale: Locale
 }) {
   if (!entry || entry.status === 'loading') {
     return (
@@ -267,7 +268,7 @@ function ProductCompareDetailModal({
 }: {
   row: CompareDisplayRow
   ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi']
-  locale: string
+  locale: Locale
   onClose: () => void
 }) {
   const titleId = useId()
@@ -454,7 +455,7 @@ function ProductPriceCompareSection({
   locale,
 }: {
   ap: ReturnType<typeof useT>['strumentiAnalisiPrezzi']
-  locale: string
+  locale: Locale
 }) {
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
