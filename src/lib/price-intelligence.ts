@@ -6,6 +6,7 @@ import {
   pickDisplayListinoRow,
 } from '@/lib/listino-display'
 import { normalizeCompareBatch, resolveComparableListinoPrice } from '@/lib/listino-compare-normalize'
+import { applyListinoVatForDisplay } from '@/lib/listino-vat'
 import {
   buildProductSearchOrFilter,
   matchesProductSearchQuery,
@@ -408,6 +409,23 @@ function fornitoreNomeFromJoin(
   return display || row?.nome?.trim() || 'Sconosciuto'
 }
 
+type FornitoreSedeJoin = {
+  nome?: string
+  display_name?: string | null
+  sede_id?: string | null
+  sedi?: { country_code?: string | null } | { country_code?: string | null }[] | null
+}
+
+function countryCodeFromFornitoreJoin(
+  join: FornitoreSedeJoin | FornitoreSedeJoin[] | null | undefined,
+): string {
+  const row = Array.isArray(join) ? join[0] : join
+  if (!row) return 'UK'
+  const sedi = row.sedi
+  const sede = Array.isArray(sedi) ? sedi[0] : sedi
+  return sede?.country_code?.trim() || 'UK'
+}
+
 /** Ultimo prezzo listino per fornitore su prodotti il cui nome contiene `query`. */
 export async function compareProductPricesAcrossSuppliers(
   supabase: SupabaseClient,
@@ -425,7 +443,7 @@ export async function compareProductPricesAcrossSuppliers(
 
   const { data: rows, error } = await supabase
     .from('listino_prezzi')
-    .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name, sede_id)')
+    .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name, sede_id, sedi(country_code))')
     .or(orFilter)
     .gt('prezzo', 0)
     .lte('data_prezzo', todayIso)
@@ -441,8 +459,7 @@ export async function compareProductPricesAcrossSuppliers(
   }
 
   type RawRow = PriceRow & {
-    fornitori?: { nome: string; display_name?: string | null; sede_id?: string | null }
-      | { nome: string; display_name?: string | null; sede_id?: string | null }[]
+    fornitori?: FornitoreSedeJoin | FornitoreSedeJoin[]
   }
 
   const byKey = new Map<string, { nome: string; prodotto: string; entries: RawRow[] }>()
@@ -510,6 +527,22 @@ export async function compareProductPricesAcrossSuppliers(
 
   const matches: ProductSupplierPriceRow[] = drafts.map((d, index) => {
     const normalized = normalizedLatest[index]!
+    const countryCode = countryCodeFromFornitoreJoin(d.ultimo.fornitori)
+    const vatCtx = {
+      note: d.ultimo.note,
+      prodotto: d.prodotto,
+      unita: normalized.unita,
+    }
+    const prezzo_confronto = applyListinoVatForDisplay(
+      normalized.prezzo_confronto,
+      countryCode,
+      vatCtx,
+    )
+    const prezzo_listino = applyListinoVatForDisplay(
+      normalized.prezzo_listino,
+      countryCode,
+      vatCtx,
+    )
 
     let variazione: number | null = null
     if (d.precedente) {
@@ -521,16 +554,25 @@ export async function compareProductPricesAcrossSuppliers(
         otherPrices: d.otherPrices,
         peerUnitPrices: peers,
       })
-      variazione = safePctChange(normalized.prezzo_confronto, prevNorm.prezzo_confronto)
+      const prevCompare = applyListinoVatForDisplay(
+        prevNorm.prezzo_confronto,
+        countryCode,
+        {
+          note: d.precedente.note,
+          prodotto: d.prodotto,
+          unita: prevNorm.unita,
+        },
+      )
+      variazione = safePctChange(prezzo_confronto, prevCompare)
     }
 
     return {
       fornitore_id: d.fornitore_id,
       fornitore_nome: d.fornitore_nome,
       prodotto: d.prodotto,
-      prezzo_listino: normalized.prezzo_listino,
-      prezzo_confronto: normalized.prezzo_confronto,
-      prezzo_attuale: normalized.prezzo_confronto,
+      prezzo_listino,
+      prezzo_confronto,
+      prezzo_attuale: prezzo_confronto,
       pack_size: normalized.pack_size,
       unita: normalized.unita,
       note: d.ultimo.note ?? null,
@@ -588,7 +630,7 @@ export async function getProductListinoDetail(
 
   const { data: rows, error } = await supabase
     .from('listino_prezzi')
-    .select('prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name, sede_id)')
+    .select('prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name, sede_id, sedi(country_code))')
     .eq('fornitore_id', fornitoreId)
     .eq('prodotto', nome)
     .gt('prezzo', 0)
@@ -603,8 +645,7 @@ export async function getProductListinoDetail(
     prezzo: number
     data_prezzo: string
     note: string | null
-    fornitori?: { nome: string; display_name?: string | null; sede_id?: string | null }
-      | { nome: string; display_name?: string | null; sede_id?: string | null }[]
+    fornitori?: FornitoreSedeJoin | FornitoreSedeJoin[]
   }
 
   const first = rows[0] as RawRow
@@ -612,12 +653,17 @@ export async function getProductListinoDetail(
   const sedeId = Array.isArray(join) ? join[0]?.sede_id : join?.sede_id
   if (opts?.sedeId && sedeId !== opts.sedeId) return null
 
+  const countryCode = countryCodeFromFornitoreJoin(join)
   const unita = parseListinoNoteParts(first.note).unita
 
   const history: ProductListinoHistoryEntry[] = (rows as RawRow[])
     .filter((row) => isListinoCatalogRow({ prodotto: row.prodotto, note: row.note }))
     .map((row) => ({
-      prezzo: row.prezzo,
+      prezzo: applyListinoVatForDisplay(row.prezzo, countryCode, {
+        note: row.note,
+        prodotto: nome,
+        unita,
+      }),
       data_prezzo: row.data_prezzo,
       note: row.note,
     }))
