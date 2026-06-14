@@ -1161,6 +1161,8 @@ export type Translations = {
     listinoPriceStaleHint: string
     listinoPerPiecePrice: string
     listinoPackPrice: string
+    /** Hint sotto i prezzi listino quando mostriamo IVA inclusa (es. UK). */
+    listinoPriceInclVatHint: string
     preferredLanguageEmail: string
     /** Toggle "il fornitore emette DDT separati dalla fattura?" (default true). */
     emetteBolleLabel: string

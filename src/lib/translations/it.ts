@@ -1803,6 +1803,7 @@ const translations: Translations = {
     listinoPriceStaleHint: 'Ultimo aggiornamento da oltre 60 giorni.',
     listinoPerPiecePrice: '{price} a pezzo (conf. {n} pz)',
     listinoPackPrice: '{price} confezione ({n} pz)',
+    listinoPriceInclVatHint: 'IVA inclusa',
     preferredLanguageEmail: 'Lingua preferita (per email)',
     languageInheritSede: "— Eredita dall'azienda —",
     emetteBolleLabel: 'Emette DDT separati dalle fatture',

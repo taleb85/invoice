@@ -65,6 +65,10 @@ import {
 } from '@/lib/listino-history-delta'
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 import {
+  applyListinoVatForDisplay,
+  listinoPricesIncludeVat,
+} from '@/lib/listino-vat'
+import {
   calendarDaysBetweenIso,
   isDocumentDateAtLeastLatestListino,
   maxListinoDateForExactProduct,
@@ -3451,12 +3455,14 @@ function ListinoTab({
   fornitoreNome,
   rekkiLinked,
   currency,
+  countryCode,
   readOnly,
 }: {
   fornitoreId: string
   fornitoreNome: string
   rekkiLinked: boolean
   currency?: string
+  countryCode?: string
   readOnly?: boolean
 }) {
   const t = useT()
@@ -3465,6 +3471,9 @@ function ListinoTab({
   const { locale, timezone } = useLocale()
   const formatDate = useAppFormatDate()
   const fmtMoney = (n: number) => formatCurrency(n, currency ?? 'EUR', locale)
+  const listinoShowsVat = listinoPricesIncludeVat(countryCode)
+  const fmtListinoPrice = (n: number) =>
+    fmtMoney(applyListinoVatForDisplay(n, countryCode))
   const [rows, setRows]               = useState<ListinoRow[]>([])
   const [listino, setListino]         = useState<ListinoProdotto[]>([])
   const [listTabloExists, setListTabloExists] = useState<boolean | null>(null)
@@ -4560,10 +4569,10 @@ function ListinoTab({
                   <p className="text-xs text-app-fg-muted mt-0.5">
                     Pagato{' '}
                     <span className="font-semibold text-rose-300">
-                      {fmtMoney(anomaly.prezzo_pagato)}
+                      {fmtListinoPrice(anomaly.prezzo_pagato)}
                     </span>
                     {' vs listino '}
-                    <span className="font-semibold text-app-fg">{fmtMoney(anomaly.prezzo_listino)}</span>
+                    <span className="font-semibold text-app-fg">{fmtListinoPrice(anomaly.prezzo_listino)}</span>
                     {' · '}
                     <span className="font-semibold text-rose-300">
                       +{(anomaly.differenza_percent * 100).toFixed(1)}%
@@ -5054,7 +5063,7 @@ function ListinoTab({
                                     </div>
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums text-app-fg-muted">
-                                    {item.prezzoAttuale != null ? fmtMoney(item.prezzoAttuale) : <span className="text-app-fg-muted">—</span>}
+                                    {item.prezzoAttuale != null ? fmtListinoPrice(item.prezzoAttuale) : <span className="text-app-fg-muted">—</span>}
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums">
                                     <input
@@ -5377,7 +5386,7 @@ function ListinoTab({
                               : t.fornitori.listinoSummaryFlatTitle,
                         meta:
                           up || down
-                            ? `${priceChangeDateLabel} · ${fmtMoney(Math.abs(priceDelta))} (${pctLabel})`
+                            ? `${priceChangeDateLabel} · ${fmtListinoPrice(Math.abs(priceDelta))} (${pctLabel})`
                             : priceChangeDateLabel,
                       }
                 const showCodiceBadge =
@@ -5552,15 +5561,20 @@ function ListinoTab({
                                   : 'text-white'
                             }`}
                           >
-                            {fmtMoney(listinoPrices.primaryPrice)}
+                            {fmtListinoPrice(listinoPrices.primaryPrice)}
                           </p>
                           <div className="hidden shrink-0 md:block">{listinoRowStatusBadge}</div>
                         </div>
                         {listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
                           <p className="text-[10px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-[11px]">
                             {t.fornitori.listinoPackPrice
-                              .replace('{price}', fmtMoney(listinoPrices.packPrice))
+                              .replace('{price}', fmtListinoPrice(listinoPrices.packPrice))
                               .replace('{n}', String(listinoPrices.packSize))}
+                          </p>
+                        ) : null}
+                        {listinoShowsVat ? (
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-app-fg-muted/80">
+                            {t.fornitori.listinoPriceInclVatHint}
                           </p>
                         ) : null}
                         <p className="text-[10px] font-medium text-app-fg-muted">
@@ -5586,7 +5600,7 @@ function ListinoTab({
                               }`}
                             >
                               {up ? '▲' : '▼'}
-                              {fmtMoney(Math.abs(priceDelta))}
+                              {fmtListinoPrice(Math.abs(priceDelta))}
                               <span className="opacity-70">({pctLabel})</span>
                             </span>
                           ) : null}
@@ -5998,7 +6012,7 @@ function ListinoTab({
                                               : 'text-app-fg'
                                           }`}
                                         >
-                                          {fmtMoney(h.historyDisplayPrice)}
+                                          {fmtListinoPrice(h.historyDisplayPrice)}
                                         </p>
                                         <p className={`mt-0.5 font-mono text-xs tabular-nums ${h.deltaTone}`}>
                                           {h.deltaLabel}
@@ -6045,7 +6059,7 @@ function ListinoTab({
                                                 : 'text-app-fg'
                                             }
                                           >
-                                            {fmtMoney(h.historyDisplayPrice)}
+                                            {fmtListinoPrice(h.historyDisplayPrice)}
                                           </span>
                                           {h.likelyOcrQty ? (
                                             <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-300/80">
@@ -6716,6 +6730,7 @@ function FornitoreDetailClient({
               String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
             )}
             currency={currency}
+            countryCode={countryCode}
             readOnly={supplierReadOnlyMobile}
           />
         ) : null)}
