@@ -65,11 +65,6 @@ import {
   effectivePendingDocDayIso,
   isYmdInHalfOpenRange,
 } from '@/lib/documenti-queue-period'
-import {
-  defaultFiscalYearLabel,
-  formatFiscalYearShort,
-  getFiscalYearPgBounds,
-} from '@/lib/fiscal-year'
 import { safeDate } from '@/lib/safe-date'
 import {
   GlyphCheck,
@@ -4544,28 +4539,7 @@ export function VerificationStatusTab({
     verificaDeepLinkOpenedRef.current = null
   }, [sedeId, fornitoreId])
 
-  /** Scheda fornitore: solo estratti la cui data documento cade nell'anno fiscale in corso. */
-  const currentFiscalYearFilter = useMemo(() => {
-    if (!fornitoreId) return null
-    const cc = countryCode ?? 'UK'
-    const label = defaultFiscalYearLabel(cc, new Date())
-    const { dateFrom, dateToExclusive } = getFiscalYearPgBounds(cc, label)
-    return {
-      dateFrom,
-      dateToExclusive,
-      display: formatFiscalYearShort(cc, label),
-    }
-  }, [fornitoreId, countryCode])
-
-  const stmtsForDisplay = useMemo(() => {
-    if (!currentFiscalYearFilter) return stmts
-    const { dateFrom, dateToExclusive } = currentFiscalYearFilter
-    return stmts.filter((s) => {
-      const day = statementListDocumentDateKey(s).slice(0, 10)
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false
-      return isYmdInHalfOpenRange(day, dateFrom, dateToExclusive)
-    })
-  }, [stmts, currentFiscalYearFilter])
+  const stmtsForDisplay = stmts
 
   /**
    * After the statement list loads, silently re-verify any statement that shows
@@ -5091,16 +5065,6 @@ export function VerificationStatusTab({
               >
                 {t.statements.stmtReceived}
               </p>
-              {fornitoreId && currentFiscalYearFilter && !selectedStmt && (
-                <p
-                  className={`mt-0.5 leading-snug text-app-fg-muted ${vsCompactS1 ? 'text-[10px]' : 'text-[11px]'}`}
-                >
-                  {t.statements.stmtListFiscalYearHint.replace(
-                    '{year}',
-                    currentFiscalYearFilter.display,
-                  )}
-                </p>
-              )}
               {fornitoreId && !selectedStmt && (
                 <p
                   className={`mt-0.5 leading-snug text-app-fg-muted ${vsCompactS1 ? 'text-[10px]' : 'text-[11px]'}`}
