@@ -401,7 +401,7 @@ function escapeIlikeFragment(raw: string): string {
 }
 
 function fornitoreNomeFromJoin(
-  join: { nome: string; display_name?: string | null } | { nome: string; display_name?: string | null }[] | null | undefined,
+  join: { nome?: string; display_name?: string | null } | { nome?: string; display_name?: string | null }[] | null | undefined,
 ): string {
   if (!join) return 'Sconosciuto'
   const row = Array.isArray(join) ? join[0] : join
