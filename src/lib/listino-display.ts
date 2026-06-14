@@ -141,6 +141,7 @@ export function parseListinoNoteParts(note: string | null | undefined): ParsedLi
       if (val) unita = val
       continue
     }
+    if (/^(?:IVA|VAT|TVA|MwSt|USt)\s*:\s*.+$/i.test(trimmed)) continue
     tail.push(trimmed)
   }
   const humanTail = tail.length ? tail.join(' · ') : null

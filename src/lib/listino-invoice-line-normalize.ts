@@ -12,6 +12,7 @@ export type ListinoImportLineInput = {
   quantita?: number | null
   importo_linea?: number | null
   unita?: string | null
+  aliquota_iva?: number | null
   note?: string | null
 }
 

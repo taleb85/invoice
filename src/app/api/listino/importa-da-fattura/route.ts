@@ -10,6 +10,8 @@ export interface LineItem {
   quantita: number | null
   importo_linea: number | null
   unita: string | null
+  /** Aliquota IVA/TVA della riga in percentuale (0 = esente/zero-rated, 20 = UK standard). */
+  aliquota_iva: number | null
   note: string | null
 }
 
@@ -25,6 +27,7 @@ Return ONLY valid JSON — no markdown, no explanation:
       "quantita": 2,
       "importo_linea": 25.00,
       "unita": "X6 / kg / box — pack format or unit label, NOT the order quantity unless that is the only qty on the line",
+      "aliquota_iva": 20,
       "note": "any useful detail (e.g. 'per 5kg case') or null"
     }
   ],
@@ -50,9 +53,14 @@ Rules:
 - If price is not parseable, use null for that item.
 - codice_prodotto: use the value from columns often named Code, SKU, Art., Artikel, Ref., Item #, Product ID, EAN, Cod., Cód., etc. If the document only embeds a code inside the description text and there is no separate code field, you may put that alphanumeric code here and shorten prodotto accordingly, or leave codice_prodotto null if unclear.
 - prodotto: use the original language as written on the invoice; prefer the description text over the code.
+- aliquota_iva: VAT/TVA rate **for this line** as a percentage number (0, 5, 20, 22, …). Read it from VAT/Tax columns, "ZR"/zero-rated markers, or product type:
+  - UK: alcoholic drinks (wine, beer, spirits, prosecco) → usually 20; basic food (meat, ham, cheese, vegetables, fruit, milk, pasta, rice, bread) sold by kg or as raw food → often 0 (zero-rated).
+  - If the line is explicitly zero-rated / exempt / "ZR" / VAT 0% → aliquota_iva = 0.
+  - If only standard-rated goods on the invoice and no per-line VAT, use 20 for UK alcohol and catering beverages, 0 for unprocessed food, 20 as default for ambiguous UK lines.
+  - Italy/France/Spain/Germany: use the rate shown on the line or the usual rate for that product category.
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
-import { extractPdfText } from '@/lib/pdf-parse-utils'
+import { formatListinoVatNote, finalizeListinoImportVatRate } from '@/lib/listino-vat'
 import { isNonProductListinoRow, cleanListinoProductNameForGrouping } from '@/lib/listino-display'
 import {
   existingListinoPricesForImport,
@@ -71,8 +79,19 @@ function toLineItem(row: ListinoImportLineInput): LineItem {
     quantita: row.quantita ?? null,
     importo_linea: row.importo_linea ?? null,
     unita: row.unita ?? null,
+    aliquota_iva: row.aliquota_iva ?? null,
     note: row.note ?? null,
   }
+}
+
+function parseOptionalVatPercent(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n =
+    typeof v === 'number'
+      ? v
+      : parseFloat(String(v).replace(',', '.').replace(/%/g, '').trim())
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null
+  return n
 }
 
 function parseOptionalPositiveNumber(v: unknown): number | null {
@@ -109,6 +128,9 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
           i.importo_linea ?? i.line_total ?? i.totale_riga,
         )
         const codiceResolved = codice ?? inferCodiceFromProductName(prodottoNorm)
+        const aliquotaIva = parseOptionalVatPercent(
+          i.aliquota_iva ?? i.vat_rate ?? i.vat_percent ?? i.iva ?? i.iva_percent,
+        )
         const raw: LineItem = {
           prodotto: prodottoNorm,
           codice_prodotto: codiceResolved,
@@ -116,6 +138,7 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
           quantita: quantitaRaw,
           importo_linea: importoLineaRaw,
           unita: i.unita ? String(i.unita) : null,
+          aliquota_iva: aliquotaIva,
           note: i.note ? String(i.note) : null,
         }
         return raw
@@ -302,6 +325,16 @@ export async function POST(req: NextRequest) {
     .select('prodotto, prezzo, note')
     .eq('fornitore_id', fornitoreId)
 
+  const { data: fornitoreRow } = await service
+    .from('fornitori')
+    .select('sede_id, sedi(country_code)')
+    .eq('id', fornitoreId)
+    .maybeSingle()
+  const sedeJoin = fornitoreRow?.sedi as { country_code?: string | null } | { country_code?: string | null }[] | null
+  const countryCode = Array.isArray(sedeJoin)
+    ? sedeJoin[0]?.country_code
+    : sedeJoin?.country_code
+
   const listinoForHist = (listinoRows ?? []) as Array<{
     prodotto: string
     prezzo: number
@@ -309,18 +342,18 @@ export async function POST(req: NextRequest) {
   }>
 
   items = items
-    .map((item) =>
-      toLineItem(
-        normalizeListinoImportLineItem(
-          item,
-          existingListinoPricesForImport(
-            listinoForHist,
-            item.prodotto,
-            item.codice_prodotto,
-          ),
+    .map((item) => {
+      const normalized = normalizeListinoImportLineItem(
+        item,
+        existingListinoPricesForImport(
+          listinoForHist,
+          item.prodotto,
+          item.codice_prodotto,
         ),
-      ),
-    )
+      )
+      const aliquota_iva = finalizeListinoImportVatRate(normalized, countryCode)
+      return toLineItem({ ...normalized, aliquota_iva })
+    })
     .filter((item) => !isNonProductListinoRow({ prodotto: item.prodotto, note: item.note }))
 
   return NextResponse.json({

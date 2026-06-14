@@ -8,6 +8,7 @@ import {
   existingListinoPricesForImport,
   normalizeListinoImportLineItem,
 } from '@/lib/listino-invoice-line-normalize'
+import { formatListinoVatNote } from '@/lib/listino-vat'
 import {
   listinoImportApiBody,
   listinoImportTable,
@@ -217,6 +218,7 @@ export async function syncListinoFromFattureForFornitore(
         quantita?: number | null
         importo_linea?: number | null
         unita: string | null
+        aliquota_iva?: number | null
         note: string | null
       }>
       data_fattura?: string | null
@@ -257,6 +259,7 @@ export async function syncListinoFromFattureForFornitore(
           quantita: item.quantita ?? null,
           importo_linea: item.importo_linea ?? null,
           unita: item.unita,
+          aliquota_iva: item.aliquota_iva ?? null,
           note: item.note,
         },
         hist,
@@ -272,6 +275,7 @@ export async function syncListinoFromFattureForFornitore(
         normalized.quantita != null && normalized.quantita > 1
           ? `Qtà documento: ${normalized.quantita}`
           : null,
+        formatListinoVatNote(item.aliquota_iva ?? null),
         normalized.note,
       ]
         .filter(Boolean)

@@ -66,7 +66,9 @@ import {
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 import {
   applyListinoVatForDisplay,
-  listinoPricesIncludeVat,
+  finalizeListinoImportVatRate,
+  formatListinoVatNote,
+  listinoRowShowsVatInDisplay,
 } from '@/lib/listino-vat'
 import {
   calendarDaysBetweenIso,
@@ -3471,9 +3473,21 @@ function ListinoTab({
   const { locale, timezone } = useLocale()
   const formatDate = useAppFormatDate()
   const fmtMoney = (n: number) => formatCurrency(n, currency ?? 'EUR', locale)
-  const listinoShowsVat = listinoPricesIncludeVat(countryCode)
-  const fmtListinoPrice = (n: number) =>
-    fmtMoney(applyListinoVatForDisplay(n, countryCode))
+  type ListinoPriceRow = { note?: string | null; prodotto?: string; unita?: string | null }
+  const fmtListinoPrice = (n: number, row?: ListinoPriceRow) =>
+    fmtMoney(
+      applyListinoVatForDisplay(n, countryCode, {
+        note: row?.note,
+        prodotto: row?.prodotto,
+        unita: row?.unita,
+      }),
+    )
+  const rowShowsVatLabel = (row?: ListinoPriceRow) =>
+    listinoRowShowsVatInDisplay(countryCode, {
+      note: row?.note,
+      prodotto: row?.prodotto,
+      unita: row?.unita,
+    })
   const [rows, setRows]               = useState<ListinoRow[]>([])
   const [listino, setListino]         = useState<ListinoProdotto[]>([])
   const [listTabloExists, setListTabloExists] = useState<boolean | null>(null)
@@ -3505,6 +3519,7 @@ function ListinoTab({
     quantita?: number | null
     importo_linea?: number | null
     unita: string | null
+    aliquota_iva?: number | null
     note: string | null
     selected: boolean
     rekki_product_id?: string | null
@@ -3906,6 +3921,7 @@ function ListinoTab({
               quantita?: number | null
               importo_linea?: number | null
               unita: string | null
+              aliquota_iva?: number | null
               note: string | null
             }) => {
               const codiceImport =
@@ -3920,12 +3936,15 @@ function ListinoTab({
                   quantita: item.quantita ?? null,
                   importo_linea: item.importo_linea ?? null,
                   unita: item.unita,
+                  aliquota_iva: item.aliquota_iva ?? null,
                   note: item.note,
                 },
                 existingListinoPricesForImport(listino, item.prodotto, codiceImport),
               )
+              const aliquota_iva = finalizeListinoImportVatRate(normalized, countryCode)
               return {
                 ...normalized,
+                aliquota_iva,
                 codice_prodotto: normalized.codice_prodotto ?? null,
                 quantita: normalized.quantita ?? null,
                 importo_linea: normalized.importo_linea ?? null,
@@ -3974,11 +3993,18 @@ function ListinoTab({
         ? ` — Origine: ${srcFattura.label}${LISTINO_SRC_FATTURA_MARK}${selectedFatturaId}|`
         : ''
     const rows = toSave.map(i => {
+      const aliquota_iva =
+        i.aliquota_iva ??
+        finalizeListinoImportVatRate(
+          { prodotto: i.prodotto, unita: i.unita, aliquota_iva: i.aliquota_iva },
+          countryCode,
+        )
       const base =
         [
           i.codice_prodotto?.trim() ? `Codice: ${i.codice_prodotto.trim()}` : null,
           i.unita ? `Unità: ${i.unita}` : null,
           i.quantita != null && i.quantita > 1 ? `Qtà fattura: ${i.quantita}` : null,
+          formatListinoVatNote(aliquota_iva),
           i.note,
         ]
           .filter(Boolean)
@@ -4569,10 +4595,10 @@ function ListinoTab({
                   <p className="text-xs text-app-fg-muted mt-0.5">
                     Pagato{' '}
                     <span className="font-semibold text-rose-300">
-                      {fmtListinoPrice(anomaly.prezzo_pagato)}
+                      {fmtListinoPrice(anomaly.prezzo_pagato, { prodotto: anomaly.prodotto })}
                     </span>
                     {' vs listino '}
-                    <span className="font-semibold text-app-fg">{fmtListinoPrice(anomaly.prezzo_listino)}</span>
+                    <span className="font-semibold text-app-fg">{fmtListinoPrice(anomaly.prezzo_listino, { prodotto: anomaly.prodotto })}</span>
                     {' · '}
                     <span className="font-semibold text-rose-300">
                       +{(anomaly.differenza_percent * 100).toFixed(1)}%
@@ -5063,7 +5089,7 @@ function ListinoTab({
                                     </div>
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums text-app-fg-muted">
-                                    {item.prezzoAttuale != null ? fmtListinoPrice(item.prezzoAttuale) : <span className="text-app-fg-muted">—</span>}
+                                    {item.prezzoAttuale != null ? fmtListinoPrice(item.prezzoAttuale, { prodotto: item.prodotto, unita: item.unita, note: item.note }) : <span className="text-app-fg-muted">—</span>}
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums">
                                     <input
@@ -5342,6 +5368,11 @@ function ListinoTab({
                   }
                   return parseListinoNoteParts(displayRow.note)
                 })()
+                const listinoPriceCtx = {
+                  note: displayRow.note,
+                  prodotto,
+                  unita: parsed.unita,
+                }
                 const listinoOtherPrices = sorted
                   .filter((r) => r.id !== displayRow.id)
                   .map((r) => displayListinoUnitPrice(r, sorted))
@@ -5386,7 +5417,7 @@ function ListinoTab({
                               : t.fornitori.listinoSummaryFlatTitle,
                         meta:
                           up || down
-                            ? `${priceChangeDateLabel} · ${fmtListinoPrice(Math.abs(priceDelta))} (${pctLabel})`
+                            ? `${priceChangeDateLabel} · ${fmtListinoPrice(Math.abs(priceDelta), listinoPriceCtx)} (${pctLabel})`
                             : priceChangeDateLabel,
                       }
                 const showCodiceBadge =
@@ -5561,18 +5592,18 @@ function ListinoTab({
                                   : 'text-white'
                             }`}
                           >
-                            {fmtListinoPrice(listinoPrices.primaryPrice)}
+                            {fmtListinoPrice(listinoPrices.primaryPrice, listinoPriceCtx)}
                           </p>
                           <div className="hidden shrink-0 md:block">{listinoRowStatusBadge}</div>
                         </div>
                         {listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
                           <p className="text-[10px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-[11px]">
                             {t.fornitori.listinoPackPrice
-                              .replace('{price}', fmtListinoPrice(listinoPrices.packPrice))
+                              .replace('{price}', fmtListinoPrice(listinoPrices.packPrice, listinoPriceCtx))
                               .replace('{n}', String(listinoPrices.packSize))}
                           </p>
                         ) : null}
-                        {listinoShowsVat ? (
+                        {rowShowsVatLabel(listinoPriceCtx) ? (
                           <p className="text-[9px] font-medium uppercase tracking-wide text-app-fg-muted/80">
                             {t.fornitori.listinoPriceInclVatHint}
                           </p>
@@ -5600,7 +5631,7 @@ function ListinoTab({
                               }`}
                             >
                               {up ? '▲' : '▼'}
-                              {fmtListinoPrice(Math.abs(priceDelta))}
+                              {fmtListinoPrice(Math.abs(priceDelta), listinoPriceCtx)}
                               <span className="opacity-70">({pctLabel})</span>
                             </span>
                           ) : null}
@@ -6012,7 +6043,11 @@ function ListinoTab({
                                               : 'text-app-fg'
                                           }`}
                                         >
-                                          {fmtListinoPrice(h.historyDisplayPrice)}
+                                          {fmtListinoPrice(h.historyDisplayPrice, {
+                                            note: h.entry.note,
+                                            prodotto,
+                                            unita: parsed.unita,
+                                          })}
                                         </p>
                                         <p className={`mt-0.5 font-mono text-xs tabular-nums ${h.deltaTone}`}>
                                           {h.deltaLabel}
@@ -6059,7 +6094,11 @@ function ListinoTab({
                                                 : 'text-app-fg'
                                             }
                                           >
-                                            {fmtListinoPrice(h.historyDisplayPrice)}
+                                            {fmtListinoPrice(h.historyDisplayPrice, {
+                                            note: h.entry.note,
+                                            prodotto,
+                                            unita: parsed.unita,
+                                          })}
                                           </span>
                                           {h.likelyOcrQty ? (
                                             <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-300/80">
