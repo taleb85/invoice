@@ -178,7 +178,14 @@ export function isBadListinoOcrPrice(candidate: number, existingPrices: number[]
   if (isLikelyQtyOcrPrice(candidate, existingPrices)) return true
   if (isLikelyLineTotalOcrPrice(candidate, existingPrices)) return true
   const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
-  if (hist.length < 2) return false
+  if (hist.length === 0) return false
+  if (hist.length === 1) {
+    const peer = hist[0]!
+    if (peer >= 10 && candidate < 1) return true
+    // Un solo peer: solo outlier estremi (es. qty 1,77 vs cassa 63,66).
+    if (peer >= 15 && candidate < peer * 0.15) return true
+    return false
+  }
   return !isPlausibleListinoPrice(candidate, hist)
 }
 

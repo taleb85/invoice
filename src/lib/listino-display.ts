@@ -926,7 +926,7 @@ export function listinoRowPrimaryDisplayPrice(
   const rawOthers = others.map((r) => r.prezzo)
   let displayUnitPrice = displayListinoUnitPrice(row, sortedByDateAsc)
 
-  if (others.length >= 2 && isBadListinoOcrPrice(row.prezzo, rawOthers)) {
+  if (others.length >= 1 && isBadListinoOcrPrice(row.prezzo, rawOthers)) {
     const packSize = parsePackSizeFromListinoUnita(unita)
     const caseCluster = packSize ? rawOthers.filter((p) => p >= packSize * 2.5) : []
     if (caseCluster.length > 0) {
@@ -936,10 +936,11 @@ export function listinoRowPrimaryDisplayPrice(
         displayUnitPrice = corrected
       }
     } else {
-      const peerPrimaries = others.map((r) =>
-        listinoRowPrimaryDisplayPrice(r, sortedByDateAsc, unita),
-      )
-      const ref = listinoHistRefForLineInference(peerPrimaries)
+      const peerRefs =
+        others.length >= 2
+          ? others.map((r) => listinoRowPrimaryDisplayPrice(r, sortedByDateAsc, unita))
+          : rawOthers
+      const ref = listinoHistRefForLineInference(peerRefs)
       if (ref > displayUnitPrice * 1.35) {
         displayUnitPrice = ref
       }

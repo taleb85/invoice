@@ -33,6 +33,12 @@ describe('isPlausibleListinoPrice', () => {
     expect(isBadListinoOcrPrice(36.04, hist)).toBe(false)
   })
 
+  it('flags qty OCR with a single peer case price (Chianti)', () => {
+    expect(isBadListinoOcrPrice(1.77, [63.66])).toBe(true)
+    expect(isBadListinoOcrPrice(10.61, [63.66])).toBe(false)
+    expect(isBadListinoOcrPrice(63.66, [63.66])).toBe(false)
+  })
+
   it('accepts normal price drift', () => {
     const hist = [37.6, 37.6, 38.7]
     expect(isPlausibleListinoPrice(38.7, hist)).toBe(true)

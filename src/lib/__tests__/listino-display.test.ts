@@ -575,6 +575,14 @@ describe('listinoRowPrimaryDisplayPrice', () => {
     expect(listinoRowPrimaryDisplayPrice(sorted[1]!, sorted, '6x75cl')).toBeCloseTo(10.61, 1)
     expect(listinoRowPrimaryDisplayPrice(sorted[2]!, sorted, '6x75cl')).toBeCloseTo(10.7, 1)
   })
+
+  it('normalizes OCR outlier with only one peer case price (Chianti)', () => {
+    const sorted = [
+      { id: '1', prezzo: 63.66, data_prezzo: '2025-01-01', note: 'unita:6x75cl' },
+      { id: '2', prezzo: 1.77, data_prezzo: '2025-06-01', note: 'unita:6x75cl' },
+    ]
+    expect(listinoRowPrimaryDisplayPrice(sorted[1]!, sorted, '6x75cl')).toBeCloseTo(10.61, 1)
+  })
 })
 
 describe('pickDisplayListinoRow', () => {
