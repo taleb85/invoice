@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { geminiGenerateText, geminiGenerateVision } from '@/lib/gemini-vision'
+import { extractPdfText } from '@/lib/pdf-parse-utils'
 
 export interface LineItem {
   prodotto: string
