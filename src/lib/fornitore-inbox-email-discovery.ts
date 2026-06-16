@@ -214,10 +214,15 @@ export function filterSupplierEmailSuggestions<T extends SupplierEmailSuggestion
     if (isSharedBillingPlatformSenderEmail(email)) return false
     if (
       sg.source === 'inbox_from' ||
-      sg.source === 'inbox_body' ||
-      sg.source === 'inbox_reply_to'
+      sg.source === 'inbox_body'
     ) {
       return emailRelatesToSupplierName(email, fornitore.nome, fornitore.display_name)
+    }
+    if (sg.source === 'inbox_reply_to') {
+      return (
+        emailRelatesToSupplierName(email, fornitore.nome, fornitore.display_name) ||
+        isPlausibleBillingPlatformReplyTo(email)
+      )
     }
     return true
   })
@@ -235,6 +240,11 @@ function isUsableSupplierCandidate(
   const local = key.split('@')[0] ?? ''
   if (NOREPLY_LOCAL.test(local)) return false
   return true
+}
+
+/** Reply-To su mail Xero/QuickBooks già abbinate al fornitore via oggetto (es. accounts@slf-uk.com). */
+function isPlausibleBillingPlatformReplyTo(email: string): boolean {
+  return isUsableSupplierCandidate(email, { exclude: new Set() })
 }
 
 function addressListEmails(addrs: AddressObject | AddressObject[] | undefined): string[] {
@@ -513,7 +523,7 @@ export async function discoverFornitoreEmailsFromInbox(
         for (const c of candidates) {
           if (c.fromEmail && isSharedBillingPlatformSenderEmail(c.fromEmail)) {
             for (const rt of c.replyToEmails) {
-              if (emailRelatesToSupplierName(rt, fornitore.nome, fornitore.display_name)) {
+              if (isPlausibleBillingPlatformReplyTo(rt)) {
                 mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
               }
             }
@@ -538,7 +548,10 @@ export async function discoverFornitoreEmailsFromInbox(
               if (!msg.source) break
               const parsed = await simpleParser(msg.source)
               for (const rt of addressListEmails(parsed.replyTo)) {
-                if (emailRelatesToSupplierName(rt, fornitore.nome, fornitore.display_name)) {
+                if (
+                  isPlausibleBillingPlatformReplyTo(rt) ||
+                  emailRelatesToSupplierName(rt, fornitore.nome, fornitore.display_name)
+                ) {
                   mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
                 }
               }

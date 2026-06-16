@@ -99,6 +99,27 @@ describe('emailRelatesToSupplierName', () => {
   it('rejects unrelated newsletter sender', () => {
     expect(emailRelatesToSupplierName('newsletter@buzznewsletter.co.uk', nome)).toBe(false)
   })
+
+  it('does not match acronym domain reply-to (handled via billing Reply-To path)', () => {
+    expect(emailRelatesToSupplierName('accounts@slf-uk.com', 'Saggiomo Luxury Foods Ltd')).toBe(false)
+  })
+})
+
+describe('filterSupplierEmailSuggestions — billing Reply-To', () => {
+  it('keeps Xero reply-to on matched supplier mail (Saggiomo slf-uk.com)', () => {
+    const out = filterSupplierEmailSuggestions(
+      [
+        {
+          email: 'accounts@slf-uk.com',
+          source: 'inbox_reply_to',
+          count: 4,
+          last_seen: '2026-06-06T00:00:00Z',
+        },
+      ],
+      { nome: 'Saggiomo Luxury Foods Ltd' },
+    )
+    expect(out.map((s) => s.email)).toEqual(['accounts@slf-uk.com'])
+  })
 })
 
 describe('filterSupplierEmailSuggestions', () => {
