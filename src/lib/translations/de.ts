@@ -1679,6 +1679,7 @@ const translations: Translations = {
     suggestEmailSourceUnmatched: 'aus nicht zugeordneter USt-IdNr.',
     suggestEmailSourceInboxFrom: 'aus Postfach (Absender)',
     suggestEmailSourceInboxReplyTo: 'aus Postfach (Reply-To)',
+    suggestEmailSourceInboxCc: 'aus Postfach (Cc)',
     suggestEmailSourceInboxBody: 'aus Postfach (Mailtext)',
     suggestEmailTitle: 'E-Mails per Lieferantenname im Postfach',
     suggestEmailBillingPlatformOnly:

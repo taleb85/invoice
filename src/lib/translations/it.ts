@@ -2898,6 +2898,7 @@ const translations: Translations = {
     suggestEmailSourceUnmatched: 'da P.IVA non abbinata',
     suggestEmailSourceInboxFrom: 'da casella (mittente)',
     suggestEmailSourceInboxReplyTo: 'da casella (reply-to)',
+    suggestEmailSourceInboxCc: 'da casella (Cc)',
     suggestEmailSourceInboxBody: 'da casella (corpo mail)',
     suggestEmailTitle: 'Email trovate cercando il nome fornitore in casella',
     suggestEmailBillingPlatformOnly:

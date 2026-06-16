@@ -175,6 +175,7 @@ function mergeSuggestionLists(lists: EmailSuggestion[][]): EmailSuggestion[] {
   const sourceRank: Record<EmailSuggestionSource, number> = {
     inbox_from: 5,
     inbox_reply_to: 4,
+    inbox_cc: 3,
     log: 3,
     queue: 2,
     unmatched_queue: 1,

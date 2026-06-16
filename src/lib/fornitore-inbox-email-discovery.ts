@@ -13,7 +13,7 @@ import {
 } from '@/lib/fornitore-cross-check'
 import { extractStatementFromSupplierName } from '@/lib/statement-supplier-subject'
 
-export type InboxDiscoveredEmailSource = 'inbox_from' | 'inbox_reply_to' | 'inbox_body'
+export type InboxDiscoveredEmailSource = 'inbox_from' | 'inbox_reply_to' | 'inbox_cc' | 'inbox_body'
 
 export type InboxDiscoveredEmail = {
   email: string
@@ -218,7 +218,7 @@ export function filterSupplierEmailSuggestions<T extends SupplierEmailSuggestion
     ) {
       return emailRelatesToSupplierName(email, fornitore.nome, fornitore.display_name)
     }
-    if (sg.source === 'inbox_reply_to') {
+    if (sg.source === 'inbox_reply_to' || sg.source === 'inbox_cc') {
       return (
         emailRelatesToSupplierName(email, fornitore.nome, fornitore.display_name) ||
         isPlausibleBillingPlatformReplyTo(email)
@@ -245,6 +245,16 @@ function isUsableSupplierCandidate(
 /** Reply-To su mail Xero/QuickBooks già abbinate al fornitore via oggetto (es. accounts@slf-uk.com). */
 function isPlausibleBillingPlatformReplyTo(email: string): boolean {
   return isUsableSupplierCandidate(email, { exclude: new Set() })
+}
+
+function acceptBillingPlatformContactEmail(
+  email: string,
+  fornitore: { nome: string; display_name?: string | null },
+): boolean {
+  return (
+    isPlausibleBillingPlatformReplyTo(email) ||
+    emailRelatesToSupplierName(email, fornitore.nome, fornitore.display_name)
+  )
 }
 
 function addressListEmails(addrs: AddressObject | AddressObject[] | undefined): string[] {
@@ -322,6 +332,7 @@ type EnvelopeCandidate = {
   fromDisplayName: string | null
   fromEmail: string | null
   replyToEmails: string[]
+  ccEmails: string[]
   dateIso: string | null
 }
 
@@ -513,6 +524,7 @@ export async function discoverFornitoreEmailsFromInbox(
             fromDisplayName,
             fromEmail,
             replyToEmails: addressListEmails(env?.replyTo as AddressObject | AddressObject[] | undefined),
+            ccEmails: addressListEmails(env?.cc as AddressObject | AddressObject[] | undefined),
             dateIso,
           })
         }
@@ -523,8 +535,13 @@ export async function discoverFornitoreEmailsFromInbox(
         for (const c of candidates) {
           if (c.fromEmail && isSharedBillingPlatformSenderEmail(c.fromEmail)) {
             for (const rt of c.replyToEmails) {
-              if (isPlausibleBillingPlatformReplyTo(rt)) {
+              if (acceptBillingPlatformContactEmail(rt, fornitore)) {
                 mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
+              }
+            }
+            for (const cc of c.ccEmails) {
+              if (acceptBillingPlatformContactEmail(cc, fornitore)) {
+                mergeInboxEmailTracked(cc, c.dateIso, 'inbox_cc')
               }
             }
           } else if (
@@ -538,7 +555,7 @@ export async function discoverFornitoreEmailsFromInbox(
             bodyParsed < MAX_BODY_PARSE &&
             (!c.fromEmail ||
               isSharedBillingPlatformSenderEmail(c.fromEmail) ||
-              c.replyToEmails.length === 0)
+              (c.replyToEmails.length === 0 && c.ccEmails.length === 0))
 
           if (!needsBody) continue
           bodyParsed += 1
@@ -548,11 +565,13 @@ export async function discoverFornitoreEmailsFromInbox(
               if (!msg.source) break
               const parsed = await simpleParser(msg.source)
               for (const rt of addressListEmails(parsed.replyTo)) {
-                if (
-                  isPlausibleBillingPlatformReplyTo(rt) ||
-                  emailRelatesToSupplierName(rt, fornitore.nome, fornitore.display_name)
-                ) {
+                if (acceptBillingPlatformContactEmail(rt, fornitore)) {
                   mergeInboxEmailTracked(rt, c.dateIso, 'inbox_reply_to')
+                }
+              }
+              for (const cc of addressListEmails(parsed.cc)) {
+                if (acceptBillingPlatformContactEmail(cc, fornitore)) {
+                  mergeInboxEmailTracked(cc, c.dateIso, 'inbox_cc')
                 }
               }
               const fromHeader = extractEmailFromSenderHeader(parsed.from?.text ?? '')

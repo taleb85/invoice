@@ -1679,6 +1679,7 @@ const translations: Translations = {
     suggestEmailSourceUnmatched: 'de TVA non associée',
     suggestEmailSourceInboxFrom: 'de la boîte (expéditeur)',
     suggestEmailSourceInboxReplyTo: 'de la boîte (reply-to)',
+    suggestEmailSourceInboxCc: 'de la boîte (Cc)',
     suggestEmailSourceInboxBody: 'de la boîte (corps du mail)',
     suggestEmailTitle: 'E-mails trouvés par nom fournisseur en boîte',
     suggestEmailBillingPlatformOnly:

@@ -135,6 +135,30 @@ describe('filterSupplierEmailSuggestions — billing Reply-To', () => {
     )
     expect(out.map((s) => s.email)).toEqual(['francodemennato@yahoo.co.uk'])
   })
+
+  it('keeps Cc contact on matched QuickBooks mail (Clockwork Coffee)', () => {
+    const out = filterSupplierEmailSuggestions(
+      [
+        {
+          email: 'accounts@clockwork-coffee.co.uk',
+          source: 'inbox_reply_to',
+          count: 2,
+          last_seen: '2026-06-06T00:00:00Z',
+        },
+        {
+          email: 'n.m.wawer@clockwork-coffee.co.uk',
+          source: 'inbox_cc',
+          count: 2,
+          last_seen: '2026-06-06T00:00:00Z',
+        },
+      ],
+      { nome: 'Clockwork Coffee Ltd' },
+    )
+    expect(out.map((s) => s.email).sort()).toEqual([
+      'accounts@clockwork-coffee.co.uk',
+      'n.m.wawer@clockwork-coffee.co.uk',
+    ])
+  })
 })
 
 describe('filterSupplierEmailSuggestions', () => {

@@ -1734,6 +1734,7 @@ const translations: Translations = {
     suggestEmailSourceUnmatched: 'from unmatched VAT',
     suggestEmailSourceInboxFrom: 'from mailbox (sender)',
     suggestEmailSourceInboxReplyTo: 'from mailbox (reply-to)',
+    suggestEmailSourceInboxCc: 'from mailbox (Cc)',
     suggestEmailSourceInboxBody: 'from mailbox (body)',
     suggestEmailTitle: 'Emails found by supplier name in mailbox',
     suggestEmailBillingPlatformOnly:

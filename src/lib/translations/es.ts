@@ -1679,6 +1679,7 @@ const translations: Translations = {
     suggestEmailSourceUnmatched: 'de NIF no asociado',
     suggestEmailSourceInboxFrom: 'del buzón (remitente)',
     suggestEmailSourceInboxReplyTo: 'del buzón (reply-to)',
+    suggestEmailSourceInboxCc: 'del buzón (Cc)',
     suggestEmailSourceInboxBody: 'del buzón (cuerpo)',
     suggestEmailTitle: 'Emails encontrados por nombre del proveedor en buzón',
     suggestEmailBillingPlatformOnly:

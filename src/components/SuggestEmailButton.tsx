@@ -22,6 +22,7 @@ const SOURCE_ICONS: Record<EmailSuggestion['source'], string> = {
   unmatched_queue: '🔍',
   inbox_from: '📧',
   inbox_reply_to: '↩️',
+  inbox_cc: '👥',
   inbox_body: '📝',
 }
 
@@ -108,6 +109,7 @@ export default function SuggestEmailButton({ fornitoreId, fornitoreNome, onSaved
     if (source === 'unmatched_queue') return s.suggestEmailSourceUnmatched
     if (source === 'inbox_from') return s.suggestEmailSourceInboxFrom
     if (source === 'inbox_reply_to') return s.suggestEmailSourceInboxReplyTo
+    if (source === 'inbox_cc') return s.suggestEmailSourceInboxCc
     return s.suggestEmailSourceInboxBody
   }
 

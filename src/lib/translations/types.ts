@@ -124,6 +124,7 @@ export type Translations = {
     suggestEmailSourceUnmatched: string
     suggestEmailSourceInboxFrom: string
     suggestEmailSourceInboxReplyTo: string
+    suggestEmailSourceInboxCc: string
     suggestEmailSourceInboxBody: string
     suggestEmailTitle: string
     suggestEmailBillingPlatformOnly: string
