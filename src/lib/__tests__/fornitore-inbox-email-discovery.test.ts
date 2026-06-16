@@ -120,6 +120,21 @@ describe('filterSupplierEmailSuggestions — billing Reply-To', () => {
     )
     expect(out.map((s) => s.email)).toEqual(['accounts@slf-uk.com'])
   })
+
+  it('keeps personal Yahoo reply-to on matched Xero mail (Cici Cibo)', () => {
+    const out = filterSupplierEmailSuggestions(
+      [
+        {
+          email: 'francodemennato@yahoo.co.uk',
+          source: 'inbox_reply_to',
+          count: 3,
+          last_seen: '2026-06-06T00:00:00Z',
+        },
+      ],
+      { nome: 'Cici Cibo Ltd' },
+    )
+    expect(out.map((s) => s.email)).toEqual(['francodemennato@yahoo.co.uk'])
+  })
 })
 
 describe('filterSupplierEmailSuggestions', () => {
