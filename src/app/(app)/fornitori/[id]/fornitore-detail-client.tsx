@@ -6778,6 +6778,7 @@ function FornitoreDetailClient({
           <FornitoreConfermeOrdineTab
             fornitoreId={fornitore.id}
             sedeId={fornitore.sede_id ?? null}
+            countryCode={countryCode}
             readOnly={supplierReadOnlyMobile}
             dateFrom={ledgerPeriod.from}
             dateToExclusive={ledgerDateToExclusive}

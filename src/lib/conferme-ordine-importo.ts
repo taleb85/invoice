@@ -1,6 +1,8 @@
 import { parseAnyAmount } from '@/lib/ocr-amount'
+import { applyListinoVatForDisplay, listinoVatMultiplier } from '@/lib/listino-vat'
 
 export type ConfermaOrdineRigaImporto = {
+  prodotto?: string | null
   quantita?: number | null
   prezzo_unitario?: number | null
   importo_linea?: number | null
@@ -122,12 +124,53 @@ function normalizeStoredImporto(value: unknown): number | null {
   return null
 }
 
-/** Importo da mostrare: righe prodotto, altrimenti totale documento (DB / OCR). */
+/** Importo netto: righe prodotto (Rekki), altrimenti totale documento (DB / OCR). */
 export function confermaOrdineImportoTotale(row: {
   righe: unknown
   importo_totale?: number | null
 }): number | null {
   const fromRighe = sumConfermaOrdineRigheImporto(row.righe)
   if (fromRighe != null) return fromRighe
+  return normalizeStoredImporto(row.importo_totale)
+}
+
+function sumConfermaOrdineRigheImportoWithVat(
+  righe: unknown,
+  countryCode: string | null | undefined,
+): number | null {
+  if (!Array.isArray(righe) || righe.length === 0) return null
+  let total = 0
+  let found = false
+  for (const raw of righe) {
+    if (!raw || typeof raw !== 'object') continue
+    const r = raw as ConfermaOrdineRigaImporto
+    const net = lineImporto(r)
+    if (net == null) continue
+    const prodotto = typeof r.prodotto === 'string' ? r.prodotto : undefined
+    total += applyListinoVatForDisplay(net, countryCode, { prodotto })
+    found = true
+  }
+  return found ? Math.round(total * 100) / 100 : null
+}
+
+/**
+ * Importo da mostrare in UI: IVA inclusa.
+ * Righe Rekki sono nette → si applica IVA per riga; totale OCR (`importo_totale`) è già lordo.
+ */
+export function confermaOrdineImportoTotaleDisplay(
+  row: {
+    righe: unknown
+    importo_totale?: number | null
+  },
+  countryCode?: string | null,
+): number | null {
+  const fromRigheNet = sumConfermaOrdineRigheImporto(row.righe)
+  if (fromRigheNet != null) {
+    const fromRigheGross = sumConfermaOrdineRigheImportoWithVat(row.righe, countryCode)
+    if (fromRigheGross != null) return fromRigheGross
+    const mult = listinoVatMultiplier(countryCode)
+    if (mult <= 1) return fromRigheNet
+    return Math.round(fromRigheNet * mult * 100) / 100
+  }
   return normalizeStoredImporto(row.importo_totale)
 }

@@ -21,7 +21,7 @@ import {
 } from '@/lib/check-duplicates'
 import { confermeFileUrlsInUse, deleteConfermaOrdineRow } from '@/lib/conferme-ordine-delete'
 import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
-import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
+import { confermaOrdineImportoTotaleDisplay } from '@/lib/conferme-ordine-importo'
 import {
   type ConfermaOrdineListRow,
   confermaOrdineRowToOrdineDupProbe,
@@ -80,12 +80,14 @@ const CONFERME_OCR_PILL =
 export default function FornitoreConfermeOrdineTab({
   fornitoreId,
   sedeId,
+  countryCode,
   readOnly,
   dateFrom,
   dateToExclusive,
 }: {
   fornitoreId: string
   sedeId: string | null
+  countryCode?: string | null
   readOnly?: boolean
   /** Periodo header scheda fornitore (inclusivo / esclusivo). */
   dateFrom?: string
@@ -598,7 +600,7 @@ export default function FornitoreConfermeOrdineTab({
                       </p>
                     ) : null}
                     {(() => {
-                      const tot = confermaOrdineImportoTotale(r)
+                      const tot = confermaOrdineImportoTotaleDisplay(r, countryCode)
                       if (tot == null) return null
                       return (
                         <p className={`mt-0.5 font-mono text-xs tabular-nums ${confermeSecondaryClass}`}>
@@ -713,7 +715,7 @@ export default function FornitoreConfermeOrdineTab({
                       </td>
                       <td className="px-5 py-3 text-right font-mono text-sm tabular-nums text-app-fg">
                         {(() => {
-                          const tot = confermaOrdineImportoTotale(r)
+                          const tot = confermaOrdineImportoTotaleDisplay(r, countryCode)
                           return tot != null ? formatCurrency(tot, currency, locale) : '—'
                         })()}
                       </td>

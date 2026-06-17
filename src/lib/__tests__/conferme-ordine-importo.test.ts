@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   confermaOrdineImportoTotale,
+  confermaOrdineImportoTotaleDisplay,
   extractOrderTotalFromLabelledText,
   importoTotaleFromOcrResult,
   sumConfermaOrdineRigheImporto,
@@ -53,5 +54,40 @@ describe('confermaOrdineImportoTotale', () => {
         'Invoice 43284\nBalance Due £99.00',
       ),
     ).toBe(99)
+  })
+})
+
+describe('confermaOrdineImportoTotaleDisplay', () => {
+  it('applica IVA UK sulle righe Rekki (netto → lordo)', () => {
+    expect(
+      confermaOrdineImportoTotaleDisplay(
+        {
+          righe: [{ prodotto: 'Prosecco Argeo NV', importo_linea: 100 }],
+          importo_totale: 120,
+        },
+        'UK',
+      ),
+    ).toBe(120)
+  })
+
+  it('non raddoppia IVA su totale OCR senza righe', () => {
+    expect(
+      confermaOrdineImportoTotaleDisplay({
+        righe: null,
+        importo_totale: 544.87,
+      }, 'UK'),
+    ).toBe(544.87)
+  })
+
+  it('mantiene zero-rated su carne a peso UK', () => {
+    expect(
+      confermaOrdineImportoTotaleDisplay(
+        {
+          righe: [{ prodotto: 'Prosciutto crudo 1/2 kg', importo_linea: 50, quantita: 1 }],
+          importo_totale: null,
+        },
+        'UK',
+      ),
+    ).toBe(50)
   })
 })
