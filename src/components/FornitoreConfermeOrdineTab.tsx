@@ -23,6 +23,7 @@ import {
   SUPPLIER_LEDGER_TD_DATE,
   SUPPLIER_LEDGER_TH,
   SUPPLIER_LEDGER_TH_AMOUNT,
+  SUPPLIER_LEDGER_TH_RIGHT,
   supplierLedgerTableHeadRow,
 } from '@/lib/supplier-detail-ledger-table'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
