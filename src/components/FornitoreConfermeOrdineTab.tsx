@@ -10,7 +10,21 @@ import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 import { DocumentRowActions } from '@/components/DocumentRowActions'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
-import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR } from '@/lib/app-shell-layout'
+import { APP_SECTION_MOBILE_LIST } from '@/lib/app-shell-layout'
+import {
+  APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_THEAD_STICKY,
+  APP_SECTION_TABLE_TR,
+  SUPPLIER_LEDGER_TABLE,
+  SUPPLIER_LEDGER_TABLE_WRAP,
+  SUPPLIER_LEDGER_TD,
+  SUPPLIER_LEDGER_TD_ACTIONS,
+  SUPPLIER_LEDGER_TD_AMOUNT,
+  SUPPLIER_LEDGER_TD_DATE,
+  SUPPLIER_LEDGER_TH,
+  SUPPLIER_LEDGER_TH_AMOUNT,
+  supplierLedgerTableHeadRow,
+} from '@/lib/supplier-detail-ledger-table'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useToast } from '@/lib/toast-context'
 
@@ -66,7 +80,6 @@ function confermaRowLabel(
 }
 
 /** Sul guscio `supplier-detail-tab-shell` (trasparente): niente `app-workspace-inset-bg`. */
-const CONFERME_TABLE_HEAD_ROW = 'border-b border-app-soft-border bg-transparent'
 
 const RED_ACTION_PILL =
   'inline-flex items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
@@ -432,7 +445,7 @@ export default function FornitoreConfermeOrdineTab({
 
   if (tableMissing) {
     return (
-      <div className={`supplier-detail-tab-shell mt-4 overflow-hidden ${migrationTheme.border}`}>
+      <div className={`supplier-detail-tab-shell overflow-hidden ${migrationTheme.border}`}>
         <div className={`app-card-bar-accent ${migrationTheme.bar}`} aria-hidden />
         <div className="border-b border-[rgba(34,211,238,0.15)] bg-transparent px-5 py-4 text-sm text-amber-100/95">
           <p className="font-semibold text-amber-200">{t.fornitori.confermeOrdineMigrationTitle}</p>
@@ -443,7 +456,7 @@ export default function FornitoreConfermeOrdineTab({
   }
 
   return (
-    <div className={`supplier-detail-tab-shell mt-4 flex flex-col overflow-hidden ${confermeTheme.border}`}>
+    <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${confermeTheme.border}`}>
       <div className={`app-card-bar-accent ${confermeTheme.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-2 border-b border-app-line-20 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
@@ -635,41 +648,25 @@ export default function FornitoreConfermeOrdineTab({
               ))}
             </div>
 
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[520px] text-sm">
-                <thead>
-                  <tr className={CONFERME_TABLE_HEAD_ROW}>
-                    <th
-                      className={`px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest ${confermeTheme.label}`}
-                    >
-                      {t.common.date}
-                    </th>
-                    <th
-                      className={`px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest ${confermeTheme.label}`}
-                    >
-                      {t.fornitori.confermeOrdineColFile}
-                    </th>
-                    <th
-                      className={`px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums ${confermeTheme.label}`}
-                    >
-                      {t.statements.colAmount}
-                    </th>
-                    <th
-                      className={`px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest ${confermeTheme.label}`}
-                    >
-                      {t.common.actions}
-                    </th>
+            <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
+              <table className={SUPPLIER_LEDGER_TABLE}>
+                <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
+                  <tr className={supplierLedgerTableHeadRow('conferme')}>
+                    <th className={SUPPLIER_LEDGER_TH}>{t.common.date}</th>
+                    <th className={SUPPLIER_LEDGER_TH}>{t.fornitori.confermeOrdineColFile}</th>
+                    <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.statements.colAmount}</th>
+                    <th className={SUPPLIER_LEDGER_TH_RIGHT}>{t.common.actions}</th>
                   </tr>
                 </thead>
                 <tbody className={APP_SECTION_TABLE_TBODY}>
                   {sortedRows.map((r) => (
                     <tr key={r.id} className={`${APP_SECTION_TABLE_TR} ${rowOcrClass(r.id)}`}>
-                      <td className={`px-5 py-3 ${confermeSecondaryClass}`}>
+                      <td className={SUPPLIER_LEDGER_TD_DATE}>
                         {r.data_ordine_display ?? r.data_ordine
                           ? fmt(r.data_ordine_display ?? r.data_ordine!)
                           : '—'}
                       </td>
-                      <td className="px-5 py-3">
+                      <td className={SUPPLIER_LEDGER_TD}>
                         <OpenDocumentInAppButton
                           confermaOrdineId={r.id}
                           fileUrl={r.file_url}
@@ -713,13 +710,13 @@ export default function FornitoreConfermeOrdineTab({
                           })()}
                         </OpenDocumentInAppButton>
                       </td>
-                      <td className="px-5 py-3 text-right font-mono text-sm tabular-nums text-app-fg">
+                      <td className={SUPPLIER_LEDGER_TD_AMOUNT}>
                         {(() => {
                           const tot = confermaOrdineImportoTotaleDisplay(r, countryCode)
                           return tot != null ? formatCurrency(tot, currency, locale) : '—'
                         })()}
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className={SUPPLIER_LEDGER_TD_ACTIONS}>
                         <div className="inline-flex flex-wrap items-center justify-end gap-2">
                           {r.file_url?.trim() ? (
                             <DocumentRowActions

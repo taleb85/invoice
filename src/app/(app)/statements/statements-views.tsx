@@ -59,7 +59,12 @@ import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attach
 import { resolveVerificaDisplayRows } from '@/lib/listino-display'
 import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fattura'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
-import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_THEAD_STICKY } from '@/lib/app-shell-layout'
+import {
+  SUPPLIER_LEDGER_TABLE,
+  SUPPLIER_LEDGER_TABLE_WRAP,
+  supplierLedgerTableHeadRow,
+} from '@/lib/supplier-detail-ledger-table'
 import { DOCUMENTI_PENDING_STATI_API_DEFAULT } from '@/lib/documenti-queue-stato'
 import {
   effectivePendingDocDayIso,
@@ -6660,9 +6665,15 @@ export function VerificationStatusTab({
             })}
             </div>
 
-            {/* Per-line results — desktop table (8 colonne, larghezza al contenuto, senza scroll) */}
-            <div className="hidden min-w-0 w-full overflow-hidden md:block">
-              <table className="w-full table-auto border-collapse text-xs leading-snug">
+            {/* Per-line results — desktop table (8 colonne) */}
+            <div className={vsEmbeddedSupplier ? SUPPLIER_LEDGER_TABLE_WRAP : 'hidden min-w-0 w-full overflow-hidden md:block'}>
+              <table
+                className={
+                  vsEmbeddedSupplier
+                    ? `${SUPPLIER_LEDGER_TABLE} min-w-[52rem]`
+                    : 'w-full table-auto border-collapse text-xs leading-snug'
+                }
+              >
                 <colgroup>
                   <col />
                   <col className="w-0" />
@@ -6673,8 +6684,8 @@ export function VerificationStatusTab({
                   <col className="w-14" />
                   <col className="w-0" />
                 </colgroup>
-                <thead>
-                  <tr className="border-b border-app-line-15">
+                <thead className={vsEmbeddedSupplier ? APP_SECTION_TABLE_THEAD_STICKY : undefined}>
+                  <tr className={vsEmbeddedSupplier ? supplierLedgerTableHeadRow('verifica') : 'border-b border-app-line-15'}>
                     <th
                       className="w-0 whitespace-nowrap py-2 pl-1 pr-0.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
                       title={t.statements.colRef}
@@ -6699,7 +6710,7 @@ export function VerificationStatusTab({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-app-line-15">
+                <tbody className={vsEmbeddedSupplier ? APP_SECTION_TABLE_TBODY : 'divide-y divide-app-line-15'}>
                   {(filteredCheckResults ?? []).map(r => {
                     const cfg        = STATUS_CONFIG[r.status]
                     const needAction =

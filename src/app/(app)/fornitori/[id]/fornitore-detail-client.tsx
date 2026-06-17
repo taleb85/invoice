@@ -177,8 +177,20 @@ import {
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_THEAD_STICKY,
   APP_SECTION_TABLE_TR,
-  appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
+import {
+  SUPPLIER_LEDGER_TABLE,
+  SUPPLIER_LEDGER_TABLE_WRAP,
+  SUPPLIER_LEDGER_TD,
+  SUPPLIER_LEDGER_TD_ACTIONS,
+  SUPPLIER_LEDGER_TD_AMOUNT,
+  SUPPLIER_LEDGER_TD_DATE,
+  SUPPLIER_LEDGER_TD_TEXT,
+  SUPPLIER_LEDGER_TH,
+  SUPPLIER_LEDGER_TH_AMOUNT,
+  SUPPLIER_LEDGER_TH_RIGHT,
+  supplierLedgerTableHeadRow,
+} from '@/lib/supplier-detail-ledger-table'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica' | 'audit' | 'anomalie'
 
@@ -2542,19 +2554,15 @@ function BolleTab({
         })}
       </div>
 
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[520px] text-sm">
+      <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
+        <table className={SUPPLIER_LEDGER_TABLE}>
           <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
-            <tr className={appSectionTableHeadRowAccentClass('indigo')}>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.date}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colNumero}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colAttachmentKind}</th>
-              <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
-                {t.bolle.colQuantita}
-              </th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                {t.common.actions}
-              </th>
+            <tr className={supplierLedgerTableHeadRow('bolle')}>
+              <th className={SUPPLIER_LEDGER_TH}>{t.common.date}</th>
+              <th className={SUPPLIER_LEDGER_TH}>{t.bolle.colNumero}</th>
+              <th className={SUPPLIER_LEDGER_TH}>{t.bolle.colAttachmentKind}</th>
+              <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.bolle.colQuantita}</th>
+              <th className={SUPPLIER_LEDGER_TH_RIGHT}>{t.common.actions}</th>
             </tr>
           </thead>
           <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -2566,8 +2574,8 @@ function BolleTab({
                 className={`cursor-pointer ${APP_SECTION_TABLE_TR}`}
                 onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
               >
-                <td className="px-5 py-3 font-medium text-app-fg-muted">{formatDate(b.data)}</td>
-                <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">
+                <td className={SUPPLIER_LEDGER_TD_DATE}>{formatDate(b.data)}</td>
+                <td className={`${SUPPLIER_LEDGER_TD} font-mono text-xs`}>
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
                   <span className="relative mt-0.5 block">
                     <button
@@ -2612,7 +2620,7 @@ function BolleTab({
                     />
                   ) : null}
                 </td>
-                <td className="px-5 py-3">
+                <td className={SUPPLIER_LEDGER_TD}>
                   {!fileKind ? (
                     <span className="text-app-fg-muted">—</span>
                   ) : (
@@ -2621,10 +2629,10 @@ function BolleTab({
                     </span>
                   )}
                 </td>
-                <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
+                <td className={SUPPLIER_LEDGER_TD_AMOUNT}>
                   {formatBollaQuantita(quantitaInElenco(b), locale)}
                 </td>
-                <td className="px-5 py-3 text-right">
+                <td className={SUPPLIER_LEDGER_TD_ACTIONS}>
                   <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                     {renderBollaDocumentActions(b)}
                   </div>
@@ -3277,25 +3285,15 @@ function FattureTab({
           })}
         </div>
 
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[520px] text-sm">
+        <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
+          <table className={SUPPLIER_LEDGER_TABLE}>
             <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
-              <tr className={appSectionTableHeadRowAccentClass('emerald')}>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                  {t.common.date}
-                </th>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                  {t.fatture.colNumFattura}
-                </th>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                  {t.bolle.colAttachmentKind}
-                </th>
-                <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
-                  {t.statements.colAmount}
-                </th>
-                <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                  {t.common.actions}
-                </th>
+              <tr className={supplierLedgerTableHeadRow('fatture')}>
+                <th className={SUPPLIER_LEDGER_TH}>{t.common.date}</th>
+                <th className={SUPPLIER_LEDGER_TH}>{t.fatture.colNumFattura}</th>
+                <th className={SUPPLIER_LEDGER_TH}>{t.bolle.colAttachmentKind}</th>
+                <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.statements.colAmount}</th>
+                <th className={SUPPLIER_LEDGER_TH_RIGHT}>{t.common.actions}</th>
               </tr>
             </thead>
             <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -3310,11 +3308,11 @@ function FattureTab({
                       if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
                     }}
                   >
-                    <td className="px-5 py-3 font-medium text-app-fg-muted">
+                    <td className={SUPPLIER_LEDGER_TD_DATE}>
                       <span className="tabular-nums">{formatDate(f.data)}</span>
                     </td>
                     <td
-                      className="px-5 py-3 font-mono text-xs text-app-fg-muted"
+                      className={`${SUPPLIER_LEDGER_TD} font-mono text-xs`}
                       onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'numero_fattura', f.numero_fattura ?? '')}
                     >
                       {editingCell?.id === f.id && editingCell.field === 'numero_fattura' ? (
@@ -3381,7 +3379,7 @@ function FattureTab({
                         </>
                       )}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className={SUPPLIER_LEDGER_TD}>
                       {!fileKind ? (
                         <span className="text-app-fg-muted">—</span>
                       ) : (
@@ -3391,7 +3389,7 @@ function FattureTab({
                       )}
                     </td>
                     <td
-                      className={`px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums ${f.is_credit_note ? APP_SECTION_AMOUNT_NEGATIVE_CLASS : 'text-app-fg-muted'}`}
+                      className={`${SUPPLIER_LEDGER_TD_AMOUNT} ${f.is_credit_note ? APP_SECTION_AMOUNT_NEGATIVE_CLASS : ''}`}
                       onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'importo', f.importo != null ? String(Math.abs(f.importo)) : '')}
                     >
                       {editingCell?.id === f.id && editingCell.field === 'importo' ? (
@@ -3410,7 +3408,7 @@ function FattureTab({
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className={SUPPLIER_LEDGER_TD_ACTIONS}>
                       {f.file_url?.trim() ? renderFatturaDocumentActions(f) : null}
                     </td>
                   </tr>
@@ -6275,21 +6273,21 @@ function ListinoTab({
           </div>
 
           {/* Desktop */}
-          <div className="hidden overflow-x-auto md:block">
-          <table className="w-full text-sm">
+          <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
+          <table className={SUPPLIER_LEDGER_TABLE}>
             <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
-              <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColData}</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColTipo}</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColNumero}</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColImporto}</th>
+              <tr className={supplierLedgerTableHeadRow('listino')}>
+                <th className={SUPPLIER_LEDGER_TH}>{t.fornitori.listinoColData}</th>
+                <th className={SUPPLIER_LEDGER_TH}>{t.fornitori.listinoColTipo}</th>
+                <th className={SUPPLIER_LEDGER_TH}>{t.fornitori.listinoColNumero}</th>
+                <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.fornitori.listinoColImporto}</th>
               </tr>
             </thead>
             <tbody className={APP_SECTION_TABLE_TBODY}>
               {filteredRows.map((r) => (
                 <tr key={`${r.tipo}-${r.id}`} className={APP_SECTION_TABLE_TR}>
-                  <td className="px-5 py-3.5 font-medium text-app-fg-muted">{formatDate(r.data)}</td>
-                  <td className="px-5 py-3.5">
+                  <td className={SUPPLIER_LEDGER_TD_DATE}>{formatDate(r.data)}</td>
+                  <td className={SUPPLIER_LEDGER_TD}>
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
                       r.tipo === 'fattura'
                         ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-300'
@@ -6299,8 +6297,8 @@ function ListinoTab({
                       {r.tipo === 'fattura' ? t.fatture.title : t.bolle.title}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-app-fg-muted">{r.numero ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-right text-base font-bold tabular-nums text-app-fg">{fmtMoney(r.importo ?? 0)}</td>
+                  <td className={SUPPLIER_LEDGER_TD_TEXT}>{r.numero ?? '—'}</td>
+                  <td className={SUPPLIER_LEDGER_TD_AMOUNT}>{fmtMoney(r.importo ?? 0)}</td>
                 </tr>
               ))}
               <tr className="border-t-2 border-app-line-22 app-workspace-inset-bg-soft">

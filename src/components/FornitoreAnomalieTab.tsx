@@ -15,11 +15,22 @@ import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 import {
   APP_SECTION_DIVIDE_ROWS,
   APP_SECTION_MOBILE_LIST,
-  APP_SECTION_TABLE_HEAD_ROW,
+} from '@/lib/app-shell-layout'
+import {
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_THEAD_STICKY,
   APP_SECTION_TABLE_TR,
-} from '@/lib/app-shell-layout'
+  SUPPLIER_LEDGER_TABLE,
+  SUPPLIER_LEDGER_TABLE_WRAP,
+  SUPPLIER_LEDGER_TD,
+  SUPPLIER_LEDGER_TD_ACTIONS,
+  SUPPLIER_LEDGER_TD_AMOUNT,
+  SUPPLIER_LEDGER_TD_DATE,
+  SUPPLIER_LEDGER_TH,
+  SUPPLIER_LEDGER_TH_AMOUNT,
+  SUPPLIER_LEDGER_TH_RIGHT,
+  supplierLedgerTableHeadRow,
+} from '@/lib/supplier-detail-ledger-table'
 import { createClient } from '@/utils/supabase/client'
 import { fornitoreBollaDeepLink, fornitoreFatturaDeepLink, fornitoreDocumentiQueueHref } from '@/lib/fornitore-supplier-url'
 import { deliveryNoteTermForList } from '@/lib/localization'
@@ -323,26 +334,26 @@ export default function FornitoreAnomalieTab({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[52rem] border-collapse text-sm">
+        <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
+          <table className={`${SUPPLIER_LEDGER_TABLE} min-w-[52rem]`}>
             <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
-              <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+              <tr className={supplierLedgerTableHeadRow('anomalie')}>
+                <th className={`w-[1%] whitespace-nowrap ${SUPPLIER_LEDGER_TH}`}>
                   {t.common.date}
                 </th>
-                <th className="min-w-[9.5rem] px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className={`min-w-[9.5rem] ${SUPPLIER_LEDGER_TH}`}>
                   {t.fornitori.anomalieColIssue}
                 </th>
-                <th className="min-w-[10rem] px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className={`min-w-[10rem] ${SUPPLIER_LEDGER_TH}`}>
                   {t.fornitori.anomalieColDocument}
                 </th>
-                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className={`w-[1%] whitespace-nowrap ${SUPPLIER_LEDGER_TH}`}>
                   {t.bolle.colAttachmentKind}
                 </th>
-                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className={`w-[1%] whitespace-nowrap ${SUPPLIER_LEDGER_TH_AMOUNT}`}>
                   {t.statements.colAmount}
                 </th>
-                <th className="w-[1%] whitespace-nowrap px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-5">
+                <th className={`w-[1%] whitespace-nowrap ${SUPPLIER_LEDGER_TH_RIGHT}`}>
                   {t.common.actions}
                 </th>
               </tr>
@@ -352,10 +363,10 @@ export default function FornitoreAnomalieTab({
                 const regDateHint = registeredDateHint(row, t, formatDate)
                 return (
                 <tr key={row.id} className={APP_SECTION_TABLE_TR}>
-                  <td className="w-[1%] align-top px-4 py-3 font-medium whitespace-nowrap tabular-nums text-app-fg-muted md:px-5">
+                  <td className={`w-[1%] align-top whitespace-nowrap ${SUPPLIER_LEDGER_TD_DATE}`}>
                     {formatDate(row.data)}
                   </td>
-                  <td className="max-w-[14rem] align-top overflow-hidden px-4 py-3 md:px-5">
+                  <td className={`max-w-[14rem] align-top overflow-hidden ${SUPPLIER_LEDGER_TD}`}>
                     <span
                       className={`inline-flex max-w-full rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase leading-tight ${issueBadgeClass(row)}`}
                     >
@@ -368,7 +379,7 @@ export default function FornitoreAnomalieTab({
                       <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-amber-200/90">{regDateHint}</p>
                     ) : null}
                   </td>
-                  <td className="min-w-[10rem] max-w-[18rem] align-top overflow-hidden px-4 py-3 md:px-5">
+                  <td className={`min-w-[10rem] max-w-[18rem] align-top overflow-hidden ${SUPPLIER_LEDGER_TD}`}>
                     <p className="truncate font-medium text-app-fg" title={row.title}>
                       {row.title}
                     </p>
@@ -378,11 +389,11 @@ export default function FornitoreAnomalieTab({
                       </p>
                     ) : null}
                   </td>
-                  <td className="w-[1%] align-top px-4 py-3 whitespace-nowrap md:px-5">{renderAttachment(row)}</td>
-                  <td className="w-[1%] align-top px-4 py-3 text-right font-mono text-xs font-semibold whitespace-nowrap tabular-nums text-app-fg md:px-5">
+                  <td className={`w-[1%] align-top whitespace-nowrap ${SUPPLIER_LEDGER_TD}`}>{renderAttachment(row)}</td>
+                  <td className={`w-[1%] align-top whitespace-nowrap ${SUPPLIER_LEDGER_TD_AMOUNT}`}>
                     {row.importo != null ? formatCurrency(row.importo, currency, locale) : '—'}
                   </td>
-                  <td className="w-[1%] align-top px-4 py-3 whitespace-nowrap md:px-5">
+                  <td className={`w-[1%] align-top whitespace-nowrap ${SUPPLIER_LEDGER_TD_ACTIONS}`}>
                     {renderRowActions(row)}
                   </td>
                 </tr>
