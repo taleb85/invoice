@@ -137,6 +137,18 @@ export default function FornitoreConfermeOrdineTab({
     [rows, fornitoreId],
   )
 
+  const currentMonthRows = useMemo(() => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const prefix = `${y}-${m}`
+    return sortedRows.filter((r) => {
+      const dateStr = r.data_ordine_display ?? r.data_ordine
+      if (!dateStr) return false
+      return dateStr.startsWith(prefix)
+    })
+  }, [sortedRows])
+
   const confermeDupPayload = useMemo(() => {
     const analysis = analyzeOrdineDuplicatesForDeletion(
       sortedRows.map((r) => confermaOrdineRowToOrdineDupProbe(r)),
@@ -553,7 +565,7 @@ export default function FornitoreConfermeOrdineTab({
               aria-hidden
             />
           </div>
-        ) : sortedRows.length === 0 ? (
+        ) : currentMonthRows.length === 0 ? (
           <AppSectionEmptyState
             message={t.fornitori.confermeOrdineEmpty}
             messageClassName={confermeSecondaryClass}
@@ -577,7 +589,7 @@ export default function FornitoreConfermeOrdineTab({
         ) : (
           <>
             <div className={APP_SECTION_MOBILE_LIST}>
-              {sortedRows.map((r) => (
+              {currentMonthRows.map((r) => (
                 <div
                   key={r.id}
                   className={`flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-app-line-5 ${rowOcrClass(r.id)}`}
@@ -660,7 +672,7 @@ export default function FornitoreConfermeOrdineTab({
                   </tr>
                 </thead>
                 <tbody className={APP_SECTION_TABLE_TBODY}>
-                  {sortedRows.map((r) => (
+                  {currentMonthRows.map((r) => (
                     <tr key={r.id} className={`${APP_SECTION_TABLE_TR} ${rowOcrClass(r.id)}`}>
                       <td className={SUPPLIER_LEDGER_TD_DATE}>
                         {r.data_ordine_display ?? r.data_ordine
