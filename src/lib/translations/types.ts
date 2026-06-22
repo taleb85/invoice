@@ -1671,6 +1671,8 @@ export type Translations = {
     impostazioniLocalizzazione: string
     impostazioniLocalizzazioneSubtitle: string
     impostazioniValuta: string
+    impostazioniFuso: string
+    impostazioniPreview: string
   }
   sollecitiSettingsPage: {
     title: string
