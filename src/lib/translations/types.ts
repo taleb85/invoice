@@ -1670,6 +1670,7 @@ export type Translations = {
     valutaFuso: string
     impostazioniLocalizzazione: string
     impostazioniLocalizzazioneSubtitle: string
+    impostazioniValuta: string
   }
   sollecitiSettingsPage: {
     title: string

@@ -2473,6 +2473,7 @@ const translations: Translations = {
     valutaFuso: 'Valuta e Fuso orario',
     impostazioniLocalizzazione: 'Impostazioni localizzazione',
     impostazioniLocalizzazioneSubtitle: 'Personalizza valuta e fuso orario',
+    impostazioniValuta: 'Valuta',
   },
   approvalSettings: {
     autoRegisterTitle: 'Registrazione automatica fatture AI',
