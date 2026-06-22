@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
+import { CURRENCIES, TIMEZONES } from '@/lib/translations'
 import { useToast } from '@/lib/toast-context'
 import { revalidateMe, useMe } from '@/lib/me-context'
 import type { Translations } from '@/lib/translations'
@@ -318,6 +319,64 @@ export default function SedeBranchManagementPanel({
   const [operatorsDrawerOpen, setOperatorsDrawerOpen] = useState(true)
   const [pinDraft, setPinDraft] = useState('')
 
+  // ── Localizzazione (valuta / fuso) ──
+  const {
+    locale: locLocale,
+    currency,
+    setCurrency,
+    timezone,
+    setTimezone,
+  } = useLocale()
+  const [mounted, setMounted] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [draftCurrency, setDraftCurrency] = useState(currency)
+  const [draftTimezone, setDraftTimezone] = useState(timezone)
+  const [drawerOpen, setDrawerOpen] = useState(true)
+
+  useEffect(() => {
+    setDraftCurrency(currency)
+    setDraftTimezone(timezone)
+    setMounted(true)
+  }, [currency, timezone])
+
+  const handleSave = () => {
+    setCurrency(draftCurrency)
+    setTimezone(draftTimezone)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
+  }
+
+  const intlLocale =
+    locLocale === 'it' ? 'it-IT'
+    : locLocale === 'en' ? 'en-GB'
+    : locLocale === 'es' ? 'es-ES'
+    : locLocale === 'fr' ? 'fr-FR'
+    : 'de-DE'
+
+  const previewData = mounted
+    ? new Intl.DateTimeFormat(intlLocale, { day: '2-digit', month: 'long', year: 'numeric', timeZone: draftTimezone }).format(new Date())
+    : '…'
+  const previewValuta = mounted
+    ? (() => {
+        try {
+          return new Intl.NumberFormat(intlLocale, { style: 'currency', currency: draftCurrency }).format(1234.56)
+        } catch {
+          return `${draftCurrency} 1,234.56`
+        }
+      })()
+    : '…'
+
+  const locCurrencyMeta = mounted ? CURRENCIES.find((c) => c.code === draftCurrency) : undefined
+  const locTzMeta = mounted ? TIMEZONES.find((z) => z.value === draftTimezone) : undefined
+  const locSummaryLine =
+    mounted && locCurrencyMeta && locTzMeta
+      ? `${locCurrencyMeta.symbol} ${locCurrencyMeta.label} (${locCurrencyMeta.code}) · ${locTzMeta.label}`
+      : '…'
+
+  const selectClsInner =
+    'w-full rounded-lg border border-app-line-35 bg-black/25 px-3 py-2.5 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-black/20 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
+  const labelFieldCls = 'mb-2 block text-xs font-medium text-app-fg-muted'
+
   useEffect(() => {
     const run = () => {
       if (typeof window === 'undefined' || window.location.hash !== '#sede-operatori') return
@@ -445,9 +504,25 @@ export default function SedeBranchManagementPanel({
 
   return (
     <div className="mb-6 flex flex-col gap-6">
-      {/* Identificativo + codice accesso */}
-      <div className="app-card overflow-hidden">
-        <div className="space-y-4 px-5 py-4 app-workspace-inset-bg-soft sm:px-6 sm:py-5">
+      {/* Identificativo + codice accesso — cassetto */}
+      <details className="group app-card overflow-hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 app-workspace-inset-bg-soft transition-colors hover:bg-white/[0.03] [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+              {t.sedi.sedeTechnicalIdTitle}
+            </p>
+          </div>
+          <svg
+            className="h-4 w-4 shrink-0 text-app-fg-muted transition-transform duration-200 group-open:rotate-90"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
+          </svg>
+        </summary>
+        <div className="space-y-4 px-5 py-4 app-workspace-inset-bg-soft sm:px-6 sm:py-5 border-t border-app-line-15">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
               {t.sedi.sedeTechnicalIdTitle}
@@ -501,15 +576,26 @@ export default function SedeBranchManagementPanel({
             ) : null}
           </div>
         </div>
-      </div>
+      </details>
 
-      {/* IMAP */}
-      <div className="app-card overflow-hidden">
-        <div className="border-b border-app-line-15 px-5 py-4 app-workspace-inset-bg-soft">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.sedi.imap}</p>
-          <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.sedi.imapSubtitle}</p>
-        </div>
-        <div className="space-y-4 px-5 py-4 app-workspace-inset-bg-soft sm:px-6 sm:py-5">
+      {/* IMAP — cassetto */}
+      <details className="group app-card overflow-hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 app-workspace-inset-bg-soft transition-colors hover:bg-white/[0.03] [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.sedi.imap}</p>
+            <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.sedi.imapSubtitle}</p>
+          </div>
+          <svg
+            className="h-4 w-4 shrink-0 text-app-fg-muted transition-transform duration-200 group-open:rotate-90"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
+          </svg>
+        </summary>
+        <div className="space-y-4 px-5 py-4 app-workspace-inset-bg-soft sm:px-6 sm:py-5 border-t border-app-line-15">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <label className={labelCls} htmlFor={`${uid}-imap-host`}>
@@ -624,7 +710,7 @@ export default function SedeBranchManagementPanel({
             <p className="text-xs font-medium text-emerald-300">{t.common.success}</p>
           ) : null}
         </div>
-      </div>
+      </details>
 
       {/* Operatori — cassetto */}
       <div id="sede-operatori" className="scroll-mt-24 app-card !overflow-visible">
@@ -658,13 +744,13 @@ export default function SedeBranchManagementPanel({
             ) : null}
           </div>
           <svg
-            className={`mt-2 h-5 w-5 shrink-0 text-app-fg-muted transition-transform duration-200 ${operatorsDrawerOpen ? 'rotate-180' : ''}`}
+            className={`mt-2 h-5 w-5 shrink-0 text-app-fg-muted transition-transform duration-200 ${operatorsDrawerOpen ? 'rotate-90' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
             aria-hidden
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
           </svg>
         </button>
 
@@ -691,6 +777,137 @@ export default function SedeBranchManagementPanel({
           </div>
         ) : null}
       </div>
+
+      {/* ── Localizzazione (valuta / fuso orario) ── */}
+      <details className="group app-card overflow-hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 app-workspace-inset-bg-soft transition-colors hover:bg-white/[0.03] [&::-webkit-details-marker]:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
+              {mounted ? t.sedi.impostazioniLocalizzazione : ''}
+            </p>
+            <p className="mt-1 text-sm leading-snug text-app-fg" suppressHydrationWarning>
+              {mounted ? t.sedi.impostazioniLocalizzazioneSubtitle ?? 'Personalizza valuta e fuso orario' : ''}
+            </p>
+            <p className="mt-1.5 truncate text-xs text-app-fg-muted sm:whitespace-normal" suppressHydrationWarning>
+              {locSummaryLine}
+            </p>
+          </div>
+          <svg
+            className="h-4 w-4 shrink-0 text-app-fg-muted transition-transform duration-200 group-open:rotate-90"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
+          </svg>
+        </summary>
+        <div className="border-t border-app-line-30">
+          <div className="space-y-6 px-5 py-6 sm:px-8">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
+              <div className="rounded-xl border border-app-line-28 bg-black/[0.08] p-4 ring-1 ring-white/[0.04] sm:p-5">
+                <div className="mb-3 flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/12 ring-1 ring-emerald-500/25">
+                    <svg className="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <label className={`${labelFieldCls} mb-0 min-w-0 flex-1`} htmlFor="sede-impostazioni-valuta" suppressHydrationWarning>
+                    {mounted ? t.sedi.impostazioniValuta ?? 'Valuta' : ''}
+                  </label>
+                </div>
+                <select
+                  id="sede-impostazioni-valuta"
+                  value={draftCurrency}
+                  onChange={(e) => setDraftCurrency(e.target.value)}
+                  className={selectClsInner}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.symbol} — {c.label} ({c.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-xl border border-app-line-28 bg-black/[0.08] p-4 ring-1 ring-white/[0.04] sm:p-5">
+                <div className="mb-3 flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/12 ring-1 ring-violet-500/25">
+                    <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <label className={`${labelFieldCls} mb-0 min-w-0 flex-1`} htmlFor="sede-impostazioni-fuso" suppressHydrationWarning>
+                    {mounted ? t.sedi.impostazioniFuso ?? 'Fuso orario' : ''}
+                  </label>
+                </div>
+                <select
+                  id="sede-impostazioni-fuso"
+                  value={draftTimezone}
+                  onChange={(e) => setDraftTimezone(e.target.value)}
+                  className={selectClsInner}
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-app-line-28 bg-black/[0.06] p-4 ring-1 ring-white/[0.04] sm:p-5">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
+                {mounted ? t.sedi.impostazioniPreview ?? 'Anteprima' : ''}
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                <div className="min-w-0">
+                  <p className="mb-1 text-xs font-medium text-app-fg-muted" suppressHydrationWarning>
+                    {mounted ? t.sedi.impostazioniFuso ?? 'Fuso orario' : ''}
+                  </p>
+                  <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+                    <svg className="h-4 w-4 shrink-0 text-violet-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span suppressHydrationWarning>{previewData}</span>
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <p className="mb-1 text-xs font-medium text-app-fg-muted" suppressHydrationWarning>
+                    {mounted ? t.sedi.impostazioniValuta ?? 'Valuta' : ''}
+                  </p>
+                  <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+                    <svg className="h-4 w-4 shrink-0 text-emerald-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span suppressHydrationWarning>{previewValuta}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {saved ? (
+            <div className="flex items-center gap-2 border-t border-app-line-30 px-5 py-3.5 text-sm font-semibold text-green-300 app-workspace-inset-bg-soft sm:px-6">
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span suppressHydrationWarning>{mounted ? t.common.success : ''}</span>
+            </div>
+          ) : null}
+          <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+            <button
+              type="button"
+              onClick={handleSave}
+              className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span suppressHydrationWarning>{mounted ? t.common.save : ''}</span>
+            </button>
+          </div>
+        </div>
+      </details>
     </div>
   )
 }

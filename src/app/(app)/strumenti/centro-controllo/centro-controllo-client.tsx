@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '@/lib/toast-context'
 import {
   AlertCircle,
-  Brain,
   Calendar,
   CheckCircle,
   ChevronRight,
@@ -51,6 +50,8 @@ import StatementGruppoCoda from './statement-gruppo-coda'
 import { buildCodaDisplayEntries } from '@/lib/centro-controllo-coda-grouping'
 import { interpolateTemplate } from '@/lib/interpolate-template'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
+import CentroControlloSediSection from './centro-controllo-sedi-section'
+import { SollecitiSettingsLinkCard } from './centro-controllo-impostazioni-section'
 
 INITIALIZE_COMMANDS()
 
@@ -1524,6 +1525,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
+
           {/* ── Strumenti di Manutenzione Avanzata (collassabile) ── */}
           <details className="group xl:sticky xl:top-4 xl:self-start">
             <summary className="flex cursor-pointer list-none select-none items-center gap-2 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-app-fg-muted transition-colors hover:bg-app-line-15 [&::-webkit-details-marker]:hidden">
@@ -1585,17 +1587,35 @@ export default function CentroControlloClient({ sedeId }: Props) {
                       href="/strumenti/centro-controllo/apprendimento"
                       className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
                     >
-                      <Brain className="w-3 h-3" />
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <defs>
+                          <linearGradient id="gemini-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#4285F4" />
+                            <stop offset="50%" stopColor="#9B72CB" />
+                            <stop offset="100%" stopColor="#34A853" />
+                          </linearGradient>
+                        </defs>
+                        <path
+                          d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z"
+                          fill="url(#gemini-grad)"
+                        />
+                      </svg>
                       {t.strumentiCentroControllo.advOpenAction}
                     </a>
                   </div>
                 </div>
               </SectionCard>
 
+              {/* Solleciti automatici */}
+              <SollecitiSettingsLinkCard />
+
             </div>
           </details>
         </div>
       </div>
+
+      {/* ── Sedi / Aziende ── */}
+      <CentroControlloSediSection />
 
       {/* ── Modali e overlay ── */}
 

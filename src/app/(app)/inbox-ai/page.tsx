@@ -94,10 +94,19 @@ export default async function InboxAiPage(props: {
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.dashboard.inboxAiPageTitle}</h1>
-          <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} max-w-xl`}>
-            {t.dashboard.inboxAiPageSubtitle}
-          </p>
+          <div className="flex items-center gap-2.5">
+            <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <defs>
+                <linearGradient id="inbox-ai-gemini" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#4285F4" />
+                  <stop offset="50%" stopColor="#9B72CB" />
+                  <stop offset="100%" stopColor="#34A853" />
+                </linearGradient>
+              </defs>
+              <path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" fill="url(#inbox-ai-gemini)" />
+            </svg>
+            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.dashboard.inboxAiPageTitle}</h1>
+          </div>
         </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-h-14 min-w-0 shrink-0 flex-col justify-end gap-3 sm:flex-row sm:items-end sm:justify-end">
           <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />

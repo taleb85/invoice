@@ -15,7 +15,6 @@ import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import { usePushNotifications } from '@/hooks/use-push-notifications'
 import { BackButton } from '@/components/BackButton'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
@@ -213,42 +212,6 @@ function SollecitiSettingsLinkCard() {
   )
 }
 
-function NotificationSettings() {
-  const { supported, subscribed, loading, subscribe, unsubscribe } = usePushNotifications()
-  const { t } = useLocale()
-
-  if (!supported) return null
-
-  return (
-    <div className="app-card overflow-hidden">
-      <div className="flex items-center justify-between gap-3 app-workspace-inset-bg-soft p-4 sm:p-5">
-        <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
-            <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.appNotifications.sectionLabel}</p>
-            <p className="mt-0.5 text-sm font-semibold text-app-fg">{t.appNotifications.cardTitle}</p>
-            <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-              {t.appNotifications.cardDesc}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={subscribed ? unsubscribe : subscribe}
-          disabled={loading}
-          aria-label={subscribed ? t.appNotifications.ariaDisable : t.appNotifications.ariaEnable}
-          className={`relative ml-1 h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${subscribed ? 'bg-[#22d3ee]' : 'bg-app-line-30'}`}
-        >
-          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${subscribed ? 'translate-x-5' : 'translate-x-0.5'}`} />
-        </button>
-      </div>
-    </div>
-  )
-}
 
 export default function ImpostazioniPage() {
   const { locale, t, currency, setCurrency, timezone, setTimezone } = useLocale()
@@ -559,7 +522,6 @@ export default function ImpostazioniPage() {
           </div>
         </div>
         {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
-        <NotificationSettings />
         {showSedePickHint ? (
           <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
             <div className="app-workspace-inset-bg-soft p-5">
@@ -656,7 +618,6 @@ export default function ImpostazioniPage() {
 
               <div className="flex w-full min-w-0 flex-col gap-4">
                 {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
-                <NotificationSettings />
                 {showSedePickHint ? (
                   <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
                     <div className="app-workspace-inset-bg-soft p-5">
