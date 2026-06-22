@@ -250,7 +250,7 @@ export default function FattureListWithDuplicates({
           key: 're-read-ocr',
           label: t.fatture.refreshDateFromDoc,
           onClick: () => {
-            showToast(t.ui.loading ?? 'Rilettura in corso…', 'info')
+            showToast('Rilettura in corso…', 'info')
             void (async () => {
               const result = await fetchFatturaRefreshFromOcr(row.id)
               if (!result.ok) {

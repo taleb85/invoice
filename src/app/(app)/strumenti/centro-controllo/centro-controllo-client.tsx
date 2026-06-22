@@ -1609,20 +1609,6 @@ export default function CentroControlloClient({ sedeId }: Props) {
               {/* Solleciti automatici */}
               <SollecitiSettingsLinkCard />
 
-              {/* Ritenzione allegati */}
-              <SectionCard title={t.sedi.fileRetentionSectionTitle}>
-                <div className="px-4 py-3">
-                  <p className="text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
-                  <a
-                    href="/strumenti/sedi"
-                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    {t.sedi.manageSedi}
-                  </a>
-                </div>
-              </SectionCard>
-
             </div>
           </details>
         </div>
