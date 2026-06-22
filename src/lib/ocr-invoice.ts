@@ -632,6 +632,10 @@ export function sanitizeUkAccountNoAsInvoiceNumber(result: OcrResult): OcrResult
   if (
     normalizeTipoDocumento(result.tipo_documento) === 'fattura' &&
     numeroLooksLikeUkAccountReference(result.numero_fattura) &&
+    (
+      /^\d{9}$/.test((result.numero_fattura ?? '').replace(/\s/g, '')) ||
+      result.ragione_sociale?.toLowerCase().includes('eden springs')
+    ) &&
     !result.segmenti_pdf?.some((s) => s.tipo_documento === 'fattura' && s.numero_fattura)
   ) {
     return { ...result, numero_fattura: null }

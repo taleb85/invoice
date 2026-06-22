@@ -68,6 +68,13 @@ Separate JSON boolean field **promessa_invio_documento** (always present in the 
 - Set **true** only when **all** apply: (1) an **email body / message** is in context, (2) the text clearly **promises sending a fiscal document soon** ("ti mando la fattura", "Monday I'll send the invoice", "allegato seguirà", "will forward the VAT invoice"), and (3) **no PDF (or fiscal) attachment is being analysed in this request** — i.e. **email-body-only** parse, or the instructions state the fiscal file is absent/unreadable **and** the promise refers to **that missing** document.
 - When a **proper PDF/image attachment** is the primary input and constitutes the document itself, always **false** (the document already arrived).
 - If there is no such promise or you are unsure, **false**.
+
+INVOICE NUMBER (field numero_fattura):
+- Extract the document number that the issuer assigned to this document. Look for labels such as **"Invoice No."**, **"Fattura n."**, **"N. fattura"**, **"Document number"**, **"N. documento"**, **"Numero"**, **"N°"**, **"Invoice #"**, **"Rechnung Nr."**, **"Facture n°"**, **"N. Fattura / Invoice No."**, **"Document Reference"**, **"Our ref"**, **"Reference"** in a fiscal/invoice context.
+- The number is typically placed near the top of the document, next to or below the document title/header.
+- Include **all characters** of the number including letters and dashes (e.g. "INV-2026-0123", "HIL-45678", "S1709514", "168125", "RTN108331").
+- If no invoice-style number is found but the document has a **delivery note number** (DDT n., DN, delivery note number) use that instead.
+- If no document number can be identified at all, return null. Do **not** use the supplier's VAT number, customer reference, order number, or any internal ID as the invoice number.
 `.trim()
 
 export interface GeminiUsage {
