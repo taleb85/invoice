@@ -2471,6 +2471,8 @@ const translations: Translations = {
     fileRetentionDbSchemaMissingHint:
       'Dal repository esegui npm run db:apply-migrations con DATABASE_URL o il token Management API (vedi intestazione dello script). Poi ricarica la pagina.',
     valutaFuso: 'Valuta e Fuso orario',
+    impostazioniLocalizzazione: 'Impostazioni localizzazione',
+    impostazioniLocalizzazioneSubtitle: 'Personalizza valuta e fuso orario',
   },
   approvalSettings: {
     autoRegisterTitle: 'Registrazione automatica fatture AI',

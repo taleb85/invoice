@@ -1668,6 +1668,8 @@ export type Translations = {
     fileRetentionDbSchemaMissing: string
     fileRetentionDbSchemaMissingHint: string
     valutaFuso: string
+    impostazioniLocalizzazione: string
+    impostazioniLocalizzazioneSubtitle: string
   }
   sollecitiSettingsPage: {
     title: string
