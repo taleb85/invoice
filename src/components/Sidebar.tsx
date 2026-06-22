@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useRef, useState } from 'react'
 import { LOCALES } from '@/lib/translations'
 import { GlyphGlobe, LocaleCodeChip } from '@/components/ui/glyph-icons'
-import { Brain } from 'lucide-react'
+
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
@@ -219,7 +219,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     href: pendingInboxCount > 0 ? '/inbox-ai?tab=docs' : '/inbox-ai?tab=panoramica',
     count: pendingInboxCount,
     iconColor: 'text-violet-400',
-    icon: <Brain className="h-5 w-5 text-violet-400" strokeWidth={2} aria-hidden />,
+    icon: <svg className="w-5 h-5 shrink-0 text-violet-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" /></svg>,
   }
 
   // Fetch pending approvals count for admin/admin_sede badge
@@ -699,11 +699,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <span className="truncate">{t.strumentiCentroControllo.pageTitle}</span>
               </Link>
               <Link href="/strumenti/centro-controllo/apprendimento" onClick={onClose} className={`${navLink(pathname.startsWith('/strumenti/centro-controllo/apprendimento'))} pl-8`}>
-                 <Brain
-                   className={`h-4 w-4 shrink-0 ${pathname.startsWith('/instrumenti/centro-controllo/apprendimento') ? 'text-teal-400' : 'text-app-fg-muted'}`}
-                   strokeWidth={2}
-                   aria-hidden
-                 />
+                 <svg className={`h-5 w-5 shrink-0 ${pathname.startsWith('/instrumenti/centro-controllo/apprendimento') ? 'text-teal-400' : 'text-app-fg-muted'}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" /></svg>
                  <span className="truncate">{t.nav.learning}</span>
                </Link>
             </>

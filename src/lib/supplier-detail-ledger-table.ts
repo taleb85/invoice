@@ -19,21 +19,21 @@ const TAB_HEAD_ACCENT: Partial<Record<SupplierDetailTabKey, AppSectionTableHeadA
 }
 
 /** Contenitore tabella desktop nelle tab scheda fornitore (fatture, bolle, ordini, …). */
-export const SUPPLIER_LEDGER_TABLE_WRAP = 'hidden overflow-x-auto md:block'
+export const SUPPLIER_LEDGER_TABLE_WRAP = 'hidden overflow-x-auto rounded-lg border border-app-line-22 md:block'
 
 /** Tabella elenco documenti — stesso min-width e tipografia su tutte le categorie. */
-export const SUPPLIER_LEDGER_TABLE = 'w-full min-w-[520px] text-sm'
+export const SUPPLIER_LEDGER_TABLE = 'w-full min-w-[640px] text-sm'
 
 export const SUPPLIER_LEDGER_TH =
-  'px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted'
+  'px-1 py-1.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-1.5 md:py-2'
 
 export const SUPPLIER_LEDGER_TH_RIGHT =
-  'px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted'
+  'px-1 py-1.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-1.5 md:py-2'
 
 export const SUPPLIER_LEDGER_TH_AMOUNT =
-  'px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted'
+  'px-1 py-1.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted md:px-1.5 md:py-2'
 
-export const SUPPLIER_LEDGER_TD = 'px-5 py-3'
+export const SUPPLIER_LEDGER_TD = 'px-1 py-1.5 md:px-1.5 md:py-2'
 
 export const SUPPLIER_LEDGER_TD_DATE = `${SUPPLIER_LEDGER_TD} font-medium text-app-fg-muted`
 

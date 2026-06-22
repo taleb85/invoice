@@ -188,12 +188,12 @@ function DetailModal({
           )}
 
           {fetchState === 'done' && rows.length > 0 && (
-            <div className="overflow-x-auto md:overflow-x-hidden">
+            <div className="overflow-x-auto md:overflow-x-hidden rounded-lg border border-app-line-22">
               <table
                 className={
                   isElaborate
                     ? 'w-full min-w-0 text-left text-xs'
-                    : 'w-full min-w-0 table-fixed border-collapse text-left text-xs'
+                    : 'w-full min-w-0 text-left text-xs'
                 }
               >
                 {isElaborate ? null : (
@@ -209,14 +209,14 @@ function DetailModal({
                 )}
                 <thead>
                   <tr className="border-b border-sky-400/15 text-[10px] font-semibold uppercase tracking-wider text-app-fg-muted">
-                    <th className="px-2 py-2.5 pl-3 sm:px-2.5 sm:pl-4">Orario</th>
+                    <th className="px-2 py-2.5 pl-2 sm:px-2 sm:pl-2">Orario</th>
                     {!isElaborate && <th className="px-1 py-2.5">Tipo</th>}
                     {!isElaborate && <th className="px-1 py-2.5">Fornitore</th>}
                     {!isElaborate && <th className="px-1 py-2.5">Numero</th>}
                     {!isElaborate && <th className="px-1 py-2.5">Data doc.</th>}
                     {!isElaborate && <th className="px-1 py-2.5">Stato</th>}
-                    {isElaborate && <th className="px-2 py-2.5 sm:px-5">Azione</th>}
-                    {!isElaborate && <th className="px-1 py-2.5 pr-3 sm:pr-4">File</th>}
+                    {isElaborate && <th className="px-2 py-2.5 sm:px-2">Azione</th>}
+                    {!isElaborate && <th className="px-1 py-2.5 pr-2 sm:pr-2">File</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-sky-400/10">
@@ -225,7 +225,7 @@ function DetailModal({
                       key={row.id}
                       className="transition-colors hover:bg-white/[0.04]"
                     >
-                      <td className="min-w-0 px-2 py-2 pl-3 sm:pl-4">
+                      <td className="min-w-0 px-2 py-2 pl-2 sm:pl-2">
                         <span
                           className="block max-w-full truncate tabular-nums text-app-fg-muted"
                           title={row.created_at}
@@ -267,7 +267,7 @@ function DetailModal({
                             ) : <span className="text-app-fg-subtle">—</span>}
                           </td>
                           <td
-                            className="min-w-0 truncate px-1 py-2 pr-3 font-mono text-[10px] text-app-fg-muted sm:pr-4 align-top"
+                            className="min-w-0 truncate px-1 py-2 pr-2 font-mono text-[10px] text-app-fg-muted sm:pr-2 align-top"
                             title={row.file_nome ?? undefined}
                           >
                             {row.file_nome ?? <span className="opacity-50">—</span>}

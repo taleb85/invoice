@@ -1267,7 +1267,7 @@ export default function InboxAiClient(props: {
                           ({run.lines.length})
                         </span>
                       </p>
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto rounded-lg border border-app-line-22">
                         <table className="min-w-full border-collapse text-left text-[11px]">
                           <thead className="text-[10px] uppercase tracking-wide text-app-fg-muted">
                             <tr>

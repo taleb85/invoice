@@ -161,21 +161,21 @@ export default function EmailBlacklistPanel({ sedeId }: { sedeId: string }) {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-app-soft-border bg-black/25">
-                <th className="px-3 py-2 font-semibold text-app-fg-muted">{t.log.blacklistColMittente}</th>
-                <th className="px-3 py-2 font-semibold text-app-fg-muted">{t.log.blacklistColMotivo}</th>
-                <th className="px-3 py-2 font-semibold text-app-fg-muted">{t.log.blacklistColDate}</th>
-                <th className="px-3 py-2 font-semibold text-app-fg-muted">{t.common.actions}</th>
+                <th className="px-1.5 py-1.5 font-semibold text-app-fg-muted">{t.log.blacklistColMittente}</th>
+                <th className="px-1.5 py-1.5 font-semibold text-app-fg-muted">{t.log.blacklistColMotivo}</th>
+                <th className="px-1.5 py-1.5 font-semibold text-app-fg-muted">{t.log.blacklistColDate}</th>
+                <th className="px-1.5 py-1.5 font-semibold text-app-fg-muted">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-app-line-25 align-top hover:bg-white/[0.03]">
-                  <td className="max-w-[220px] break-all px-3 py-2 font-mono text-app-fg">{r.mittente}</td>
-                  <td className="px-3 py-2 text-app-fg-muted">{motivoLabel(t, r.motivo)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-app-fg-muted">
+                  <td className="max-w-[220px] break-all px-1.5 py-1.5 font-mono text-app-fg">{r.mittente}</td>
+                  <td className="px-1.5 py-1.5 text-app-fg-muted">{motivoLabel(t, r.motivo)}</td>
+                  <td className="whitespace-nowrap px-1.5 py-1.5 text-app-fg-muted">
                     {new Date(r.created_at).toLocaleString()}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-1.5 py-1.5">
                     <button
                       type="button"
                       disabled={busy}

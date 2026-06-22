@@ -405,9 +405,9 @@ function ProductCompareDetailModal({
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-white/[0.06] text-[10px] uppercase tracking-wider text-white/35">
-                    <th className="px-3 py-2 text-left font-semibold">{ap.compareColData}</th>
-                    <th className="px-3 py-2 text-right font-semibold">{ap.detailColPrezzo}</th>
-                    <th className="px-3 py-2 text-left font-semibold">{ap.compareModalNote}</th>
+                    <th className="px-1.5 py-1.5 text-left font-semibold">{ap.compareColData}</th>
+                    <th className="px-1.5 py-1.5 text-right font-semibold">{ap.detailColPrezzo}</th>
+                    <th className="px-1.5 py-1.5 text-left font-semibold">{ap.compareModalNote}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -416,13 +416,13 @@ function ProductCompareDetailModal({
                       key={`${entry.data_prezzo}|${entry.prezzo}|${index}`}
                       className="border-b border-white/[0.04] last:border-0"
                     >
-                      <td className="whitespace-nowrap px-3 py-2 tabular-nums text-white/70">
+                      <td className="whitespace-nowrap px-1.5 py-1.5 tabular-nums text-white/70">
                         {entry.data_prezzo}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums text-white">
+                      <td className="whitespace-nowrap px-1.5 py-1.5 text-right font-semibold tabular-nums text-white">
                         {formatCurrency(entry.prezzo, 'GBP', locale)}
                       </td>
-                      <td className="max-w-[14rem] px-3 py-2 text-[11px] text-white/45">
+                      <td className="max-w-[14rem] px-1.5 py-1.5 text-[11px] text-white/45">
                         <span className="line-clamp-2" title={entry.note ?? undefined}>
                           {entry.note?.replace(/\|listino_src_[^|]+\|/g, '').trim() || '—'}
                         </span>
@@ -560,7 +560,7 @@ function ProductPriceCompareSection({
       ) : null}
 
       {!searchLoading && displayMatches.length > 0 ? (
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-x-auto rounded-lg border border-white/[0.06] bg-black/10">
           <table className="w-full min-w-[36rem] text-xs">
             <thead>
               <tr className="border-b border-white/[0.08] text-[10px] uppercase tracking-wider text-white/35">
@@ -904,7 +904,7 @@ export default function AnalisiPrezziPage() {
             })}
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-white/[0.06] bg-black/10">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">

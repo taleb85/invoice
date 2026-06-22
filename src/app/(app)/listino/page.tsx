@@ -175,7 +175,7 @@ export default async function ListinoOverviewPage(props: {
 
           {/* ── Vista tabella desktop ─────────────────────────────── */}
           <div className="min-w-0 hidden md:block">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-app-line-22">
               <table className="w-full min-w-[640px] text-sm">
                 <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
                   <tr className={appSectionTableHeadRowAccentClass('fuchsia')}>

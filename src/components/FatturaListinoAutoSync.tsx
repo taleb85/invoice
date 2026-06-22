@@ -165,16 +165,16 @@ export default function FatturaListinoAutoSync({
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-app-line-15">
                 <tr>
-                  <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
+                  <th className="px-1.5 py-1.5 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
                     {t.appStrings.autoSyncProduct}
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
+                  <th className="px-1.5 py-1.5 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
                     {t.appStrings.autoSyncPrice}
                   </th>
-                  <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
+                  <th className="px-1.5 py-1.5 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
                     Match
                   </th>
-                  <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
+                  <th className="px-1.5 py-1.5 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
                     Δ
                   </th>
                 </tr>
@@ -190,7 +190,7 @@ export default function FatturaListinoAutoSync({
                         : ''
                   return (
                     <tr key={idx} className={`border-t border-app-line-15 ${rowBg}`}>
-                      <td className="px-3 py-2">
+                      <td className="px-1.5 py-1.5">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium text-app-fg">{match.lineItem.prodotto}</span>
                           {match.lineItem.codice_prodotto ? (
@@ -200,10 +200,10 @@ export default function FatturaListinoAutoSync({
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-app-fg">
+                      <td className="px-1.5 py-1.5 text-right font-mono font-semibold tabular-nums text-app-fg">
                         £{match.lineItem.prezzo.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-1.5 py-1.5 text-center">
                         {match.match ? (
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
@@ -220,7 +220,7 @@ export default function FatturaListinoAutoSync({
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-1.5 py-1.5 text-center">
                         {match.deltaPercent !== null ? (
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${

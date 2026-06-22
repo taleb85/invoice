@@ -423,7 +423,7 @@ export function EmailActivityLogPanel({
           ))}
         </div>
 
-        <div className="hidden min-w-0 md:block">
+        <div className="hidden min-w-0 md:block rounded-lg border border-app-line-22">
           <table className="w-full table-fixed border-collapse text-left text-sm">
             <thead>
               <tr className={APP_SECTION_TABLE_HEAD_ROW}>

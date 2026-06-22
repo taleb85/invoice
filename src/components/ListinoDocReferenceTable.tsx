@@ -104,7 +104,7 @@ export default function ListinoDocReferenceTable({
   if (rows.length === 0) return null
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-lg border border-app-line-22">
       {msg ? (
         <p
           className={`mb-2 text-[11px] ${msg.kind === 'ok' ? 'text-emerald-200/90' : 'text-red-200/90'}`}

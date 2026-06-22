@@ -283,16 +283,16 @@ export default function FattureListWithDuplicates({
     [t, router, supabase, showContextMenu],
   )
 
-  const fattureTableClass = 'hidden w-full min-w-0 table-fixed text-sm min-[640px]:table'
+  const fattureTableClass = 'hidden w-full table-fixed text-[13px] min-[640px]:table'
   const fattureThBase =
     'px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted md:px-2.5 lg:py-2'
   const fattureTh = `${fattureThBase} text-left`
   const fattureThRight = `${fattureThBase} text-right`
   const fattureTd = 'px-2 py-1.5 text-[13px] align-middle md:px-2.5 lg:py-2'
-  const fattureTdNumero = `${fattureTd} text-center`
-  const fattureThNumero = `${fattureThBase} text-center`
-  const fattureThImporto = `${fattureThBase} text-right whitespace-nowrap pr-0.5 pl-2`
-  const fattureTdImporto = `${fattureTd} whitespace-nowrap pr-0.5 pl-2 text-right`
+  const fattureTdNumero = `${fattureTd} text-left`
+  const fattureThNumero = `${fattureThBase} text-left`
+  const fattureThImporto = `${fattureThBase} text-left whitespace-nowrap pr-0.5 pl-2`
+  const fattureTdImporto = `${fattureTd} whitespace-nowrap pr-0.5 pl-2 text-left`
 
   return (
     <>
@@ -305,7 +305,7 @@ export default function FattureListWithDuplicates({
           >
               <div className="mb-2 flex items-start justify-between gap-2">
                 {f.fornitore_id ? (
-                  <Link href={`/fornitori/${f.fornitore_id}`} className={`truncate ${APP_SECTION_TABLE_CELL_LINK}`} title={f.fornitoreNome && f.fornitoreNome.length > 50 ? f.fornitoreNome : undefined}>
+                  <Link href={`/fornitori/${f.fornitore_id}`} className={`block truncate ${APP_SECTION_TABLE_CELL_LINK}`} title={f.fornitoreNome && f.fornitoreNome.length > 50 ? f.fornitoreNome : undefined}>
                     {f.fornitoreNome && f.fornitoreNome.length > 50 ? `${f.fornitoreNome.substring(0, 50)}…` : f.fornitoreNome ?? '—'}
                   </Link>
                 ) : (
@@ -401,6 +401,8 @@ export default function FattureListWithDuplicates({
                     )}
                     fileUrl={f.file_url}
                     fornitoreId={f.fornitore_id}
+                    iconOnly
+                    className="flex items-center justify-end gap-0.5"
                   />
                 </div>
               ) : null}
@@ -408,20 +410,21 @@ export default function FattureListWithDuplicates({
         ))}
       </div>
 
-      <table className={fattureTableClass}>
+      <div className="rounded-lg border border-app-line-22">
+        <table className={fattureTableClass}>
         <colgroup>
-          <col />
-          <col />
-          <col className="w-[6.5rem]" />
-          <col />
-          <col className="w-[7.5rem]" />
-          <col className="w-[4.25rem]" />
+          <col className="w-[30%] min-w-0" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
         </colgroup>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
             <th className={fattureTh}>{t.common.supplier}</th>
             <th className={fattureThNumero}>{t.fatture.colNumFattura}</th>
-            <th className={fattureTh}>
+            <th className={`${fattureTh} pl-1`}>
               <button
                 type="button"
                 onClick={() => handleSort('dataDocumento')}
@@ -433,7 +436,7 @@ export default function FattureListWithDuplicates({
             </th>
             <th className={fattureTh}>{t.common.status}</th>
             <th className={fattureThImporto}>{t.statements.colAmount}</th>
-            <th className={`${fattureThRight} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
+            <th className={`${fattureTh} whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
           </tr>
         </thead>
         <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -457,20 +460,20 @@ export default function FattureListWithDuplicates({
                 {f.fornitore_id ? (
                   <Link
                     href={`/fornitori/${f.fornitore_id}`}
-                    className={`${APP_SECTION_TABLE_CELL_LINK} line-clamp-2 leading-snug`}
+                    className={`${APP_SECTION_TABLE_CELL_LINK} block truncate leading-snug`}
                     title={f.fornitoreNome ?? undefined}
                   >
                     {f.fornitoreNome ?? '—'}
                   </Link>
                 ) : (
-                  <span className="line-clamp-2 font-semibold leading-snug text-app-fg" title={f.fornitoreNome ?? undefined}>
+                  <span className="block truncate font-semibold leading-snug text-app-fg" title={f.fornitoreNome ?? undefined}>
                     {f.fornitoreNome ?? '—'}
                   </span>
                 )}
               </td>
               <td className={`${fattureTdNumero} align-top`}>
-                <div className="mx-auto min-w-0 max-w-full text-center" title={f.numero_fattura?.trim() || undefined}>
-                  <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
+                <div className="min-w-0 max-w-full text-left" title={f.numero_fattura?.trim() || undefined}>
+                  <div className="flex flex-wrap items-center justify-start gap-x-1.5 gap-y-0.5">
                     <span className="font-medium text-app-fg">{f.numero_fattura?.trim() || '—'}</span>
                     {f.email_sync_auto_saved_at ? (
                       <span
@@ -500,7 +503,7 @@ export default function FattureListWithDuplicates({
                     ) : null}
                   </div>
                   {f.numero_fattura?.trim() ? (
-                    <p className="mt-0.5 text-center text-[10px] leading-snug text-app-fg-muted/70">
+                    <p className="mt-0.5 text-left text-[10px] leading-snug text-app-fg-muted/70">
                       {docKind}
                       {attachKind ? ` · ${attachKind}` : ''}
                     </p>
@@ -522,7 +525,7 @@ export default function FattureListWithDuplicates({
                   ) : null}
                 </div>
               </td>
-              <td className={`${fattureTd} whitespace-nowrap`}>
+              <td className={`${fattureTd} whitespace-nowrap pl-1`}>
                 <span className="text-app-fg-muted">{f.dataDocumentoLabel ?? '—'}</span>
               </td>
               <td className={fattureTd}>
@@ -560,7 +563,7 @@ export default function FattureListWithDuplicates({
                   {f.importoLabel ?? '—'}
                 </span>
               </td>
-              <td className={`${fattureTd} w-[4.25rem] pr-0.5 text-right`}>
+              <td className={`${fattureTd} pr-0.5 text-left`}>
                 <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                   {f.file_url ? (
                     <DocumentRowActions
@@ -582,6 +585,7 @@ export default function FattureListWithDuplicates({
           })}
         </tbody>
       </table>
+      </div>
 
       <AiAnalysisModal
         open={aiAnalysisForFattura !== null}

@@ -17,12 +17,14 @@ import {
 } from '@/lib/locale-server'
 import { formatCurrency } from '@/lib/locale-shared'
 import { confermaOrdineImportoTotale } from '@/lib/conferme-ordine-importo'
+import { confermaOrdineDisplayLabel } from '@/lib/extract-doc-type'
 import { StandardBadge } from '@/components/ui/StandardBadge'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { DeleteOrdineButton } from '@/components/DeleteOrdineButton'
 import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
@@ -162,7 +164,19 @@ export default async function OrdiniOverviewPage(props: {
       ...r,
       data_ordine: dataOrdine,
       dataLabel: dataOrdine ? formatDate(dataOrdine) : null,
-      numeroLabel: r.numero_ordine?.trim() || r.titolo?.trim() || r.file_name?.trim() || null,
+      numeroLabel: (() => {
+        const label = confermaOrdineDisplayLabel({
+          titolo: r.titolo,
+          fileName: r.file_name,
+          numeroOrdine: r.numero_ordine,
+        })
+        // Mostra solo se è stato trovato un vero numero/rif erenza, non il nome fornitore
+        const ref = label.primary
+        if (!ref || ref === '—') return null
+        // Se il risultato è uguale al nome fornitore, non mostrarlo
+        if (ref === r.fornitore_nome?.trim()) return null
+        return ref
+      })(),
       importoLabel: importo != null ? formatCurrency(importo, currency, locale) : null,
       syncLabel: r.created_at ? formatDate(r.created_at) : null,
       syncFull: r.created_at ?? null,
@@ -259,26 +273,26 @@ export default async function OrdiniOverviewPage(props: {
               {t.dashboard.ordiniDupViewBadgeHint}
             </p>
           ) : null}
-          <div className="min-w-0 overflow-x-auto">
-            <table className="w-full min-w-[56rem] table-fixed text-sm">
+          <div className="min-w-0 rounded-lg border border-app-line-22">
+            <table className="w-full table-fixed text-[13px]">
               <colgroup>
                 <col />
                 <col />
+                <col className="w-[6rem]" />
+                <col className="w-[7rem]" />
                 <col className="w-[6.5rem]" />
-                <col className="w-[9rem]" />
-                <col className="w-[6.5rem]" />
-                <col className="w-[7.5rem]" />
-                <col className="w-[4.25rem]" />
+                <col className="w-[4.5rem]" />
+                <col className="w-[4.5rem]" />
               </colgroup>
               <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
                 <tr className={appSectionTableHeadRowAccentClass('cyan')}>
                   <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
-                  <th className={`${APP_SECTION_TABLE_TH} w-[9rem] whitespace-nowrap`}>{t.dashboard.ordiniColSync}</th>
+                  <th className={`${APP_SECTION_TABLE_TH} whitespace-nowrap`}>{t.dashboard.ordiniColSync}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
-                  <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
-                  <th className={`${APP_SECTION_TABLE_TH_RIGHT} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
+                  <th className={APP_SECTION_TABLE_TH}>{t.statements.colAmount}</th>
+                  <th className={`${APP_SECTION_TABLE_TH_RIGHT} whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -287,19 +301,14 @@ export default async function OrdiniOverviewPage(props: {
                     <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0 font-medium text-app-fg`}>
                       <Link
                         href={`/fornitori/${r.fornitore_id}?tab=conferme`}
-                        className={`${APP_SECTION_TABLE_CELL_LINK} line-clamp-2 leading-snug`}
+                        className={`${APP_SECTION_TABLE_CELL_LINK} truncate leading-snug`}
                         title={r.fornitore_nome}
                       >
                         {r.fornitore_nome}
                       </Link>
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[10rem] font-mono text-app-fg-muted`}>
+                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} font-mono text-app-fg-muted`}>
                       <span className="text-app-fg">{r.numeroLabel ?? '—'}</span>
-                      {r.titolo?.trim() && r.numero_ordine?.trim() && r.titolo.trim() !== r.numero_ordine.trim() ? (
-                        <span className="mt-0.5 block truncate font-sans text-[10px] font-normal not-italic text-app-fg-muted/60" title={r.titolo}>
-                          {r.titolo}
-                        </span>
-                      ) : null}
                       <DuplicateLedgerRowExtras
                         rowId={r.id}
                         payload={ordDupPayload}
@@ -314,7 +323,7 @@ export default async function OrdiniOverviewPage(props: {
                       {r.dataLabel ?? '—'}
                     </td>
                     <td
-                      className={`${APP_SECTION_TABLE_TD_COMPACT} w-[9rem] whitespace-nowrap text-[12px] text-app-fg`}
+                      className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap text-app-fg`}
                       title={r.syncFull ?? undefined}
                     >
                       {r.syncLabel ?? '—'}
@@ -331,7 +340,7 @@ export default async function OrdiniOverviewPage(props: {
                       )}
                     </td>
                     <td
-                      className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap pr-0.5 pl-2 text-right font-mono text-[13px] font-semibold tabular-nums ${
+                      className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap pr-0.5 pl-2 text-left font-mono font-semibold tabular-nums ${
                         r.importoLabel ? APP_SECTION_AMOUNT_POSITIVE_CLASS : 'text-app-fg-muted'
                       }`}
                     >
@@ -339,14 +348,20 @@ export default async function OrdiniOverviewPage(props: {
                         {r.importoLabel ?? '—'}
                       </span>
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} w-[4.25rem] pr-0.5 text-right`}>
-                      <OpenDocumentInAppButton
-                        confermaOrdineId={r.id}
-                        fileUrl={r.file_url}
-                        className="text-xs font-semibold text-app-cyan-500 transition-colors hover:text-app-fg"
-                      >
-                        {t.dashboard.ordiniOpenPdf}
-                      </OpenDocumentInAppButton>
+                    <td className={`${APP_SECTION_TABLE_TD_COMPACT} pr-0.5 text-left`}>
+                      <div className="flex items-center justify-end gap-0.5">
+                        <OpenDocumentInAppButton
+                          confermaOrdineId={r.id}
+                          fileUrl={r.file_url}
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-app-line-30 bg-app-line-10 text-app-fg-muted transition-colors hover:bg-app-line-20 touch-manipulation"
+                          title={t.dashboard.ordiniOpenPdf}
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </OpenDocumentInAppButton>
+                        <DeleteOrdineButton id={r.id} />
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -141,7 +141,7 @@ export default async function FattureRiepilogoPage(props: {
             {t.dashboard.fattureRiepilogoLimitNote.replace(/\{n\}/g, String(rows.length))}
           </p>
           <div className="min-w-0">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-app-line-22">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className={appSectionTableHeadRowAccentClass('emerald')}>

@@ -875,7 +875,7 @@ export default function VerificaAssociazioniPage() {
                       </button>
                     }
                   >
-                    <div>
+                    <div className="rounded-lg border border-app-line-22">
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
@@ -934,7 +934,7 @@ export default function VerificaAssociazioniPage() {
                     count={Object.keys(showStats.distribuzione_tipo).length}
                     countColor="text-sky-300"
                   >
-                    <div>
+                    <div className="rounded-lg border border-app-line-22">
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
@@ -968,7 +968,7 @@ export default function VerificaAssociazioniPage() {
                     count={Object.keys(showStats.distribuzione_sedi).length}
                     countColor="text-indigo-300"
                   >
-                    <div>
+                    <div className="rounded-lg border border-app-line-22">
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
@@ -1002,7 +1002,7 @@ export default function VerificaAssociazioniPage() {
                     count={Object.keys(showStats.distribuzione_mese).length}
                     countColor="text-teal-300"
                   >
-                    <div>
+                    <div className="rounded-lg border border-app-line-22">
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="text-app-fg-muted">
@@ -1067,7 +1067,7 @@ export default function VerificaAssociazioniPage() {
                           <p className="mb-3 text-xs font-bold uppercase tracking-widest text-app-fg-muted">
                             {v.learningPatternTitle}
                           </p>
-                          <div>
+                          <div className="rounded-lg border border-app-line-22">
                             <table className="w-full text-left text-xs">
                               <thead>
                                 <tr className="text-app-fg-muted">
@@ -1306,7 +1306,7 @@ export default function VerificaAssociazioniPage() {
 
                 {/* Tabella documenti */}
                 <div className="app-card overflow-x-auto">
-                  <div>
+                  <div className="rounded-lg border border-app-line-22">
                     {data && data.data.length === 0 ? (
                       <div className="p-8 text-center">
                         <p className="text-sm text-app-fg-muted">{v.elencoEmptyHint}</p>
@@ -1323,15 +1323,15 @@ export default function VerificaAssociazioniPage() {
                                 className="rounded border-app-soft-border bg-black/30 text-cyan-500 focus:ring-cyan-500/30"
                               />
                             </th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColFornitore}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColFile}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColDataDoc}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColTipo}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColRiferimento}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColAnomalie}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColGiorni}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColCreatoIl}</th>
-                            <th className="sticky top-0 bg-app-bg px-3 py-2.5 pr-3 font-semibold">{v.elencoColAzioni}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColFornitore}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColFile}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColDataDoc}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColTipo}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColRiferimento}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColAnomalie}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColGiorni}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColCreatoIl}</th>
+                            <th className="sticky top-0 bg-app-bg px-1.5 py-1.5 pr-1.5 font-semibold">{v.elencoColAzioni}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-app-line-10">
@@ -1343,7 +1343,7 @@ export default function VerificaAssociazioniPage() {
                               : null
                             return (
                               <tr key={doc.id} className={`text-app-fg hover:bg-white/[0.02] ${selectedDocs.has(doc.id) ? 'bg-cyan-500/5' : ''}`}>
-                                <td className="px-2 py-2.5 pr-1">
+                                <td className="px-2 py-1.5 pr-1">
                                   <input
                                     type="checkbox"
                                     checked={selectedDocs.has(doc.id)}
@@ -1351,7 +1351,7 @@ export default function VerificaAssociazioniPage() {
                                     className="rounded border-app-soft-border bg-black/30 text-cyan-500 focus:ring-cyan-500/30"
                                   />
                                 </td>
-                                <td className="px-3 py-2.5 pr-3 max-w-[160px]">
+                                <td className="px-1.5 py-1.5 pr-1.5 max-w-[160px]">
                                   <p className="truncate font-medium" title={doc.fornitore?.nome ?? ''}>
                                     {doc.fornitore?.nome ?? '—'}
                                   </p>
@@ -1359,7 +1359,7 @@ export default function VerificaAssociazioniPage() {
                                     <p className="truncate text-[10px] text-app-fg-muted" title={doc.mittente}>{doc.mittente}</p>
                                   ) : null}
                                 </td>
-                                <td className="px-3 py-2.5 pr-3 max-w-[180px]">
+                                <td className="px-1.5 py-1.5 pr-1.5 max-w-[180px]">
                                   {doc.file_name ? (
                                     doc.file_url ? (
                                       <OpenDocumentInAppButton
@@ -1387,10 +1387,10 @@ export default function VerificaAssociazioniPage() {
                                     <span className="text-app-fg-muted">—</span>
                                   )}
                                 </td>
-                                <td className="px-3 py-2.5 pr-3 tabular-nums">
+                                <td className="px-1.5 py-1.5 pr-1.5 tabular-nums">
                                   {doc.data_documento ? formatDate(doc.data_documento, locale) : '—'}
                                 </td>
-                                <td className="px-3 py-2.5 pr-3">
+                                <td className="px-1.5 py-1.5 pr-1.5">
                                   {pendingKind ? (
                                     <span className="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px] capitalize">
                                       {pendingKind}
@@ -1399,7 +1399,7 @@ export default function VerificaAssociazioniPage() {
                                     <span className="text-app-fg-muted">—</span>
                                   )}
                                 </td>
-                                <td className="px-3 py-2.5 pr-3 max-w-[140px]">
+                                <td className="px-1.5 py-1.5 pr-1.5 max-w-[140px]">
                                   {doc.fattura ? (
                                     <span className="text-emerald-200" title={v.fattRefShort.replace('{num}', doc.fattura.numero_fattura)}>
                                       {v.fattRefShort.replace('{num}', doc.fattura.numero_fattura)}
@@ -1412,7 +1412,7 @@ export default function VerificaAssociazioniPage() {
                                     <span className="text-app-fg-muted">—</span>
                                   )}
                                 </td>
-                                <td className="px-3 py-2.5 pr-3">
+                                <td className="px-1.5 py-1.5 pr-1.5">
                                   <div className="flex items-center gap-1">
                                     {anomalieAlta > 0 && (
                                       <span className="inline-flex items-center justify-center rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
@@ -1429,15 +1429,15 @@ export default function VerificaAssociazioniPage() {
                                     )}
                                   </div>
                                 </td>
-                                <td className="px-3 py-2.5 pr-3 tabular-nums">
+                                <td className="px-1.5 py-1.5 pr-1.5 tabular-nums">
                                   <span className={doc.giorni_da_associazione > 180 ? 'text-amber-200' : 'text-app-fg-muted'}>
                                     {doc.giorni_da_associazione}{v.daysSuffix}
                                   </span>
                                 </td>
-                                <td className="px-3 py-2.5 pr-3 text-app-fg-muted">
+                                <td className="px-1.5 py-1.5 pr-1.5 text-app-fg-muted">
                                   {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
                                 </td>
-                                <td className="px-3 py-2.5 pr-3">
+                                <td className="px-1.5 py-1.5 pr-1.5">
                                   <div className="flex items-center gap-1">
                                     <CategoriaDropdown
                                       categoria={determinaCategoriaDocumento(doc)}

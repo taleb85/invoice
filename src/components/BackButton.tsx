@@ -93,7 +93,7 @@ export function BackButton({
       }}
       className={`${baseClass} ${className ?? ''}`}
     >
-      <ChevronLeft className="h-4 w-4 shrink-0" strokeWidth={compact ? 2.25 : 2} aria-hidden />
+      <ChevronLeft className="h-5 w-5 shrink-0" strokeWidth={compact ? 2.25 : 2} aria-hidden />
       {!compact ? label : null}
     </button>
   )

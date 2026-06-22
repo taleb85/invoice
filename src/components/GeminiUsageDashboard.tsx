@@ -719,20 +719,20 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     {g.perSedeTitle}
                   </p>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border border-app-line-22">
                   <table className="w-full text-[11px]">
                     <thead>
                       <tr className="border-b border-app-line-22">
-                        <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-left font-medium text-app-fg-muted">
                           {g.colSede}
                         </th>
-                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-right font-medium text-app-fg-muted">
                           {g.colScans}
                         </th>
-                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-right font-medium text-app-fg-muted">
                           {g.colTotalTokens}
                         </th>
-                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-right font-medium text-app-fg-muted">
                           {g.colCostUsd}
                         </th>
                       </tr>
@@ -743,14 +743,14 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                           key={i}
                           className="border-b border-app-line-15 transition-colors last:border-b-0 hover:bg-white/5"
                         >
-                          <td className="px-4 py-2 text-app-fg">{sede.nome}</td>
-                          <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
+                          <td className="px-2 py-1.5 text-app-fg">{sede.nome}</td>
+                          <td className="px-2 py-1.5 text-right font-mono text-app-fg-muted">
                             {fmt(sede.calls, locale)}
                           </td>
-                          <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
+                          <td className="px-2 py-1.5 text-right font-mono text-app-fg-muted">
                             {fmt(sede.totalTokens, locale)}
                           </td>
-                          <td className="px-4 py-2 text-right font-mono text-emerald-400">
+                          <td className="px-2 py-1.5 text-right font-mono text-emerald-400">
                             £{fmtCost(sede.costUsd * (data.gbpRate ?? 1))}
                           </td>
                         </tr>
@@ -788,23 +788,23 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                   </svg>
                 </button>
                 {recentScansioniOpen ? (
-                <div className="max-h-[min(70vh,36rem)] overflow-x-auto overflow-y-auto overscroll-y-contain">
+                <div className="max-h-[min(70vh,36rem)] overflow-x-auto overflow-y-auto overscroll-y-contain rounded-lg border border-app-line-22">
                   <table className="w-full text-[11px]">
                     <thead>
                       <tr className="border-b border-app-line-22">
-                        <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-left font-medium text-app-fg-muted">
                           {g.colDate}
                         </th>
-                        <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-left font-medium text-app-fg-muted">
                           {g.colType}
                         </th>
-                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-right font-medium text-app-fg-muted">
                           {g.colInput}
                         </th>
-                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-right font-medium text-app-fg-muted">
                           {g.colOutput}
                         </th>
-                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                        <th className="px-2 py-1.5 text-right font-medium text-app-fg-muted">
                           {g.colCost}
                         </th>
                       </tr>
@@ -815,17 +815,17 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                           key={i}
                           className="border-b border-app-line-15 transition-colors last:border-b-0 hover:bg-white/5"
                         >
-                          <td className="px-4 py-2 text-app-fg-muted">{fmtDate(row.created_at, locale)}</td>
-                          <td className="px-4 py-2 text-app-fg">
+                          <td className="px-2 py-1.5 text-app-fg-muted">{fmtDate(row.created_at, locale)}</td>
+                          <td className="px-2 py-1.5 text-app-fg">
                             {row.intent || row.operation}
                           </td>
-                          <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
+                          <td className="px-2 py-1.5 text-right font-mono text-app-fg-muted">
                             {fmt(row.inputTokens, locale)}
                           </td>
-                          <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
+                          <td className="px-2 py-1.5 text-right font-mono text-app-fg-muted">
                             {fmt(row.outputTokens, locale)}
                           </td>
-                          <td className="px-4 py-2 text-right font-mono text-emerald-400">
+                          <td className="px-2 py-1.5 text-right font-mono text-emerald-400">
                             {fmtCost(row.estimatedCostUsd)}
                           </td>
                         </tr>

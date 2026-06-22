@@ -108,7 +108,7 @@ export default async function InboxAiPage(props: {
             <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.dashboard.inboxAiPageTitle}</h1>
           </div>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="flex min-h-14 min-w-0 shrink-0 flex-col justify-end gap-3 sm:flex-row sm:items-end sm:justify-end">
+        <div className="flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-3">
           <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
         </div>
       </AppPageHeaderStrip>

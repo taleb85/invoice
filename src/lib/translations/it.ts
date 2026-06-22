@@ -1300,7 +1300,7 @@ const translations: Translations = {
       'Tutto: comportamento predefinito. Nuovo fornitore: solo mittenti non in rubrica. Bolla / Fattura: forza il tipo di bozza creata. Estratto conto: solo messaggi con oggetto da estratto (statement).',
     emailSyncDocumentKindAll: 'Tutti i documenti',
     emailSyncDocumentKindFornitore: 'Nuovo fornitore',
-    emailSyncDocumentKindBolla: 'Bolla (DDT)',
+    emailSyncDocumentKindBolla: 'Consignment Note',
     emailSyncDocumentKindFattura: 'Fattura',
     emailSyncDocumentKindEstratto: 'Estratto conto',
     syncing: 'Sincronizzazione...',
@@ -1899,6 +1899,7 @@ const translations: Translations = {
     duplicateCopyDeleteConfirm:
       'Eliminare questa copia duplicata del DDT? Le altre righe del gruppo restano in archivio.',
     pendingInvoiceOverdueHint: 'In attesa da oltre 7 giorni senza fattura: verifica il documento contabile.',
+    pendingInvoiceOverdueShort: 'Verificare',
     ocrScanning: 'Riconoscimento fornitore…',
     ocrMatched: 'Fornitore riconosciuto',
     ocrNotFound: 'Seleziona fornitore manualmente',

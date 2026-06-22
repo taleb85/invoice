@@ -288,25 +288,25 @@ export default function RecuperoCreditiAudit({
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 app-workspace-inset-bg">
                       <tr>
-                        <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
+                        <th className="px-1.5 py-1.5 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
                           {t.appStrings.auditColFattura}
                         </th>
-                        <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
+                        <th className="px-1.5 py-1.5 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
                           {t.appStrings.auditColProdotto}
                         </th>
-                        <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
+                        <th className="px-1.5 py-1.5 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
                           {t.appStrings.auditColPagato}
                         </th>
-                        <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
+                        <th className="px-1.5 py-1.5 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
                           {t.appStrings.auditColPattuito}
                         </th>
-                        <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
+                        <th className="px-1.5 py-1.5 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
                           Δ%
                         </th>
-                        <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
+                        <th className="px-1.5 py-1.5 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
                           Qty
                         </th>
-                        <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
+                        <th className="px-1.5 py-1.5 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
                           {t.appStrings.auditColSpreco}
                         </th>
                       </tr>
@@ -314,7 +314,7 @@ export default function RecuperoCreditiAudit({
                     <tbody>
                       {audit.items.map((item, idx) => (
                         <tr key={idx} className="border-t border-app-line-15 bg-rose-500/[0.03] hover:bg-rose-500/[0.08]">
-                          <td className="px-3 py-2">
+                          <td className="px-1.5 py-1.5">
                             <div className="flex flex-col gap-0.5">
                               <Link
                                 href={`/fornitori/${fornitoreId}?tab=fatture&fattura=${item.fatturaId}`}
@@ -329,7 +329,7 @@ export default function RecuperoCreditiAudit({
                               )}
                             </div>
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-1.5 py-1.5">
                             <div className="flex flex-col gap-0.5">
                               <span className="font-medium text-app-fg">{item.prodotto}</span>
                               <span className="font-mono text-[10px] text-violet-300/80">
@@ -337,21 +337,21 @@ export default function RecuperoCreditiAudit({
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-rose-300">
+                          <td className="px-1.5 py-1.5 text-right font-mono font-semibold tabular-nums text-rose-300">
                             {formatCurrency(item.prezzoPagato)}
                           </td>
-                          <td className="px-3 py-2 text-right font-mono tabular-nums text-emerald-300">
+                          <td className="px-1.5 py-1.5 text-right font-mono tabular-nums text-emerald-300">
                             {formatCurrency(item.prezzoPattuito)}
                           </td>
-                          <td className="px-3 py-2 text-center">
+                          <td className="px-1.5 py-1.5 text-center">
                             <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-200">
                               +{item.differenzaPercent.toFixed(1)}%
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-center font-mono text-app-fg-muted">
+                          <td className="px-1.5 py-1.5 text-center font-mono text-app-fg-muted">
                             {item.quantita ?? '?'}
                           </td>
-                          <td className="px-3 py-2 text-right font-mono font-bold tabular-nums text-rose-200">
+                          <td className="px-1.5 py-1.5 text-right font-mono font-bold tabular-nums text-rose-200">
                             {formatCurrency(item.sprecoTotale)}
                           </td>
                         </tr>

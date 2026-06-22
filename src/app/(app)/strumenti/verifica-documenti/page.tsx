@@ -433,7 +433,7 @@ export default function VerificaDocumentiPage() {
                 {data.documenti_bloccati.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">{v.noBlockedHint}</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-lg border border-app-line-22">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
@@ -519,7 +519,7 @@ export default function VerificaDocumentiPage() {
                 {data.documenti_da_revisionare.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">{v.noToReviewHint}</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-lg border border-app-line-22">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
@@ -587,7 +587,7 @@ export default function VerificaDocumentiPage() {
                 {data.statement_con_problemi.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">{v.noStatementHint}</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-lg border border-app-line-22">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
@@ -667,7 +667,7 @@ export default function VerificaDocumentiPage() {
                 {data.errori_sincronizzazione_recenti.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">{v.noSyncErrorsHint}</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-lg border border-app-line-22">
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">

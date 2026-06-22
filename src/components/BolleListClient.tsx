@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Eye } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import { ReturnToLink } from '@/components/ReturnToLink'
@@ -10,7 +10,7 @@ import { DocumentRowActions } from '@/components/DocumentRowActions'
 import { documentActionItemForBolla } from '@/lib/document-action-item'
 import { StandardBadge } from '@/components/ui/StandardBadge'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
-import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
+import { fornitoreDisplayLabelUppercase } from '@/lib/fornitore-display'
 import { tipoDocumentoToLabelStrict, extractDocTypeLabel } from '@/lib/extract-doc-type'
 import { useContextMenu } from '@/components/ui/ContextMenuProvider'
 import { AiAnalysisModal } from '@/components/AiAnalysisModal'
@@ -185,7 +185,7 @@ export default function BolleListClient({
     <>
       <div className={APP_SECTION_MOBILE_LIST}>
         {bolle.map((b) => {
-          const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
+          const supplierLabel = b.fornitori ? fornitoreDisplayLabelUppercase(b.fornitori) : ''
           const overdueInv =
             b.stato === 'in attesa' && daysBetweenIsoCalendarDates(b.data, todayYmd) > 7
           return (
@@ -231,11 +231,12 @@ export default function BolleListClient({
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {overdueInv ? (
                       <span
-                        className="inline-flex text-amber-400"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400"
                         title={t.bolle.pendingInvoiceOverdueHint}
                         aria-label={t.bolle.pendingInvoiceOverdueHint}
                       >
-                        <AlertTriangle className="h-4 w-4" aria-hidden strokeWidth={2} />
+                        <AlertTriangle className="h-3 w-3" aria-hidden strokeWidth={2} />
+                        Verificare
                       </span>
                     ) : null}
                     {b.stato === 'completato' ? (
@@ -247,11 +248,6 @@ export default function BolleListClient({
                         {t.status.inAttesa}
                       </StandardBadge>
                     )}
-                    {b.email_sync_auto_saved_at ? (
-                      <span className="rounded-full bg-teal-500/22 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-100 ring-1 ring-teal-400/35">
-                        {t.common.emailSyncAutoSavedBadge}
-                      </span>
-                    ) : null}
                   </div>
                 </div>
               </ReturnToLink>
@@ -265,7 +261,6 @@ export default function BolleListClient({
                     )}
                     fileUrl={b.file_url}
                     fornitoreId={b.fornitore_id}
-                    viewIcon={<Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />}
                   />
                 ) : null}
               </div>
@@ -274,14 +269,15 @@ export default function BolleListClient({
         })}
       </div>
 
-      <table className="hidden w-full min-w-0 table-fixed text-sm min-[640px]:table">
+      <div className="rounded-lg border border-app-line-22">
+        <table className="hidden w-full table-fixed text-[13px] min-[640px]:table">
         <colgroup>
           <col />
+          <col className="w-[7rem]" />
+          <col className="w-[6rem]" />
           <col />
-          <col className="w-[6.5rem]" />
-          <col />
-          <col className="w-[7.5rem]" />
-          <col className="w-[4.25rem]" />
+          <col className="w-[4.5rem]" />
+          <col className="w-[4.5rem]" />
         </colgroup>
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('violet')}>
@@ -289,13 +285,13 @@ export default function BolleListClient({
             <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
-            <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
-            <th className={`${APP_SECTION_TABLE_TH_RIGHT} w-[4.25rem] whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
+            <th className={APP_SECTION_TABLE_TH}>{t.statements.colAmount}</th>
+            <th className={`${APP_SECTION_TABLE_TH} whitespace-nowrap pr-0.5`}>{t.common.actions}</th>
           </tr>
         </thead>
         <tbody className={APP_SECTION_TABLE_TBODY}>
           {bolle.map((b) => {
-            const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
+            const supplierLabel = b.fornitori ? fornitoreDisplayLabelUppercase(b.fornitori) : ''
             const overdueInv =
               b.stato === 'in attesa' && daysBetweenIsoCalendarDates(b.data, todayYmd) > 7
             return (
@@ -305,11 +301,11 @@ export default function BolleListClient({
                 onContextMenu={(e) => handleContextMenu(e, b)}
               >
                 <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-0 font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
-                  <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={`${APP_SECTION_TABLE_CELL_LINK} line-clamp-2 leading-snug`} title={supplierLabel || undefined}>
+                  <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={`${APP_SECTION_TABLE_CELL_LINK} truncate leading-snug`} title={supplierLabel || undefined}>
                     {supplierLabel || <span className="text-app-fg-muted">—</span>}
                   </ReturnToLink>
                 </td>
-                <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[10rem] font-mono text-app-fg-muted`}>
+                <td className={`${APP_SECTION_TABLE_TD_COMPACT} font-mono text-app-fg-muted`}>
                   <ReturnToLink
                     to={`/bolle/${b.id}`}
                     from={bolleReturn}
@@ -343,11 +339,12 @@ export default function BolleListClient({
                   <div className="flex flex-wrap items-center gap-2">
                     {overdueInv ? (
                       <span
-                        className="inline-flex text-amber-400"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400"
                         title={t.bolle.pendingInvoiceOverdueHint}
                         aria-label={t.bolle.pendingInvoiceOverdueHint}
                       >
-                        <AlertTriangle className="h-4 w-4" aria-hidden strokeWidth={2} />
+                        <AlertTriangle className="h-3 w-3" aria-hidden strokeWidth={2} />
+                        Verificare
                       </span>
                     ) : null}
                     {b.stato === 'completato' ? (
@@ -359,15 +356,10 @@ export default function BolleListClient({
                         {t.status.inAttesa}
                       </StandardBadge>
                     )}
-                    {b.email_sync_auto_saved_at ? (
-                      <span className="rounded-full bg-teal-500/22 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-100 ring-1 ring-teal-400/35">
-                        {t.common.emailSyncAutoSavedBadge}
-                      </span>
-                    ) : null}
                   </div>
                 </td>
                 <td
-                  className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap pr-0.5 pl-2 text-right font-mono text-[13px] font-semibold tabular-nums ${
+                  className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap pr-0.5 pl-2 text-left font-mono font-semibold tabular-nums ${
                     b.importoLabel ? APP_SECTION_AMOUNT_POSITIVE_CLASS : 'text-app-fg-muted'
                   }`}
                 >
@@ -375,7 +367,7 @@ export default function BolleListClient({
                     {b.importoLabel ?? '—'}
                   </span>
                 </td>
-                <td className={`${APP_SECTION_TABLE_TD_COMPACT} w-[4.25rem] pr-0.5`}>
+                <td className={`${APP_SECTION_TABLE_TD_COMPACT} pr-0.5`}>
                   <div className="flex flex-nowrap items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                     {b.file_url ? (
                       <DocumentRowActions
@@ -386,7 +378,8 @@ export default function BolleListClient({
                         )}
                         fileUrl={b.file_url}
                         fornitoreId={b.fornitore_id}
-                        viewIcon={<Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />}
+                        iconOnly
+                        className="flex items-center justify-end gap-0.5"
                       />
                     ) : null}
                   </div>
@@ -396,6 +389,7 @@ export default function BolleListClient({
           })}
         </tbody>
       </table>
+      </div>
 
       <AiAnalysisModal
         open={aiAnalysisForBolla !== null}

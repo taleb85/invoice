@@ -13,6 +13,7 @@ import { fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
 import { resolveFiscalFilterForSede, type FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { formatCurrency } from '@/lib/locale-shared'
 import { formatSignedFatturaImporto } from '@/lib/fattura-importo'
+import { fornitoreDisplayLabelUppercase } from '@/lib/fornitore-display'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
 import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
@@ -47,7 +48,7 @@ type FatturaListRow = {
   bolla_id: string | null
   fornitore_id: string | null
   importo: number | null
-  fornitore: { nome: string } | null
+  fornitore: { nome: string; display_name?: string | null } | null
   approval_status: string | null
   rejection_reason: string | null
   created_at: string | null
@@ -56,7 +57,7 @@ type FatturaListRow = {
   is_credit_note: boolean | null
 }
 
-const BASE_SELECT = 'id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome), approval_status, rejection_reason, email_sync_auto_saved_at, is_credit_note'
+const BASE_SELECT = 'id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome, display_name), approval_status, rejection_reason, email_sync_auto_saved_at, is_credit_note'
 const FULL_SELECT = `${BASE_SELECT}, created_at, updated_at`
 
 async function getFatture(
@@ -200,7 +201,7 @@ export default async function FatturePage(props: {
     file_url: f.file_url,
     bolla_id: f.bolla_id,
     fornitore_id: f.fornitore_id,
-    fornitoreNome: f.fornitore?.nome ?? null,
+    fornitoreNome: f.fornitore ? fornitoreDisplayLabelUppercase(f.fornitore) : null,
     importoLabel: formatSignedFatturaImporto(
       f.importo != null ? Number(f.importo) : null,
       f.is_credit_note === true,

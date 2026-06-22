@@ -470,6 +470,7 @@ export type Translations = {
     deleteConfirm: string
     duplicateCopyDeleteConfirm: string
     pendingInvoiceOverdueHint: string
+    pendingInvoiceOverdueShort: string
     ocrScanning: string
     ocrMatched: string
     ocrNotFound: string

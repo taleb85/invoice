@@ -52,6 +52,8 @@ const STATEMENT_INBOX_ACTIONS: CommandId[] = [
   'documento.apri',
 ]
 
+const FALLBACK_ACTIONS: CommandId[] = ['documento.associa', 'documento.apri']
+
 const BY_ORIGINE: Record<string, CommandId[]> = {
   bolla: BOLLA_ACTIONS,
   bolla_aperta: BOLLA_ACTIONS,
@@ -59,9 +61,9 @@ const BY_ORIGINE: Record<string, CommandId[]> = {
   documento_da_processare: PENDING_ACTIONS,
   riga_statement: STATEMENT_ROW_ACTIONS,
   statement: STATEMENT_INBOX_ACTIONS,
+  documento: FALLBACK_ACTIONS,
+  conferma_ordine: ['documento.apri'],
 }
-
-const FALLBACK_ACTIONS: CommandId[] = ['documento.associa', 'documento.apri']
 
 /** Ordine stabile delle azioni mostrate in `DocumentActionsModal` per ogni origine. */
 export function actionIdsForOrigine(origine: string): CommandId[] {

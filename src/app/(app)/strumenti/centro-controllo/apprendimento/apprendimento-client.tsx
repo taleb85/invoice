@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useT } from '@/lib/use-t'
 import { commandLabel } from '@/lib/command-system/command-labels'
-import { Loader2, AlertCircle, CheckCircle, XCircle, Brain, TrendingUp, Zap } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, XCircle, TrendingUp, Zap } from 'lucide-react'
 import type { ApprendimentoStats } from '@/app/api/centro-controllo/apprendimento/route'
 
 interface Props {
@@ -61,7 +61,7 @@ export default function ApprendimentoClient({ sedeId }: Props) {
     <div className="space-y-6 pb-10">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard
-            icon={<Brain className="h-5 w-5" />}
+            icon={<svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" /></svg>}
             label={t.apprendimento.statPatterns}
             value={stats.pattern_totali}
             color="text-teal-400"

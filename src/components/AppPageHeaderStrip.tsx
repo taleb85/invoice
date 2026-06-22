@@ -100,9 +100,7 @@ export default function AppPageHeaderStrip({
   } ${dense && alignStart ? 'md:items-start' : dense && !alignStart ? 'md:items-center' : ''}`
   const leftClusterCls = `flex min-h-0 min-w-0 flex-1 overflow-hidden ${leadingAccessory ? 'gap-1 sm:gap-2 md:gap-2.5 lg:gap-3' : 'gap-3 lg:gap-4'} ${alignStart ? 'items-start' : 'items-center'}`
   const titleCls = `min-w-0 flex-1 overflow-hidden [&_h1]:truncate ${alignStart ? 'self-start' : 'self-center'}`
-  const headerIconSizeCls = leadingAccessory
-    ? 'h-9 w-9 [&_svg]:h-5 [&_svg]:w-5 sm:h-12 sm:w-12 sm:[&_svg]:h-9 sm:[&_svg]:w-9'
-    : 'h-11 w-11 [&_svg]:h-8 [&_svg]:w-8 sm:h-12 sm:w-12 sm:[&_svg]:h-9 sm:[&_svg]:w-9'
+  const headerIconSizeCls = 'h-5 w-5'
   const rightCls = `${dense ? innerRightClsDenseBase : innerRightClsBase} ${
     alignStart ? 'items-start sm:justify-end sm:pt-0' : 'items-center'
   }`
