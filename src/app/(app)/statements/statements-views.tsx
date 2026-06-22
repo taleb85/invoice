@@ -4888,6 +4888,18 @@ export function VerificationStatusTab({
     [stmtsForDisplay],
   )
 
+  /** Raggruppa gli account statement per mese (YYYY-MM). */
+  const groupedStmtsByMonth = useMemo(() => {
+    const groups = new Map<string, typeof accountStatementStmts>()
+    for (const s of accountStatementStmts) {
+      const iso = statementOfficialDateIso(s)
+      const key = iso ? iso.slice(0, 7) : 'other'
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(s)
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => b.localeCompare(a))
+  }, [accountStatementStmts])
+
   const navigableStmts = useMemo(
     () => accountStatementStmts.filter((s) => s.status !== 'error'),
     [accountStatementStmts],
@@ -4956,6 +4968,25 @@ export function VerificationStatusTab({
 
   const filteredCheckResults = verificaDisplay?.rows ?? null
   const verificaDisplayMode = verificaDisplay?.mode ?? 'empty'
+
+  /** Raggruppa le righe dei check results per mese (YYYY-MM) in base a data_doc. */
+  const groupedResultsByMonth = useMemo(() => {
+    if (!filteredCheckResults) return []
+    const groups = new Map<string, typeof filteredCheckResults>()
+    const other: typeof filteredCheckResults = []
+    for (const r of filteredCheckResults) {
+      const key = r.data_doc ? r.data_doc.slice(0, 7) : null
+      if (key) {
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key)!.push(r)
+      } else {
+        other.push(r)
+      }
+    }
+    const sorted = Array.from(groups.entries()).sort(([a], [b]) => b.localeCompare(a))
+    if (other.length > 0) sorted.push(['other', other])
+    return sorted
+  }, [filteredCheckResults])
 
   const clearVerificaDeepLinkFilters = useCallback(() => {
     setCheckFilter('all')
@@ -5376,9 +5407,20 @@ export function VerificationStatusTab({
             </div>
           ) : (
             <>
-            {accountStatementStmts.length > 0 ? (
-            <div className="divide-y divide-app-line-15">
-              {accountStatementStmts.map(s => {
+            {groupedStmtsByMonth.length > 0 ? (
+            <div>
+              {groupedStmtsByMonth.map(([monthKey, stmts]) => {
+                const [yr, mo] = monthKey.split('-')
+                const monthLabel = monthKey === 'other' ? '' : `${MONTHS[Number(mo) - 1] ?? mo} ${yr}`
+                return (
+                <div key={monthKey} className={monthKey !== groupedStmtsByMonth[0][0] ? 'mt-3 border-t border-app-line-15 pt-2' : ''}>
+                  {monthKey !== 'other' && (
+                    <p className={`px-3 pb-1.5 font-semibold text-app-fg-muted ${vsCompactS1 ? 'text-[11px]' : 'text-xs'}`}>
+                      {monthLabel}
+                    </p>
+                  )}
+                  <div className="divide-y divide-app-line-15">
+              {stmts.map(s => {
                 const stmtOfficialIso = statementOfficialDateIso(s)
                 const stmtListPrimary = fornitoreId
                   ? (s.email_subject?.trim() ||
@@ -5570,6 +5612,9 @@ export function VerificationStatusTab({
                   </svg>
                   </div>
                 </div>
+              )})}
+            </div>
+            </div>
               )})}
             </div>
             ) : null}
@@ -6453,7 +6498,17 @@ export function VerificationStatusTab({
 
             {/* Per-line results — mobile cards */}
             <div className="md:hidden divide-y divide-app-soft-border">
-            {(filteredCheckResults ?? []).map(r => {
+            {groupedResultsByMonth.map(([monthKey, rows]) => {
+              const [yr, mo] = monthKey.split('-')
+              const monthLabel = monthKey === 'other' ? '' : `${MONTHS[Number(mo) - 1] ?? mo} ${yr}`
+              return (
+              <Fragment key={monthKey}>
+                {monthKey !== 'other' && (
+                  <div className="px-3 py-1.5 text-[11px] font-semibold text-app-fg-muted bg-app-line-5">
+                    {monthLabel}
+                  </div>
+                )}
+              {rows.map(r => {
               const cfg        = STATUS_CONFIG[r.status]
               const needAction =
                 r.status === 'fattura_mancante' ||
@@ -6661,8 +6716,9 @@ export function VerificationStatusTab({
                     )
                   ) : null}
                 </div>
-              )
-            })}
+              )})}
+              </Fragment>
+              )})}
             </div>
 
             {/* Per-line results — desktop table (8 colonne) */}
@@ -6711,7 +6767,19 @@ export function VerificationStatusTab({
                   </tr>
                 </thead>
                 <tbody className={vsEmbeddedSupplier ? APP_SECTION_TABLE_TBODY : 'divide-y divide-app-line-15'}>
-                  {(filteredCheckResults ?? []).map(r => {
+                  {groupedResultsByMonth.map(([monthKey, rows]) => {
+                    const [yr, mo] = monthKey.split('-')
+                    const monthLabel = monthKey === 'other' ? '' : `${MONTHS[Number(mo) - 1] ?? mo} ${yr}`
+                    return (
+                    <Fragment key={monthKey}>
+                      {monthKey !== 'other' && (
+                        <tr className="border-b border-app-line-12 bg-app-line-5">
+                          <td colSpan={8} className="px-3 py-1.5 text-[11px] font-semibold text-app-fg-muted">
+                            {monthLabel}
+                          </td>
+                        </tr>
+                      )}
+                  {rows.map(r => {
                     const cfg        = STATUS_CONFIG[r.status]
                     const needAction =
                       r.status === 'fattura_mancante' ||
@@ -6909,6 +6977,9 @@ export function VerificationStatusTab({
                       </tr>
                     )
                   })}
+                  </Fragment>
+                  )
+                })}
                 </tbody>
               </table>
             </div>

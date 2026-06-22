@@ -138,6 +138,13 @@ export default function FornitoreConfermeOrdineTab({
   )
 
   const currentMonthRows = useMemo(() => {
+    if (dateFrom && dateToExclusive) {
+      return sortedRows.filter((r) => {
+        const dateStr = r.data_ordine_display ?? r.data_ordine
+        if (!dateStr) return false
+        return dateStr >= dateFrom && dateStr < dateToExclusive
+      })
+    }
     const now = new Date()
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
@@ -147,7 +154,7 @@ export default function FornitoreConfermeOrdineTab({
       if (!dateStr) return false
       return dateStr.startsWith(prefix)
     })
-  }, [sortedRows])
+  }, [sortedRows, dateFrom, dateToExclusive])
 
   const confermeDupPayload = useMemo(() => {
     const analysis = analyzeOrdineDuplicatesForDeletion(
