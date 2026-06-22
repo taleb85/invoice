@@ -29,6 +29,7 @@ import { StandardBadge, standardBadgeClassName } from '@/components/ui/StandardB
 import { ActionButton } from '@/components/ui/ActionButton'
 import { ApprovalBadge } from '@/components/approval/approval-badge'
 import { tipoDocumentoToLabel, extractDocTypeLabel } from '@/lib/extract-doc-type'
+import { fetchFatturaRefreshFromOcr } from '@/lib/fattura-refresh-from-ocr-client'
 
 export type FattureDuplicateListRow = {
   id: string
@@ -246,6 +247,39 @@ export default function FattureListWithDuplicates({
 
       if (row.file_url) {
         items.push({
+          key: 're-read-ocr',
+          label: t.fatture.refreshDateFromDoc,
+          onClick: () => {
+            void (async () => {
+              const result = await fetchFatturaRefreshFromOcr(row.id)
+              if (!result.ok) {
+                showToast(result.body.error ?? t.ui.networkError, 'error')
+                return
+              }
+              const changed =
+                result.body.data_changed === true ||
+                result.body.importo_changed === true ||
+                result.body.numero_fattura_changed === true
+              if (changed) {
+                showToast(
+                  result.body.data_changed && result.body.data
+                    ? t.fatture.refreshDateFromDocSuccess.replace('{data}', result.body.data)
+                    : result.body.importo_changed
+                      ? t.fatture.refreshImportoFromDocSuccess
+                      : t.fatture.refreshNumeroFatturaFromDocSuccess,
+                  'success',
+                )
+              } else {
+                showToast(result.body.info ?? t.fatture.refreshDateFromDocUnchanged, 'info')
+              }
+              router.refresh()
+            })()
+          },
+        })
+      }
+
+      if (row.file_url) {
+        items.push({
           key: 'open-attachment',
           label: t.fatture.contextMenuOpenAttachment,
           onClick: () => {
@@ -280,7 +314,7 @@ export default function FattureListWithDuplicates({
 
       showContextMenu({ x: e.clientX, y: e.clientY, items })
     },
-    [t, router, supabase, showContextMenu],
+    [t, router, supabase, showContextMenu, showToast],
   )
 
   const fattureTableClass = 'hidden w-full table-fixed text-[13px] min-[640px]:table'
