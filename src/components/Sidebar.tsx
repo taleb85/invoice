@@ -387,8 +387,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
     .slice(1)
     .filter(
       (item) =>
-        !(portaleLinksFixedBackup && ['/analytics', '/fornitori'].includes(item.href)) &&
-        !(portaleLinksFixedBackup && item.href.startsWith('/inbox-ai')) &&
         (isMasterAdmin || item.href !== '/fornitori') &&
         !(portaleLinksFixedBackup && item.href === '/backup'),
     )
