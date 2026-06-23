@@ -387,6 +387,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
     .slice(1)
     .filter(
       (item) =>
+        !(portaleLinksFixedBackup && ['/analytics', '/fornitori'].includes(item.href)) &&
+        !(portaleLinksFixedBackup && item.href.startsWith('/inbox-ai')) &&
         (isMasterAdmin || item.href !== '/fornitori') &&
         !(portaleLinksFixedBackup && item.href === '/backup'),
     )
@@ -473,28 +475,27 @@ export default function Sidebar({ onClose }: SidebarProps) {
             )
           })()}
 
-          {portaleLinksFixedBackup &&
-            (() => {
-              const item = backupNavItem
-              const isActive = pathname.startsWith(item.href)
-              const iconColor = item.iconColor
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => {
-                    onClose?.()
-                    router.push(item.href)
-                  }}
-                  className={`${navLink(isActive)} relative min-w-0`}
-                >
-                  <span className={`shrink-0 ${isActive ? (iconColor ?? 'text-app-cyan-300') : `${iconColor}/75`}`}>
-                    {item.icon}
-                  </span>
-                  <span className="truncate flex-1 min-w-0">{item.label}</span>
-                </Link>
-              )
-            })()}
+          {(isMasterAdmin || isAdminSede) && (
+            <Link href="/strumenti/centro-controllo/apprendimento" onClick={onClose} className={navLink(pathname.startsWith('/strumenti/centro-controllo/apprendimento'))}>
+               <svg className={`h-5 w-5 shrink-0 ${pathname.startsWith('/strumenti/centro-controllo/apprendimento') ? 'text-teal-400' : 'text-app-fg-muted'}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" /></svg>
+               <span className="truncate">{t.nav.learning}</span>
+             </Link>
+          )}
+
+          <Link
+            href="/strumenti/sedi"
+            onClick={onClose}
+            className={navLink(masterGestisciSediRailActive)}
+          >
+            <span className={`shrink-0 [&_svg]:h-4 [&_svg]:w-4 ${masterGestisciSediRailActive ? icon.settingsTools : 'text-app-fg-muted'}`}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </span>
+            <span className="truncate">{t.nav.gestisciSedi}</span>
+          </Link>
+
           </div>
 
           {/* ── Master: switcher sedi — fisso sotto Portale / Consumi / Backup ── */}
@@ -545,20 +546,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                               </svg>
                             </button>
                           </div>
-                          <Link
-                            href="/strumenti/sedi"
-                            onClick={onClose}
-                            title={t.nav.gestisciSedi}
-                            className={railDrawerNavLink(masterGestisciSediRailActive)}
-                          >
-                            <span className={`shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5 ${masterGestisciSediRailActive ? icon.settingsTools : 'text-app-fg-muted'}`}>
-                              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">{t.nav.gestisciSedi}</span>
-                          </Link>
                         </div>
                       )
                     })()
@@ -597,7 +584,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   ) : null}
                   {flatNavRestItems.length > 0 ? (
                     <>
-                      {branchesOpen ? <div className="my-1.5 border-t border-app-line-18" aria-hidden /> : null}
                       <button
                         type="button"
                         aria-expanded={masterOperationalNavOpen}
@@ -616,8 +602,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                         </svg>
                       </button>
                     </>
-                  ) : branchesOpen ? (
-                    <div className="my-1.5 border-t border-app-line-18" aria-hidden />
                   ) : null}
                   <div className="mt-0.5 space-y-0.5 pb-1">
                     {flatNavRestItems.length > 0 && masterOperationalNavOpen
@@ -654,20 +638,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                           )
                         })
                       : null}
-                    <Link
-                      href="/strumenti/sedi"
-                      onClick={onClose}
-                      title={t.nav.gestisciSedi}
-                      className={railDrawerNavLink(masterGestisciSediRailActive)}
-                    >
-                      <span className={`shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5 ${masterGestisciSediRailActive ? icon.settingsTools : 'text-app-fg-muted'}`}>
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{t.nav.gestisciSedi}</span>
-                    </Link>
                   </div>
                     </>
                   )}
@@ -679,31 +649,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
 
           <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden py-2 pb-3">
-
-          {(isMasterAdmin || isAdminSede) && (
-            <Link href="/strumenti/analisi-prezzi" onClick={onClose} className={navLink(pathname === '/strumenti/analisi-prezzi')}>
-              <svg className={`w-4 h-4 shrink-0 ${icon.listino}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18M7 16l4-8 4 4 4-6" />
-              </svg>
-                <span className="truncate">{t.strumentiAnalisiPrezzi.pageTitle}</span>
-            </Link>
-          )}
-
-          {(isMasterAdmin || isAdminSede) && (
-            <>
-              <Link href="/strumenti/centro-controllo" onClick={onClose} className={navLink(pathname === '/strumenti/centro-controllo' || pathname?.startsWith('/strumenti/centro-controllo/'))}>
-                <svg className={`w-4 h-4 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="truncate">{t.strumentiCentroControllo.pageTitle}</span>
-              </Link>
-              <Link href="/strumenti/centro-controllo/apprendimento" onClick={onClose} className={`${navLink(pathname.startsWith('/strumenti/centro-controllo/apprendimento'))} pl-8`}>
-                 <svg className={`h-5 w-5 shrink-0 ${pathname.startsWith('/instrumenti/centro-controllo/apprendimento') ? 'text-teal-400' : 'text-app-fg-muted'}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" /></svg>
-                 <span className="truncate">{t.nav.learning}</span>
-               </Link>
-            </>
-          )}
 
           {/* Main flat nav items — master: nel cassetto sotto Aziende; altri: qui. */}
           {!isMasterAdmin &&

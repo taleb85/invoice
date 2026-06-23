@@ -46,6 +46,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DeepAuroraIntegration } from '@/components/deep-aurora/DeepAuroraIntegration'
 import { AppMainScrollRestoration } from '@/lib/return-navigation-client'
 import { ContextMenuProvider } from '@/components/ui/ContextMenuProvider'
+import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
@@ -622,6 +623,19 @@ function DesktopHeaderBannerPortal({ banner }: { banner: DesktopHeaderToastBanne
   )
 }
 
+function AdminSedeViewBannerWrapper() {
+  const { me } = useMe()
+  const [sedeId, setSedeId] = useState<string | null>(null)
+  useEffect(() => {
+    const m = document.cookie.match(/(?:^|;\s*)admin-sede-id=([^;]*)/)
+    setSedeId(m?.[1] ? decodeURIComponent(m[1]).trim() : null)
+  }, [])
+  if (!sedeId || !me?.is_admin) return null
+  const sedeNome = me.all_sedi?.find((s) => s.id === sedeId)?.nome?.trim()
+  if (!sedeNome) return null
+  return <AdminSedeViewBanner sedeNome={sedeNome} />
+}
+
 function AppShellMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const normalized = normalizeAppPath(pathname ?? '')
@@ -788,6 +802,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                   <Suspense fallback={null}>
                     <AppMainScrollRestoration />
                   </Suspense>
+                  <AdminSedeViewBannerWrapper />
                   {children}
                 </BranchSessionGate>
               </ErrorBoundary>

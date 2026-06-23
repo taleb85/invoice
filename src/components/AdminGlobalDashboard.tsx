@@ -2,7 +2,6 @@ import Link from 'next/link'
 import type { Translations } from '@/lib/translations'
 import { getLocale as getCountryLocale, type CountryCode } from '@/lib/localization'
 import { LocaleCodeChip } from '@/components/ui/glyph-icons'
-import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import { dashboardManageSediLabel } from '@/lib/gestisci-sede-label'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
@@ -154,15 +153,9 @@ export function AdminGlobalDashboard({
                   ) : null}
 
                   <div className="mt-auto flex flex-wrap gap-2 border-t border-app-line-22 pt-4">
-                    <AdminSelectSedeButton
-                      sedeId={sede.id}
-                      className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-lg bg-app-line-20 px-3 py-2.5 text-xs font-semibold text-app-fg-muted ring-1 ring-app-line-35 transition-colors hover:bg-app-line-30"
-                    >
-                      {t.dashboard.adminOpenBranchDashboard}
-                    </AdminSelectSedeButton>
                     <Link
                       href={`/sedi/${sede.id}`}
-                      className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-lg border border-app-line-28 app-workspace-inset-bg px-3 py-2.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-12"
+                      className="inline-flex w-full items-center justify-center rounded-lg border border-app-line-28 app-workspace-inset-bg px-3 py-2.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-12"
                     >
                       {t.dashboard.adminSedeSettingsLink}
                     </Link>
