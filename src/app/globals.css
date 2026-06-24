@@ -338,12 +338,16 @@
   }
 
   /**
-   * Shell desktop: rail sopra il gradiente condiviso (`app-shell-workspace-canvas`) — niente tinta/blur propri.
+   * Shell desktop: rail sopra il gradiente condiviso (`app-shell-workspace-canvas`) — niente blur, sfondo solido.
    */
   .app-sidebar-aside.app-shell-rail-clear {
-    /* `bg-transparent` da solo non toglie il gradiente di `.app-sidebar-aside` (resta `background-image`). */
-    @apply bg-transparent ring-0;
-    background-image: none;
+    @apply ring-0;
+    background: linear-gradient(
+      to bottom right,
+      rgba(30, 41, 59, 0.97),
+      rgba(30, 58, 138, 0.88),
+      rgba(30, 27, 75, 0.95)
+    );
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     box-shadow: inset -1px 0 0 var(--app-line-22);
