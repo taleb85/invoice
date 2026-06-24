@@ -324,22 +324,32 @@
   .app-sidebar-aside {
     @apply border-r border-app-line-25 ring-1 ring-inset ring-app-line-15;
     color: var(--app-fg-body);
-    background: rgb(15, 23, 42);
+    background: linear-gradient(
+      to bottom right,
+      rgba(30, 41, 59, 0.55),
+      rgba(30, 58, 138, 0.35),
+      rgba(30, 27, 75, 0.50)
+    );
     box-shadow:
       4px 0 28px rgba(0, 0, 0, 0.32),
       inset -1px 0 0 var(--app-line-22);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    -webkit-backdrop-filter: blur(18px) saturate(1.1);
+    backdrop-filter: blur(18px) saturate(1.1);
   }
 
   /**
-   * Shell desktop: rail sopra il gradiente condiviso (`app-shell-workspace-canvas`).
+   * Shell desktop: effetto satinato senza sfondo pieno.
    */
   .app-sidebar-aside.app-shell-rail-clear {
     @apply ring-0;
-    background: rgb(15, 23, 42);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    background: linear-gradient(
+      to bottom right,
+      rgba(30, 41, 59, 0.55),
+      rgba(30, 58, 138, 0.35),
+      rgba(30, 27, 75, 0.50)
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(1.1);
+    backdrop-filter: blur(18px) saturate(1.1);
     box-shadow: inset -1px 0 0 var(--app-line-22);
   }
 
@@ -1306,10 +1316,8 @@ body:has([data-deep-aurora-public-shell]) .app-summary-highlight-surface {
 }
 
 body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear {
-  background: rgb(15, 23, 42) !important;
-  background-image: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  backdrop-filter: blur(18px) saturate(1.1) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.1) !important;
 }
 
 /**
