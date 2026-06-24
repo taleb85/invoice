@@ -52,6 +52,7 @@ import { interpolateTemplate } from '@/lib/interpolate-template'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import CentroControlloSediSection from './centro-controllo-sedi-section'
 import { SollecitiSettingsLinkCard } from './centro-controllo-impostazioni-section'
+import ImpostazioniSedeAdminBlocks from '@/components/ImpostazioniSedeAdminBlocks'
 
 INITIALIZE_COMMANDS()
 
@@ -1576,35 +1577,12 @@ export default function CentroControlloClient({ sedeId }: Props) {
                 </div>
               </SectionCard>
 
-              <SectionCard title={t.strumentiCentroControllo.advMaintenance}>
-                <div className="divide-y divide-app-line-10">
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advLearningTitle}</p>
-                      <p className="text-xs text-app-fg-muted">{t.strumentiCentroControllo.advLearningDesc}</p>
-                    </div>
-                    <a
-                      href="/strumenti/centro-controllo/apprendimento"
-                      className="shrink-0 ml-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
-                    >
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        <defs>
-                          <linearGradient id="gemini-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#4285F4" />
-                            <stop offset="50%" stopColor="#9B72CB" />
-                            <stop offset="100%" stopColor="#34A853" />
-                          </linearGradient>
-                        </defs>
-                        <path
-                          d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z"
-                          fill="url(#gemini-grad)"
-                        />
-                      </svg>
-                      {t.strumentiCentroControllo.advOpenAction}
-                    </a>
-                  </div>
-                </div>
-              </SectionCard>
+              {/* Impostazioni sede — OCR nomi, scarto documenti, approvazione fatture */}
+              {sedeId && (
+                <SectionCard title="Impostazioni sede">
+                  <ImpostazioniSedeAdminBlocks sedeId={sedeId} />
+                </SectionCard>
+              )}
 
               {/* Solleciti automatici */}
               <SollecitiSettingsLinkCard />

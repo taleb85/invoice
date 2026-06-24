@@ -657,6 +657,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     setDesktopSidebarNavHost(el)
   }, [])
   const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false)
+  const [desktopSidebarHovered, setDesktopSidebarHovered] = useState(false)
   // Close tablet sidebar on genuine navigation (not on router.refresh() which re-emits the same path).
   const sidebarNavPathRef = useRef(pathname ?? '')
   useEffect(() => {
@@ -700,10 +701,37 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-0 flex-1 flex-col bg-transparent max-md:min-h-dvh max-md:overflow-x-hidden">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-1 flex-col max-md:min-h-dvh">
         {/*
-          Desktop: griglia a una riga — (1) `aside` unico: brand + `Sidebar`;
-          (2) colonna destra unica: `#app-desktop-header-nav-progress` + `main` nello stesso contenitore flex.
+          Desktop: griglia a una riga — colonna destra unica: `#app-desktop-header-nav-progress` + `main` nello stesso contenitore flex.
+          Sidebar desktop: fissa a sinistra, si sovrappone al contenuto all'hover.
         */}
-        <div className="app-shell-workspace-canvas flex min-h-0 min-w-0 flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1fr)]">
+
+        {/* ── Desktop sidebar: fixed a sinistra, hover to open ── */}
+        <aside
+          suppressHydrationWarning
+          aria-label={t.nav.mainNavAria ?? 'Navigation'}
+          className={`app-sidebar-aside app-shell-rail-clear fixed left-0 top-0 z-40 hidden h-full flex-col transition-all duration-200 ease-in-out lg:flex${desktopSidebarHovered ? ' w-56 shadow-[4px_0_24px_-8px_rgba(0,0,0,0.4)]' : ' w-12'}`}
+          onMouseEnter={() => setDesktopSidebarHovered(true)}
+          onMouseLeave={() => setDesktopSidebarHovered(false)}
+        >
+          <div
+            ref={bindDesktopSidebarNavHost}
+            id={APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID}
+            className="pointer-events-none absolute inset-0 z-0 min-h-0 overflow-visible"
+            aria-hidden
+          />
+          <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
+              <SidebarRailBrand compact={!desktopSidebarHovered} />
+            </div>
+            <ErrorBoundary sectionName={t.errorBoundary.sectionNavigation}>
+              <Sidebar compact={!desktopSidebarHovered} />
+            </ErrorBoundary>
+          </div>
+        </aside>
+
+        <div
+          className="app-shell-workspace-canvas flex min-h-0 min-w-0 flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[1fr]"
+        >
           <DeepAuroraIntegration>
           <SidebarController />
 
@@ -729,33 +757,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          <aside
-            suppressHydrationWarning
-            aria-label={t.nav.mainNavAria ?? 'Navigation'}
-            className={[
-              // `isolate`: stacking per il decorative progress sotto ai link (`z` del wrapper sopra il layer assoluto).
-              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-hidden lg:relative lg:isolate lg:z-auto',
-            ].join(' ')}
-          >
-            <div
-              ref={bindDesktopSidebarNavHost}
-              id={APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID}
-              className="pointer-events-none absolute inset-0 z-0 hidden min-h-0 overflow-visible lg:block"
-              aria-hidden
-            />
-            <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col">
-              <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
-                <SidebarRailBrand />
-              </div>
-              <ErrorBoundary sectionName={t.errorBoundary.sectionNavigation}>
-                <Sidebar />
-              </ErrorBoundary>
-            </div>
-          </aside>
           <div
-            data-app-desktop-canvas
-            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-2 md:h-full md:min-h-0 md:overflow-hidden"
-          >
+              data-app-desktop-canvas
+              className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-1 lg:pl-12 md:h-full md:min-h-0 md:overflow-hidden"
+            >
             <DesktopHeaderBannerPortal banner={headerToastBanner} />
             <div
               ref={bindDesktopNavHost}

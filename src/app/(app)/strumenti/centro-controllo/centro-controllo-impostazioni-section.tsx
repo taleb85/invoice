@@ -10,7 +10,7 @@ import SollecitiSettingsClient from '@/app/(app)/settings/solleciti/solleciti-se
 export function SollecitiSettingsLinkCard() {
   const { t } = useLocale()
   const imp = t.impostazioni
-  const [drawerOpen, setDrawerOpen] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [sollecitiInitial, setSollecitiInitial] = useState<SollecitiReminderSettings | null>(null)
   const [embeddedSession, setEmbeddedSession] = useState(0)
   const uid = useId()

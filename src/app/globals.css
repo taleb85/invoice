@@ -355,6 +355,16 @@
     background-image: none;
   }
 
+  /** Sidebar compatta (solo icone): nasconde le label. */
+  .sidebar-compact .truncate {
+    display: none !important;
+  }
+
+  /** Sidebar compatta: nasconde elementi non-icon. */
+  .sidebar-compact .sidebar-label {
+    display: none !important;
+  }
+
   /**
    * Desktop AppShell: gradiente unico sotto rail + canvas (header trasparente + main md:transparent).
    * Mobile: colore testo qui; il gradiente su colonna `[data-app-desktop-canvas]` così riempie tutta
@@ -1807,4 +1817,67 @@ body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
 }
 button[aria-busy="true"] .app-refresh-icon {
   animation: app-icon-spin 1s linear infinite;
+}
+
+/** Sidebar compatta (solo icone): nasconde le label fuori dai layer per massima priorità. */
+.sidebar-compact .truncate,
+.sidebar-compact .sidebar-label {
+  opacity: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  flex-basis: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/** Sidebar compatta: rimuove il gap tra icona e label. */
+.sidebar-compact nav a {
+  gap: 0 !important;
+}
+
+/** Sidebar compatta: badge notifica come pallino pulsante. */
+.sidebar-compact .notification-dot {
+  opacity: 1 !important;
+  width: 0.5rem !important;
+  height: 0.5rem !important;
+  min-width: 0.5rem !important;
+  min-height: 0.5rem !important;
+  overflow: visible !important;
+  flex: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  border-radius: 9999px !important;
+  position: absolute !important;
+  top: 0.25rem !important;
+  right: 0.25rem !important;
+  animation: sidebar-badge-pulse 2s ease-in-out infinite !important;
+}
+
+@keyframes sidebar-badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+/** Sidebar: tutte le icone dei link stessa dimensione. */
+.app-shell-rail-panel nav a > svg,
+.app-shell-rail-panel nav a > span > svg {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+/** Sidebar compatta: i wrapper delle icone si allineano al quadrato del link. */
+.sidebar-compact nav a > span.shrink-0 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/** Sidebar compatta: riduce il padding per avvicinare le icone al bordo sinistro. */
+.sidebar-compact {
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
 }

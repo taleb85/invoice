@@ -174,7 +174,7 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
         ) : null}
       </section>
 
-      <footer className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-app-line-28 px-4 py-3.5 sm:px-5">
+      <footer className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 border-t border-app-line-28 px-4 py-3.5 sm:px-5">
         <button
           type="button"
           onClick={() => void save()}
@@ -184,7 +184,7 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
           {saving ? (
             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
           ) : null}
-          {saving ? a.savingSettings : a.saveSettings}
+          {saving ? a.savingSettings : 'Salva'}
         </button>
         {saved ? (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">

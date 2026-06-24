@@ -25,9 +25,11 @@ function getCookie(name: string): string {
 interface SidebarProps {
   /** Optional; still invoked on route change (legacy hook for parents). */
   onClose?: () => void
+  /** Se true, mostra solo le icone (rail compatto). */
+  compact?: boolean
 }
 
-export default function Sidebar({ onClose }: SidebarProps) {
+export default function Sidebar({ onClose, compact }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -407,11 +409,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
   }
 
   // Shared icon-link style helpers
-  const navLink = (isActive: boolean) =>
+  const navLink = (isActive: boolean, iconColor?: string) =>
     `flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold transition-all ${
-      isActive
-        ? 'border-l-2 border-app-cyan-400/90 bg-gradient-to-r from-app-line-15 to-app-a-20 pl-[10px] text-app-fg shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]'
-        : 'border-l-2 border-transparent bg-transparent pl-[10px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+      compact
+        ? isActive
+          ? `justify-center ${iconColor ? `${iconColor} bg-${iconColor.replace('text-', '')}/10 border-l-2 border-${iconColor.replace('text-', '')}/90` : 'bg-cyan-500/10 text-cyan-100 border-l-2 border-app-cyan-400/90'}`
+          : 'justify-center bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+        : isActive
+          ? 'border-l-2 border-app-cyan-400/90 bg-gradient-to-r from-app-line-15 to-app-a-20 pl-[10px] text-app-fg shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]'
+          : 'border-l-2 border-transparent bg-transparent pl-[10px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
     }`
 
   const railDrawerNavLink = (isActive: boolean) =>
@@ -424,7 +430,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
   return (
     <div
       suppressHydrationWarning
-      className="app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3"
+      className={`app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3${compact ? ' sidebar-compact' : ''}`}
+      style={compact ? { opacity: 1 } as React.CSSProperties : undefined}
     >
         <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
           <div className="app-shell-rail-panel shrink-0 space-y-0.5 border-b border-app-line-22 py-2">
@@ -445,8 +452,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
               router.push(item.href)
             }
             return (
-              <Link key={item.href} href={item.href} onClick={handleClick} className={navLink(isActive)}>
-                <span className={`shrink-0 ${isActive ? (iconColor ?? 'text-app-cyan-300') : (iconColor ? `${iconColor}/75` : 'text-app-fg-muted')}`}>
+              <Link key={item.href} href={item.href} onClick={handleClick} className={navLink(isActive, iconColor)}>
+                <span className={`shrink-0 ${isActive ? (iconColor ?? 'text-app-cyan-300') : (iconColor ?? 'text-app-fg-muted')}`}>
                   {item.icon}
                 </span>
                 <span className="truncate">{label}</span>
@@ -463,9 +470,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 key={item.href}
                 href={item.href}
                 onClick={() => { onClose?.(); router.push(item.href) }}
-                className={`${navLink(isActive)} relative min-w-0`}
+                className={`${navLink(isActive, 'text-orange-400')} relative min-w-0`}
               >
-                <span className={`shrink-0 ${isActive ? (item.iconColor ?? 'text-app-cyan-300') : `${item.iconColor}/75`}`}>
+                <span className={`shrink-0 ${isActive ? (item.iconColor ?? 'text-app-cyan-300') : (item.iconColor ?? 'text-app-fg-muted')}`}>
                   {item.icon}
                 </span>
                 <span className="truncate">{item.label}</span>
@@ -473,27 +480,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             )
           })()}
 
-          {(isMasterAdmin || isAdminSede) && (
-            <Link href="/strumenti/centro-controllo/apprendimento" onClick={onClose} className={navLink(pathname.startsWith('/strumenti/centro-controllo/apprendimento'))}>
-               <svg className={`h-5 w-5 shrink-0 ${pathname.startsWith('/strumenti/centro-controllo/apprendimento') ? 'text-teal-400' : 'text-app-fg-muted'}`} viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" /></svg>
-               <span className="truncate">{t.nav.learning}</span>
-             </Link>
+          {isMasterAdmin && (
+            <Link
+              href="/strumenti/sedi"
+              onClick={onClose}
+              className={navLink(masterGestisciSediRailActive, icon.settingsTools)}
+            >
+              <span className={`shrink-0 [&_svg]:h-4 [&_svg]:w-4 ${masterGestisciSediRailActive ? icon.settingsTools : 'text-app-fg-muted'}`}>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </span>
+              <span className="truncate">{t.nav.gestisciSedi}</span>
+            </Link>
           )}
-
-          <Link
-            href="/strumenti/sedi"
-            onClick={onClose}
-            className={navLink(masterGestisciSediRailActive)}
-          >
-            <span className={`shrink-0 [&_svg]:h-4 [&_svg]:w-4 ${masterGestisciSediRailActive ? icon.settingsTools : 'text-app-fg-muted'}`}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </span>
-            <span className="truncate">{t.nav.gestisciSedi}</span>
-          </Link>
-
           </div>
 
           {/* ── Master: switcher sedi — fisso sotto Portale / Consumi / Backup ── */}
@@ -515,7 +516,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
                   ) : null}
                 </span>
-                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`w-3 h-3 shrink-0 transition-transform sidebar-label ${icon.settingsTools} ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -590,12 +591,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       >
                         <span className="min-w-0 flex-1 truncate">{t.dashboard.adminOpenBranchDashboard}</span>
                         <svg
-                          className={`h-3 w-3 shrink-0 transition-transform ${icon.settingsTools} ${masterOperationalNavOpen ? 'rotate-180' : ''}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden
-                        >
+                            className={`h-3 w-3 shrink-0 transition-transform sidebar-label ${icon.settingsTools} ${masterOperationalNavOpen ? 'rotate-180' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden
+                          >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
@@ -604,7 +605,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   <div className="mt-0.5 space-y-0.5 pb-1">
                     {flatNavRestItems.length > 0 && masterOperationalNavOpen
                       ? flatNavRestItems.map((item) => {
-                          const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+                          const linkHref = item.href.split('?')[0]
+                          const isActive = linkHref === '/' ? pathname === '/' : pathname.startsWith(linkHref)
                           const hasBadge = (item as { badge?: boolean }).badge
                           const itemCount = (item as { count?: number }).count
                           const iconColor = (item as { iconColor?: string }).iconColor
@@ -626,9 +628,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
                                 {item.icon}
                               </span>
                               <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                              {hasBadge ? <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-red-500" /> : null}
-                              {itemCount != null && itemCount > 0 ? (
-                                <span className="ml-auto shrink-0 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-0.5 text-[9px] font-bold tabular-nums text-white">
+                              {hasBadge ? <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-red-500 notification-dot" /> : null}
+                               {itemCount != null && itemCount > 0 ? (
+                                 <span className="ml-auto shrink-0 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-0.5 text-[9px] font-bold tabular-nums text-white notification-dot">
                                   {itemCount > 99 ? '99+' : itemCount}
                                 </span>
                               ) : null}
@@ -648,10 +650,38 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
           <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden py-2 pb-3">
 
+          {/* ── Strumenti: Analisi Prezzi e Centro Controllo (admin/admin_sede) ── */}
+          {(isMasterAdmin || isAdminSede) && (
+            <Link href="/strumenti/analisi-prezzi" onClick={onClose} className={navLink(pathname === '/strumenti/analisi-prezzi', icon.listino)}>
+              <svg className={`w-4 h-4 shrink-0 ${icon.listino}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18M7 16l4-8 4 4 4-6" />
+              </svg>
+                <span className="truncate">{t.strumentiAnalisiPrezzi.pageTitle}</span>
+            </Link>
+          )}
+
+          {(isMasterAdmin || isAdminSede) && (
+            <Link href="/strumenti/centro-controllo" onClick={onClose} className={navLink(pathname === '/strumenti/centro-controllo' || pathname === '/strumenti/centro-controllo/', 'text-sky-400')}>
+              <svg className={`w-4 h-4 shrink-0 text-sky-400`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="truncate">{t.strumentiCentroControllo.pageTitle}</span>
+            </Link>
+          )}
+
+          {(isMasterAdmin || isAdminSede) && (
+            <Link href="/strumenti/centro-controllo/apprendimento" onClick={onClose} className={navLink(pathname.startsWith('/strumenti/centro-controllo/apprendimento'), 'text-emerald-400')}>
+              <svg className={`h-5 w-5 shrink-0 ${pathname.startsWith('/strumenti/centro-controllo/apprendimento') ? 'text-emerald-400' : 'text-app-fg-muted'}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg>
+              <span className="truncate">{t.nav.learning}</span>
+            </Link>
+          )}
+
           {/* Main flat nav items — master: nel cassetto sotto Aziende; altri: qui. */}
           {!isMasterAdmin &&
             flatNavRestItems.map((item) => {
-              const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+              const linkHref = item.href.split('?')[0]
+              const isActive = linkHref === '/' ? pathname === '/' : pathname.startsWith(linkHref)
               const hasBadge = (item as { badge?: boolean }).badge
               const itemCount = (item as { count?: number }).count
               const iconColor = (item as { iconColor?: string }).iconColor
@@ -663,15 +693,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     onClose?.()
                     router.push(item.href)
                   }}
-                  className={`${navLink(isActive)} relative min-w-0`}
+                  className={`${navLink(isActive, iconColor)} relative min-w-0`}
                 >
-                  <span className={`shrink-0 ${isActive ? (iconColor ?? 'text-app-cyan-300') : (iconColor ? `${iconColor}/75` : 'text-app-fg-muted')}`}>
+                  <span className={`shrink-0 ${isActive ? (iconColor ?? 'text-app-cyan-300') : (iconColor ?? 'text-app-fg-muted')}`}>
                     {item.icon}
                   </span>
                   <span className="truncate flex-1 min-w-0">{item.label}</span>
-                  {hasBadge && <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500" />}
+                  {hasBadge && <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500 notification-dot" />}
                   {itemCount != null && itemCount > 0 && (
-                    <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white">
+                    <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white notification-dot">
                       {itemCount > 99 ? '99+' : itemCount}
                     </span>
                   )}
@@ -692,17 +722,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   </svg>
                   <span className="truncate">{t.nav.fornitori}</span>
                   {fornitori.length > 0 && (
-                    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded border border-app-line-25 bg-transparent px-1 text-[10px] font-semibold tabular-nums text-app-fg-muted">
+                    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded border border-app-line-25 bg-transparent px-1 text-[10px] font-semibold tabular-nums text-app-fg-muted sidebar-label">
                       {fornitori.length}
                     </span>
                   )}
                 </span>
-                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${fornitoriOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-3 h-3 shrink-0 transition-transform sidebar-label ${icon.settingsTools} ${fornitoriOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              {fornitoriOpen && (
+              {/* Fornitori expandable content — nascosto in modalità compatta */}
+              {!compact && fornitoriOpen && (
                 <div className="app-shell-rail-panel ml-3 mt-0.5 space-y-0.5 border-l border-app-line-22 pl-2">
                   {/* Search */}
                   {fornitori.length > 5 && (
@@ -750,50 +781,51 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </div>
         </nav>
 
-        {/* ── Footer espandibile: riga contesto + pannello opzionale + riga icone ── */}
+        {/* ── Footer espandibile — nascosto in modalità compatta ── */}
+        {!compact && (
         <div className="app-shell-rail-panel relative z-20 mt-auto flex shrink-0 flex-col border-t border-app-line-22 -mx-2.5 px-2.5 py-1.5 text-app-fg lg:-mx-3 lg:px-3">
 
           {/* Riga 1 — contesto + chevron espandi */}
           <div className="flex items-center gap-1">
-            {isMasterAdmin ? (
-              <div className="flex min-w-0 flex-1 items-center gap-2 px-1 py-0.5">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
-                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-app-fg-subtle">{t.sedi.adminRole}</span>
-              </div>
-            ) : (
+              {isMasterAdmin ? (
+                <div className="flex min-w-0 flex-1 items-center gap-2 px-1 py-0.5">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-app-fg-subtle">{t.sedi.adminRole}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openSwitchModal}
+                  title={operatorDockAria}
+                  aria-label={operatorDockAria}
+                  className="group flex min-w-0 flex-1 touch-manipulation items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-app-line-10"
+                >
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+                  {sedeNome && (
+                    <span className="shrink-0 max-w-[56px] truncate text-[11px] font-medium text-app-fg-subtle">{sedeNome}</span>
+                  )}
+                  {sedeNome && <span className="shrink-0 text-[11px] text-app-fg-subtle">·</span>}
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-app-fg-muted">{operatorDockName}</span>
+                  <svg className={`ml-1 h-3 w-3 shrink-0 ${icon.settingsTools} transition-colors group-hover:opacity-80`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </button>
+              )}
+              {/* Chevron espandi/comprimi */}
               <button
                 type="button"
-                onClick={openSwitchModal}
-                title={operatorDockAria}
-                aria-label={operatorDockAria}
-                className="group flex min-w-0 flex-1 touch-manipulation items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-app-line-10"
+                onClick={() => setFooterOpen(o => !o)}
+                title={footerOpen ? t.ui.collapseSidebar : t.ui.expandSidebar}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-app-fg-subtle transition-colors hover:bg-app-line-10 hover:text-app-fg-muted"
               >
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
-                {sedeNome && (
-                  <span className="shrink-0 max-w-[56px] truncate text-[11px] font-medium text-app-fg-subtle">{sedeNome}</span>
-                )}
-                {sedeNome && <span className="shrink-0 text-[11px] text-app-fg-subtle">·</span>}
-                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-app-fg-muted">{operatorDockName}</span>
-                <svg className={`ml-1 h-3 w-3 shrink-0 ${icon.settingsTools} transition-colors group-hover:opacity-80`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                <svg className={`h-3 w-3 transition-transform ${icon.settingsTools} ${footerOpen ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-            )}
-            {/* Chevron espandi/comprimi */}
-            <button
-              type="button"
-              onClick={() => setFooterOpen(o => !o)}
-              title={footerOpen ? t.ui.collapseSidebar : t.ui.expandSidebar}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-app-fg-subtle transition-colors hover:bg-app-line-10 hover:text-app-fg-muted"
-            >
-              <svg className={`h-3 w-3 transition-transform ${icon.settingsTools} ${footerOpen ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
+            </div>
 
-          {/* Pannello espanso */}
-          {footerOpen && (
+          {/* Pannello espanso — nascosto in modalità compatta */}
+          {!compact && footerOpen && (
             <div className="mt-1.5 space-y-0.5 border-t border-app-line-18 pt-1.5">
               {/* Ruolo */}
               {isMasterAdmin && (
@@ -949,6 +981,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </button>
           </div>
         </div>
+        )}
     </div>
   )
 }

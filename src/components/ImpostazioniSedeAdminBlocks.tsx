@@ -64,11 +64,11 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-col gap-8">
+    <div className="flex min-h-0 min-w-0 flex-col gap-2">
       <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit />
 
       <div className="app-card min-h-0 min-w-0 overflow-hidden">
-        <div className="app-workspace-inset-bg-soft p-5">
+        <div className="app-workspace-inset-bg-soft p-3">
           <button
             type="button"
             id={discardToggleId}
@@ -116,7 +116,7 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
             id={discardRegionId}
             role="region"
             aria-labelledby={discardToggleId}
-            className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5"
+            className="border-t border-app-line-30 app-workspace-inset-bg-soft p-3"
           >
             <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
           </div>
@@ -124,7 +124,7 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
       </div>
 
       <div className="app-card min-h-0 min-w-0 overflow-hidden">
-        <div className="app-workspace-inset-bg-soft p-5">
+        <div className="app-workspace-inset-bg-soft p-3">
           <button
             type="button"
             id={approvalToggleId}
@@ -169,7 +169,7 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
             id={approvalRegionId}
             role="region"
             aria-labelledby={approvalToggleId}
-            className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5"
+            className="border-t border-app-line-30 app-workspace-inset-bg-soft p-3"
           >
             <ApprovalSettingsForm sedeId={sedeId} />
           </div>

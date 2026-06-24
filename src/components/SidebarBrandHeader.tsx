@@ -4,10 +4,10 @@
  * Fascia brand in cima all’`aside` (AppShell): logo, senza navigazione
  * (rimane sulla route corrente; niente redirect alla dashboard).
  */
-export function SidebarRailBrand() {
+export function SidebarRailBrand({ compact }: { compact?: boolean }) {
   return (
-    <div className="app-shell-rail-panel flex min-h-[52px] w-full min-w-0 shrink-0 flex-col justify-center gap-1 px-2 py-2 text-app-fg sm:px-3 lg:px-3.5">
-      <div className="flex min-w-0 items-center gap-2.5">
+    <div className={`app-shell-rail-panel flex min-h-[52px] w-full min-w-0 shrink-0 flex-col justify-center gap-1 py-2 text-app-fg${compact ? ' px-1' : ' px-2 sm:px-3 lg:px-3.5'}`}>
+      <div className={`flex min-w-0 items-center${compact ? ' justify-start' : ' gap-2.5'}`}>
         {/* Icon — Deep Aurora (stesso family di login) */}
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-[#38bdf8]/35 shadow-[0_0_16px_rgba(56,189,248,0.15)]">
           <svg width="20" height="20" viewBox="0 0 40 40" fill="none" aria-hidden>
@@ -28,10 +28,12 @@ export function SidebarRailBrand() {
           </svg>
         </div>
 
-        <div className="flex min-w-0 items-baseline gap-1 leading-none">
-          <span className="font-outfit text-[18px] font-semibold tracking-tight text-[#38bdf8]">Smart</span>
-          <span className="font-outfit text-[18px] font-light tracking-tight text-white">Pair</span>
-        </div>
+        {!compact && (
+          <div className="flex min-w-0 items-baseline gap-1 leading-none">
+            <span className="font-outfit text-[18px] font-semibold tracking-tight text-[#38bdf8]">Smart</span>
+            <span className="font-outfit text-[18px] font-light tracking-tight text-white">Pair</span>
+          </div>
+        )}
       </div>
     </div>
   )
