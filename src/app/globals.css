@@ -326,9 +326,9 @@
     color: var(--app-fg-body);
     background: linear-gradient(
       to bottom right,
-      rgba(30, 41, 59, 0.85),
-      rgba(30, 58, 138, 0.65),
-      rgba(30, 27, 75, 0.85)
+      rgba(30, 41, 59, 0.97),
+      rgba(30, 58, 138, 0.88),
+      rgba(30, 27, 75, 0.95)
     );
     box-shadow:
       4px 0 28px rgba(0, 0, 0, 0.32),
@@ -531,9 +531,9 @@
     .app-sidebar-aside {
       background: linear-gradient(
         to bottom,
-        rgba(30, 41, 59, 0.88),
-        rgba(30, 58, 138, 0.75),
-        rgba(30, 27, 75, 0.88)
+        rgba(30, 41, 59, 0.97),
+        rgba(30, 58, 138, 0.9),
+        rgba(30, 27, 75, 0.95)
       );
     }
     .app-sidebar-aside.app-shell-rail-clear {

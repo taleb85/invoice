@@ -1,0 +1,35 @@
+/* Zona di presa visibile sul bordo destro dei th */
+.table-resizable-wrapper th {
+  position: relative;
+}
+
+/* Linea verticale sul bordo destro — segnala la zona di presa */
+.table-resizable-wrapper th::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 0;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 0.15s;
+  pointer-events: none;
+}
+
+/* Mostra la linea all'hover sul th */
+.table-resizable-wrapper th:hover::after {
+  background: rgba(34, 211, 238, 0.35);
+}
+
+/* Durante il resize la linea diventa più visibile */
+.table-resizable-wrapper th.resizing::after {
+  background: rgba(34, 211, 238, 0.7);
+  width: 3px;
+}
+
+/* Cursore globale durante il resize */
+body.table-col-resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
