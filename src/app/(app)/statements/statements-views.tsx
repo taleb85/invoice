@@ -2576,6 +2576,7 @@ export function PendingMatchesTab({
             <div className={supplierDocShell ? 'mb-1' : 'mb-3'}>
               <SupplierDocumentOcrToolbar
                 refreshBatch={pendingRefreshBatch}
+                title={t.statements.tabVerifica}
                 onLedgerMutated={() => {
                   void fetchDocs()
                   void fetchBolleAperte()
@@ -3656,6 +3657,72 @@ export function VerificationStatusTab({
     sourceStmtId: null,
     error: null,
   })
+
+  // ── Assegna fattura inline ──────────────────────────────────────────────
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assignRow, setAssignRow] = useState<{ id: string; fornitore_id: string } | null>(null)
+  const [assignFatture, setAssignFatture] = useState<Array<{ id: string; numero_fattura: string | null; data: string; importo: number | null }>>([])
+  const [assignAllFatture, setAssignAllFatture] = useState<Array<{ id: string; numero_fattura: string | null; data: string; importo: number | null }>>([])
+  const [assignSearch, setAssignSearch] = useState('')
+  const [assignLoading, setAssignLoading] = useState(false)
+  const [assignSelected, setAssignSelected] = useState<string | null>(null)
+  const [assignConfirming, setAssignConfirming] = useState(false)
+
+  const handleAssignOpen = useCallback(async (rowId: string, fornitoreId: string, numero: string) => {
+    setAssignRow({ id: rowId, fornitore_id: fornitoreId })
+    setAssignOpen(true)
+    setAssignSelected(null)
+    setAssignFatture([])
+    setAssignSearch(numero)
+    setAssignLoading(true)
+    try {
+      const supabase = (await import('@/utils/supabase/client')).createClient()
+      const { data } = await supabase
+        .from('fatture')
+        .select('id, numero_fattura, data, importo')
+        .eq('fornitore_id', fornitoreId)
+        .order('data', { ascending: false })
+        .limit(200)
+      const mapped = (data ?? []).map((f: Record<string, unknown>) => ({
+        id: f.id as string,
+        numero_fattura: f.numero_fattura as string | null,
+        data: f.data as string,
+        importo: f.importo as number | null,
+      }))
+      setAssignAllFatture(mapped)
+      // Auto-select the invoice matching the statement row number
+      const match = mapped.find((f) =>
+        f.numero_fattura && f.numero_fattura.replace(/\s/g, '').toLowerCase() === numero.replace(/\s/g, '').toLowerCase()
+      )
+      if (match) setAssignSelected(match.id)
+    } catch { setAssignAllFatture([]) }
+    finally { setAssignLoading(false) }
+  }, [])
+
+  // Filter fatture by search text
+  const assignFilteredFatture = assignSearch.trim()
+    ? assignAllFatture.filter((f) =>
+        (f.numero_fattura ?? '').toLowerCase().includes(assignSearch.toLowerCase().trim())
+      )
+    : assignAllFatture
+
+  const handleAssignConfirm = useCallback(async () => {
+    if (!assignSelected || !assignRow) return
+    setAssignConfirming(true)
+    try {
+      const res = await fetch('/api/statements/assign-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row_id: assignRow.id, fattura_id: assignSelected }),
+      })
+      if (res.ok) {
+        setAssignOpen(false)
+        setAssignRow(null)
+        router.refresh()
+      }
+    } catch { /* silent */ }
+    finally { setAssignConfirming(false) }
+  }, [assignSelected, assignRow, router])
 
   // ── Pipeline AI per fornitore (state only; handler declared after selectedStmt) ──
   type FornitoreAIPipelinePhase = 'idle' | 'analisi' | 'ricerca' | 'associazione' | 'done'
@@ -4969,6 +5036,20 @@ export function VerificationStatusTab({
   const filteredCheckResults = verificaDisplay?.rows ?? null
   const verificaDisplayMode = verificaDisplay?.mode ?? 'empty'
 
+  /** Somme totali delle righe dell'estratto conto (per il footer tabella). */
+  const stmtTotals = useMemo(() => {
+    if (!filteredCheckResults) return null
+    let stmtSum = 0
+    let dbSum = 0
+    let count = 0
+    for (const r of filteredCheckResults) {
+      stmtSum += r.importoStatement ?? 0
+      dbSum += r.fattura?.importo ?? 0
+      count++
+    }
+    return count > 0 ? { stmtSum, dbSum } : null
+  }, [filteredCheckResults])
+
   /** Raggruppa le righe dei check results per mese (YYYY-MM) in base a data_doc. */
   const groupedResultsByMonth = useMemo(() => {
     if (!filteredCheckResults) return []
@@ -5074,42 +5155,18 @@ export function VerificationStatusTab({
       {/* ════════ SECTION 1 — Statement inbox (received via email) ════════ */}
       <div className={`${vsCardWrap} ${vsCompactS1 ? 'mb-3' : 'mb-4'} w-full min-w-0 overflow-hidden ${vsCardBorder}`}>
         <div className={`${vsBarEl} ${vsCardBar}`} aria-hidden />
-        {/* Header */}
-        <div
-          className={
-            vsEmbeddedSupplier
-              ? vsCompactS1
-                ? 'flex flex-col items-stretch gap-2 border-b border-app-soft-border bg-transparent px-3 py-2 max-md:gap-2.5 md:flex-row md:items-center md:justify-between'
-                : 'flex min-h-10 items-center justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5'
-              : 'flex min-h-10 items-center justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5'
-          }
-        >
-          <div
-            className={`flex min-w-0 flex-1 items-center ${vsCompactS1 ? 'gap-1.5' : 'gap-2'} ${vsS1StmtDetailOpen ? 'max-md:hidden' : ''}`}
-          >
-            <svg
-              className={`${vsCompactS1 ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 text-cyan-400/90`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
-            <div className="min-w-0">
-              <p
-                className={`font-semibold ${vsCompactS1 ? 'text-xs' : 'text-sm'} text-app-fg`}
-              >
-                {t.statements.stmtReceived}
-              </p>
-              {fornitoreId && !selectedStmt && (
-                <p
-                  className={`mt-0.5 leading-snug text-app-fg-muted ${vsCompactS1 ? 'text-[10px]' : 'text-[11px]'}`}
-                >
-                  {t.statements.stmtListCumulativeHint}
-                </p>
-              )}
+        {/* Header — toolbar style */}
+        <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <svg className={`h-5 w-5 shrink-0 ${icon.statements}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.statements.stmtReceived}</h3>
+                <p className="text-xs text-app-fg-muted">{t.statements.stmtReceivedDescription}</p>
+              </div>
             </div>
-          </div>
           {vsS1StmtDetailOpen ? (
             <div className="flex w-full flex-col gap-2 md:hidden">
               <div className="flex items-stretch gap-2">
@@ -5358,6 +5415,7 @@ export function VerificationStatusTab({
               {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
             </button>
           </div>
+        </div>
         </div>
 
         {/* Migration needed */}
@@ -6721,6 +6779,30 @@ export function VerificationStatusTab({
               )})}
             </div>
 
+            {stmtTotals && (
+              <div className="md:hidden border-t-2 border-app-line-22 bg-app-line-5/80 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-app-fg-muted">
+                    {'Totale'}
+                  </span>
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wide text-app-fg-muted">{t.statements.tripleColStmtAmount}</span>
+                      <span className="text-sm font-bold tabular-nums text-app-fg">
+                        {formatCurrency(stmtTotals.stmtSum, countryCode, resolvedCurrency)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wide text-app-fg-muted">{t.statements.tripleColSysAmount}</span>
+                      <span className="text-sm font-bold tabular-nums text-app-fg">
+                        {formatCurrency(stmtTotals.dbSum, countryCode, resolvedCurrency)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Per-line results — desktop table (8 colonne) */}
             <div className={vsEmbeddedSupplier ? SUPPLIER_LEDGER_TABLE_WRAP : 'hidden min-w-0 w-full overflow-hidden md:block'}>
               <table
@@ -6786,6 +6868,7 @@ export function VerificationStatusTab({
                       r.status === 'bolle_mancanti' ||
                       r.status === 'errore_importo' ||
                       r.status === 'rekki_prezzo_discordanza'
+                    const isNotaCredito = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.numero)
                     const sollEntry  = solleciti[r.numero] ?? { status: 'idle' }
                     const sollecitoState = sollEntry.status
                     const hasEmail   = !!(r.fornitore?.email)
@@ -6797,6 +6880,13 @@ export function VerificationStatusTab({
                         ? formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)
                         : '—'
 
+                    const checkLabels = [
+                      r.status !== 'pending' ? '✅ Stato elaborato' : '⏳ Stato in attesa',
+                      r.fattura !== null ? `✅ ${isNotaCredito ? 'Nota credito' : 'Fattura'} trovata` : `❌ ${isNotaCredito ? 'Nota credito' : 'Fattura'} mancante`,
+                      r.bolle.length > 0 ? '✅ Bolle collegate' : '❌ Bolle mancanti',
+                      r.status === 'ok' || r.status === 'bolle_mancanti' || r.status === 'rekki_prezzo_discordanza'
+                        ? '✅ Importo verificato' : '❌ Importo errato',
+                    ]
                     const checks = [
                       r.status !== 'pending',
                       r.fattura !== null,
@@ -6815,7 +6905,7 @@ export function VerificationStatusTab({
                             : ''
                       }`}
                       >
-                        <td className="w-0 max-w-[6.25rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
+                        <td className="w-0 max-w-[7rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
                           {r.fattura?.id ? (
                             <OpenDocumentInAppButton
                               fatturaId={r.fattura.id}
@@ -6825,7 +6915,7 @@ export function VerificationStatusTab({
                                 r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-cyan-500'
                               }`}
                               title={r.numero}
-                              categoria={t.fatture.invoice}
+                              categoria={isNotaCredito ? t.fatture.creditNote : t.fatture.invoice}
                             >
                               {r.numero}
                             </OpenDocumentInAppButton>
@@ -6839,6 +6929,28 @@ export function VerificationStatusTab({
                               {r.numero}
                             </span>
                           )}
+                          {r.bolle.length > 0 && (
+                            <div className="mt-0.5 space-y-0.5">
+                              {r.bolle.map((b) => (
+                                <div key={b.id} className="flex items-baseline gap-1.5">
+                                  <OpenDocumentInAppButton
+                                    bollaId={b.id}
+                                    fileUrl={r.fattura?.file_url ?? undefined}
+                                    stopTriggerPropagation
+                                    className="block min-w-0 max-w-full truncate text-[10px] font-mono text-sky-300 underline-offset-2 hover:underline"
+                                    title={`Bolla: ${b.numero_bolla ?? '—'}`}
+                                  >
+                                    {b.numero_bolla ?? '—'}
+                                  </OpenDocumentInAppButton>
+                                  {b.importo !== null && (
+                                    <span className="shrink-0 text-[10px] tabular-nums text-app-fg-muted">
+                                      {formatCurrency(b.importo, countryCode, resolvedCurrency)}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </td>
 
                         <td className="w-0 max-w-[7rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
@@ -6849,6 +6961,11 @@ export function VerificationStatusTab({
                             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
                             <span className="min-w-0 truncate">{cfg.label}</span>
                           </span>
+                          {isNotaCredito && (
+                            <span className="mt-1 inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200 ring-1 ring-amber-500/30">
+                              Nota credito
+                            </span>
+                          )}
                         </td>
 
                         <td
@@ -6910,9 +7027,14 @@ export function VerificationStatusTab({
                               return (
                                 <div
                                   key={i}
-                                  title={pass ? t.statements.kpiVerifiedOk : undefined}
-                                  className={`h-2.5 w-2.5 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-app-line-35'}`}
-                                />
+                                  title={checkLabels[i]}
+                                  className="group relative"
+                                >
+                                  <div className={`h-2.5 w-2.5 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-app-line-35'}`} />
+                                  <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[10px] text-white shadow-lg group-hover:block">
+                                    {checkLabels[i]}
+                                  </div>
+                                </div>
                               )
                             })}
                           </div>
@@ -6920,58 +7042,66 @@ export function VerificationStatusTab({
 
                         <td className="w-0 whitespace-nowrap px-1 py-2 text-center align-middle">
                           {needAction && (
-                            sollecitoState === 'sent' ? (
-                              <div className="mx-auto inline-flex flex-col items-center gap-0.5">
-                                <span
-                                  className="inline-flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-200"
-                                  title={t.statements.btnSent}
+                            <div className="flex flex-col items-center gap-1">
+                              {r.status === 'fattura_mancante' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAssignOpen((r as Record<string, unknown>).id as string, r.fornitore?.id ?? '', r.numero)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/25 bg-cyan-500/5 px-2 py-1 text-[10px] font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/15"
+                                  title="Assegna una fattura esistente a questa riga"
                                 >
-                                  <svg className={`h-3.5 w-3.5 shrink-0 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                  {t.statements.btnSent}
-                                </span>
-                                {sollEntry.sentAt && (
-                                  <span className="text-[10px] tabular-nums text-app-fg-muted">
-                                    {new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short' }).format(
-                                      new Date(sollEntry.sentAt),
-                                    )}
+                                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                  Assegna
+                                </button>
+                              )}
+                              {sollecitoState === 'sent' ? (
+                                <div className="inline-flex flex-col items-center gap-0.5">
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-200"
+                                    title={t.statements.btnSent}
+                                  >
+                                    <svg className={`h-3.5 w-3.5 shrink-0 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    {t.statements.btnSent}
                                   </span>
-                                )}
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => inviaSollecito(r)}
-                                disabled={!hasEmail || sollecitoState === 'loading'}
-                                title={!hasEmail ? t.statements.noEmailForSupplier : t.statements.btnSendReminder}
-                                aria-label={t.statements.btnSendReminder}
-                                className={`mx-auto inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors ${
-                                  !hasEmail
-                                    ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
-                                    : r.status === 'fattura_mancante'
-                                      ? 'border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
-                                      : 'border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'
-                                }`}
-                              >
-                                {sollecitoState === 'loading' ? (
-                                  <svg className={`h-3.5 w-3.5 shrink-0 animate-spin ${icon.emailSync}`} fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                  </svg>
-                                ) : (
-                                  <svg className={`h-3.5 w-3.5 shrink-0 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                    />
-                                  </svg>
-                                )}
-                                {sollecitoState === 'loading' ? t.statements.btnSending : t.statements.btnSendReminder}
-                              </button>
-                            )
+                                  {sollEntry.sentAt && (
+                                    <span className="text-[10px] tabular-nums text-app-fg-muted">
+                                      {new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short' }).format(
+                                        new Date(sollEntry.sentAt),
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => inviaSollecito(r)}
+                                  disabled={!hasEmail || sollecitoState === 'loading'}
+                                  title={!hasEmail ? t.statements.noEmailForSupplier : t.statements.btnSendReminder}
+                                  aria-label={t.statements.btnSendReminder}
+                                  className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors ${
+                                    !hasEmail
+                                      ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
+                                      : r.status === 'fattura_mancante'
+                                        ? 'border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
+                                        : 'border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'
+                                  }`}
+                                >
+                                  {sollecitoState === 'loading' ? (
+                                    <svg className={`h-3.5 w-3.5 shrink-0 animate-spin ${icon.emailSync}`} fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                  ) : (
+                                    <svg className={`h-3.5 w-3.5 shrink-0 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                  )}
+                                  {sollecitoState === 'loading' ? t.statements.btnSending : t.statements.btnSendReminder}
+                                </button>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -6981,6 +7111,22 @@ export function VerificationStatusTab({
                   )
                 })}
                 </tbody>
+                {stmtTotals && (
+                  <tfoot>
+                    <tr className="border-t-2 border-app-line-22 bg-app-line-5/80">
+                      <td colSpan={4} className="px-3 py-2 text-right text-[11px] font-bold uppercase tracking-wide text-app-fg-muted">
+                        {'Totale'}
+                      </td>
+                      <td className="w-0 whitespace-nowrap px-1 py-2 text-right align-middle text-xs font-bold tabular-nums text-app-fg">
+                        {formatCurrency(stmtTotals.stmtSum, countryCode, resolvedCurrency)}
+                      </td>
+                      <td className="w-0 whitespace-nowrap px-1 py-2 text-right align-middle text-xs font-bold tabular-nums text-app-fg">
+                        {formatCurrency(stmtTotals.dbSum, countryCode, resolvedCurrency)}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </div>
@@ -6989,7 +7135,61 @@ export function VerificationStatusTab({
       </>
       )}
 
-
+      {assignOpen && assignRow && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 app-aurora-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) { setAssignOpen(false); setAssignRow(null) } }} role="dialog" aria-modal="true">
+          <div className="app-card flex max-h-[min(90dvh,40rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-app-line-22 shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-app-line-22 px-5 py-4">
+              <h2 className="text-sm font-semibold text-app-fg">Assegna fattura</h2>
+              <button type="button" onClick={() => { setAssignOpen(false); setAssignRow(null) }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-app-line-22 bg-app-line-10/50 text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+              {assignLoading && (
+                <div className="flex justify-center py-6">
+                  <svg className="h-5 w-5 animate-spin text-app-fg-muted" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                </div>
+              )}
+              {!assignLoading && (
+                <input
+                  type="text"
+                  placeholder="Cerca per numero fattura…"
+                  value={assignSearch}
+                  onChange={(e) => setAssignSearch(e.target.value)}
+                  className="mb-3 w-full rounded-lg border border-app-line-25 bg-app-line-5/50 px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-cyan-500/50 focus:outline-none"
+                  autoFocus
+                />
+              )}
+              {!assignLoading && assignFilteredFatture.length === 0 && (
+                <p className="py-6 text-center text-xs text-app-fg-muted">
+                  {assignSearch ? 'Nessuna fattura trovata con questo numero' : 'Nessuna fattura trovata per questo fornitore'}
+                </p>
+              )}
+              <div className="space-y-2">
+                {assignFilteredFatture.map((f) => (
+                  <button key={f.id} type="button" onClick={() => setAssignSelected(f.id)}
+                    className={`w-full rounded-xl border p-3.5 text-left transition-colors ${assignSelected === f.id ? 'border-purple-500/40 bg-purple-500/10' : 'border-app-line-22 hover:border-app-line-32 hover:bg-app-line-5/30'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-medium ${assignSelected === f.id ? 'text-purple-300' : 'text-app-fg'}`}>{f.numero_fattura || `#${f.id.slice(0, 8)}`}</span>
+                      <span className="text-sm font-bold tabular-nums text-app-fg">{f.importo != null ? `£${f.importo.toFixed(2)}` : '-'}</span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-app-fg-muted">{f.data ? new Date(f.data).toLocaleDateString('it-IT') : '—'}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-app-line-22 px-5 py-3">
+              <button type="button" onClick={() => { setAssignOpen(false); setAssignRow(null) }}
+                className="rounded-lg border border-app-line-22 bg-transparent px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-10">Annulla</button>
+              <button type="button" onClick={handleAssignConfirm} disabled={!assignSelected || assignConfirming}
+                className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-50">
+                {assignConfirming ? 'Assegnazione...' : 'Conferma'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </>
   )

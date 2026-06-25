@@ -788,7 +788,7 @@ function SupplierDesktopKpiGrid({
           key={k.label}
           type="button"
           onClick={() => onTabChange(k.tab)}
-          className="supplier-desktop-kpi-card group relative flex h-full min-h-[48px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98] sm:min-h-[50px] lg:min-h-[100px] xl:min-h-[118px]"
+          className="supplier-desktop-kpi-card group relative flex h-full min-h-[40px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98] sm:min-h-[42px] lg:min-h-[80px] xl:min-h-[90px]"
           style={{
             boxShadow: supplierDesktopKpiOuterShadow(),
             ['--supplier-kpi-rgb' as string]: hexToRgbTuple(k.accentHex),
@@ -811,7 +811,7 @@ function SupplierDesktopKpiGrid({
             </div>
             {/* Desktop largo: layout verticale */}
             <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-              <div className={`flex min-h-0 shrink-0 items-center justify-between gap-1.5 pb-1 lg:min-h-[1.75rem] xl:min-h-[2rem] xl:pb-1.5 ${k.headerRule}`}>
+              <div className={`flex min-h-0 shrink-0 items-center justify-between gap-1.5 pb-1 lg:min-h-[1.25rem] xl:min-h-[1.5rem] xl:pb-1.5 ${k.headerRule}`}>
                 <p className="min-w-0 flex-1 pr-0.5 text-left text-[9px] font-semibold uppercase leading-snug tracking-wider text-app-fg-muted line-clamp-2 xl:text-[10px]">
                   {k.label}
                 </p>
@@ -820,7 +820,7 @@ function SupplierDesktopKpiGrid({
                 </span>
               </div>
               <div className="flex min-h-0 flex-1 flex-col justify-end gap-0.5 pt-0.5 xl:pt-1">
-                <div className="flex min-h-[1.5rem] shrink-0 flex-col justify-end xl:min-h-[2rem]">
+                <div className="flex min-h-[1rem] shrink-0 flex-col justify-end xl:min-h-[1.25rem]">
                   <p className={`line-clamp-2 text-left text-[9px] font-medium leading-snug xl:text-[10px] ${k.subColor}`}>{k.sub}</p>
                 </div>
                 <div className="flex shrink-0 items-end justify-between gap-1">
@@ -1789,115 +1789,118 @@ function DashboardSpendSummary({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }, [])
 
-  const [period, setPeriod] = useState<'all' | 'cm' | 'pm' | '3m' | 'fy'>('all')
-  const [spendFilter, setSpendFilter] = useState<'all' | 'fatture' | 'bolle'>('all')
+  const [period, setPeriod] = useState<'cm' | 'pm' | '3m' | 'fy'>('cm')
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState<{ totaleSpesa: number; totBolle: number; totFatture: number }>({
-    totaleSpesa: 0, totBolle: 0, totFatture: 0,
-  })
+  const [statsByPeriod, setStatsByPeriod] = useState<Record<string, number>>({})
 
-  const periodFrom = useMemo(() => {
-    if (period === 'all') return '2000-01-01'
-    const now = new Date()
-    const y = now.getFullYear()
-    const m = now.getMonth()
-    const day = now.getDate()
-    if (period === 'cm') return `${y}-${String(m + 1).padStart(2, '0')}-01`
-    if (period === 'pm') {
-      const prevY = m === 0 ? y - 1 : y
-      const prevM = m === 0 ? 12 : m
-      return `${prevY}-${String(prevM).padStart(2, '0')}-01`
-    }
-    if (period === '3m') {
-      const d3 = new Date(y, m - 3, day)
-      return `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-${String(d3.getDate()).padStart(2, '0')}`
-    }
-    if (period === 'fy') {
-      const fyStart = (m > 3 || (m === 3 && day >= 6)) ? `${y}-04-06` : `${y - 1}-04-06`
-      return fyStart
-    }
-    return '2000-01-01'
-  }, [period])
+  const periodInfo: Record<string, { label: string; from: () => string; to: (today: string) => string }> = {
+    cm: {
+      label: t.fornitori.listinoPeriodCurrentMonth,
+      from: () => {
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth()
+        return `${y}-${String(m + 1).padStart(2, '0')}-01`
+      },
+      to: (today) => today,
+    },
+    pm: {
+      label: t.fornitori.listinoPeriodPreviousMonth,
+      from: () => {
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth()
+        const prevY = m === 0 ? y - 1 : y; const prevM = m === 0 ? 12 : m
+        return `${prevY}-${String(prevM).padStart(2, '0')}-01`
+      },
+      to: (today) => {
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth()
+        const lastDay = new Date(y, m, 0).getDate()
+        return `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+      },
+    },
+    '3m': {
+      label: t.fornitori.listinoPeriodLast3Months,
+      from: () => {
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth(); const day = now.getDate()
+        const d3 = new Date(y, m - 3, day)
+        return `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-${String(d3.getDate()).padStart(2, '0')}`
+      },
+      to: (today) => today,
+    },
+    fy: {
+      label: t.fornitori.listinoPeriodFiscalYear,
+      from: () => {
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth(); const day = now.getDate()
+        return (m > 3 || (m === 3 && day >= 6)) ? `${y}-04-06` : `${y - 1}-04-06`
+      },
+      to: (today) => {
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth(); const day = now.getDate()
+        return (m > 3 || (m === 3 && day >= 6)) ? `${y + 1}-04-05` : `${y}-04-05`
+      },
+    },
+  }
+
+  const periodFrom = periodInfo[period].from()
+  const periodTo = periodInfo[period].to(today)
+
+  const selectedPeriodFromLabel = new Date(periodFrom).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+  const selectedPeriodToLabel = new Date(periodTo).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
 
   useEffect(() => {
     setLoading(true)
-    const nextDay = new Date(today)
-    nextDay.setDate(nextDay.getDate() + 1)
-    const to = nextDay.toISOString().slice(0, 10)
-
-    fetch(`/api/fornitori/${encodeURIComponent(fornitoreId)}/stats?fornitore_id=${encodeURIComponent(fornitoreId)}&from=${encodeURIComponent(periodFrom)}&to=${encodeURIComponent(to)}`, {
-      credentials: 'include',
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) {
-          setStats({
-            totaleSpesa: data.totaleSpesa ?? 0,
-            totBolle: 0,
-            totFatture: data.totaleSpesaLordo ?? 0,
-          })
-        }
+    const promises = Object.entries(periodInfo).map(async ([key, info]) => {
+      const f = info.from()
+      const t = info.to(today)
+      const nextDay = new Date(t)
+      nextDay.setDate(nextDay.getDate() + 1)
+      const to = nextDay.toISOString().slice(0, 10)
+      const res = await fetch(`/api/fornitori/${encodeURIComponent(fornitoreId)}/stats?fornitore_id=${encodeURIComponent(fornitoreId)}&from=${encodeURIComponent(f)}&to=${encodeURIComponent(to)}`, {
+        credentials: 'include',
       })
-      .finally(() => setLoading(false))
-  }, [fornitoreId, periodFrom, today])
+      const data = res.ok ? await res.json() : null
+      return { key, value: data?.totaleSpesa ?? 0 }
+    })
+    Promise.all(promises).then(results => {
+      const map: Record<string, number> = {}
+      results.forEach(r => { map[r.key] = r.value })
+      setStatsByPeriod(map)
+    }).finally(() => setLoading(false))
+  }, [fornitoreId, today])
 
-  const periodButtons = [
-    { key: 'all' as const, label: t.fornitori.listinoPeriodAll },
-    { key: 'cm' as const,  label: t.fornitori.listinoPeriodCurrentMonth },
-    { key: 'pm' as const,  label: t.fornitori.listinoPeriodPreviousMonth },
-    { key: '3m' as const,  label: t.fornitori.listinoPeriodLast3Months },
-    { key: 'fy' as const,  label: t.fornitori.listinoPeriodFiscalYear },
-  ]
-
-  const cards = [
-    { key: 'all' as const,     label: t.fornitori.listinoTotale,   value: stats.totaleSpesa, cls: 'border-app-line-22 bg-transparent text-app-fg' },
-    { key: 'bolle' as const,   label: t.fornitori.listinoDaBolle,  value: stats.totBolle,    cls: 'border-[rgba(34,211,238,0.15)] bg-blue-500/10 text-blue-200' },
-    { key: 'fatture' as const, label: t.fornitori.listinoDaFatture,value: stats.totFatture,  cls: 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200' },
-  ]
+  const periodKeys = ['cm', 'pm', '3m', 'fy'] as const
 
   const currency = 'GBP'
 
   return (
-    <div className="px-5 py-4 space-y-4">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted mr-1">{t.fornitori.listinoPeriodLabel}</span>
-        {periodButtons.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setPeriod(key)}
-            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
-              period === key
-                ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-200'
-                : 'border-app-line-25 bg-app-line-10/50 text-app-fg-muted hover:border-app-line-40 hover:text-app-fg'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+    <div className="px-5 py-4">
       {loading ? (
         <div className="flex justify-center py-4">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-app-line-40 border-t-app-cyan-400" />
         </div>
       ) : (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {cards.map(({ key, label, value, cls }) => (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={spendFilter === key}
-            onClick={() => setSpendFilter((prev) => (prev === key ? 'all' : key))}
-            className={`relative flex flex-col overflow-hidden rounded-xl border text-left shadow-none transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_0_24px_-8px_rgba(6,182,212,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-              spendFilter === key ? 'ring-2 ring-cyan-400/45 ring-offset-2 ring-offset-slate-950' : ''
-            } ${cls}`}
-          >
-            <div className="p-4">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
-              <p className="text-xl font-bold tabular-nums">{formatCurrency(value, currency, locale)}</p>
-            </div>
-          </button>
-        ))}
+      <div className="flex flex-row gap-4">
+        <div className="grid grid-cols-2 gap-1.5 flex-1">
+          {periodKeys.map((pk) => (
+            <button
+              key={pk}
+              type="button"
+              onClick={() => setPeriod(pk)}
+              className={`rounded-lg border px-2 py-1.5 text-center transition-colors ${
+                period === pk
+                  ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/45'
+                  : 'border-app-line-35 bg-white/[0.025] text-app-fg-muted hover:border-app-line-40 hover:text-app-fg'
+              }`}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-wide">{periodInfo[pk].label}</p>
+            </button>
+          ))}
+        </div>
+        <div className="flex-1">
+          <div className="rounded-xl border border-cyan-500/50 bg-cyan-500/10 p-4 flex flex-col gap-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-cyan-200">{periodInfo[period].label}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-cyan-200/80">{selectedPeriodFromLabel} → {selectedPeriodToLabel}</p>
+                <p className="text-xl font-bold tabular-nums text-white">{formatCurrency(statsByPeriod[period] ?? 0, currency, locale)}</p>
+              </div>
+          </div>
+        </div>
       </div>
       )}
     </div>
@@ -1964,9 +1967,12 @@ function BolleTab({
 }) {
   const router = useRouter()
   const t = useT()
-  const { locale } = useLocale()
+  const { locale, currency } = useLocale()
   const { me } = useMe()
   const formatDate = useAppFormatDate()
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [processedFlash, setProcessedFlash] = useState<string | null>(null)
+  const processingIdRef = useRef<string | null>(null)
   const [bolle, setBolle] = useState<Bolla[]>([])
   const [numeroDaCodaByFileUrl, setNumeroDaCodaByFileUrl] = useState<Record<string, string>>({})
   const [tipoDocByFileUrl, setTipoDocByFileUrl] = useState<Record<string, string>>({})
@@ -2340,6 +2346,7 @@ function BolleTab({
         .map((b) => ({
           kind: 'bolla' as const,
           bollaId: b.id,
+          numero: b.numero_bolla,
           onDataUpdated: (d: string) => {
             setBolle((prev) => prev.map((r) => (r.id === b.id ? { ...r, data: d } : r)))
           },
@@ -2362,6 +2369,7 @@ function BolleTab({
         fileUrl={b.file_url}
         fornitoreId={fornitoreId}
         readOnly={readOnly}
+        hideViewButton
         categoria={
           (b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : undefined) ??
           extractDocTypeLabel(b.numero_bolla, b.file_url) ??
@@ -2452,19 +2460,44 @@ function BolleTab({
 
   return (
     <>
-      {!readOnly && bolleRefreshBatch.length > 0 ? (
-        <div className="mb-4 px-4">
-          <SupplierDocumentOcrToolbar
-            refreshBatch={bolleRefreshBatch}
-            onLedgerMutated={() => {
-              onLedgerMutated?.()
-              setOcrEpoch((e) => e + 1)
-            }}
-          />
-        </div>
-      ) : null}
     <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}>
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
+      {!readOnly && bolleRefreshBatch.length > 0 ? (
+        <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <svg className={`h-5 w-5 shrink-0 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.bolle.title}</h3>
+                <p className="text-xs text-app-fg-muted">{t.bolle.description}</p>
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <DocumentOcrRefreshButton
+                  hasFile
+                  batch={bolleRefreshBatch}
+                  className="px-2.5 py-1 h-auto min-h-0"
+                  onLedgerMutated={() => {
+                    onLedgerMutated?.()
+                    setOcrEpoch((e) => e + 1)
+                  }}
+                  onProcessingChange={(id) => {
+                    if (id && processingIdRef.current && processingIdRef.current !== id) {
+                      setProcessedFlash(processingIdRef.current)
+                      window.setTimeout(() => setProcessedFlash((prev) => prev === processingIdRef.current ? null : prev), 1200)
+                    }
+                    processingIdRef.current = id
+                    setProcessingId(id)
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {ocrError ? (
         <p className="border-b border-rose-500/25 bg-rose-500/10 px-4 py-2 text-center text-xs text-rose-200" role="alert">
           {ocrError}
@@ -2483,7 +2516,13 @@ function BolleTab({
             onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })
             }}
-            className="flex min-h-[56px] cursor-pointer items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation"
+            className={`flex min-h-[56px] cursor-pointer items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation ${
+              processingId === b.id
+                ? 'animate-pulse bg-cyan-500/20 ring-2 ring-inset ring-cyan-400/70'
+                : processedFlash === b.id
+                  ? 'bg-emerald-500/15 ring-2 ring-inset ring-emerald-400/50'
+                  : ''
+            }`}
           >
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -2531,6 +2570,11 @@ function BolleTab({
               <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
                 {formatBollaQuantita(quantitaInElenco(b), locale)}
               </p>
+              {b.importo != null && (
+                <p className="font-mono text-xs font-semibold tabular-nums text-app-fg">
+                  {formatCurrency(b.importo, currency ?? 'EUR', locale)}
+                </p>
+              )}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
               {!readOnly && canRianalizzaOcr && bollaExcessIds.has(b.id) ? null : b.stato === 'completato' ? (
@@ -2560,7 +2604,9 @@ function BolleTab({
             <tr className={supplierLedgerTableHeadRow('bolle')}>
               <th className={SUPPLIER_LEDGER_TH}>{t.common.date}</th>
               <th className={SUPPLIER_LEDGER_TH}>{t.bolle.colNumero}</th>
+              <th className={SUPPLIER_LEDGER_TH}>{'Tipo'}</th>
               <th className={SUPPLIER_LEDGER_TH}>{t.bolle.colAttachmentKind}</th>
+              <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.statements.colAmount}</th>
               <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.bolle.colQuantita}</th>
               <th className={SUPPLIER_LEDGER_TH_RIGHT}>{t.common.actions}</th>
             </tr>
@@ -2571,18 +2617,33 @@ function BolleTab({
               return (
               <tr
                 key={b.id}
-                className={`cursor-pointer ${APP_SECTION_TABLE_TR}`}
+                className={`cursor-pointer ${APP_SECTION_TABLE_TR} ${processingId === b.id ? 'animate-pulse bg-cyan-500/20 ring-2 ring-inset ring-cyan-400/70' : ''}`}
                 onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
               >
                 <td className={SUPPLIER_LEDGER_TD_DATE}>{formatDate(b.data)}</td>
                 <td className={`${SUPPLIER_LEDGER_TD} font-mono text-xs`}>
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
-                  <span className="relative mt-0.5 block">
+                  {!readOnly ? (
+                    <DuplicateLedgerRowExtras
+                      rowId={b.id}
+                      payload={bollaDupPayload}
+                      kind="bolla"
+                      duplicateBadgeLabel={t.common.duplicateBadge}
+                      duplicateDeleteConfirm={t.bolle.duplicateCopyDeleteConfirm}
+                      removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                      deleteFailedPrefix={t.appStrings.deleteFailed}
+                      refreshRouter={false}
+                      onAfterDelete={() => onBollaDuplicateRemoved(b.id)}
+                    />
+                  ) : null}
+                </td>
+                <td className={`${SUPPLIER_LEDGER_TD} font-sans text-[10px]`}>
+                  <span className="inline-flex items-center gap-1">
                     <button
                       type="button"
                       onClick={!readOnly && b.file_url ? (e) => { e.stopPropagation(); setTipoEditingBollaId((prev) => prev === b.id ? null : b.id) } : undefined}
                       title={!readOnly && b.file_url ? 'Click to change document type' : undefined}
-                      className={`font-sans text-[10px] font-normal not-italic text-app-fg-muted/60 hover:text-app-fg-muted${!readOnly && b.file_url ? ' cursor-pointer underline decoration-dotted' : ''}`}
+                      className={`${!readOnly && b.file_url ? 'cursor-pointer underline decoration-dotted hover:text-app-fg-muted' : ''} text-app-fg-muted/60`}
                     >
                       {(b.file_url ? tipoDocByFileUrl[b.file_url.trim()] : tipoDocByFileUrl[`__bolla__:${b.id}`]) ?? extractDocTypeLabel(b.numero_bolla, b.file_url) ?? t.dashboard.emailSyncDocumentKindBolla}
                     </button>
@@ -2606,19 +2667,6 @@ function BolleTab({
                       </span>
                     ) : null}
                   </span>
-                  {!readOnly ? (
-                    <DuplicateLedgerRowExtras
-                      rowId={b.id}
-                      payload={bollaDupPayload}
-                      kind="bolla"
-                      duplicateBadgeLabel={t.common.duplicateBadge}
-                      duplicateDeleteConfirm={t.bolle.duplicateCopyDeleteConfirm}
-                      removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
-                      deleteFailedPrefix={t.appStrings.deleteFailed}
-                      refreshRouter={false}
-                      onAfterDelete={() => onBollaDuplicateRemoved(b.id)}
-                    />
-                  ) : null}
                 </td>
                 <td className={SUPPLIER_LEDGER_TD}>
                   {!fileKind ? (
@@ -2628,6 +2676,13 @@ function BolleTab({
                       {attachmentKindText(fileKind, t)}
                     </span>
                   )}
+                </td>
+                <td className={SUPPLIER_LEDGER_TD_AMOUNT}>
+                  <span className={`font-mono text-xs font-semibold tabular-nums ${
+                    b.importo != null ? 'text-app-fg' : 'text-app-fg-muted'
+                  }`}>
+                    {b.importo != null ? formatCurrency(b.importo, currency ?? 'EUR', locale) : '—'}
+                  </span>
                 </td>
                 <td className={SUPPLIER_LEDGER_TD_AMOUNT}>
                   {formatBollaQuantita(quantitaInElenco(b), locale)}
@@ -2916,6 +2971,14 @@ function FattureTab({
   )
 
   const [toolbarFatturaId, setToolbarFatturaId] = useState('')
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [listinoButton, setListinoButton] = useState<React.ReactNode>(null)
+  const renderListinoActions = useCallback((btn: React.ReactNode) => {
+    setListinoButton(btn)
+    return null
+  }, [])
+  const [processedFlash, setProcessedFlash] = useState<string | null>(null)
+  const processingIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!fattureWithFile.length) {
@@ -2952,6 +3015,7 @@ function FattureTab({
         .map((f) => ({
           kind: 'fattura' as const,
           fatturaId: f.id,
+          numero: f.numero_fattura,
           onDataUpdated: (d: string) => onFatturaDataRefreshed(f.id, d),
           onImportoUpdated: (imp: number) => onFatturaImportoRefreshed(f.id, imp),
           onNumeroFatturaUpdated: (n: string) => onFatturaNumeroFatturaRefreshed(f.id, n),
@@ -3089,6 +3153,7 @@ function FattureTab({
         fileUrl={f.file_url}
         fornitoreId={fornitoreId}
         readOnly={readOnly}
+        hideViewButton
         categoria={
           (f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ??
           (f.is_credit_note ? 'Credit Note' : null) ??
@@ -3162,6 +3227,40 @@ function FattureTab({
         className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}
       >
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
+      {!readOnly && toolbarRefreshBatch.length > 0 ? (
+        <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <svg className={`h-5 w-5 shrink-0 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.fatture.title}</h3>
+                <p className="text-xs text-app-fg-muted">{t.fatture.description}</p>
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <DocumentOcrRefreshButton
+                  hasFile
+                  batch={toolbarRefreshBatch}
+                  className="px-2.5 py-1 h-auto min-h-0"
+                  onLedgerMutated={onLedgerMutated}
+                  onProcessingChange={(id) => {
+                    if (id && processingIdRef.current && processingIdRef.current !== id) {
+                      setProcessedFlash(processingIdRef.current)
+                      window.setTimeout(() => setProcessedFlash((prev) => prev === processingIdRef.current ? null : prev), 1200)
+                    }
+                    processingIdRef.current = id
+                    setProcessingId(id)
+                  }}
+                />
+                {listinoButton}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="min-w-0 flex-1">
         {!readOnly && fattureWithFile.length > 0 && toolbarFatturaId ? (
           <FatturaListinoAutoSync
@@ -3169,32 +3268,7 @@ function FattureTab({
             enabled={Boolean(toolbarSelectedFattura && !toolbarSelectedFattura.bolla_id)}
             onLedgerMutated={onLedgerMutated}
             onComplete={reloadFattureAfterListino}
-            renderActions={(listinoButton) => (
-              <div className="flex flex-col gap-2 border-b border-app-line-20 px-5 py-3.5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs leading-snug text-app-fg-muted">{t.fatture.toolbarDocActionsDesc}</p>
-                  {fattureWithFile.length > 1 ? (
-                    <p className="mt-1 text-[11px] text-app-fg-muted">
-                      <span className="font-semibold uppercase tracking-wide text-[10px]">
-                        {t.fatture.toolbarSelectDocument}
-                      </span>{' '}
-                      <span className="text-app-fg">{toolbarSelectedLabel}</span>
-                      <span className="text-app-fg-subtle"> — {t.fatture.toolbarSelectRowHint}</span>
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                  {toolbarRefreshBatch.length > 0 ? (
-                    <DocumentOcrRefreshButton
-                      hasFile
-                      batch={toolbarRefreshBatch}
-                      onLedgerMutated={onLedgerMutated}
-                    />
-                  ) : null}
-                  {listinoButton}
-                </div>
-              </div>
-            )}
+            renderActions={renderListinoActions}
           />
         ) : null}
         <div className={APP_SECTION_MOBILE_LIST}>
@@ -3215,7 +3289,13 @@ function FattureTab({
                     if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
                   }
                 }}
-                className={`min-h-[56px] px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation ${fatturaToolbarRowClass(f.id, Boolean(f.file_url?.trim()), supplierMismatch)}`}
+                className={`min-h-[56px] px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation ${fatturaToolbarRowClass(f.id, Boolean(f.file_url?.trim()), supplierMismatch)} ${
+                  processingId === f.id
+                    ? 'animate-pulse bg-cyan-500/20 ring-2 ring-inset ring-cyan-400/70'
+                    : processedFlash === f.id
+                      ? 'bg-emerald-500/15 ring-2 ring-inset ring-emerald-400/50'
+                      : ''
+                }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <Link href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)} scroll={false} className="min-w-0 flex-1">
@@ -3291,6 +3371,7 @@ function FattureTab({
               <tr className={supplierLedgerTableHeadRow('fatture')}>
                 <th className={SUPPLIER_LEDGER_TH}>{t.common.date}</th>
                 <th className={SUPPLIER_LEDGER_TH}>{t.fatture.colNumFattura}</th>
+                <th className={SUPPLIER_LEDGER_TH}>{'Tipo'}</th>
                 <th className={SUPPLIER_LEDGER_TH}>{t.bolle.colAttachmentKind}</th>
                 <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.statements.colAmount}</th>
                 <th className={SUPPLIER_LEDGER_TH_RIGHT}>{t.common.actions}</th>
@@ -3303,7 +3384,13 @@ function FattureTab({
                 return (
                   <tr
                     key={f.id}
-                    className={`${APP_SECTION_TABLE_TR} ${!readOnly && f.file_url?.trim() ? 'cursor-pointer' : ''} ${fatturaToolbarRowClass(f.id, Boolean(f.file_url?.trim()), supplierMismatch)}`}
+                    className={`${APP_SECTION_TABLE_TR} ${!readOnly && f.file_url?.trim() ? 'cursor-pointer' : ''} ${fatturaToolbarRowClass(f.id, Boolean(f.file_url?.trim()), supplierMismatch)} ${
+                      processingId === f.id
+                        ? 'animate-pulse bg-cyan-500/20 ring-2 ring-inset ring-cyan-400/70'
+                        : processedFlash === f.id
+                          ? 'bg-emerald-500/15 ring-2 ring-inset ring-emerald-400/50'
+                          : ''
+                    }`}
                     onClick={() => {
                       if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
                     }}
@@ -3312,9 +3399,7 @@ function FattureTab({
                       <span className="tabular-nums">{formatDate(f.data)}</span>
                     </td>
                     <td
-                      className={`${SUPPLIER_LEDGER_TD} font-mono text-xs`}
-                      onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'numero_fattura', f.numero_fattura ?? '')}
-                    >
+                      className={`${SUPPLIER_LEDGER_TD} font-mono text-xs`}>
                       {editingCell?.id === f.id && editingCell.field === 'numero_fattura' ? (
                         <input
                           autoFocus
@@ -3327,33 +3412,7 @@ function FattureTab({
                         />
                       ) : (
                         <>
-                          <span className={`break-words${!readOnly ? ' cursor-text' : ''}`}>{f.numero_fattura ?? '—'}</span>
-                          {f.numero_fattura && (
-                            <span className="relative mt-0.5 block">
-                              {tipoEditingFatturaId === f.id && f.file_url ? (
-                                <span className="absolute left-0 top-0 z-20 flex flex-col rounded-md border border-app-line-30 bg-[var(--app-workspace-bg,#0f1117)] shadow-lg" onClick={(e) => e.stopPropagation()}>
-                                  {DOC_TYPE_OPTIONS.map((opt) => (
-                                    <button
-                                      key={opt.label}
-                                      type="button"
-                                      className="whitespace-nowrap px-3 py-1.5 text-left font-sans text-[11px] text-app-fg-muted hover:bg-white/5 hover:text-app-fg"
-                                      onClick={() => void handleTipoOverride(f.file_url!, opt.label === 'Invoice' ? null : opt.label)}
-                                    >
-                                      {opt.label}
-                                    </button>
-                                  ))}
-                                </span>
-                              ) : null}
-                              <button
-                                type="button"
-                                className={`font-sans text-[10px] font-normal not-italic text-app-fg-muted/60 hover:text-app-fg-muted${!readOnly ? ' cursor-pointer underline decoration-dotted' : ''}`}
-                                onClick={!readOnly && f.file_url ? (e) => { e.stopPropagation(); setTipoEditingFatturaId((prev) => prev === f.id ? null : f.id) } : undefined}
-                                title={!readOnly ? 'Click to change document type' : undefined}
-                              >
-                                {(f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
-                              </button>
-                            </span>
-                          )}
+                          <span className="break-words">{f.numero_fattura ?? '—'}</span>
                           {supplierMismatch ? (
                             <span className="mt-1 block font-sans text-[10px] font-normal not-italic text-amber-200/95">
                               {t.log.supplierSuggested}:{' '}
@@ -3379,6 +3438,36 @@ function FattureTab({
                         </>
                       )}
                     </td>
+                    <td className={`${SUPPLIER_LEDGER_TD} font-sans text-[10px]`}>
+                      {f.file_url ? (
+                        <span className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            className={`${!readOnly ? 'cursor-pointer underline decoration-dotted hover:text-app-fg-muted' : ''} text-app-fg-muted/60`}
+                            onClick={!readOnly && f.file_url ? (e) => { e.stopPropagation(); setTipoEditingFatturaId((prev) => prev === f.id ? null : f.id) } : undefined}
+                            title={!readOnly ? 'Click to change document type' : undefined}
+                          >
+                            {(f.file_url ? (manualTipoOverridesRef.current[f.file_url.trim()] ?? tipoFatturaByFileUrl[f.file_url.trim()]) : undefined) ?? (f.is_credit_note ? 'Credit Note' : null) ?? extractDocTypeLabel(f.numero_fattura, f.file_url) ?? 'Invoice'}
+                          </button>
+                          {tipoEditingFatturaId === f.id && f.file_url ? (
+                            <span className="absolute left-0 top-full z-30 mt-1 flex flex-col rounded-md border border-app-line-30 bg-[var(--app-workspace-bg,#0f1117)] shadow-lg" onClick={(e) => e.stopPropagation()}>
+                              {DOC_TYPE_OPTIONS.map((opt) => (
+                                <button
+                                  key={opt.label}
+                                  type="button"
+                                  className="whitespace-nowrap px-3 py-1.5 text-left font-sans text-[11px] text-app-fg-muted hover:bg-white/5 hover:text-app-fg"
+                                  onClick={() => void handleTipoOverride(f.file_url!, opt.label === 'Invoice' ? null : opt.label)}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span className="text-app-fg-muted/60">—</span>
+                      )}
+                    </td>
                     <td className={SUPPLIER_LEDGER_TD}>
                       {!fileKind ? (
                         <span className="text-app-fg-muted">—</span>
@@ -3389,9 +3478,7 @@ function FattureTab({
                       )}
                     </td>
                     <td
-                      className={`${SUPPLIER_LEDGER_TD_AMOUNT} ${f.is_credit_note ? APP_SECTION_AMOUNT_NEGATIVE_CLASS : ''}`}
-                      onClick={() => !readOnly && editingCell?.id !== f.id && startEdit(f.id, 'importo', f.importo != null ? String(Math.abs(f.importo)) : '')}
-                    >
+                      className={`${SUPPLIER_LEDGER_TD_AMOUNT} ${f.is_credit_note ? APP_SECTION_AMOUNT_NEGATIVE_CLASS : ''}`}>
                       {editingCell?.id === f.id && editingCell.field === 'importo' ? (
                         <input
                           autoFocus
@@ -3403,7 +3490,7 @@ function FattureTab({
                           className="w-full min-w-0 bg-transparent outline-none border-b border-cyan-500/60 text-right text-app-fg font-mono text-sm font-semibold tabular-nums placeholder-app-fg-muted/40"
                         />
                       ) : (
-                        <span className={!readOnly ? 'cursor-text' : ''}>
+                        <span>
                           {f.importo != null ? formatSignedFatturaImporto(f.importo, f.is_credit_note, currency, locale) : '—'}
                         </span>
                       )}
@@ -4684,9 +4771,18 @@ function ListinoTab({
         /* Listino prodotti — with add form */
         <div className={`supplier-detail-tab-shell overflow-hidden`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
-          <div className="px-5 py-3 border-b border-app-line-22 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoProdotti}</p>
-            <div className="flex items-center gap-2">
+          <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <svg className={`h-5 w-5 shrink-0 ${icon.listino}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
+                </svg>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.fornitori.listinoProdotti}</h3>
+                  <p className="text-xs text-app-fg-muted">{t.fornitori.listinoProdottiDescription}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
               {nListinoProducts > 0 && (
                 <span className="rounded-full border border-app-soft-border app-workspace-inset-bg px-2 py-0.5 text-[10px] font-medium text-app-fg-muted">
                   {listinoSpendFilter !== 'all' ? `${nFilteredProducts} / ${nListinoProducts}` : nListinoProducts}{' '}
@@ -4733,6 +4829,7 @@ function ListinoTab({
               </>
               ) : null}
             </div>
+          </div>
           </div>
 
           {deleteError && (
@@ -6146,170 +6243,6 @@ function ListinoTab({
         </div>
       ) : null}
 
-      {/* ── Totali (KPI cliccabili → filtro elenco prodotti) ── */}
-      {rows.length > 0 && (
-        <>
-        {/* Selettore periodo */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted mr-1">{t.fornitori.listinoPeriodLabel}</span>
-          {(
-            [
-              { key: 'all', label: t.fornitori.listinoPeriodAll },
-              { key: 'cm',  label: t.fornitori.listinoPeriodCurrentMonth },
-              { key: 'pm',  label: t.fornitori.listinoPeriodPreviousMonth },
-              { key: '3m',  label: t.fornitori.listinoPeriodLast3Months },
-              { key: 'fy',  label: t.fornitori.listinoPeriodFiscalYear },
-            ] as const
-          ).map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setListinoPeriod(key)}
-              className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
-                listinoPeriod === key
-                  ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-200'
-                  : 'border-app-line-25 bg-app-line-10/50 text-app-fg-muted hover:border-app-line-40 hover:text-app-fg'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {(
-            [
-              {
-                key: 'all' as const,
-                label: t.fornitori.listinoTotale,
-                value: totale,
-                cls: 'border-app-line-22 bg-transparent text-app-fg',
-                bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar,
-                aria: t.fornitori.listinoKpiAriaAll,
-              },
-              {
-                key: 'bolle' as const,
-                label: t.fornitori.listinoDaBolle,
-                value: totBolle,
-                cls: 'border-[rgba(34,211,238,0.15)] bg-blue-500/10 text-blue-200',
-                bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar,
-                aria: t.fornitori.listinoKpiAriaBolle,
-              },
-              {
-                key: 'fatture' as const,
-                label: t.fornitori.listinoDaFatture,
-                value: totFatture,
-                cls: 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200',
-                bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar,
-                aria: t.fornitori.listinoKpiAriaFatture,
-              },
-            ] as const
-          ).map(({ key, label, value, cls, bar, aria }) => (
-            <button
-              key={label}
-              type="button"
-              aria-pressed={listinoSpendFilter === key}
-              aria-label={aria}
-              onClick={() => setListinoSpendFilter((prev) => (prev === key ? 'all' : key))}
-              className={`relative flex flex-col overflow-hidden rounded-xl border text-left shadow-none transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_0_24px_-8px_rgba(6,182,212,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                listinoSpendFilter === key ? 'ring-2 ring-cyan-400/45 ring-offset-2 ring-offset-slate-950' : ''
-              } ${cls}`}
-            >
-              <div className={`app-card-bar-accent shrink-0 ${bar}`} aria-hidden />
-              <div className="p-4">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
-                <p className="text-xl font-bold tabular-nums">{fmtMoney(value)}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-        </>
-      )}
-
-      {/* ── Storico cronologico documenti ── */}
-      {rows.length === 0 ? (
-        <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden text-center`}>
-          <div className={`app-card-bar-accent shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
-          <div className="px-6 py-16">
-          <svg className="mx-auto mb-3 h-12 w-12 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          <p className="text-sm font-medium text-app-fg-muted">{t.fornitori.listinoNoDocs}</p>
-          </div>
-        </div>
-      ) : (
-        <div className={`supplier-detail-tab-shell overflow-hidden`}>
-          <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
-          <div className="flex items-center justify-between border-b border-app-line-22 px-5 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoStorico}</p>
-            <p className="text-xs text-app-fg-muted">
-              {filteredRows.length !== rows.length
-                ? `${filteredRows.length} / ${rows.length}`
-                : rows.length
-              } {t.fornitori.listinoDocs}
-            </p>
-          </div>
-
-          {/* Mobile */}
-          <div className={APP_SECTION_MOBILE_LIST}>
-            {filteredRows.map((r) => (
-              <div key={`${r.tipo}-${r.id}`} className="flex min-h-[52px] items-center justify-between gap-3 px-4 py-3.5">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${r.tipo === 'fattura' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-app-fg">{formatDate(r.data)}</p>
-                    {r.numero && <p className="text-[11px] text-app-fg-muted">#{r.numero}</p>}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    r.tipo === 'fattura' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-blue-500/15 text-blue-300'
-                  }`}>
-                    {r.tipo === 'fattura' ? t.fatture.title : t.bolle.title}
-                  </span>
-                  <span className="text-sm font-bold tabular-nums text-app-fg">{fmtMoney(r.importo ?? 0)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop */}
-          <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
-          <table className={SUPPLIER_LEDGER_TABLE}>
-            <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
-              <tr className={supplierLedgerTableHeadRow('listino')}>
-                <th className={SUPPLIER_LEDGER_TH}>{t.fornitori.listinoColData}</th>
-                <th className={SUPPLIER_LEDGER_TH}>{t.fornitori.listinoColTipo}</th>
-                <th className={SUPPLIER_LEDGER_TH}>{t.fornitori.listinoColNumero}</th>
-                <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.fornitori.listinoColImporto}</th>
-              </tr>
-            </thead>
-            <tbody className={APP_SECTION_TABLE_TBODY}>
-              {filteredRows.map((r) => (
-                <tr key={`${r.tipo}-${r.id}`} className={APP_SECTION_TABLE_TR}>
-                  <td className={SUPPLIER_LEDGER_TD_DATE}>{formatDate(r.data)}</td>
-                  <td className={SUPPLIER_LEDGER_TD}>
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                      r.tipo === 'fattura'
-                        ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-300'
-                        : 'border-[rgba(34,211,238,0.15)] bg-blue-500/10 text-blue-300'
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${r.tipo === 'fattura' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
-                      {r.tipo === 'fattura' ? t.fatture.title : t.bolle.title}
-                    </span>
-                  </td>
-                  <td className={SUPPLIER_LEDGER_TD_TEXT}>{r.numero ?? '—'}</td>
-                  <td className={SUPPLIER_LEDGER_TD_AMOUNT}>{fmtMoney(r.importo ?? 0)}</td>
-                </tr>
-              ))}
-              <tr className="border-t-2 border-app-line-22 app-workspace-inset-bg-soft">
-                <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColTotale}</td>
-                <td className="px-5 py-3 text-right text-base font-bold tabular-nums text-app-fg">{fmtMoney(totale)}</td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -6589,11 +6522,31 @@ function FornitoreDetailClient({
   const canRunOcrFornitore = Boolean(me?.is_admin || me?.is_admin_sede) && !supplierReadOnlyMobile
   const [analisiCompletaBusy, setAnalisiCompletaBusy] = useState(false)
   const [analisiCompletaFlash, setAnalisiCompletaFlash] = useState<{ text: string; ok: boolean } | null>(null)
+  const [analisiCompletaPhase, setAnalisiCompletaPhase] = useState<string | null>(null)
+  const analisiCompletaPhaseRef = useRef<string | null>(null)
 
   const runAnalisiCompletaFornitore = useCallback(async () => {
     if (!canRunOcrFornitore) return
     setAnalisiCompletaBusy(true)
     setAnalisiCompletaFlash(null)
+    setAnalisiCompletaPhase('Avvio analisi…')
+
+    // Cicla le fasi simulate per dare feedback all'utente durante l'attesa
+    const phases = [
+      'Correzione date e OCR…',
+      'Pulizia duplicati…',
+      'Sincronizzazione listino…',
+    ]
+    let phaseIdx = 0
+    analisiCompletaPhaseRef.current = phases[0]
+    setAnalisiCompletaPhase(phases[0])
+    const phaseTimer = window.setInterval(() => {
+      phaseIdx = (phaseIdx + 1) % phases.length
+      const p = phases[phaseIdx]
+      analisiCompletaPhaseRef.current = p
+      setAnalisiCompletaPhase(p)
+    }, 4000)
+
     try {
       const res = await fetch(`/api/fornitori/${fornitore.id}/analisi-completa`, {
         method: 'POST',
@@ -6654,6 +6607,8 @@ function FornitoreDetailClient({
     } catch (e) {
       setAnalisiCompletaFlash({ text: e instanceof Error ? e.message : 'Errore di rete', ok: false })
     } finally {
+      clearInterval(phaseTimer)
+      setAnalisiCompletaPhase(null)
       setAnalisiCompletaBusy(false)
     }
   }, [bumpPeriodLedger, canRunOcrFornitore, fornitore.id])
@@ -6857,6 +6812,8 @@ function FornitoreDetailClient({
       dashboard: t.fornitori.tabRiepilogo,
       bolle:     t.nav.bolle,
       fatture:   t.nav.fatture,
+      listino:   t.fornitori.tabListino,
+      verifica:  t.statements.tabVerifica,
       conferme:  t.fornitori.tabConfermeOrdine,
       audit: t.statements.tabVerifica,
       anomalie: t.fornitori.tabAnomalie,
@@ -7007,7 +6964,7 @@ function FornitoreDetailClient({
         {/* Intestazione + tab — sticky nel flusso pagina (niente spacer vuoto sotto header fixed). */}
         <div
           data-supplier-docked-header
-          className="sticky top-0 z-30 isolate w-full max-w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1 backdrop-blur-md"
+          className="sticky top-0 z-30 self-start w-full max-w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1 backdrop-blur-md"
         >
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
@@ -7054,7 +7011,10 @@ function FornitoreDetailClient({
                   className={`inline-flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} max-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold leading-none text-teal-100 transition-colors hover:bg-teal-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-none`}
                 >
                   {analisiCompletaBusy ? (
-                    <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
+                    <span className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
+                      <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
+                      <span className="min-w-0 truncate text-teal-100">{analisiCompletaPhase ?? '…'}</span>
+                    </span>
                   ) : (
                     <svg
                       className="h-3.5 w-3.5 shrink-0 text-teal-200"
@@ -7071,7 +7031,9 @@ function FornitoreDetailClient({
                       />
                     </svg>
                   )}
-                  <span className="min-w-0 truncate">{t.fornitori.analisiCompletaButton}</span>
+                  {!analisiCompletaBusy && (
+                    <span className="min-w-0 truncate">{t.fornitori.analisiCompletaButton}</span>
+                  )}
                 </button>
               </div>
             ) : null}
@@ -7303,49 +7265,22 @@ function FornitoreDetailClient({
                 : null}
             </div>
             </div>
+          <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
           </div>
 
-          <div className="border-t border-app-line-35 px-2 pb-1.5 pt-1.5 sm:px-2.5 md:pb-2 md:pt-2">
-            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
-          </div>
         </div>
 
         {/* Tab content — altezza = contenuto; niente viewport min‑h che taglia il pannello vetro. */}
-        <div className="w-full min-w-0">
-          <div className="w-full min-w-0 py-3 sm:py-3.5 md:pt-4 md:pb-5 lg:py-6 xl:py-8">
             {displayTab === 'dashboard' ? (
               <>
                 {/* ── Spesa per periodo (riepilogo) ── */}
-                <div className="supplier-detail-tab-shell overflow-hidden mb-5">
+                <div className="supplier-detail-tab-shell overflow-hidden mb-5 mt-3">
                   <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
                   <div className="px-5 py-3 border-b border-app-line-22">
                     <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoTotale}</p>
                   </div>
                   <DashboardSpendSummary fornitoreId={fornitore.id} readOnly={supplierReadOnlyMobile} />
                 </div>
-                <SupplierDesktopMonthlyDocSummary
-                  fornitoreId={fornitore.id}
-                  endYear={monthlySummaryPeriod.y}
-                  endMonth={monthlySummaryPeriod.m}
-                  selectedYear={filterYear}
-                  selectedMonth={filterMonth}
-                  countryCode={countryCode}
-                  currency={currency ?? 'GBP'}
-                  activeTab="dashboard"
-                  periodNav={{
-                    onPrevYear: () => shiftMonthlySummaryYear(-1),
-                    onNextYear: () => shiftMonthlySummaryYear(1),
-                    onResetToNow: () => setMonthlySummaryPeriod({ y: nowY, m: nowM }),
-                    disableNextYear: !canShiftMonthlySummaryYearForward,
-                    showResetToNow: !isMonthlySummaryAtCurrentMonth,
-                  }}
-                  onOpenMonthTab={(y, m, nextTab) => {
-                    const c = clampSupplierPeriod(y, m)
-                    const b = supplierMonthCalendarBounds(c.y, c.m)
-                    setLedgerPeriod(clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(new Date())))
-                    setTab(nextTab)
-                  }}
-                />
                 <ErrorBoundary sectionName="risultati sincronizzazione email">
                   <div className="mt-6">
                     <StatoSincronizzazioneIntelligente
@@ -7401,8 +7336,6 @@ function FornitoreDetailClient({
                 ) : null}
               </ErrorBoundary>
             </div>
-          </div>
-        </div>
         </div>
       </div>
     </>

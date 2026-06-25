@@ -1756,6 +1756,7 @@ const translations: Translations = {
     listinoCopySQL: 'Copia SQL',
     listinoCopied: 'Copiato!',
     listinoProdotti: 'Listino Prodotti',
+    listinoProdottiDescription: 'Prodotti e prezzi tracciati per il fornitore.',
     listinoProdottiTracked: 'prodotti tracciati',
     listinoNoData: 'Nessun prezzo prodotto registrato',
     listinoNoDataHint: 'Inserisci i prezzi direttamente nella tabella <code class="font-mono text-app-fg-muted">listino_prezzi</code> su Supabase.',
@@ -1770,6 +1771,7 @@ const translations: Translations = {
     listinoColNumero: 'Numero',
     listinoColImporto: 'Importo',
     listinoColTotale: 'Totale',
+    listinoColTotaleFatture: 'Totale fatture',
     listinoRekkiListBadge: '[Rekki]',
     listinoVerifyAnomalies: 'Anomalie',
     listinoVerifyAnomaliesTitle: 'Apri la tab Verifica con filtro anomalie prezzo Rekki per questo prodotto',
@@ -1856,6 +1858,8 @@ const translations: Translations = {
     logoUrlPlaceholder: 'https://esempio.it/logo.png',
     logoUrlHint:
       'Indirizzo HTTPS di un’immagine (PNG, JPG o SVG). Se il link non è valido o non si carica, restano le iniziali del nome.',
+    confermeOrdineTitle: 'Conferme ordine',
+    confermeOrdineDescription: 'Ordini e conferme ricevuti dal fornitore.',
     confermeOrdineIntro:
       'Ordini confermati nel periodo. «→ Bolla» crea un DDT; non sono fatture.',
     confermeOrdineOptionalTitle: 'Titolo (opz.)',
@@ -1890,6 +1894,7 @@ const translations: Translations = {
   },
   bolle: {
     title: 'Bolle',
+    description: 'Bollette e DDT caricati dal fornitore.',
     new: 'Nuova Bolla',
     uploadInvoice: 'Carica Fattura',
     viewDocument: 'Vedi Documento',
@@ -1997,6 +2002,7 @@ const translations: Translations = {
   },
   fatture: {
     title: 'Fatture',
+    description: 'Fatture ricevute e registrate nel sistema.',
     new: 'Nuova Fattura',
     noInvoices: 'Nessuna fattura ancora.',
     addFirst: 'Aggiungi la prima fattura →',
@@ -2503,6 +2509,7 @@ const translations: Translations = {
     statusErrImporto: 'Errore importo',
     statusRekkiPrezzo: 'Prezzo Rekki vs fattura',
     stmtReceived: 'Estratti conto ricevuti',
+    stmtReceivedDescription: 'Estratti conto e riconciliazioni dal fornitore.',
     stmtListCumulativeHint:
       'Gli estratti più vecchi già inclusi in uno più recente non sono mostrati (tipico estratti cumulativi settimanali).',
     stmtListFiscalYearHint: 'Solo estratti dell’anno fiscale {year}.',

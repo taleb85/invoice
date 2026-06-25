@@ -1,7 +1,7 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 
@@ -120,17 +120,24 @@ export default function FatturaListinoAutoSync({
         type="button"
         onClick={handleAutoSync}
         disabled={loading || !fatturaId}
-        className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
+        className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
       >
         {loading ? t.appStrings.autoSyncBtnLoading : t.appStrings.autoSyncBtn}
       </button>
     ) : null
 
+  const listinoButtonRef = useRef(listinoButton)
+  listinoButtonRef.current = listinoButton
+
+  useLayoutEffect(() => {
+    renderActions?.(listinoButtonRef.current)
+  }, [renderActions, enabled, result, loading, fatturaId])
+
   if (!renderActions && !enabled && !result && !error) return null
 
   return (
     <>
-      {renderActions ? renderActions(listinoButton) : listinoButton}
+      {renderActions ? null : listinoButton}
 
       {error ? (
         <div className="border-b border-app-line-20 px-5 py-3">

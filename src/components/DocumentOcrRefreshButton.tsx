@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
@@ -9,6 +9,7 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
 import {
   runDocumentOcrRefresh,
+  documentOcrRefreshTargetId,
   type DocumentOcrRefreshTarget,
 } from '@/lib/document-refresh-from-ocr-client'
 import type { FatturaRefreshOcrResponse } from '@/lib/fattura-refresh-from-ocr-client'
@@ -20,6 +21,8 @@ type Props = {
   readOnly?: boolean
   batch?: DocumentOcrRefreshBatchItem[]
   onLedgerMutated?: () => void
+  /** Chiamato ad ogni cambio di riga durante l'elaborazione batch. */
+  onProcessingChange?: (id: string | null) => void
   className?: string
 }
 
@@ -32,6 +35,7 @@ export default function DocumentOcrRefreshButton({
   readOnly,
   batch,
   onLedgerMutated,
+  onProcessingChange,
   className = '',
 }: Props) {
   const t = useT()
@@ -39,6 +43,7 @@ export default function DocumentOcrRefreshButton({
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [batchIndex, setBatchIndex] = useState(0)
+  const cancelledRef = useRef(false)
 
   const targets = batch ?? []
 
@@ -53,15 +58,25 @@ export default function DocumentOcrRefreshButton({
   const onClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (loading) return
+    if (loading) {
+      // Second click during loading → cancella
+      cancelledRef.current = true
+      onProcessingChange?.(null)
+      setLoading(false)
+      setBatchIndex(0)
+      return
+    }
+    cancelledRef.current = false
     setLoading(true)
     setBatchIndex(0)
     let successCount = 0
     let errorCount = 0
     try {
       for (let i = 0; i < targets.length; i++) {
+        if (cancelledRef.current) break
         setBatchIndex(i + 1)
         const target = targets[i]!
+        onProcessingChange?.(documentOcrRefreshTargetId(target))
         const result = await runDocumentOcrRefresh(target)
         if (!result.ok) {
           errorCount++
@@ -126,12 +141,17 @@ export default function DocumentOcrRefreshButton({
       }
       if (isBatch) {
         if (successCount > 0) onLedgerMutated?.()
-        showToast(
-          t.fatture.refreshAllFromDocDone
-            .replace('{ok}', String(successCount))
-            .replace('{total}', String(targets.length)),
-          errorCount > 0 ? 'info' : successCount > 0 ? 'success' : 'info',
-        )
+        const cancelled = cancelledRef.current
+        if (cancelled) {
+          showToast(`Elaborazione interrotta: ${successCount} documenti riletti (su ${targets.length}).`, 'info')
+        } else {
+          showToast(
+            t.fatture.refreshAllFromDocDone
+              .replace('{ok}', String(successCount))
+              .replace('{total}', String(targets.length)),
+            errorCount > 0 ? 'info' : successCount > 0 ? 'success' : 'info',
+          )
+        }
         if (errorCount > 0) {
           showToast(t.fatture.refreshAllFromDocErrors.replace('{n}', String(errorCount)), 'error')
         }
@@ -139,6 +159,7 @@ export default function DocumentOcrRefreshButton({
     } catch {
       showToast(t.ui.networkError, 'error')
     } finally {
+      onProcessingChange?.(null)
       setLoading(false)
       setBatchIndex(0)
     }
@@ -146,7 +167,9 @@ export default function DocumentOcrRefreshButton({
 
   const label =
     loading && isBatch
-      ? `${batchIndex}/${targets.length}`
+      ? targets[batchIndex - 1]?.numero
+        ? `${batchIndex}/${targets.length} ${targets[batchIndex - 1]!.numero}`
+        : `${batchIndex}/${targets.length}`
       : loading
         ? '…'
         : t.fatture.refreshDateFromDoc
@@ -155,12 +178,21 @@ export default function DocumentOcrRefreshButton({
     <button
       type="button"
       onClick={onClick}
-      disabled={loading}
-      title={isBatch ? t.fatture.refreshAllFromDocTitle : t.fatture.refreshDateFromDocTitle}
-      className={`inline-flex shrink-0 items-center gap-1 border border-app-line-30 bg-app-line-10 text-app-fg-muted font-semibold transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:opacity-50 ${BTN_SIZE_SM} ${className}`}
+      title={loading && isBatch ? 'Ferma elaborazione' : isBatch ? t.fatture.refreshAllFromDocTitle : t.fatture.refreshDateFromDocTitle}
+      className={`inline-flex shrink-0 items-center gap-1 border font-semibold transition-colors disabled:opacity-50 ${BTN_SIZE_SM} ${className} ${
+        loading && isBatch
+          ? 'border-rose-500/40 bg-rose-500/10 text-rose-200 hover:border-rose-500/60 hover:bg-rose-500/20'
+          : 'border-app-line-30 bg-app-line-10 text-app-fg-muted hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200'
+      }`}
     >
       {loading ? (
-        <span className="h-2.5 w-2.5 shrink-0 animate-spin rounded-full border border-current border-t-transparent" />
+        isBatch ? (
+          <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6h12v12H6z" />
+          </svg>
+        ) : (
+          <span className="h-2.5 w-2.5 shrink-0 animate-spin rounded-full border border-current border-t-transparent" />
+        )
       ) : (
         <svg className={`h-3 w-3 shrink-0 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path

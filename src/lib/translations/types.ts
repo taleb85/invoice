@@ -462,6 +462,7 @@ export type Translations = {
   }
   bolle: {
     title: string
+    description: string
     new: string
     uploadInvoice: string
     viewDocument: string
@@ -914,6 +915,7 @@ export type Translations = {
   }
   fatture: {
     title: string
+    description: string
     new: string
     noInvoices: string
     addFirst: string
@@ -1116,6 +1118,7 @@ export type Translations = {
     listinoCopySQL: string
     listinoCopied: string
     listinoProdotti: string
+    listinoProdottiDescription: string
     listinoProdottiTracked: string
     listinoNoData: string
     listinoNoDataHint: string
@@ -1130,6 +1133,7 @@ export type Translations = {
     listinoColNumero: string
     listinoColImporto: string
     listinoColTotale: string
+    listinoColTotaleFatture: string
     listinoRekkiListBadge: string
     listinoVerifyAnomalies: string
     listinoVerifyAnomaliesTitle: string
@@ -1188,6 +1192,8 @@ export type Translations = {
     logoUrlLabel: string
     logoUrlPlaceholder: string
     logoUrlHint: string
+    confermeOrdineTitle: string
+    confermeOrdineDescription: string
     confermeOrdineIntro: string
     confermeOrdineOptionalTitle: string
     confermeOrdineOptionalTitlePh: string
@@ -1704,6 +1710,7 @@ export type Translations = {
     statusErrImporto: string
     statusRekkiPrezzo: string
     stmtReceived: string
+    stmtReceivedDescription: string
     stmtListCumulativeHint: string
     stmtListFiscalYearHint: string
     stmtProcessing: string
