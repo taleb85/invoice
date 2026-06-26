@@ -920,6 +920,7 @@ export type Translations = {
     noInvoices: string
     addFirst: string
     invoice: string
+    creditNote: string
     openBill: string
     deleteConfirm: string
     countLabel: string

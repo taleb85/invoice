@@ -2007,6 +2007,7 @@ const translations: Translations = {
     noInvoices: 'Nessuna fattura ancora.',
     addFirst: 'Aggiungi la prima fattura →',
     invoice: 'Fattura',
+    creditNote: 'Nota di credito',
     openBill: 'Apri bolla →',
     deleteConfirm: 'Eliminare questa fattura? L\'operazione è irreversibile.',
     countLabel: 'fatture ricevute',

@@ -3691,7 +3691,7 @@ export function VerificationStatusTab({
       }))
       setAssignAllFatture(mapped)
       // Auto-select the invoice matching the statement row number
-      const match = mapped.find((f) =>
+      const match = mapped.find((f: { id: string; numero_fattura: string | null; data: string; importo: number | null }) =>
         f.numero_fattura && f.numero_fattura.replace(/\s/g, '').toLowerCase() === numero.replace(/\s/g, '').toLowerCase()
       )
       if (match) setAssignSelected(match.id)
@@ -7046,7 +7046,7 @@ export function VerificationStatusTab({
                               {r.status === 'fattura_mancante' && (
                                 <button
                                   type="button"
-                                  onClick={() => handleAssignOpen((r as Record<string, unknown>).id as string, r.fornitore?.id ?? '', r.numero)}
+                                  onClick={() => handleAssignOpen((r as unknown as Record<string, unknown>).id as string, r.fornitore?.id ?? '', r.numero)}
                                   className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/25 bg-cyan-500/5 px-2 py-1 text-[10px] font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/15"
                                   title="Assegna una fattura esistente a questa riga"
                                 >
