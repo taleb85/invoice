@@ -3281,12 +3281,18 @@ function FattureTab({
                 role={!readOnly && f.file_url?.trim() ? 'button' : undefined}
                 tabIndex={!readOnly && f.file_url?.trim() ? 0 : undefined}
                 onClick={() => {
-                  if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
+                  if (!readOnly && f.file_url?.trim()) {
+                    selectToolbarFattura(f.id)
+                    document.getElementById(`fattura-doc-${f.id}`)?.click()
+                  }
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
+                    if (!readOnly && f.file_url?.trim()) {
+                      selectToolbarFattura(f.id)
+                      document.getElementById(`fattura-doc-${f.id}`)?.click()
+                    }
                   }
                 }}
                 className={`min-h-[56px] px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation ${fatturaToolbarRowClass(f.id, Boolean(f.file_url?.trim()), supplierMismatch)} ${
@@ -3338,7 +3344,18 @@ function FattureTab({
                       </span>
                     )}
                     {f.file_url?.trim() ? (
-                      <div onClick={(e) => e.stopPropagation()}>{renderFatturaDocumentActions(f)}</div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        {renderFatturaDocumentActions(f)}
+                        <div className="hidden">
+                          <OpenDocumentInAppButton
+                            fatturaId={f.id}
+                            fileUrl={f.file_url}
+                            buttonId={`fattura-doc-${f.id}`}
+                          >
+                            View
+                          </OpenDocumentInAppButton>
+                        </div>
+                      </div>
                     ) : null}
                   </div>
                 </div>
@@ -3392,7 +3409,10 @@ function FattureTab({
                           : ''
                     }`}
                     onClick={() => {
-                      if (!readOnly && f.file_url?.trim()) selectToolbarFattura(f.id)
+                      if (!readOnly && f.file_url?.trim()) {
+                        selectToolbarFattura(f.id)
+                        document.getElementById(`fattura-doc-${f.id}`)?.click()
+                      }
                     }}
                   >
                     <td className={SUPPLIER_LEDGER_TD_DATE}>
@@ -3496,7 +3516,20 @@ function FattureTab({
                       )}
                     </td>
                     <td className={SUPPLIER_LEDGER_TD_ACTIONS}>
-                      {f.file_url?.trim() ? renderFatturaDocumentActions(f) : null}
+                      {f.file_url?.trim() ? (
+                        <div className="flex items-center gap-1">
+                          {renderFatturaDocumentActions(f)}
+                          <div className="hidden">
+                            <OpenDocumentInAppButton
+                              fatturaId={f.id}
+                              fileUrl={f.file_url}
+                              buttonId={`fattura-doc-${f.id}`}
+                            >
+                              View
+                            </OpenDocumentInAppButton>
+                          </div>
+                        </div>
+                      ) : null}
                     </td>
                   </tr>
                 )

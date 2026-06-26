@@ -57,9 +57,12 @@ type Props = {
   className?: string
   stopTriggerPropagation?: boolean
   actionsButtonClassName?: string
+  /** ID HTML sul pulsante "View document" per accesso programmatico. */
+  docButtonId?: string
   /** Nodi extra tra «View document» e il pulsante azioni (es. rimuovi duplicato). */
   beforeActions?: ReactNode
   /** Nasconde il menu azioni documento (es. conferme ordine senza origine dedicata). */
+  hideViewButton?: boolean
   hideActionsButton?: boolean
   /** Solo icona per «Vedi documento» (tabelle compatte). */
   iconOnly?: boolean
@@ -81,8 +84,10 @@ export function DocumentRowActions({
   className = 'flex items-center justify-end gap-1.5 whitespace-nowrap',
   stopTriggerPropagation = true,
   actionsButtonClassName = 'h-7 w-7 touch-manipulation',
+  docButtonId,
   beforeActions,
   hideActionsButton,
+  hideViewButton,
   iconOnly = false,
 }: Props) {
   const t = useT()
@@ -102,13 +107,14 @@ export function DocumentRowActions({
       className={className}
       {...(stopTriggerPropagation ? { onClick: (e: React.MouseEvent) => e.stopPropagation() } : {})}
     >
-      {url ? (
+      {url && !hideViewButton ? (
         <OpenDocumentInAppButton
           {...ids}
           fileUrl={url}
           fornitoreId={fornitoreId ?? item.fornitore_id ?? null}
           documentActionsItem={item}
           stopTriggerPropagation={stopTriggerPropagation}
+          buttonId={docButtonId}
           className={
             iconOnly
               ? 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-app-line-30 bg-app-line-10 text-app-fg-muted transition-colors hover:bg-app-line-20 touch-manipulation'

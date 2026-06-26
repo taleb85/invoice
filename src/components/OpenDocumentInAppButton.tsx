@@ -64,6 +64,11 @@ type Props = {
   stopTriggerPropagation?: boolean
   title?: string
   /**
+   * ID HTML sul pulsante trigger per accesso programmatico (es. click via
+   * `document.getElementById` dalla riga tabella).
+   */
+  buttonId?: string
+  /**
    * Sostituisce la classe `z-*` sull’overlay del viewer (portal su `body`).
    * Usa es. `z-[292]` quando il trigger è dentro una modale con z &gt; 215 (es. anteprima Gestione duplicati).
    */
@@ -112,6 +117,7 @@ export function OpenDocumentInAppButton({
   className,
   stopTriggerPropagation,
   title,
+  buttonId,
   viewerOverlayClassName,
   anomalie,
   viewerActions,
@@ -558,6 +564,7 @@ export function OpenDocumentInAppButton({
     <>
       <button
         type="button"
+        id={buttonId}
         title={title}
         className={triggerClass}
         onClick={(e) => {

@@ -116,10 +116,10 @@ export async function fetchPendingDocRefreshFromOcr(
 }
 
 export type DocumentOcrRefreshTarget =
-  | ({ kind: 'fattura'; fatturaId: string } & FatturaRefreshOcrCallbacks)
-  | ({ kind: 'bolla'; bollaId: string } & BollaRefreshOcrCallbacks)
-  | ({ kind: 'conferma'; confermaId: string } & ConfermaRefreshOcrCallbacks)
-  | { kind: 'pending'; documentoId: string }
+  | ({ kind: 'fattura'; fatturaId: string; numero?: string | null } & FatturaRefreshOcrCallbacks)
+  | ({ kind: 'bolla'; bollaId: string; numero?: string | null } & BollaRefreshOcrCallbacks)
+  | ({ kind: 'conferma'; confermaId: string; numero?: string | null } & ConfermaRefreshOcrCallbacks)
+  | { kind: 'pending'; documentoId: string; numero?: string | null }
 
 export function documentOcrRefreshTargetId(target: DocumentOcrRefreshTarget): string {
   switch (target.kind) {

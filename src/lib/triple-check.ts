@@ -13,7 +13,7 @@
  * Returns an array of CheckResult objects.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
+import { normalizeNumeroFattura, ocrRobustFatturaKey } from '@/lib/fattura-duplicate-check'
 
 export type CheckStatus =
   | 'ok'                       // ✅ verde   — fattura + bolle + importi OK
@@ -70,6 +70,9 @@ export interface CheckSummary {
   errore_importo:            number
   rekki_prezzo_discordanza:  number
 }
+
+/** Prefissi numero documento che indicano nota di credito (non richiede bolle collegate). */
+const CREDIT_NOTE_PREFIX = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i
 
 /** Tolleranza generale triple-check (fattura ↔ riga estratto ↔ bolle). Bolle obbligatorie. */
 export const TRIPLE_CHECK_TOLERANCE = 0.05
@@ -128,16 +131,30 @@ function daysFromCenter(centerIso: string, dateIso: string): number {
 /**
  * Trova le bolle collegate a una fattura senza sommare tutte le DDT del periodo
  * (evita falsi `bolle_mancanti` quando fattura SI* e bolla SDN* hanno numeri diversi).
+ *
+ * Nota: restituisce solo la bolla collegata direttamente via `bolla_id` (FK singola).
+ * Per le bolle aggiuntive collegate via tabella ponte `fattura_bolle`, la logica
+ * è gestita direttamente in `runTripleCheck` dopo la chiamata a questa funzione.
+ *
+ * @param isNotaCredito - se true, salta il matching per importo/data (le note di
+ *   credito non richiedono bolle collegate).
  */
 export function findMatchingBolleForFattura(
   rawFattura: FatturaMatchInput,
   bollePool: TripleCheckBollaRow[],
   lineImporto: number,
+  isNotaCredito?: boolean,
 ): TripleCheckBollaRow[] {
+  // Strategy 1: Direct FK match via bolla_id (authoritative link)
   if (rawFattura.bolla_id) {
     const linked = bollePool.find((b) => b.id === rawFattura.bolla_id)
     if (linked) return [linked]
   }
+
+  // Le note di credito (SCN, CN, NC, CRN, RTN, RET) non dovrebbero mai
+  // avere bolle abbinate tramite matching per importo/data — sono correzioni
+  // contabili, non consegne.
+  if (isNotaCredito) return []
 
   const targetAmount = lineImporto > 0 ? lineImporto : (rawFattura.importo ?? 0)
   const sameSupplier = (b: TripleCheckBollaRow) => b.fornitore_id === rawFattura.fornitore_id
@@ -178,6 +195,8 @@ function resolveCheckStatus(
   const delta = parseFloat((line.importo - dbImporto).toFixed(2))
   const importiCombaciano = amountsMatchForTripleCheck(line.importo, dbImporto)
 
+  const isNotaCredito = CREDIT_NOTE_PREFIX.test(line.numero)
+
   let status: CheckStatus
   if (!importiCombaciano) {
     status = 'errore_importo'
@@ -186,14 +205,24 @@ function resolveCheckStatus(
     // senza bolla collegata. La presenza di una bolla (rara per questi
     // fornitori) viene comunque mostrata se trovata.
     status = 'ok'
+  } else if (isNotaCredito) {
+    // Nota credito: non richiede bolle collegate (è una correzione, non una consegna)
+    status = 'ok'
   } else if (bolle.length === 0) {
     status = 'bolle_mancanti'
   } else {
     const bolleSum = bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
-    const bolleOk =
-      amountsMatchForTripleCheck(bolleSum, line.importo) &&
-      amountsMatchForTripleCheck(bolleSum, dbImporto)
-    status = bolleOk ? 'ok' : 'bolle_mancanti'
+    const bolleHaveAmounts = bolle.some((b) => b.importo != null)
+    // Se le bolle sono presenti ma nessuna ha importo, non possiamo verificare
+    // la corrispondenza — consideriamo ok (il collegamento c'è).
+    if (!bolleHaveAmounts) {
+      status = 'ok'
+    } else {
+      const bolleOk =
+        amountsMatchForTripleCheck(bolleSum, line.importo) &&
+        amountsMatchForTripleCheck(bolleSum, dbImporto)
+      status = bolleOk ? 'ok' : 'bolle_mancanti'
+    }
   }
 
   return { status, delta }
@@ -230,10 +259,25 @@ export async function runTripleCheck(
   const { data: allBolleRaw } = await bolleQ
   const bollePool = (allBolleRaw ?? []) as TripleCheckBollaRow[]
 
+  // Fetch junction table (fattura_bolle) for multi-bolla associations
+  const fatturaIds = fatturePool.map((f) => f.id)
+  const { data: junctionRows } = fatturaIds.length > 0
+    ? await supabase
+        .from('fattura_bolle')
+        .select('fattura_id, bolla_id')
+        .in('fattura_id', fatturaIds)
+    : { data: [] }
+  const junctionBolleByFattura = new Map<string, Set<string>>()
+  for (const jr of junctionRows ?? []) {
+    const existing = junctionBolleByFattura.get(jr.fattura_id) ?? new Set()
+    existing.add(jr.bolla_id)
+    junctionBolleByFattura.set(jr.fattura_id, existing)
+  }
+
   for (const line of lines) {
-    const numNorm = normalizeNumeroFattura(line.numero)
+    const numNorm = ocrRobustFatturaKey(line.numero)
     const candidates = fatturePool.filter(
-      (f) => f.numero_fattura != null && normalizeNumeroFattura(f.numero_fattura) === numNorm,
+      (f) => f.numero_fattura != null && ocrRobustFatturaKey(f.numero_fattura) === numNorm,
     )
     // When duplicates exist (same numero, different importo), prefer the one matching the statement amount.
     const rawFattura = candidates.length <= 1
@@ -242,7 +286,7 @@ export async function runTripleCheck(
 
     if (!rawFattura) {
       const bollaMatch = bollePool.find(
-        (b) => b.numero_bolla != null && normalizeNumeroFattura(b.numero_bolla) === numNorm,
+        (b) => b.numero_bolla != null && ocrRobustFatturaKey(b.numero_bolla) === numNorm,
       )
       if (bollaMatch) {
         results.push({
@@ -269,7 +313,24 @@ export async function runTripleCheck(
       file_url: rawFattura.file_url, fornitore_id: rawFattura.fornitore_id,
     }
 
-    const bolle = findMatchingBolleForFattura(rawFattura, bollePool, line.importo)
+    const isNotaCredito = CREDIT_NOTE_PREFIX.test(line.numero)
+    const bolle = findMatchingBolleForFattura(rawFattura, bollePool, line.importo, isNotaCredito)
+
+    // Merge bolle linked via junction table fattura_bolle (multi-bolla associations)
+    const junctionBollaIds = junctionBolleByFattura.get(rawFattura.id)
+    if (junctionBollaIds && junctionBollaIds.size > 0) {
+      const existingIds = new Set(bolle.map((b) => b.id))
+      for (const bId of junctionBollaIds) {
+        if (!existingIds.has(bId)) {
+          const junctionBolla = bollePool.find((b) => b.id === bId)
+          if (junctionBolla) {
+            bolle.push(junctionBolla)
+            existingIds.add(bId)
+          }
+        }
+      }
+    }
+
     const check = resolveCheckStatus(line, rawFattura, bolle, emetteBolleFlag)
     let status = check.status
     const delta = check.delta

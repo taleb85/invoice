@@ -102,9 +102,12 @@ export async function POST(req: NextRequest) {
     // ── Esegui triple-check aggiornato ──────────────────────────────────
     const { results: rawResults } = await runTripleCheck(supabase, lines, stmt.sede_id, stmt.fornitore_id)
     const emetteBolle = await supplierEmitsBolle(stmt.fornitore_id)
+    const CREDIT_NOTE_PREFIX = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i
     const results = emetteBolle
       ? rawResults.map((r) =>
-          r.status === 'ok' && r.bolle.length === 0 ? { ...r, status: 'bolle_mancanti' as const } : r,
+          r.status === 'ok' && r.bolle.length === 0 && !CREDIT_NOTE_PREFIX.test(r.numero)
+            ? { ...r, status: 'bolle_mancanti' as const }
+            : r,
         )
       : rawResults
 

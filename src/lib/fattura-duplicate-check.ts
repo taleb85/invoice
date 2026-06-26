@@ -22,6 +22,31 @@ export function normalizeNumeroFattura(raw: string | null | undefined): string {
   return s
 }
 
+/**
+ * Chiave robusta per matching OCR vs DB quando il modello scambia caratteri simili.
+ *
+ * Nell'estrazione OCR è comune che I / 1 / l (I maiuscola, uno, elle) e O / 0 (o, zero)
+ * vengano confusi. Questa funzione produce una chiave normalizzata in cui:
+ *   - I, 1, l → i
+ *   - O, 0 → o
+ *   - 5, 3 e altre cifre restano intatte
+ *   - Tutto in minuscolo, spazi compressi, caratteri non alfanumerici rimossi
+ *
+ * Esempi:
+ *   SI689236 → si689236
+ *   S1689236 → si689236       (1 → i)
+ *   INV-OO53l0l → invoo53ioi  (O→o, l→i, 0→o)
+ */
+export function ocrRobustFatturaKey(raw: string | null | undefined): string {
+  const base = normalizeNumeroFattura(raw)
+  if (!base) return ''
+  return base
+    .toLowerCase()
+    .replace(/[l1]/g, 'i')   // I/1/l → i
+    .replace(/[0]/g, 'o')    // O/0 → o
+    .replace(/[^a-z0-9]/g, '')
+}
+
 /** Trova una riga statement per `numero_doc` con confronto normalizzato. */
 export function findStatementRowByNumeroDoc<T extends { numero_doc: string | null }>(
   rows: T[],

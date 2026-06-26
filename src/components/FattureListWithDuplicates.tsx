@@ -335,12 +335,19 @@ export default function FattureListWithDuplicates({
         {sortedRows.map((f) => (
           <div
             key={f.id}
-            className={`${APP_SECTION_MOBILE_ROW} ${highlightedIds.has(f.id) ? `${highlightRowCls} rounded-xl` : ''}`}
+            className={`cursor-pointer ${APP_SECTION_MOBILE_ROW} ${highlightedIds.has(f.id) ? `${highlightRowCls} rounded-xl` : ''}`}
             onContextMenu={(e) => handleContextMenu(e, f)}
+            onClick={() => {
+              if (f.file_url) {
+                document.getElementById(`fattura-doc-${f.id}`)?.click()
+              } else {
+                router.push(`/fatture/${f.id}`)
+              }
+            }}
           >
               <div className="mb-2 flex items-start justify-between gap-2">
                 {f.fornitore_id ? (
-                  <Link href={`/fornitori/${f.fornitore_id}`} className={`block truncate ${APP_SECTION_TABLE_CELL_LINK}`} title={f.fornitoreNome && f.fornitoreNome.length > 50 ? f.fornitoreNome : undefined}>
+                  <Link href={`/fornitori/${f.fornitore_id}`} className={`block truncate ${APP_SECTION_TABLE_CELL_LINK}`} title={f.fornitoreNome && f.fornitoreNome.length > 50 ? f.fornitoreNome : undefined} onClick={(e) => e.stopPropagation()}>
                     {f.fornitoreNome && f.fornitoreNome.length > 50 ? `${f.fornitoreNome.substring(0, 50)}…` : f.fornitoreNome ?? '—'}
                   </Link>
                 ) : (
@@ -385,7 +392,7 @@ export default function FattureListWithDuplicates({
                     className={dupBadgeInteractiveCls}
                     aria-label={t.fatture.duplicatePairBadgeAria}
                     aria-pressed={focusedGroupKey != null && highlightedIds.has(f.id)}
-                    onClick={() => toggleBadgeFocus(f.id)}
+                    onClick={(e) => { e.stopPropagation(); toggleBadgeFocus(f.id) }}
                   >
                     {t.common.duplicateBadge}
                   </button>
@@ -404,7 +411,7 @@ export default function FattureListWithDuplicates({
                   size="sm"
                   className="mt-1.5"
                   disabled={deletingId === f.id}
-                  onClick={() => void removeCopy(f)}
+                  onClick={(e) => { e.stopPropagation(); void removeCopy(f) }}
                 >
                   {focusedGroupKey && highlightedIds.has(f.id)
                     ? t.fatture.duplicateRemoveThisCopy
@@ -413,7 +420,7 @@ export default function FattureListWithDuplicates({
               ) : null}
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {f.bolla_id && (
-                  <Link href={`/bolle/${f.bolla_id}`} className={APP_SECTION_ROW_ACTION_CHIP}>
+                  <Link href={`/bolle/${f.bolla_id}`} className={APP_SECTION_ROW_ACTION_CHIP} onClick={(e) => e.stopPropagation()}>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -427,7 +434,7 @@ export default function FattureListWithDuplicates({
                 )}
               </div>
               {f.file_url ? (
-                <div className="mt-2">
+                <div className="mt-2" onClick={(e) => e.stopPropagation()}>
                   <DocumentRowActions
                     item={documentActionItemForFattura(
                       { ...f, sede_id: null, data: f.dataDocumentoFull ?? null, importo: null },
@@ -437,6 +444,7 @@ export default function FattureListWithDuplicates({
                     fileUrl={f.file_url}
                     fornitoreId={f.fornitore_id}
                     iconOnly
+                    docButtonId={`fattura-doc-${f.id}`}
                     className="flex items-center justify-end gap-0.5"
                   />
                 </div>
@@ -490,13 +498,25 @@ export default function FattureListWithDuplicates({
               : null
 
             return (
-            <tr key={f.id} className={`${APP_SECTION_TABLE_TR_GROUP} ${highlightedIds.has(f.id) ? highlightRowCls : ''}`} onContextMenu={(e) => handleContextMenu(e, f)}>
+            <tr
+              key={f.id}
+              className={`cursor-pointer ${APP_SECTION_TABLE_TR_GROUP} ${highlightedIds.has(f.id) ? highlightRowCls : ''}`}
+              onContextMenu={(e) => handleContextMenu(e, f)}
+              onClick={() => {
+                if (f.file_url) {
+                  document.getElementById(`fattura-doc-${f.id}`)?.click()
+                } else {
+                  router.push(`/fatture/${f.id}`)
+                }
+              }}
+            >
               <td className={`${fattureTd} max-w-0`}>
                 {f.fornitore_id ? (
                   <Link
                     href={`/fornitori/${f.fornitore_id}`}
                     className={`${APP_SECTION_TABLE_CELL_LINK} block truncate leading-snug`}
                     title={f.fornitoreNome ?? undefined}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {f.fornitoreNome ?? '—'}
                   </Link>
@@ -531,7 +551,7 @@ export default function FattureListWithDuplicates({
                         className={dupBadgeTableCls}
                         aria-label={t.fatture.duplicatePairBadgeAria}
                         aria-pressed={focusedGroupKey != null && highlightedIds.has(f.id)}
-                        onClick={() => toggleBadgeFocus(f.id)}
+                        onClick={(e) => { e.stopPropagation(); toggleBadgeFocus(f.id) }}
                       >
                         {t.common.duplicateBadge}
                       </button>
@@ -550,7 +570,7 @@ export default function FattureListWithDuplicates({
                         intent="danger"
                         size="sm"
                         disabled={deletingId === f.id}
-                        onClick={() => void removeCopy(f)}
+                        onClick={(e) => { e.stopPropagation(); void removeCopy(f) }}
                       >
                         {focusedGroupKey && highlightedIds.has(f.id)
                           ? t.fatture.duplicateRemoveThisCopy
@@ -566,7 +586,7 @@ export default function FattureListWithDuplicates({
               <td className={fattureTd}>
                 <div className="flex flex-wrap items-center gap-2">
                   {f.bolla_id ? (
-                    <Link href={`/bolle/${f.bolla_id}`} className="inline-flex transition-opacity hover:opacity-90">
+                    <Link href={`/bolle/${f.bolla_id}`} className="inline-flex transition-opacity hover:opacity-90" onClick={(e) => e.stopPropagation()}>
                       <StandardBadge variant="success" dot="emerald" className="normal-case">
                         {t.fatture.statusAssociata}
                       </StandardBadge>
@@ -610,6 +630,7 @@ export default function FattureListWithDuplicates({
                       fileUrl={f.file_url}
                       fornitoreId={f.fornitore_id}
                       iconOnly
+                      docButtonId={`fattura-doc-${f.id}`}
                       className="flex items-center justify-end gap-0.5"
                     />
                   ) : null}
