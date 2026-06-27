@@ -35,7 +35,7 @@ async function getFornitori(): Promise<{
     sedeNome = sede?.nome ?? null
   }
 
-  let q = supabase.from('fornitori').select('*').order('nome')
+  let q = supabase.from('fornitori').select('*').order('created_at', { ascending: false })
   if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
 
   const { data } = await q

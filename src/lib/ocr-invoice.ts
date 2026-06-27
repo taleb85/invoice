@@ -455,10 +455,7 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
         : importo_raw
           ? parseAnyAmount(importo_raw)
           : null
-    if (tipo_documento === 'bolla_ddt') {
-      totale_iva_inclusa = null
-    }
-
+    
     let quantita_totale: number | null = null
     const rawQty = parsed.quantita_totale
     if (rawQty != null && rawQty !== '') {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
-import { activityGlyphId, activityLabel, type ActivityAction, type ActivityGlyphId } from '@/lib/activity-logger'
+import { activityGlyphId, activityLabel, logActivity, type ActivityAction, type ActivityGlyphId } from '@/lib/activity-logger'
 
 export type ActivityLogRow = {
   id: string
@@ -115,4 +115,37 @@ export async function GET(req: NextRequest) {
   }))
 
   return NextResponse.json({ activities, total: count ?? 0, page, limit })
+}
+
+export async function POST(req: NextRequest) {
+  const auth = await getRequestAuth()
+  if (!auth?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const profile = await getProfile()
+  if (!profile) {
+    return NextResponse.json({ error: 'Profile not found' }, { status: 401 })
+  }
+
+  const { action, entityType, entityId, entityLabel, sedeId } = await req.json() as {
+    action: string
+    entityType: string
+    entityId?: string
+    entityLabel?: string
+    sedeId?: string
+  }
+
+  const service = createServiceClient()
+
+  await logActivity(service, {
+    userId: profile.id,
+    sedeId: sedeId ?? null,
+    action: action as ActivityAction,
+    entityType,
+    entityId: entityId ?? undefined,
+    entityLabel: entityLabel ?? undefined,
+  })
+
+  return NextResponse.json({ ok: true })
 }

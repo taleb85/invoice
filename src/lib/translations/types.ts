@@ -288,6 +288,7 @@ export type Translations = {
     attivitaFilterBolle: string
     attivitaFilterFatture: string
     attivitaFilterDocumenti: string
+    attivitaFilterFornitori: string
     attivitaFilterOperatori: string
     attivitaError: string
     attivitaNoRecent: string
@@ -1915,6 +1916,7 @@ export type Translations = {
     tripleColSysDate: string
     tripleColStmtAmount: string
     tripleColSysAmount: string
+    tripleColBollaAmount: string
     tripleColChecks: string
     statusCheckPending: string
     statementVerifyBanner: string

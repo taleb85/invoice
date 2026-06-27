@@ -191,7 +191,8 @@ function resolveCheckStatus(
   bolle: TripleCheckBollaRow[],
   emetteBolle: boolean,
 ): { status: CheckStatus; delta: number } {
-  const dbImporto = rawFattura.importo ?? 0
+  // Se la fattura non ha importo, usa l'importo dello statement come riferimento
+  const dbImporto = rawFattura.importo ?? line.importo
   const delta = parseFloat((line.importo - dbImporto).toFixed(2))
   const importiCombaciano = amountsMatchForTripleCheck(line.importo, dbImporto)
 

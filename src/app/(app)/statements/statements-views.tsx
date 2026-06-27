@@ -309,12 +309,14 @@ function StatementTripleColHead({
   label,
   align = 'left',
   shrink = false,
+  fallback,
 }: {
   label: string
   align?: 'left' | 'right' | 'center'
   shrink?: boolean
+  fallback?: string
 }) {
-  const { primary, secondary } = statementColLabelParts(label)
+  const { primary, secondary } = statementColLabelParts(label ?? fallback ?? '—')
   const alignCls =
     align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
   return (
@@ -4863,6 +4865,7 @@ export function VerificationStatusTab({
       fornitori: { id: string; nome: string; email: string | null } | null
       fattura_data: string | null
       fattura_file_url: string | null
+      fattura_importo: number | null
     }
     const raw = await res.json()
     if (!Array.isArray(raw)) {
@@ -4884,7 +4887,7 @@ export function VerificationStatusTab({
         status,
         data_doc:         r.data_doc ?? null,
         fattura:          r.fattura_id ? {
-          id: r.fattura_id, numero_fattura: r.fattura_numero, importo: Number(r.importo),
+          id: r.fattura_id, numero_fattura: r.fattura_numero, importo: r.fattura_importo,
           data: r.fattura_data ?? '', file_url: r.fattura_file_url ?? null, fornitore_id: r.fornitore_id ?? '',
         } : null,
         bolle,
@@ -6840,6 +6843,7 @@ export function VerificationStatusTab({
                     <StatementTripleColHead label={t.statements.tripleColSysDate} shrink />
                     <StatementTripleColHead label={t.statements.tripleColStmtAmount} align="right" shrink />
                     <StatementTripleColHead label={t.statements.tripleColSysAmount} align="right" shrink />
+                    <StatementTripleColHead label={t.statements.tripleColBollaAmount} align="right" shrink fallback="Importo bolla" />
                     <th className="w-14 whitespace-nowrap px-1 py-2 text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColChecks}
                     </th>
@@ -6876,9 +6880,13 @@ export function VerificationStatusTab({
                     const sysDateLabel = r.fattura?.data ? formatStmtDate(r.fattura.data) : '—'
                     const stmtAmountLabel = formatCurrency(r.importoStatement, countryCode, resolvedCurrency)
                     const sysAmountLabel =
-                      r.fattura?.importo !== null && r.fattura?.importo !== undefined
+                      r.fattura?.importo != null
                         ? formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)
                         : '—'
+                    const bolleSum = r.bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
+                    const bollaAmountLabel = bolleSum > 0
+                      ? formatCurrency(bolleSum, countryCode, resolvedCurrency)
+                      : '—'
 
                     const checkLabels = [
                       r.status !== 'pending' ? '✅ Stato elaborato' : '⏳ Stato in attesa',
@@ -6942,11 +6950,7 @@ export function VerificationStatusTab({
                                   >
                                     {b.numero_bolla ?? '—'}
                                   </OpenDocumentInAppButton>
-                                  {b.importo !== null && (
-                                    <span className="shrink-0 text-[10px] tabular-nums text-app-fg-muted">
-                                      {formatCurrency(b.importo, countryCode, resolvedCurrency)}
-                                    </span>
-                                  )}
+
                                 </div>
                               ))}
                             </div>
@@ -7009,6 +7013,11 @@ export function VerificationStatusTab({
                               Δ{r.deltaImporto > 0 ? '+' : ''}{formatCurrency(Math.abs(r.deltaImporto), countryCode, resolvedCurrency)}
                             </span>
                           )}
+                        </td>
+
+                        <td className="w-0 whitespace-nowrap px-1 py-2 text-right align-middle tabular-nums text-app-fg-subtle"
+                          title={`${t.statements.tripleColBollaAmount}: ${bollaAmountLabel}`}>
+                          {bollaAmountLabel}
                         </td>
 
                         <td className="w-14 px-1 py-2 align-middle">

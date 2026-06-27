@@ -104,6 +104,21 @@ export default function NewFornitoreForm() {
       })
     }
 
+    // Log activity
+    if (newId) {
+      await fetch('/api/activity-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'fornitore.created',
+          entityType: 'fornitore',
+          entityId: newId,
+          entityLabel: form.nome,
+          sedeId,
+        }),
+      }).catch(() => {})
+    }
+
     setSaving(false)
     router.push(returnAfterSave ?? '/fornitori')
     router.refresh()

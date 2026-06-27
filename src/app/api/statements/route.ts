@@ -17,6 +17,8 @@ import {
 import { hideSupersededStatementsForList } from '@/lib/statement-content-dedup'
 import { dedupeStatementsForList, type StatementListRow } from '@/lib/statement-list-dedup'
 import type { StatementExtractedPdfDates } from '@/lib/statement-official-date'
+import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
+import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -66,15 +68,17 @@ export async function GET(req: NextRequest) {
       for (const f of fRows ?? []) fMap[f.id] = f
     }
 
-    // Resolve fattura dates and file_url separately (same reason — avoid FK join issues)
+    // Resolve fattura dates, importo and file_url separately (same reason — avoid FK join issues)
     const fatturaIds = [...new Set((rows ?? []).map((r: { fattura_id: string | null }) => r.fattura_id).filter(Boolean))]
     const fatturaDateMap: Record<string, string> = {}
     const fatturaFileUrlMap: Record<string, string | null> = {}
+    const fatturaImportoMap: Record<string, number | null> = {}
     if (fatturaIds.length) {
-      const { data: fRows } = await service.from('fatture').select('id, data, file_url').in('id', fatturaIds)
+      const { data: fRows } = await service.from('fatture').select('id, data, file_url, importo').in('id', fatturaIds)
       for (const f of fRows ?? []) {
         fatturaDateMap[f.id] = f.data
         fatturaFileUrlMap[f.id] = f.file_url ?? null
+        fatturaImportoMap[f.id] = f.importo
       }
     }
 
@@ -83,6 +87,7 @@ export async function GET(req: NextRequest) {
       fornitori: fMap[(r.fornitore_id as string) ?? ''] ?? null,
       fattura_data: fatturaDateMap[(r.fattura_id as string) ?? ''] ?? null,
       fattura_file_url: fatturaFileUrlMap[(r.fattura_id as string) ?? ''] ?? null,
+      fattura_importo: fatturaImportoMap[(r.fattura_id as string) ?? ''] ?? null,
     }))
 
     return NextResponse.json(enriched)
@@ -163,6 +168,36 @@ export async function GET(req: NextRequest) {
           bolle_json,
         })
         .eq('id', existingRow.id)
+
+    }
+
+    // OCR fatture senza importo (dopo il loop): scarica il PDF ed estrai l'importo reale
+    const fattureDaOcr = results.filter(r => r.fattura?.id && r.fattura.importo == null)
+    for (const fr of fattureDaOcr) {
+      try {
+        const { data: fatturaRow } = await service.from('fatture').select('file_url').eq('id', fr.fattura!.id).maybeSingle()
+        if (!fatturaRow?.file_url) {
+          await service.from('fatture').update({ importo: fr.importoStatement }).eq('id', fr.fattura!.id)
+          continue
+        }
+        const dl = await downloadStorageObjectByFileUrl(service, fatturaRow.file_url)
+        if ('error' in dl) {
+          await service.from('fatture').update({ importo: fr.importoStatement }).eq('id', fr.fattura!.id)
+          continue
+        }
+        const contentType = fatturaRow.file_url.toLowerCase().includes('.pdf') ? 'application/pdf' : (dl.contentType ?? 'application/octet-stream')
+        if (contentType !== 'application/pdf' && !contentType.startsWith('image/')) {
+          await service.from('fatture').update({ importo: fr.importoStatement }).eq('id', fr.fattura!.id)
+          continue
+        }
+        const ocr = await ocrInvoice(new Uint8Array(dl.data), contentType)
+        const ocrImporto = ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))
+          ? Number(ocr.totale_iva_inclusa)
+          : fr.importoStatement
+        await service.from('fatture').update({ importo: ocrImporto }).eq('id', fr.fattura!.id)
+      } catch {
+        await service.from('fatture').update({ importo: fr.importoStatement }).eq('id', fr.fattura!.id)
+      }
     }
 
     const missingRows = results.filter(r => r.status !== 'ok').length
@@ -412,13 +447,40 @@ async function autoConvertInvoiceStatements(supabase: ReturnType<typeof createSe
     const sameFileExists = alreadyFatturaUrls.has(stmt.file_url)
     const sameShellExists = !sameFileExists && existsEmptyShellFatturaForSameDoc(stmt, dataDoc)
 
+    // Calcola l'importo totale dalle righe dello statement
+    const { data: stmtRows } = await supabase
+      .from('statement_rows')
+      .select('importo')
+      .eq('statement_id', stmt.id)
+    const stmtImporto = stmtRows?.reduce((s, r) => s + (r.importo ?? 0), 0) ?? 0
+
+    // OCR del PDF per estrarre l'importo reale della fattura
+    let ocrImporto: number | null = null
+    if (stmt.file_url) {
+      try {
+        const dl = await downloadStorageObjectByFileUrl(supabase, stmt.file_url)
+        if (!('error' in dl)) {
+          const contentType = stmt.file_url.toLowerCase().includes('.pdf') ? 'application/pdf' : (dl.contentType ?? 'application/octet-stream')
+          if (contentType === 'application/pdf' || contentType.startsWith('image/')) {
+            const ocr = await ocrInvoice(new Uint8Array(dl.data), contentType)
+            if (ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))) {
+              ocrImporto = Number(ocr.totale_iva_inclusa)
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[autoConvertInvoiceStatements] OCR fallito, uso somma righe:', e instanceof Error ? e.message : e)
+      }
+    }
+    const fatturaImporto = ocrImporto ?? (stmtImporto || null)
+
     if (!sameFileExists && !sameShellExists) {
       const { error: insErr } = await supabase.from('fatture').insert([{
         fornitore_id: stmt.fornitore_id,
         sede_id: stmt.sede_id,
         data: dataDoc,
         file_url: stmt.file_url,
-        importo: null,
+        importo: fatturaImporto,
         verificata_estratto_conto: false,
       }])
       if (insErr) continue

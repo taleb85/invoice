@@ -165,6 +165,7 @@ export default function AttivitaPage() {
     bolle: t.appStrings.attivitaFilterBolle,
     fatture: t.appStrings.attivitaFilterFatture,
     documenti: t.appStrings.attivitaFilterDocumenti,
+    fornitori: t.appStrings.attivitaFilterFornitori,
     operatori: t.appStrings.attivitaFilterOperatori,
   }
 

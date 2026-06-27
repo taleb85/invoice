@@ -127,6 +127,21 @@ export default function ImportFornitoreInner() {
       })
     }
 
+    // Log activity
+    if (ins?.id) {
+      await fetch('/api/activity-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'fornitore.created',
+          entityType: 'fornitore',
+          entityId: ins.id,
+          entityLabel: form.nome.trim(),
+          sedeId,
+        }),
+      }).catch(() => {})
+    }
+
     router.push('/fornitori')
     router.refresh()
   }

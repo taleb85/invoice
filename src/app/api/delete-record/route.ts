@@ -37,15 +37,15 @@ export async function POST(req: NextRequest) {
 
   const { data: entity } = await service
     .from(table)
-    .select('id, sede_id, fornitore:fornitori(sede_id)')
+    .select('id, sede_id, fornitore:fornitori(sede_id, nome)')
     .eq('id', id)
     .maybeSingle()
 
   if (!entity) return NextResponse.json({ error: 'Record non trovato' }, { status: 404 })
 
-  const entitySede = (entity.sede_id as string | null) ?? (
-    entity.fornitore as { sede_id?: string | null } | null
-  )?.sede_id ?? null
+  const fornitoreRel = entity.fornitore as { sede_id?: string | null; nome?: string | null } | null
+  const entitySede = (entity.sede_id as string | null) ?? fornitoreRel?.sede_id ?? null
+  const fornitoreNome = fornitoreRel?.nome ?? null
 
   if (!isMasterAdminRole(profile.role) && entitySede && profile.sede_id && entitySede !== profile.sede_id) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
     action: table === 'fatture' ? 'fattura.deleted' : 'bolla.deleted',
     entityType: table === 'fatture' ? 'fattura' : 'bolla',
     entityId: id,
+    entityLabel: fornitoreNome ?? undefined,
     metadata: { deleted_from: table },
   })
 

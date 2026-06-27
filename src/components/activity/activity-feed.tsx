@@ -53,7 +53,7 @@ const COLOR_BADGE_PAGE: Record<ReturnType<typeof activityColor>, string> = {
   gray: 'border border-white/25 bg-white/12 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]',
 }
 
-type FilterChip = 'all' | 'bolle' | 'fatture' | 'documenti' | 'operatori'
+type FilterChip = 'all' | 'bolle' | 'fatture' | 'documenti' | 'operatori' | 'fornitori'
 
 export type ActivityFeedCategoryFilter = FilterChip
 
@@ -63,6 +63,7 @@ export const ACTIVITY_FEED_CATEGORY_ORDER: ActivityFeedCategoryFilter[] = [
   'bolle',
   'fatture',
   'documenti',
+  'fornitori',
   'operatori',
 ]
 
@@ -71,7 +72,8 @@ const FILTER_CHIP_ACTIONS: Record<FilterChip, string[]> = {
   bolle: ['bolla.created', 'bolla.deleted'],
   fatture: ['fattura.created', 'fattura.deleted', 'fattura.associated', 'fattura.approved', 'fattura.rejected'],
   documenti: ['documento.processed', 'documento.discarded', 'email.synced'],
-  operatori: ['operatore.created', 'operatore.pin_changed', 'fornitore.created', 'fornitore.updated'],
+  fornitori: ['fornitore.created', 'fornitore.updated'],
+  operatori: ['operatore.created', 'operatore.pin_changed'],
 }
 
 type Props = {
@@ -188,6 +190,7 @@ export function ActivityFeed({
     bolle: t.appStrings.attivitaFilterBolle,
     fatture: t.appStrings.attivitaFilterFatture,
     documenti: t.appStrings.attivitaFilterDocumenti,
+    fornitori: t.appStrings.attivitaFilterFornitori,
     operatori: t.appStrings.attivitaFilterOperatori,
   }
 
@@ -289,11 +292,16 @@ export function ActivityFeed({
                           · {[(row.metadata?.fornitori as string[] | undefined)?.join(', '), (row.metadata?.tipi as string[] | undefined)?.join(', ')].filter(Boolean).join(' — ')}
                         </span>
                       )}
-                      {!compact && !row.entityLabel && !row.metadata?.fornitore_nome && !(row.metadata?.fornitori as string[] | undefined)?.length && row.metadata && Object.keys(row.metadata).length > 0 && (
+                      {!compact && row.metadata && Object.keys(row.metadata).length > 0 && (
                         <span className="inline max-w-prose text-xs font-medium leading-snug text-white/80">
                           · {Object.entries(row.metadata)
-                            .filter(([, v]) => typeof v === 'number')
-                            .map(([k, v]) => `${({ checked: 'verif', updated: 'agg', errors: 'err', skipped: 'salti', ai_reclassified: 'AI' })[k] ?? k} ${v}`)
+                            .filter(([k]) => !['fornitore_nome', 'fornitori', 'tipi'].includes(k))
+                            .map(([k, v]) => {
+                              const label: Record<string, string> = { checked: 'verif', updated: 'agg', errors: 'err', skipped: 'salti', ai_reclassified: 'AI', total: 'tot', offset: 'pos', fastFixed: 'risolti rapidi', falseErrorsOk: 'falsi OK', initialAnomalies: 'anomalie iniziali', remainingAnomalies: 'anomalie residue', deleted_from: 'da' }
+                              const friendlyKey = label[k] ?? k
+                              if (typeof v === 'number') return `${friendlyKey} ${v}`
+                              return `${friendlyKey}: ${String(v)}`
+                            })
                             .join(' · ')}
                         </span>
                       )}
@@ -314,7 +322,7 @@ export function ActivityFeed({
                     {row.actorName && (
                       <span className={`font-semibold ${compact ? 'text-app-fg' : 'text-white'}`}>{row.actorName}</span>
                     )}
-                    {row.sedeNome && !compact && <span className="text-white/75">· {row.sedeNome}</span>}
+
                   </div>
                 </div>
               </div>
