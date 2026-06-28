@@ -84,9 +84,21 @@ export function useServiceWorkerUpdate() {
   }, [])
 
   function applyUpdate() {
-    if (!registration?.waiting) return
     setUpdating(true)
-    registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+
+    // Se c'è un worker in attesa, chiedigli di saltare l'attesa
+    if (registration?.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+    }
+
+    // Forza il ricaricamento dopo 1.5 secondi, indipendentemente dal fatto che
+    // il controllerchange sia scattato o meno. Questo copre i casi in cui:
+    // - Il SW non è mai entrato in stato "waiting" (skipWaiting() già chiamato in install)
+    // - hadControllerAtLoad era false e il listener controllerchange non ha ricaricato
+    // - Il worker ha già attivato ma la pagina non ha ricevuto controllerchange
+    setTimeout(() => {
+      window.location.reload()
+    }, 1500)
   }
 
   return { updateAvailable, updating, applyUpdate }
