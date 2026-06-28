@@ -1371,6 +1371,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 {initials(netflixSelected.full_name)}
               </div>
               <p className="text-base font-bold text-app-fg">{firstName}</p>
+              <p className="text-center text-[10px] font-medium tabular-nums tracking-widest text-app-fg-muted opacity-70">
+                {formatAppVersionLabel()}
+              </p>
               {lookingUp && (
                 <span className="flex items-center gap-1.5 text-xs text-app-fg-muted">
                   <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">

@@ -1,7 +1,9 @@
 'use client'
 
+import { formatAppVersionLabel } from '@/lib/app-build-info'
+
 /**
- * Fascia brand in cima all’`aside` (AppShell): logo, senza navigazione
+ * Fascia brand in cima all'`aside` (AppShell): logo, senza navigazione
  * (rimane sulla route corrente; niente redirect alla dashboard).
  */
 export function SidebarRailBrand({ compact }: { compact?: boolean }) {
@@ -32,6 +34,9 @@ export function SidebarRailBrand({ compact }: { compact?: boolean }) {
           <div className="flex min-w-0 items-baseline gap-1 leading-none">
             <span className="font-outfit text-[18px] font-semibold tracking-tight text-[#38bdf8]">Smart</span>
             <span className="font-outfit text-[18px] font-light tracking-tight text-white">Pair</span>
+            <span className="ml-1 text-[9px] font-medium tabular-nums tracking-wider text-white/40">
+              {formatAppVersionLabel()}
+            </span>
           </div>
         )}
       </div>
