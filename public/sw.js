@@ -23,13 +23,11 @@ const PRECACHE_URLS = [
   '/icons/icon-512.png',
 ]
 
-// Install: pre-cacha le risorse essenziali, poi forza l’attivazione del nuovo SW così
-// `controllerchange` / UpdatePrompt possono portare l’utente all’ultima build senza restare su JS vecchio.
+// Install: pre-cacha le risorse essenziali
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   )
-  self.skipWaiting()
 })
 
 // Message: handle SKIP_WAITING from UpdatePrompt
