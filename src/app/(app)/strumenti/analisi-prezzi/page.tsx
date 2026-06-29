@@ -668,6 +668,8 @@ export default function AnalisiPrezziPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncStatusText, setSyncStatusText] = useState<string | null>(null)
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; name: string } | null>(null)
+  const [syncRigheInserite, setSyncRigheInserite] = useState(0)
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [detailCache, setDetailCache] = useState<Record<string, DetailCacheEntry>>({})
@@ -758,13 +760,13 @@ export default function AnalisiPrezziPage() {
       let fattureScanned = 0
       for (let i = 0; i < fornitori.length; i++) {
         const f = fornitori[i]
-        setSyncStatusText(
-          interpolateTemplate(
-            ap.syncProgress,
-            { current: i + 1, total: fornitori.length, name: f.nome ?? '—' },
-            `Fornitore ${i + 1}/${fornitori.length}`,
-          ),
+        const label = interpolateTemplate(
+          ap.syncProgress,
+          { current: i + 1, total: fornitori.length, name: f.nome ?? '—' },
+          `Fornitore ${i + 1}/${fornitori.length}`,
         )
+        setSyncStatusText(label)
+        setSyncProgress({ current: i + 1, total: fornitori.length, name: f.nome ?? '—' })
         const res = await fetch('/api/listino/sync-from-fatture', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -784,6 +786,7 @@ export default function AnalisiPrezziPage() {
         }
         righeInserite += json.righe_inserite ?? 0
         fattureScanned += json.fatture_scanned ?? 0
+        setSyncRigheInserite(righeInserite)
       }
 
       showToast(
@@ -803,6 +806,8 @@ export default function AnalisiPrezziPage() {
     } finally {
       setSyncing(false)
       setSyncStatusText(null)
+      setSyncProgress(null)
+      setSyncRigheInserite(0)
     }
   }, [ap, loadData, showToast, syncing, t.common.httpError])
 
@@ -834,10 +839,31 @@ export default function AnalisiPrezziPage() {
         </button>
       </AppPageHeaderStrip>
 
-      {syncStatusText ? (
-        <p className="text-center text-xs text-white/50" role="status">
-          {syncStatusText}
-        </p>
+      {syncProgress ? (
+        <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-4" role="status">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className="text-xs font-medium text-cyan-200">
+              {syncProgress.name}
+            </span>
+            <span className="text-[11px] tabular-nums text-white/40">
+              {syncProgress.current}/{syncProgress.total}
+            </span>
+          </div>
+          <div className="mb-2 h-2 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-cyan-400 transition-all duration-500"
+              style={{ width: `${(syncProgress.current / syncProgress.total) * 100}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-white/40">{syncStatusText}</span>
+            {syncRigheInserite > 0 ? (
+              <span className="tabular-nums text-emerald-400">
+                +{syncRigheInserite} righe
+              </span>
+            ) : null}
+          </div>
+        </div>
       ) : null}
 
       <ProductPriceCompareSection ap={ap} locale={locale} />
