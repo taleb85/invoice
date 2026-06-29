@@ -3614,6 +3614,12 @@ function ListinoTab({
 
   // New product form state
   const [showForm, setShowForm]       = useState(false)
+  const [showMergeDialog, setShowMergeDialog] = useState(false)
+  const [mergeSource, setMergeSource] = useState('')
+  const [mergeTarget, setMergeTarget] = useState('')
+  const [mergeLoading, setMergeLoading] = useState(false)
+  const [mergeError, setMergeError]   = useState<string | null>(null)
+  const [mergeResult, setMergeResult] = useState<{ merged: number; source: string; target: string } | null>(null)
   const [formProdotto, setFormProdotto] = useState('')
   const [formPrezzo, setFormPrezzo]   = useState('')
   const [formData, setFormData]       = useState(new Date().toISOString().split('T')[0])
@@ -4847,6 +4853,15 @@ function ListinoTab({
                 {autoImporting ? 'Analisi...' : 'Auto'}
               </button>
               <button
+                onClick={() => setShowMergeDialog(true)}
+                disabled={autoImporting || listino.length === 0}
+                className="hidden md:flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-indigo-200 transition-colors hover:bg-indigo-500/20 disabled:opacity-50"
+                title="Unisci due prodotti duplicati"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                Unisci
+              </button>
+              <button
                 onClick={openImport}
                 className="hidden md:flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-violet-500"
               >
@@ -4919,6 +4934,97 @@ function ListinoTab({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Dialog unisci prodotti */}
+          {showMergeDialog && !readOnly && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowMergeDialog(false)}>
+              <div className="w-full max-w-lg rounded-xl border border-app-line-28 bg-[#0f1a2e] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-app-fg">Unisci prodotti</h3>
+                  <button type="button" onClick={() => setShowMergeDialog(false)} className="text-app-fg-muted hover:text-app-fg">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+
+                <p className="mb-3 text-xs text-app-fg-muted">Seleziona il prodotto da unire (source) e il prodotto in cui unire (target). Tutti i prezzi verranno spostati nel target.</p>
+
+                {mergeError && (
+                  <div className="mb-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{mergeError}</div>
+                )}
+                {mergeResult && (
+                  <div className="mb-3 rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                    ✅ {mergeResult.merged} prezzi spostati da &ldquo;{mergeResult.source}&rdquo; a &ldquo;{mergeResult.target}&rdquo;
+                  </div>
+                )}
+
+                <div className="mb-3">
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">Source (da unire)</label>
+                  <select
+                    value={mergeSource}
+                    onChange={(e) => { setMergeSource(e.target.value); setMergeResult(null); setMergeError(null) }}
+                    className="w-full rounded-lg border border-app-line-28 bg-black/25 px-3 py-2 text-xs text-app-fg"
+                  >
+                    <option value="">— Seleziona —</option>
+                    {Object.keys(listinoByProduct).map((name) => (
+                       <option key={name} value={name}>{name}</option>
+                     ))}
+                  </select>
+                </div>
+
+                <div className="mb-4">
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">Target (destinazione)</label>
+                  <select
+                    value={mergeTarget}
+                    onChange={(e) => { setMergeTarget(e.target.value); setMergeResult(null); setMergeError(null) }}
+                    className="w-full rounded-lg border border-app-line-28 bg-black/25 px-3 py-2 text-xs text-app-fg"
+                  >
+                    <option value="">— Seleziona —</option>
+                    {Object.keys(listinoByProduct).filter((n) => n !== mergeSource).map((name) => (
+                       <option key={name} value={name}>{name}</option>
+                     ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowMergeDialog(false)}
+                    className="rounded-lg border border-app-line-28 px-3 py-1.5 text-xs font-medium text-app-fg-muted hover:text-app-fg"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!mergeSource || !mergeTarget || mergeLoading || !!mergeResult}
+                    onClick={async () => {
+                      setMergeLoading(true)
+                      setMergeError(null)
+                      setMergeResult(null)
+                      try {
+                        const res = await fetch('/api/listino/merge', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ fornitore_id: fornitoreId, source: mergeSource, target: mergeTarget }),
+                        })
+                        const json = await res.json()
+                        if (!res.ok) throw new Error(json.error ?? 'Errore sconosciuto')
+                        setMergeResult(json)
+                        await loadListino()
+                      } catch (err) {
+                        setMergeError(err instanceof Error ? err.message : 'Errore sconosciuto')
+                      } finally {
+                        setMergeLoading(false)
+                      }
+                    }}
+                    className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-indigo-500 disabled:opacity-50"
+                  >
+                    {mergeLoading ? 'Unione in corso...' : 'Unisci'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
