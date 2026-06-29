@@ -132,14 +132,11 @@ export function listinoRowShowsVatInDisplay(
 export function finalizeListinoImportVatRate(
   line: { prodotto: string; unita?: string | null; aliquota_iva?: number | null },
   countryCode: string | null | undefined,
-): number {
-  if (line.aliquota_iva != null && Number.isFinite(line.aliquota_iva)) {
-    return line.aliquota_iva
-  }
-  return resolveListinoVatRatePercent(countryCode, {
-    prodotto: line.prodotto,
-    unita: line.unita,
-  })
+): number | null {
+  const n = line.aliquota_iva
+  if (n == null || !Number.isFinite(n) || n < 0 || n > 100) return null
+  void countryCode
+  return Math.round(n * 100) / 100
 }
 
 export type ListinoVatRowContext = {
@@ -155,6 +152,23 @@ export function applyListinoVatForDisplay(
 ): number {
   if (!Number.isFinite(price)) return price
   const mult = listinoVatMultiplierForRow(countryCode, opts)
+  if (mult <= 1) return price
+  return Math.round(price * mult * 100) / 100
+}
+
+export function listinoVatMultiplierForRowFromNote(opts?: ListinoVatRowContext): number {
+  const rate = parseListinoVatRatePercent(opts?.note)
+  if (rate == null || rate <= 0) return 1
+  return Math.round((1 + rate / 100) * 10000) / 10000
+}
+
+export function listinoRowShowsVatInDisplayFromNote(opts?: ListinoVatRowContext): boolean {
+  return listinoVatMultiplierForRowFromNote(opts) > 1.001
+}
+
+export function applyListinoVatForDisplayFromNote(price: number, opts?: ListinoVatRowContext): number {
+  if (!Number.isFinite(price)) return price
+  const mult = listinoVatMultiplierForRowFromNote(opts)
   if (mult <= 1) return price
   return Math.round(price * mult * 100) / 100
 }

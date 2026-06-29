@@ -54,11 +54,9 @@ Rules:
 - If price is not parseable, use null for that item.
 - codice_prodotto: use the value from columns often named Code, SKU, Art., Artikel, Ref., Item #, Product ID, EAN, Cod., Cód., etc. If the document only embeds a code inside the description text and there is no separate code field, you may put that alphanumeric code here and shorten prodotto accordingly, or leave codice_prodotto null if unclear.
 - prodotto: use the original language as written on the invoice; prefer the description text over the code.
-- aliquota_iva: VAT/TVA rate **for this line** as a percentage number (0, 5, 20, 22, …). Read it from VAT/Tax columns, "ZR"/zero-rated markers, or product type:
-  - UK: alcoholic drinks (wine, beer, spirits, prosecco) → usually 20; basic food (meat, ham, cheese, vegetables, fruit, milk, pasta, rice, bread) sold by kg or as raw food → often 0 (zero-rated).
+- aliquota_iva: VAT/TVA rate **for this line** as a percentage number (0, 5, 20, 22, …). Read it from VAT/Tax columns, VAT codes, or "ZR"/zero-rated markers:
   - If the line is explicitly zero-rated / exempt / "ZR" / VAT 0% → aliquota_iva = 0.
-  - If only standard-rated goods on the invoice and no per-line VAT, use 20 for UK alcohol and catering beverages, 0 for unprocessed food, 20 as default for ambiguous UK lines.
-  - Italy/France/Spain/Germany: use the rate shown on the line or the usual rate for that product category.
+  - If the VAT rate is NOT visible / not attributable to the line item → aliquota_iva = null (do NOT guess from product type).
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
 import { formatListinoVatNote, finalizeListinoImportVatRate } from '@/lib/listino-vat'

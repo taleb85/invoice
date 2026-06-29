@@ -66,9 +66,11 @@ import {
 import { isBadListinoOcrPrice } from '@/lib/listino-price-sanity'
 import {
   applyListinoVatForDisplay,
+  applyListinoVatForDisplayFromNote,
   finalizeListinoImportVatRate,
   formatListinoVatNote,
   listinoRowShowsVatInDisplay,
+  listinoRowShowsVatInDisplayFromNote,
 } from '@/lib/listino-vat'
 import {
   calendarDaysBetweenIso,
@@ -3594,14 +3596,15 @@ function ListinoTab({
   type ListinoPriceRow = { note?: string | null; prodotto?: string; unita?: string | null }
   const fmtListinoPrice = (n: number, row?: ListinoPriceRow) =>
     fmtMoney(
-      applyListinoVatForDisplay(n, countryCode, {
+      applyListinoVatForDisplayFromNote(n, {
         note: row?.note,
         prodotto: row?.prodotto,
         unita: row?.unita,
       }),
     )
+  const fmtListinoPriceExVat = (n: number) => fmtMoney(n)
   const rowShowsVatLabel = (row?: ListinoPriceRow) =>
-    listinoRowShowsVatInDisplay(countryCode, {
+    listinoRowShowsVatInDisplayFromNote({
       note: row?.note,
       prodotto: row?.prodotto,
       unita: row?.unita,
@@ -4940,7 +4943,7 @@ function ListinoTab({
 
           {/* Dialog unisci prodotti */}
           {showMergeDialog && !readOnly && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowMergeDialog(false)}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4" onClick={() => setShowMergeDialog(false)}>
               <div className="w-full max-w-lg rounded-xl border border-app-line-28 bg-[#0f1a2e] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-app-fg">Unisci prodotti</h3>
@@ -4965,12 +4968,12 @@ function ListinoTab({
                   <select
                     value={mergeSource}
                     onChange={(e) => { setMergeSource(e.target.value); setMergeResult(null); setMergeError(null) }}
-                    className="w-full rounded-lg border border-app-line-28 bg-black/25 px-3 py-2 text-xs text-app-fg"
+                    className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-xs text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                   >
                     <option value="">— Seleziona —</option>
                     {Object.keys(listinoByProduct).map((name) => (
-                       <option key={name} value={name}>{name}</option>
-                     ))}
+                      <option key={name} value={name}>{name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -4979,12 +4982,12 @@ function ListinoTab({
                   <select
                     value={mergeTarget}
                     onChange={(e) => { setMergeTarget(e.target.value); setMergeResult(null); setMergeError(null) }}
-                    className="w-full rounded-lg border border-app-line-28 bg-black/25 px-3 py-2 text-xs text-app-fg"
+                    className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-xs text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                   >
                     <option value="">— Seleziona —</option>
                     {Object.keys(listinoByProduct).filter((n) => n !== mergeSource).map((name) => (
-                       <option key={name} value={name}>{name}</option>
-                     ))}
+                      <option key={name} value={name}>{name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -5781,7 +5784,7 @@ function ListinoTab({
                     id={`listino-prod-${listinoScrollKey}`}
                     className={`group scroll-mt-24 border-l-4 ${APP_SECTION_TABLE_ROW_HOVER} ${rowAccentBorder}`}
                   >
-                    <div className="flex flex-col gap-1.5 px-2.5 py-2 sm:px-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-start md:gap-x-3 md:gap-y-1 md:py-2 md:px-3 lg:gap-x-4 xl:grid-cols-[minmax(0,1.4fr)_auto_minmax(0,1.15fr)_minmax(6.5rem,auto)] xl:gap-x-5 xl:py-2.5 xl:pl-4 xl:pr-5">
+                    <div className="flex flex-col gap-1.5 px-2.5 py-2 sm:px-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.2fr)] md:items-start md:gap-x-3 md:gap-y-1 md:py-2 md:px-3 lg:gap-x-4 xl:grid-cols-[minmax(0,1.4fr)_auto_minmax(0,1.2fr)] xl:gap-x-5 xl:py-2.5 xl:pl-4 xl:pr-5">
                       {/* ── COLONNA 1: Nome Prodotto + Codice/Unità ── */}
                       <div className="min-w-0 xl:pr-2">
                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -5850,6 +5853,11 @@ function ListinoTab({
                           </p>
                           <div className="hidden shrink-0 md:block">{listinoRowStatusBadge}</div>
                         </div>
+                        {rowShowsVatLabel(listinoPriceCtx) ? (
+                          <p className="text-[9px] font-medium font-mono tabular-nums text-app-fg-muted/80 leading-tight">
+                            {fmtListinoPriceExVat(listinoPrices.primaryPrice)} IVA esclusa
+                          </p>
+                        ) : null}
                         {listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
                           <p className="text-[10px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-[11px]">
                             {t.fornitori.listinoPackPrice
@@ -5961,13 +5969,17 @@ function ListinoTab({
                             openInvoiceQ.set('fattura', fid)
                             openInvoiceQ.delete('bolla')
                             openInvoiceQ.set('prodotto', prodotto)
-                            openInvoiceQ.set('prezzo', String(displayRow.prezzo))
-                            // Cerca il prezzo esatto della riga che ha questo fid nella nota
-                            const fatturaRow = prezzi.find((r) => r.note?.includes(fid ?? ''))
-                            if (fatturaRow && fatturaRow.prezzo > 0) {
-                              openInvoiceQ.set('prezzo', String(fatturaRow.prezzo))
-                            }
-                            openInvoiceQ.set('prezzo_card', String(listinoPrices.primaryPrice))
+                            const net = Math.round(listinoPrices.primaryPrice * 100) / 100
+                            const gross =
+                              Math.round(
+                                applyListinoVatForDisplayFromNote(net, {
+                                  note: listinoPriceCtx.note,
+                                  prodotto: listinoPriceCtx.prodotto,
+                                  unita: listinoPriceCtx.unita,
+                                }) * 100,
+                              ) / 100
+                            openInvoiceQ.set('prezzo', net.toFixed(2))
+                            openInvoiceQ.set('prezzo_card', gross.toFixed(2))
                             openInvoiceQ.set('listino_scroll', listinoScrollKey)
                             const openInvoiceHref = `${pathname}?${openInvoiceQ.toString()}`
                             return (
@@ -6133,7 +6145,7 @@ function ListinoTab({
                       </div>
 
                       {/* ── COLONNA 4: Azioni (solo xl+) ── */}
-                      <div className="hidden min-w-0 flex-col items-end justify-center gap-2 border-l border-app-line-22/70 pl-3 xl:col-start-4 xl:flex">
+                      <div className="hidden min-w-0 flex-col items-end justify-center gap-2 border-l border-app-line-22/70 pl-3 xl:col-start-3 xl:flex">
                         {!readOnly ? (
                           <>
                             {showListinoVerificaAction ? (

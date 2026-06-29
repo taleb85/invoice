@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyListinoVatForDisplay,
+  applyListinoVatForDisplayFromNote,
   finalizeListinoImportVatRate,
   formatListinoVatNote,
   isAlcoholListinoProduct,
   isLikelyZeroRatedFoodListinoProduct,
   listinoRowShowsVatInDisplay,
+  listinoRowShowsVatInDisplayFromNote,
   listinoVatMultiplier,
   listinoVatMultiplierForRow,
   parseListinoVatRatePercent,
@@ -55,6 +57,7 @@ describe('isLikelyZeroRatedFoodListinoProduct', () => {
 describe('resolveListinoVatRatePercent', () => {
   it('usa la nota se presente', () => {
     expect(resolveListinoVatRatePercent('UK', { note: 'IVA: 0%' })).toBe(0)
+    expect(resolveListinoVatRatePercent('UK', { note: 'IVA: 20%' })).toBe(20)
   })
 
   it('UK: alimenti a kg spesso 0%, alcol 20%', () => {
@@ -103,6 +106,25 @@ describe('listinoRowShowsVatInDisplay', () => {
       }),
     ).toBe(false)
     expect(listinoRowShowsVatInDisplay('UK', { prodotto: 'Prosecco Argeo NV' })).toBe(true)
+  })
+})
+
+describe('applyListinoVatForDisplayFromNote', () => {
+  it('non applica IVA se non indicata nella nota', () => {
+    expect(applyListinoVatForDisplayFromNote(100, { prodotto: 'Prosecco' })).toBe(100)
+  })
+
+  it('applica IVA solo se indicata nella nota', () => {
+    expect(applyListinoVatForDisplayFromNote(100, { note: 'IVA: 20%' })).toBe(120)
+    expect(applyListinoVatForDisplayFromNote(100, { note: 'IVA: 0%' })).toBe(100)
+  })
+})
+
+describe('listinoRowShowsVatInDisplayFromNote', () => {
+  it('mostra etichetta solo se la nota indica IVA > 0', () => {
+    expect(listinoRowShowsVatInDisplayFromNote({ note: 'IVA: 0%' })).toBe(false)
+    expect(listinoRowShowsVatInDisplayFromNote({ note: 'IVA: 20%' })).toBe(true)
+    expect(listinoRowShowsVatInDisplayFromNote({ prodotto: 'Prosecco' })).toBe(false)
   })
 })
 

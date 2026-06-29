@@ -28,6 +28,18 @@ function parseMoneyToken(raw: string): number | null {
   return Math.round(n * 100) / 100
 }
 
+function parseVatToken(raw: string): number | null {
+  const t = String(raw ?? '').trim()
+  if (!t) return null
+  const m = t.match(/(\d+(?:[.,]\d+)?)\s*%?/)
+  if (m?.[1]) {
+    const n = parseFloat(m[1].replace(',', '.'))
+    if (Number.isFinite(n) && n >= 0 && n <= 100) return Math.round(n * 100) / 100
+  }
+  if (/\b(?:zero\s*rated|zero-rated|zr|esente|exempt|vat\s*0|iva\s*0)\b/i.test(t)) return 0
+  return null
+}
+
 const PACK_SIZE_TOKEN = /^(\d{1,3}[xX×]\d{1,4}|X\d{1,4}|ROLL|CASE|CTN|CARTON)$/i
 
 function roundMoney(n: number): number {
@@ -47,12 +59,47 @@ export function extractWeightToken(prodotto: string): string | null {
   return m ? m[0].trim() : null
 }
 
-/** Ultimi 3 campi: quantità · pack · value (totale riga). */
+/**
+ * Ultimi campi: quantità · pack · value (totale riga) [· vat].
+ * Su alcune fatture la colonna VAT/IVA è l'ultima a destra.
+ */
 function parsePackStyleFromCells(cells: string[]): ListinoImportLineInput | null {
   if (cells.length < 4) return null
-  const value = parseMoneyToken(cells[cells.length - 1]!)
-  const pack = cells[cells.length - 2]!
-  const qty = parseFloat(cells[cells.length - 3]!.replace(',', '.'))
+
+  let value = parseMoneyToken(cells[cells.length - 1]!)
+  let pack = cells[cells.length - 2]!
+  let qty = parseFloat(cells[cells.length - 3]!.replace(',', '.'))
+  let aliquota_iva: number | null = null
+
+  const canTryWithVat = cells.length >= 5
+  if ((!value || !isPackSizeToken(pack) || !Number.isFinite(qty)) && canTryWithVat) {
+    const vatCandidate = parseVatToken(cells[cells.length - 1]!)
+    const v2 = parseMoneyToken(cells[cells.length - 2]!)
+    const p2 = cells[cells.length - 3]!
+    const q2 = parseFloat(cells[cells.length - 4]!.replace(',', '.'))
+    if (vatCandidate != null && v2 && isPackSizeToken(p2) && Number.isFinite(q2)) {
+      aliquota_iva = vatCandidate
+      value = v2
+      pack = p2
+      qty = q2
+    }
+  } else {
+    const vatCandidate = parseVatToken(cells[cells.length - 1]!)
+    if (vatCandidate != null && cells.length >= 5 && isPackSizeToken(cells[cells.length - 3]!)) {
+      // Caso ambiguo: se l'ultima colonna è VAT ma sembra anche "money", preferiamo il layout con VAT solo se
+      // il penultimo è una cifra "money" e il terzultimo è un pack token.
+      const v2 = parseMoneyToken(cells[cells.length - 2]!)
+      const p2 = cells[cells.length - 3]!
+      const q2 = parseFloat(cells[cells.length - 4]!.replace(',', '.'))
+      if (v2 && isPackSizeToken(p2) && Number.isFinite(q2)) {
+        aliquota_iva = vatCandidate
+        value = v2
+        pack = p2
+        qty = q2
+      }
+    }
+  }
+
   if (!value || !Number.isFinite(qty) || qty < 0.01 || qty > 999) return null
   if (!isPackSizeToken(pack)) return null
 
@@ -70,6 +117,7 @@ function parsePackStyleFromCells(cells: string[]): ListinoImportLineInput | null
     quantita: qty,
     importo_linea: value,
     unita: pack,
+    aliquota_iva,
     note: 'lettura tabella PDF (Value÷Qty)',
   }
 }
@@ -114,7 +162,7 @@ export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineI
     }
 
     const packStyle = t.match(
-      /^(\S+)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(\d+(?:[.,]\d+)?)\s*$/i,
+      /^(\S+)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s*$/i,
     )
     if (packStyle) {
       const qty = parseFloat(packStyle[3]!.replace(',', '.'))
@@ -131,6 +179,30 @@ export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineI
         packStyle[3]!,
         pack,
         packStyle[5]!,
+        packStyle[6]!,
+      ])
+      if (fromCells) pushParsedInvoiceLine(out, seen, fromCells)
+      continue
+    }
+
+    const packStyleNoVat = t.match(
+      /^(\S+)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(\d+(?:[.,]\d+)?)\s*$/i,
+    )
+    if (packStyleNoVat) {
+      const qty = parseFloat(packStyleNoVat[3]!.replace(',', '.'))
+      const pack = packStyleNoVat[4]!
+      const lineTotal = parseMoneyToken(packStyleNoVat[5]!)
+      if (!lineTotal || qty < 0.01 || qty > 999) continue
+      if (!isPackSizeToken(pack) && !/^\d/.test(pack)) continue
+
+      const codiceCol = packStyleNoVat[1]!.toUpperCase()
+      const desc = packStyleNoVat[2]!.trim()
+      const fromCells = parsePackStyleFromCells([
+        codiceCol,
+        desc,
+        packStyleNoVat[3]!,
+        pack,
+        packStyleNoVat[5]!,
       ])
       if (fromCells) pushParsedInvoiceLine(out, seen, fromCells)
       continue
@@ -298,6 +370,7 @@ export function mergeImportLinesWithPdfText(
       prodotto: g.prodotto.trim() || fromText.prodotto,
       quantita: fromText.quantita ?? g.quantita,
       importo_linea: fromText.importo_linea ?? g.importo_linea,
+      aliquota_iva: g.aliquota_iva ?? fromText.aliquota_iva ?? null,
       prezzo:
         fromText.quantita != null && fromText.quantita >= 1
           ? fromText.prezzo
@@ -509,7 +582,7 @@ export function existingListinoPricesForImport(
 /** Qtà ordine salvata in nota listino dopo import fattura. */
 export function parseListinoNoteOrderQty(note: string | null | undefined): number | null {
   if (!note) return null
-  const m = note.match(/Qtà fattura:\s*(\d+(?:[.,]\d+)?)/i)
+  const m = note.match(/Qt(?:à|a)\s+(?:fattura|documento):\s*(\d+(?:[.,]\d+)?)/i)
   if (!m) return null
   const q = parseFloat(m[1]!.replace(',', '.'))
   if (!Number.isFinite(q) || q < 2 || q > 999) return null

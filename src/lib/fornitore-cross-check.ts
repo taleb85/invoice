@@ -129,7 +129,11 @@ function extractEmailContatto(text: string): string | null {
 
 function extractTelefono(text: string): string | null {
   const phones = extractPhoneNumbersFromTextImpl(text)
-  return phones[0] ?? null
+  const raw = phones[0]
+  if (!raw) return null
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length < 9) return null
+  return digits
 }
 
 const PHONE_WITH_LABEL =
