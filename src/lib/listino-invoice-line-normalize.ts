@@ -38,6 +38,15 @@ function isPackSizeToken(pack: string): boolean {
   return PACK_SIZE_TOKEN.test(pack) || /^roll$/i.test(pack)
 }
 
+/** Pattern per pesi (550gr, 250g, 1kg) e formati confezione (24X, X6, 6x75cl). */
+const WEIGHT_TOKEN_PATTERN = /\b(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grams?)\b|\b\d+\s*[xX×]\s*\d*\b|\bX\d+\b/i
+
+/** Estrae il token peso dal nome prodotto (es. "550gr" da "ALICI MARINATE RENNA 550gr (FH022)"). */
+export function extractWeightToken(prodotto: string): string | null {
+  const m = prodotto.match(WEIGHT_TOKEN_PATTERN)
+  return m ? m[0].trim() : null
+}
+
 /** Ultimi 3 campi: quantità · pack · value (totale riga). */
 function parsePackStyleFromCells(cells: string[]): ListinoImportLineInput | null {
   if (cells.length < 4) return null
@@ -345,6 +354,7 @@ export function sanitizeListinoProductName(prodotto: string, codice?: string | n
   p = p
     .replace(/\s*·\s*codice\s*:\s*[^·]+/gi, '')
     .replace(/\s*·\s*unit[aà]\s*:\s*[^·]+/gi, '')
+    .replace(WEIGHT_TOKEN_PATTERN, '')
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -390,12 +400,13 @@ export function normalizeListinoImportLineItem(
   const codice_prodotto =
     item.codice_prodotto?.trim() || inferCodiceFromProductName(item.prodotto) || null
   const prodotto = sanitizeListinoProductName(item.prodotto, codice_prodotto)
-  const qty = parseInvoiceOrderQuantity(item.quantita, item.unita)
+  const unita = item.unita || extractWeightToken(item.prodotto) || null
+  const qty = parseInvoiceOrderQuantity(item.quantita, unita)
   const rawPrezzo = item.prezzo
   let prezzo = item.prezzo
 
   if (!Number.isFinite(prezzo) || prezzo <= 0) {
-    return { ...item, prodotto, prezzo, codice_prodotto }
+    return { ...item, prodotto, prezzo, codice_prodotto, unita }
   }
 
   const hist = existingPrices.filter((p) => Number.isFinite(p) && p > 0)
@@ -461,13 +472,14 @@ export function normalizeListinoImportLineItem(
   }
 
   return {
-    ...item,
-    codice_prodotto,
-    prodotto,
-    prezzo,
-    quantita: qtyOut ?? qty ?? item.quantita,
-    importo_linea: lineTotal ?? item.importo_linea,
-  }
+      ...item,
+      codice_prodotto,
+      prodotto,
+      prezzo,
+      unita,
+      quantita: qtyOut ?? qty ?? item.quantita,
+      importo_linea: lineTotal ?? item.importo_linea,
+    }
 }
 
 /** Prezzi storici per prodotto / codice (note listino). */

@@ -33,9 +33,10 @@ export function embedSrcForInlineViewer(url: string, kind: AttachmentKind | null
   const base = url.trim()
   if (!base) return base
   if (kind !== 'pdf') return base
-  // URL relative (es. `/api/open-document`): il fragment non va sul PDF dopo redirect.
-  if (!/^https?:\/\//i.test(base)) return base
+  // Aggiunge parametri al PDF viewer nativo di Chrome per nascondere toolbar e sidebar.
+  // Funziona sia su URL HTTP che blob URL.
   const hashIdx = base.indexOf('#')
   const withoutHash = hashIdx >= 0 ? base.slice(0, hashIdx) : base
-  return `${withoutHash}#toolbar=0`
+  // I blob URL conservano il fragment quando Chrome apre il PDF internamente.
+  return `${withoutHash}#toolbar=0&navpanes=0`
 }

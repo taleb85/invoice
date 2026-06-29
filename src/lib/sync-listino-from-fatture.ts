@@ -12,7 +12,6 @@ import { formatListinoVatNote } from '@/lib/listino-vat'
 import {
   listinoImportApiBody,
   listinoImportTable,
-  type ListinoImportDocTipo,
 } from '@/lib/listino-import-document'
 
 function maxDateForProducts(
@@ -31,38 +30,10 @@ function maxDateForProducts(
 }
 
 type PendingListinoDoc = {
-  tipo: ListinoImportDocTipo
+  tipo: 'fattura'
   id: string
   data: string
   numero: string | null
-}
-
-function pushPendingOrdini(
-  pending: PendingListinoDoc[],
-  rows: unknown[] | null,
-): void {
-  for (const o of rows ?? []) {
-    const row = o as {
-      id: string
-      data_ordine: string | null
-      created_at: string
-      numero_ordine?: string | null
-      titolo?: string | null
-      analizzata?: boolean | null
-    }
-    if (row.analizzata) continue
-    const data =
-      row.data_ordine?.slice(0, 10) ??
-      String(row.created_at ?? '').slice(0, 10) ??
-      ''
-    if (!data) continue
-    pending.push({
-      tipo: 'ordine',
-      id: row.id,
-      data,
-      numero: row.numero_ordine?.trim() || row.titolo?.trim() || null,
-    })
-  }
 }
 
 async function pendingListinoDocsForFornitore(
@@ -70,25 +41,13 @@ async function pendingListinoDocsForFornitore(
   fornitoreId: string,
   maxDocs: number,
 ): Promise<PendingListinoDoc[]> {
-  const [fattureRes, bolleRes, ordiniRes] = await Promise.all([
+  const [fattureRes] = await Promise.all([
     service
       .from('fatture')
       .select('id, data, numero_fattura, file_url, analizzata')
       .eq('fornitore_id', fornitoreId)
       .not('file_url', 'is', null)
       .order('data', { ascending: false }),
-    service
-      .from('bolle')
-      .select('id, data, numero_bolla, file_url, analizzata')
-      .eq('fornitore_id', fornitoreId)
-      .not('file_url', 'is', null)
-      .order('data', { ascending: false }),
-    service
-      .from('conferme_ordine')
-      .select('id, data_ordine, created_at, numero_ordine, titolo, file_url, analizzata')
-      .eq('fornitore_id', fornitoreId)
-      .not('file_url', 'is', null)
-      .order('created_at', { ascending: false }),
   ])
 
   const pending: PendingListinoDoc[] = []
@@ -107,34 +66,6 @@ async function pendingListinoDocsForFornitore(
       data: row.data,
       numero: row.numero_fattura,
     })
-  }
-
-  for (const b of bolleRes.data ?? []) {
-    const row = b as {
-      id: string
-      data: string
-      numero_bolla: string | null
-      analizzata?: boolean | null
-    }
-    if (row.analizzata) continue
-    pending.push({
-      tipo: 'bolla',
-      id: row.id,
-      data: row.data,
-      numero: row.numero_bolla,
-    })
-  }
-
-  if (!ordiniRes.error) {
-    pushPendingOrdini(pending, ordiniRes.data)
-  } else {
-    const { data: fallback } = await service
-      .from('conferme_ordine')
-      .select('id, data_ordine, created_at, numero_ordine, titolo, file_url')
-      .eq('fornitore_id', fornitoreId)
-      .not('file_url', 'is', null)
-      .order('created_at', { ascending: false })
-    pushPendingOrdini(pending, fallback)
   }
 
   pending.sort((a, b) => compareIsoDateStrings(b.data, a.data))

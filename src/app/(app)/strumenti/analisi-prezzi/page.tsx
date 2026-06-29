@@ -29,7 +29,9 @@ import { interpolateTemplate } from '@/lib/interpolate-template'
 import {
   compareDisplayPrice,
   formatCompareWeightLabel,
+  mergeTrendsByNormalizedName,
   normalizeCompareDisplayRows,
+  stripDisplayProductWeight,
 } from '@/lib/listino-compare-normalize'
 
 type DashboardData = {
@@ -86,13 +88,13 @@ function productInsightText(
   raccomandazioni: Raccomandazione[],
 ): string | null {
   const anomalyLines = anomalie
-    .filter((a) => a.prodotto === prodotto)
+    .filter((a) => stripDisplayProductWeight(a.prodotto) === prodotto)
     .map((a) => a.descrizione.trim())
     .filter(Boolean)
   if (anomalyLines.length > 0) return anomalyLines.join(' · ')
 
   const recLines = raccomandazioni
-    .filter((r) => r.prodotto === prodotto)
+    .filter((r) => stripDisplayProductWeight(r.prodotto) === prodotto)
     .map((r) => r.descrizione.trim())
     .filter(Boolean)
   if (recLines.length > 0) return recLines.join(' · ')
@@ -138,10 +140,11 @@ function SupplierProductsDetail({
   }
 
   const { report } = entry
-  const trends = sortTrendsForDisplay(report.trends, report.anomalie)
+  const trends = mergeTrendsByNormalizedName(sortTrendsForDisplay(report.trends, report.anomalie))
   const anomalyCount = new Map<string, number>()
   for (const a of report.anomalie) {
-    anomalyCount.set(a.prodotto, (anomalyCount.get(a.prodotto) ?? 0) + 1)
+    const key = stripDisplayProductWeight(a.prodotto)
+    anomalyCount.set(key, (anomalyCount.get(key) ?? 0) + 1)
   }
 
   if (trends.length === 0) {
@@ -501,7 +504,17 @@ function ProductPriceCompareSection({
   const displayMatches = useMemo(() => {
     if (!comparison?.matches.length) return []
     const rows = normalizeCompareDisplayRows(comparison.matches) as CompareDisplayRow[]
-    return [...rows].sort((a, b) => b.data_prezzo.localeCompare(a.data_prezzo))
+    // Unifica righe dello stesso fornitore con stesso nome prodotto normalizzato
+    const dedup = new Map<string, CompareDisplayRow>()
+    for (const row of rows) {
+      const normalizedName = stripDisplayProductWeight(row.prodotto)
+      const key = `${row.fornitore_id}|${normalizedName.toLowerCase()}`
+      const existing = dedup.get(key)
+      if (!existing || row.data_prezzo > existing.data_prezzo) {
+        dedup.set(key, { ...row, prodotto: normalizedName })
+      }
+    }
+    return [...dedup.values()].sort((a, b) => b.data_prezzo.localeCompare(a.data_prezzo))
   }, [comparison])
 
   const hasWeightCompare = useMemo(

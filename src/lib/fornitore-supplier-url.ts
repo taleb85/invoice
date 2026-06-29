@@ -3,6 +3,9 @@ import type { ReadonlyURLSearchParams } from 'next/navigation'
 export function fornitoreSupplierClearDocParams(q: URLSearchParams) {
   q.delete('bolla')
   q.delete('fattura')
+  q.delete('prodotto')
+  q.delete('prezzo')
+  q.delete('prezzo_card')
 }
 
 /** Cambio tab sulla scheda fornitore: rimuove dettaglio bolla/fattura incastonato nell’URL. */

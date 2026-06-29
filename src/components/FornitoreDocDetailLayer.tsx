@@ -149,8 +149,13 @@ function FornitoreInlineDocPreview({
   const [zoom, setZoom] = useState(1)
   const z = clampViewerZoom(zoom)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const { signedUrl, loading } = useSignedDocumentUrl(fileUrl?.trim() ? openKind : null, fileUrl?.trim() ? docId : null)
+  const { signedUrl, loading } = useSignedDocumentUrl(
+    fileUrl?.trim() ? openKind : null,
+    fileUrl?.trim() ? docId : null,
+  )
   const kind = attachmentKindFromFileUrl(fileUrl)
+
+  const iframeSrc = embedSrcForInlineViewer(signedUrl ?? '', kind)
   const hrefTab =
     openKind === 'bolla' ? openDocumentUrl({ bollaId: docId }) : openDocumentUrl({ fatturaId: docId })
   const previewTitle = t.common.attachment
@@ -268,7 +273,7 @@ function FornitoreInlineDocPreview({
         >
           <iframe
             title={previewTitle}
-            src={embedSrcForInlineViewer(signedUrl, kind)}
+            src={iframeSrc}
             style={{
               display: 'block',
               minHeight: fill
@@ -279,7 +284,7 @@ function FornitoreInlineDocPreview({
             }}
             className={
               fill
-                ? 'min-h-0 w-full min-w-0 border-0 app-workspace-surface-elevated'
+                ? 'min-h-0 w-full min-w-0 border-0 bg-white'
                 : `${frameFixed} w-full min-w-0 border-0 app-workspace-surface-elevated`
             }
           />
@@ -293,8 +298,8 @@ function FornitoreInlineDocPreview({
             style={fill ? { width: `${z * 100}%`, minHeight: 'min(70dvh, 820px)' } : undefined}
             className={
               fill
-                ? 'min-h-0 w-full min-w-0 border-0 app-workspace-surface-elevated'
-                : `${frameFixed} w-full min-w-0 border-0 app-workspace-surface-elevated`
+                ? 'min-h-0 w-full min-w-0 border-0 bg-transparent'
+                : `${frameFixed} w-full min-w-0 border-0 bg-transparent`
             }
           />
         </div>
@@ -374,12 +379,14 @@ export default function FornitoreDocDetailLayer({
       <div className="app-aurora-doc-modal-shell relative z-10 flex h-full min-h-0 max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none pb-[env(safe-area-inset-bottom,0px)] md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:rounded-xl md:pb-0">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-app-line-22 px-3 py-2.5 md:px-4">
           <h2 id="fornitore-doc-detail-title" className="min-w-0 truncate text-sm font-semibold text-app-fg">
-            {showFattura ? t.fatture.invoice : t.bolle.dettaglio}
+            {searchParams.get('prodotto')
+              ? `${searchParams.get('prodotto')}${searchParams.get('prezzo') ? ` — £${searchParams.get('prezzo')}` : ''}${searchParams.get('prezzo_card') && searchParams.get('prezzo_card') !== searchParams.get('prezzo') ? ` / £${searchParams.get('prezzo_card')} IVA incl.` : ''}`
+              : (showFattura ? t.fatture.invoice : t.bolle.dettaglio)}
           </h2>
           <button
             type="button"
             onClick={close}
-            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-black/18 hover:text-app-fg"
+            className="rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
           >
             {t.statements.btnClose}
           </button>
@@ -553,10 +560,6 @@ function FatturaLayerBody({
           docId={fattura.id}
         />
         <div className="shrink-0 border-t border-app-line-22/90 app-workspace-inset-bg-soft px-4 py-2.5 md:px-5">
-          <p className="text-[11px] leading-relaxed text-app-fg-muted">{t.appStrings.listinoDocDetailImportHint}</p>
-          {listinoAdmin ? (
-            <p className="mt-1 text-[10px] leading-snug text-app-fg-muted">{t.appStrings.listinoDocDetailImportHintAdmin}</p>
-          ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-4">
             <AiAnalysisButton
               entityType="fattura"

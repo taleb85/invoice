@@ -14,7 +14,7 @@ const ALCOHOL_PRODUCT_REGEX =
   /\b(?:prosecco|spumante|champagne|cava|wine|vino|beer|lager|ale|cider|spirit|vodka|gin|whisky|whiskey|rum|brandy|liqueur|vermouth|sherry|port|amaro|grappa|brut|docg?|igt|igp)\b/i
 
 const ZERO_RATED_FOOD_REGEX =
-  /\b(?:prosciutto|prosc\.?|ham|salame|salami|mortadella|pancetta|speck|bresaola|carne|meat|beef|pork|lamb|veal|chicken|pollo|tacchino|turkey|manzo|maiale|agnello|vitello|formaggio|cheese|mozzarella|burro|butter|latte|milk|uova|eggs|farina|flour|riso|rice|pasta|pane|bread|verdura|vegetable|fruit|frutta|pesce|fish|salmone|salmon|tonno|tuna|pomodor|tomato|patate|potato|funghi|mushroom|olio|olive|yogurt|yoghurt|panna|cream|negrini)\b/i
+  /\b(?:prosciutto|prosc\.?|ham|salame|salami|mortadella|pancetta|speck|bresaola|carne|meat|beef|pork|lamb|veal|chicken|pollo|tacchino|turkey|manzo|maiale|agnello|vitello|formaggio|cheese|mozzarella|burro|butter|latte|milk|uova|eggs|farina|flour|riso|rice|pasta|pane|bread|verdura|vegetable|fruit|frutta|pesce|fish|salmone|salmon|tonno|tuna|pomodor|tomato|patate|potato|funghi|mushroom|olio|olive|yogurt|yoghurt|panna|cream|negrini|rigatoni|linguine|paccheri|spaghetti|penne|fettuccine|tagliatelle|fusilli|lasagne|tortellini|ravioli|gnocchi|maccheroni|conchiglie|farfalle|de cecco|dalla costa|fratelli|pastaio)\b/i
 
 /** Legge l'aliquota IVA salvata in nota listino (`IVA: 0%`, `VAT: 20`, …). */
 export function parseListinoVatRatePercent(note: string | null | undefined): number | null {

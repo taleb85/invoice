@@ -569,3 +569,30 @@ export function formatCompareWeightLabel(pesoKg: number | null | undefined): str
   }
   return `${Math.round(pesoKg * 1000)} g`
 }
+
+/** Pattern per pesi (550gr, 250g, 1kg) e formati confezione (24X, X6, 6x75cl). */
+const DISPLAY_WEIGHT_PATTERN = /\b(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grams?)\b|\b\d+\s*[xX×]\s*\d*\b|\bX\d+\b/gi
+
+/**
+ * Rimuove il token peso dal nome prodotto per la visualizzazione (es. "ALICI MARINATE RENNA 550gr (FH022)"
+ * → "ALICI MARINATE RENNA (FH022)"). Usato per raggruppare prodotti con nomi simili.
+ */
+export function stripDisplayProductWeight(prodotto: string): string {
+  return prodotto.replace(DISPLAY_WEIGHT_PATTERN, '').replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * Raggruppa un array di trend per nome prodotto normalizzato (senza peso).
+ * Quando due trend hanno lo stesso nome normalizzato, vengono fusi.
+ */
+export function mergeTrendsByNormalizedName<T extends { prodotto: string }>(trends: T[]): T[] {
+  const map = new Map<string, T>()
+  for (const t of trends) {
+    const key = stripDisplayProductWeight(t.prodotto).toLowerCase()
+    const existing = map.get(key)
+    if (!existing) {
+      map.set(key, { ...t, prodotto: stripDisplayProductWeight(t.prodotto) })
+    }
+  }
+  return Array.from(map.values())
+}

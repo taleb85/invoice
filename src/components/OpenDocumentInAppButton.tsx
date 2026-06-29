@@ -445,7 +445,7 @@ export function OpenDocumentInAppButton({
             </div>
           )}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="app-aurora-viewer-fill flex min-h-0 flex-1 flex-col overflow-hidden pt-10 md:pt-12 bg-slate-950/35">
+          <div className="app-aurora-viewer-fill flex min-h-0 flex-1 flex-col overflow-hidden pt-10 md:pt-12 bg-transparent">
             {loading ? (
               <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
                 <svg className="h-8 w-8 animate-spin text-app-cyan-500/70" fill="none" viewBox="0 0 24 24" aria-hidden>
@@ -518,7 +518,7 @@ export function OpenDocumentInAppButton({
               <iframe
                 title={t.common.attachment}
                 src={embedSrcForInlineViewer(signedUrl, kind)}
-                className="app-aurora-viewer-fill min-h-0 w-full flex-1 border-0 bg-slate-950/35"
+                className="app-aurora-viewer-fill min-h-0 w-full flex-1 border-0 bg-transparent"
               />
             ) : null}
             {!loading && !signedUrl ? (

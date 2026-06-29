@@ -3673,6 +3673,8 @@ function ListinoTab({
   const [autoImporting, setAutoImporting]         = useState(false)
   const [autoImportResult, setAutoImportResult]   = useState<{ inserted: number; documenti: number } | null>(null)
   const [autoImportError, setAutoImportError]     = useState<string | null>(null)
+  const [autoImportCurrentProduct, setAutoImportCurrentProduct] = useState<string | null>(null)
+  const autoImportForceAllRef                     = useRef(false)
 
   // Price anomalies state
   type PriceAnomaly = {
@@ -4196,6 +4198,7 @@ function ListinoTab({
     setAutoImporting(true)
     setAutoImportResult(null)
     setAutoImportError(null)
+    setAutoImportCurrentProduct(null)
     setShowImport(false)
     setShowForm(false)
     try {
@@ -4237,7 +4240,7 @@ function ListinoTab({
           numero_fattura: string | null
           analizzata?: boolean | null
         }
-        if (row.analizzata) continue
+        if (row.analizzata && !autoImportForceAllRef.current) continue
         docsToProcess.push({
           tipo: 'fattura',
           id: row.id,
@@ -4351,6 +4354,7 @@ function ListinoTab({
           const toSave = enriched.filter((item) => {
             if (!item.selected || !item.prodotto || item.prezzo <= 0) return false
             const latest = maxListinoDateForExactProduct(listinoData, item.prodotto)
+            setAutoImportCurrentProduct(item.prodotto)
             return latest == null || isDocumentDateAtLeastLatestListino(docDate, latest)
           })
 
@@ -4403,6 +4407,8 @@ function ListinoTab({
       setAutoImportError(err instanceof Error ? err.message : 'Errore sconosciuto')
     } finally {
       setAutoImporting(false)
+      setAutoImportCurrentProduct(null)
+      autoImportForceAllRef.current = false
     }
   }
 
@@ -4849,6 +4855,21 @@ function ListinoTab({
               </button>
               <button
                 onClick={() => {
+                  autoImportForceAllRef.current = true
+                  void handleAutoImport()
+                }}
+                disabled={autoImporting}
+                className="hidden md:flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-200 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                {autoImporting ? (
+                  <div className="h-3 w-3 animate-spin rounded-full border border-amber-400/50 border-t-transparent" />
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                )}
+                {autoImporting ? 'Analisi...' : 'Rianalizza'}
+              </button>
+              <button
+                onClick={() => {
                   setShowForm((f) => !f)
                   setShowImport(false)
                   setSaveError(null)
@@ -4870,6 +4891,11 @@ function ListinoTab({
           )}
 
           {/* Risultato auto-import */}
+          {autoImportCurrentProduct && autoImporting && (
+            <div className="border-b border-[rgba(34,211,238,0.15)] bg-violet-500/10 px-5 py-2 text-xs text-violet-200">
+              <span>Analisi in corso: <strong>{autoImportCurrentProduct}</strong></span>
+            </div>
+          )}
           {(autoImportResult || autoImportError) && !autoImporting && (
             <div className={`border-b px-5 py-2.5 text-xs ${autoImportError ? 'border-[rgba(34,211,238,0.15)] bg-red-500/10 text-red-200' : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200'}`}>
               <div className="flex items-center justify-between gap-2">
@@ -5591,9 +5617,6 @@ function ListinoTab({
                 const originLineMobile = originLine?.includes(' · ')
                   ? originLine.replace(/\s*·\s*[^·]+$/, '')
                   : originLine
-                const noteDisplay = listinoNoteTailForDisplay(parsed.humanTail, {
-                  skipOrigin: Boolean(originLine),
-                })
                 const priceTrendUp = Boolean(ref && up && pct > 0)
                 const showListinoVerificaAction = hasRecordedAnomaly
                 const listinoScrollKey = listinoGroupKey({ prodotto, note: displayRow.note })
@@ -5702,9 +5725,6 @@ function ListinoTab({
                               </StatusBadge>
                             ) : null}
                           </div>
-                        ) : null}
-                        {noteDisplay ? (
-                          <p className="mt-1 line-clamp-1 text-[10px] leading-snug font-medium text-app-fg-muted lg:line-clamp-2 lg:text-xs">{noteDisplay}</p>
                         ) : null}
                       </div>
 
@@ -5834,6 +5854,15 @@ function ListinoTab({
                             const openInvoiceQ = new URLSearchParams(searchParams.toString())
                             openInvoiceQ.set('fattura', fid)
                             openInvoiceQ.delete('bolla')
+                            openInvoiceQ.set('prodotto', prodotto)
+                            openInvoiceQ.set('prezzo', String(displayRow.prezzo))
+                            // Cerca il prezzo esatto della riga che ha questo fid nella nota
+                            const fatturaRow = prezzi.find((r) => r.note?.includes(fid ?? ''))
+                            if (fatturaRow && fatturaRow.prezzo > 0) {
+                              openInvoiceQ.set('prezzo', String(fatturaRow.prezzo))
+                            }
+                            openInvoiceQ.set('prezzo_card', String(listinoPrices.primaryPrice))
+                            openInvoiceQ.set('listino_scroll', listinoScrollKey)
                             const openInvoiceHref = `${pathname}?${openInvoiceQ.toString()}`
                             return (
                               <p className="min-w-0 flex-[1_1_100%] text-[10px] leading-snug font-medium text-violet-300 md:flex-[1_1_calc(50%-0.375rem)] xl:text-[11px]">

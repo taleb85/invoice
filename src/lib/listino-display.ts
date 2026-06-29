@@ -296,12 +296,17 @@ export function findListinoFatturaRowByInvoiceRef(
   return [...candidates].sort((a, b) => b.data.localeCompare(a.data))[0]!
 }
 
+/** Pattern per pesi (550gr, 250g, 1kg) e formati confezione (24X, X6, 6x75cl). */
+const GROUPING_STRIP_PATTERN = /\b(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grams?)\b|\b\d+\s*[xX×]\s*\d*\b|\bX\d+\b/gi
+
 /** Pulisce descrizioni OCR prima di raggruppare o mostrare il titolo. */
 export function cleanListinoProductNameForGrouping(name: string): string {
   return stripListinoOcrInvoiceHeaderFromProductName(
     normalizeListinoProductName(name)
       .replace(/^\d+\s+/, '')
       .replace(/\s+units?\s*$/i, '')
+      .replace(GROUPING_STRIP_PATTERN, '')
+      .replace(/\s+/g, ' ')
       .trim(),
   )
 }
@@ -502,8 +507,38 @@ export function buildListinoByProduct<T extends { prodotto: string; note?: strin
   rows: T[],
 ): Record<string, T[]> {
   const grouped = groupListinoRowsByProduct(rows.filter((r) => isListinoCatalogRow(r)))
+
+  // Secondo pass: unisce gruppi con lo stesso codice prodotto e nomi compatibili
+  const groups = Array.from(grouped.values())
+  const merged = new Map<string, T[]>()
+  const codiceIndex = new Map<string, { key: string; label: string; rows: T[] }[]>()
+
+  for (const groupRows of groups) {
+    const label = listinoDisplayLabelForGroup(groupRows)
+    const key = listinoGroupKey(groupRows[0]!)
+    const codice = parseListinoNoteParts(groupRows[0]?.note ?? null).codice?.trim()
+
+    if (codice && !isGenericListinoCodice(codice)) {
+      const siblings = codiceIndex.get(codice.toUpperCase()) ?? []
+      let merged_ = false
+      for (const sib of siblings) {
+        if (listinoProductNamesCompatibleForGroup(sib.label, label)) {
+          sib.rows.push(...groupRows)
+          merged_ = true
+          break
+        }
+      }
+      if (!merged_) {
+        codiceIndex.set(codice.toUpperCase(), [...siblings, { key, label, rows: groupRows }])
+        merged.set(key, groupRows)
+      }
+    } else {
+      merged.set(key, groupRows)
+    }
+  }
+
   const out: Record<string, T[]> = {}
-  for (const groupRows of grouped.values()) {
+  for (const groupRows of merged.values()) {
     const label = listinoDisplayLabelForGroup(groupRows)
     out[label] = [...groupRows].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
   }
