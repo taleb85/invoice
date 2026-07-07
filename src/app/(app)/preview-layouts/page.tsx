@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 /* ─── Mock data ──────────────────────────────────────────────────── */
+const MOCK_INVOICES = [
   { id: '1', color: 'green',  badge: 'Matched',         number: 'INV-AM-350', supplier: 'Amalfi Produce London', date: '12 Mar 2025', amount: '£ 310.00', actions: ['View', 'Email'] },
   { id: '2', color: 'orange', badge: 'Missing Invoice',  number: 'DDT-OB-220', supplier: 'Oral-B UK',             date: '08 Mar 2025', amount: '£  25.00', actions: ['Email'] },
   { id: '3', color: 'red',    badge: 'Amount Error',     number: 'INV-AM-348', supplier: 'Amalfi Produce London', date: '01 Mar 2025', amount: '£ 120.00', actions: ['View', 'Email'] },
@@ -31,6 +32,8 @@ const ACTIVITY_LOG = [
   { time: '08:52', icon: '📄', text: 'OCR completed: INV-AM-348',           color: 'gray' },
   { time: '08:40', icon: '🔁', text: 'Reconciliation run for March',        color: 'blue' },
 ]
+
+const MOCK_DOCS = MOCK_INVOICES
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
 
