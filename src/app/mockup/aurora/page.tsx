@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
 import { AURORA_GLASS_PANEL_LAYOUT_CLASS } from '@/lib/summary-highlight-accent'
 
 export const metadata: Metadata = {
@@ -7,10 +6,6 @@ export const metadata: Metadata = {
   description:
     'Mockup visivo con Deep Aurora Intelligence Asset Guide: navy, royal blue, indaco e neon chart.',
   robots: 'noindex, nofollow',
-}
-
-if (process.env.NODE_ENV === 'production') {
-  redirect('/')
 }
 
 /** Deep Aurora Intelligence — Asset Guide + reference UI (aurora ribbon, neon charts) */
