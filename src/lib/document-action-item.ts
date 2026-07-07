@@ -224,7 +224,7 @@ export function documentActionItemForStatement(
 ): DocumentActionItem {
   return {
     id: s.id,
-    origine: 'statement',
+    origine: 'statement_inbox',
     fornitore_id: s.fornitore_id ?? null,
     fornitore_nome: s.fornitore_nome ?? null,
     file_url: s.file_url ?? null,

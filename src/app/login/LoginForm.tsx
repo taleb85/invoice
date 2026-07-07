@@ -1410,8 +1410,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     value={pin[idx]}
                     onChange={e => handlePinChange(idx, e.target.value)}
                     onKeyDown={e => handlePinKeyDown(idx, e)}
-                    disabled={loading || lookingUp}
-                    className={loginPinDigitShellClasses(loading || lookingUp, Boolean(pin[idx]), true)}
+                    disabled={loading}
+                    className={loginPinDigitShellClasses(loading, Boolean(pin[idx]), true)}
                   />
                 ))}
               </div>

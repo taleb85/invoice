@@ -47,6 +47,7 @@ import { DeepAuroraIntegration } from '@/components/deep-aurora/DeepAuroraIntegr
 import { AppMainScrollRestoration } from '@/lib/return-navigation-client'
 import { ContextMenuProvider } from '@/components/ui/ContextMenuProvider'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
+import { FloatingBarProvider } from '@/components/FloatingActionBar'
 
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
@@ -211,7 +212,9 @@ export default function AppShell({
                   <EmailSyncProgressProvider>
                     <AppActivitiesProvider>
                       <ContextMenuProvider>
-                        <AppShellMain>{children}</AppShellMain>
+                        <FloatingBarProvider>
+                          <AppShellMain>{children}</AppShellMain>
+                        </FloatingBarProvider>
                       </ContextMenuProvider>
                     </AppActivitiesProvider>
                   </EmailSyncProgressProvider>
