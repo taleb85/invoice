@@ -67,6 +67,7 @@ export type BollaDupProbe = {
   numero_bolla: string | null
   fornitore_id: string
   data: string
+  importo?: number | null
 }
 
 /** Campi opzionali per euristiche globali (orfana+numero, stesso file_url). */
