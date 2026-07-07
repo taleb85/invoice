@@ -5386,14 +5386,20 @@ export function VerificationStatusTab({
               disabled={stmtRecheckBusy || stmtHeaderRefreshPending || stmtsLoading || stmtsForDisplay.length === 0}
               aria-busy={stmtRecheckBusy}
               title={
-                stmtsForDisplay.length > 0
-                  ? fornitoreId
-                    ? t.statements.recheckTripleCheckAllTitleFornitore.replace('{n}', String(stmtsForDisplay.filter((s) => s.status === 'done').length))
-                    : t.statements.recheckTripleCheckAllTitle.replace('{n}', String(stmtsForDisplay.filter((s) => s.status === 'done').length))
-                  : t.statements.recheckTripleCheckSelectStmt
+                selectedStmt
+                  ? t.statements.recheckTripleCheckTitle
+                  : stmtsForDisplay.length > 0
+                    ? fornitoreId
+                      ? t.statements.recheckTripleCheckAllTitleFornitore.replace('{n}', String(stmtsForDisplay.filter((s) => s.status === 'done').length))
+                      : t.statements.recheckTripleCheckAllTitle.replace('{n}', String(stmtsForDisplay.filter((s) => s.status === 'done').length))
+                    : t.statements.recheckTripleCheckSelectStmt
               }
               onClick={() => {
-                void runAllStmtsRecheck()
+                if (selectedStmt) {
+                  void runStmtRecheck(selectedStmt)
+                } else {
+                  void runAllStmtsRecheck()
+                }
               }}
               className={
                 vsEmbeddedSupplier
@@ -5822,30 +5828,16 @@ export function VerificationStatusTab({
               ) : null}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome ? (
-                selectedStmt.linked_fattura_id ? (
-                  <span
-                    className={`${vsS1HeaderActionBtn} col-span-2 border border-emerald-500/35 bg-emerald-500/10 text-emerald-200`}
-                    title={t.statements.alsoFatturaCreataTitle}
-                  >
-                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {t.statements.alsoFatturaCreata}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAlsoFatturaOpen(true)}
-                    className={`${vsS1HeaderActionBtn} border border-emerald-500/35 bg-emerald-500/8 text-emerald-200/95 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40`}
-                    title={t.statements.alsoFatturaBtnTitle}
-                  >
-                    <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    {t.statements.alsoFatturaBtn}
-                  </button>
-                )
+              {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && selectedStmt.linked_fattura_id ? (
+                <span
+                  className={`${vsS1HeaderActionBtn} col-span-2 border border-emerald-500/35 bg-emerald-500/10 text-emerald-200`}
+                  title={t.statements.alsoFatturaCreataTitle}
+                >
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {t.statements.alsoFatturaCreata}
+                </span>
               ) : null}
               <button
                 type="button"
@@ -5920,31 +5912,17 @@ export function VerificationStatusTab({
               </div>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-1.5 self-start">
-              {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && (
-                selectedStmt.linked_fattura_id ? (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200"
-                    title={t.statements.alsoFatturaCreataTitle}
-                  >
-                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {t.statements.alsoFatturaCreata}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAlsoFatturaOpen(true)}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2.5 py-1.5 text-xs font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-                    title={t.statements.alsoFatturaBtnTitle}
-                  >
-                    <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    {t.statements.alsoFatturaBtn}
-                  </button>
-                )
-              )}
+              {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && selectedStmt.linked_fattura_id ? (
+                <span
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200"
+                  title={t.statements.alsoFatturaCreataTitle}
+                >
+                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {t.statements.alsoFatturaCreata}
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={() => void runStmtRecheck(selectedStmt)}
