@@ -217,7 +217,7 @@ function fmt(d: string | null, locale = 'it-IT', timezone?: string) {
   if (!d) return '—'
   try {
     return new Intl.DateTimeFormat(locale, {
-      day: '2-digit', month: '2-digit', year: 'numeric',
+      day: '2-digit', month: '2-digit', year: '2-digit',
       ...(timezone ? { timeZone: timezone } : {}),
     }).format(new Date(d))
   } catch {
@@ -3904,8 +3904,6 @@ export function VerificationStatusTab({
   }
 
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
-  /** Mese delle righe per ogni statement: { [statementId]: ["2026-06", "2026-05", ...] }. */
-  const [statementRowMonths, setStatementRowMonths] = useState<Record<string, string[]>>({})
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
   const [needsMigration, setNeedsMigration] = useState(false)
   const [selectedStmt,   setSelectedStmt]   = useState<StmtRecord | null>(null)
@@ -4642,21 +4640,6 @@ export function VerificationStatusTab({
         }
         setStmts(sortStatementsByDocumentDateDesc(list))
 
-        // Fetch row months for virtual split of multi-month statements
-        if (list.length > 0) {
-          try {
-            const mRes = await fetch(
-              `/api/statements?action=row_months&ids=${encodeURIComponent(list.map(s => s.id).join(','))}`,
-            )
-            if (mRes.ok) {
-              const mJson = await mRes.json() as { months: Record<string, string[]> }
-              setStatementRowMonths(mJson.months ?? {})
-            }
-          } catch { /* non-critical */ }
-        } else {
-          setStatementRowMonths({})
-        }
-
         setNeedsMigration(json.needsMigration ?? false)
         // Auto-open the most recent done statement (with or without anomalies).
         // Skipped in supplier panel — there we always show the list first.
@@ -5055,28 +5038,17 @@ export function VerificationStatusTab({
     [stmtsForDisplay],
   )
 
-  /** Raggruppa gli account statement per mese (YYYY-MM). Usa `received_at` come fallback se la data ufficiale non è disponibile.
-   *  Se uno statement ha righe in più mesi (statementRowMonths), viene duplicato virtualmente in ogni mese delle sue righe. */
+  /** Raggruppa gli account statement per mese (YYYY-MM) basandosi sulla data del documento. */
   const groupedStmtsByMonth = useMemo(() => {
     const groups = new Map<string, typeof accountStatementStmts>()
     for (const s of accountStatementStmts) {
-      // Se lo statement ha righe in più mesi, crea un'entrata virtuale per ogni mese
-      const rowMs = statementRowMonths[s.id]
-      if (rowMs && rowMs.length > 1) {
-        for (const m of rowMs) {
-          if (!groups.has(m)) groups.set(m, [])
-          groups.get(m)!.push({ ...s, _virtualMonth: m } as StmtRecord & { _virtualMonth: string })
-        }
-        continue
-      }
-      // Comportamento normale: data ufficiale o received_at
-      const iso = statementOfficialDateIso(s) ?? s.received_at?.slice(0, 10)
+      const iso = statementOfficialDateIso(s) ?? s.document_date?.slice(0, 10) ?? s.received_at?.slice(0, 10)
       const key = iso ? iso.slice(0, 7) : 'other'
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)!.push(s)
     }
     return Array.from(groups.entries()).sort(([a], [b]) => b.localeCompare(a))
-  }, [accountStatementStmts, statementRowMonths])
+  }, [accountStatementStmts])
 
   const navigableStmts = useMemo(
     () => accountStatementStmts.filter((s) => s.status !== 'error'),
@@ -5154,9 +5126,13 @@ export function VerificationStatusTab({
     let dbSum = 0
     let bollaSum = 0
     let count = 0
+    const seenCnNumeri = new Set<string>()
     for (const r of filteredCheckResults) {
-      stmtSum += r.importoStatement ?? 0
-      dbSum += r.fattura?.importo ?? 0
+      const isCn = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.numero)
+      const cnDeduped = isCn && seenCnNumeri.has(r.numero)
+      if (isCn) seenCnNumeri.add(r.numero)
+      stmtSum += cnDeduped ? 0 : (isCn ? -(r.importoStatement ?? 0) : (r.importoStatement ?? 0))
+      dbSum += cnDeduped ? 0 : (isCn ? -Math.abs(r.fattura?.importo ?? r.importoStatement ?? 0) : (r.fattura?.importo ?? 0))
       bollaSum += r.bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
       count++
     }
@@ -5608,12 +5584,10 @@ export function VerificationStatusTab({
                   : (s.fornitore_nome?.toUpperCase() ?? s.email_subject ?? 'Statement')
                 return (
                 <div
-                  key={`${s.id}-${(s as StmtRecord & { _virtualMonth?: string })._virtualMonth ?? ''}`}
+                  key={s.id}
                   role="button"
                   tabIndex={0}
                   onClick={() => {
-                    const vMonth = (s as StmtRecord & { _virtualMonth?: string })._virtualMonth
-                    if (vMonth) setStmtMonthFilter(vMonth)
                     loadStatementRows(s)
                   }}
                   onKeyDown={(e) => {
@@ -5953,7 +5927,25 @@ export function VerificationStatusTab({
                   <span className="text-xs font-semibold text-app-fg-muted">
                     {t.statements.stmtPdfSummaryTitle}
                   </span>
-                  <StmtPdfSummaryInline pdf={selectedStmt.extracted_pdf_dates as StmtExtractedPdfDates} t={t} formatStmtDate={formatStmtDate} />
+                  {(() => {
+                    const pdfRows: { label: string; value: string }[] = []
+                    const issued = selectedStmt.extracted_pdf_dates?.issued_date?.trim()
+                    if (issued) pdfRows.push({ label: t.statements.stmtPdfMetaIssuedDate, value: formatStmtDate(issued) })
+                    return pdfRows.map((r, idx) => (
+                      <Fragment key={r.label}>
+                        {idx > 0 ? <span className="shrink-0 text-app-fg-muted/40" aria-hidden>·</span> : null}
+                        <span className="text-xs font-medium text-app-fg-muted">{r.label}</span>
+                        <span className="text-xs font-semibold tabular-nums text-app-fg">{r.value}</span>
+                      </Fragment>
+                    ))
+                  })()}
+                  {stmtTotals && (
+                    <>
+                      <span className="shrink-0 text-app-fg-muted/40" aria-hidden>·</span>
+                      <span className="text-xs font-medium text-app-fg-muted">{t.statements.tripleColStmtAmount}</span>
+                      <span className="text-xs font-semibold tabular-nums text-app-fg">{formatCurrency(stmtTotals.stmtSum, countryCode, resolvedCurrency)}</span>
+                    </>
+                  )}
                 </div>)}
               <div
                 className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-normal text-app-fg-muted`}
@@ -6886,7 +6878,8 @@ export function VerificationStatusTab({
                 }
               >
                 <colgroup>
-                  <col />
+                  <col className="w-0" />
+                  <col className="w-0" />
                   <col className="w-0" />
                   <col className="w-0" />
                   <col className="w-0" />
@@ -6899,9 +6892,15 @@ export function VerificationStatusTab({
                   <tr className={vsEmbeddedSupplier ? supplierLedgerTableHeadRow('verifica') : 'border-b border-app-line-15'}>
                     <th
                       className="w-0 whitespace-nowrap py-2 pl-1 pr-0.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
-                      title={t.statements.colRef}
+                      title={t.statements.colInvoice}
                     >
-                      Rif.
+                      {t.statements.colInvoice}
+                    </th>
+                    <th
+                      className="w-0 whitespace-nowrap py-2 pl-1 pr-0.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
+                      title={t.statements.docKindBolla}
+                    >
+                      {t.statements.docKindBolla}
                     </th>
                     <th
                       className="w-0 max-w-[7rem] whitespace-nowrap py-2 pl-1 pr-0.5 text-left text-[10px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
@@ -6909,8 +6908,7 @@ export function VerificationStatusTab({
                     >
                       {t.statements.colStatus}
                     </th>
-                    <StatementTripleColHead label={t.statements.tripleColStmtDate} shrink />
-                    <StatementTripleColHead label={t.statements.tripleColSysDate} shrink />
+                    <StatementTripleColHead label={t.statements.colDate} shrink />
                     <StatementTripleColHead label={t.statements.tripleColStmtAmount} align="right" shrink />
                     <StatementTripleColHead label={t.statements.tripleColSysAmount} align="right" shrink />
                     <StatementTripleColHead label={t.statements.tripleColBollaAmount} align="right" shrink fallback="Importo bolla" />
@@ -6930,7 +6928,7 @@ export function VerificationStatusTab({
                     <Fragment key={monthKey}>
                       {monthKey !== 'other' && (
                         <tr className="border-b border-app-line-12 bg-app-line-5">
-                          <td colSpan={8} className="px-3 py-1.5 text-[11px] font-semibold text-app-fg-muted">
+                          <td colSpan={9} className="px-3 py-1.5 text-[11px] font-semibold uppercase text-app-fg-muted">
                             {monthLabel}
                           </td>
                         </tr>
@@ -6953,6 +6951,11 @@ export function VerificationStatusTab({
                     const hasEmail   = !!(r.fornitore?.email)
                     const stmtDateLabel = r.data_doc ? formatStmtDate(r.data_doc) : '—'
                     const sysDateLabel = r.fattura?.data ? formatStmtDate(r.fattura.data) : '—'
+                    const datesDiffer = r.data_doc && r.fattura?.data && r.data_doc !== r.fattura.data
+                    const dateLabel = datesDiffer ? `${stmtDateLabel} → ${sysDateLabel}` : stmtDateLabel
+                    const dateTitle = datesDiffer
+                      ? `${t.statements.tripleColStmtDate}: ${stmtDateLabel} | ${t.statements.tripleColSysDate}: ${sysDateLabel}`
+                      : `${t.statements.colDate}: ${stmtDateLabel}`
                     const stmtAmountLabel = formatCurrency(
                       isNotaCredito ? -Math.abs(r.importoStatement) : r.importoStatement,
                       countryCode,
@@ -7015,37 +7018,35 @@ export function VerificationStatusTab({
                             >
                               {r.numero}
                             </OpenDocumentInAppButton>
+                          ) : isNotaCredito ? (
+                            <span className="block truncate font-mono font-bold text-emerald-200">{r.numero}</span>
                           ) : (
-                            <span
-                              className={`block truncate font-mono font-bold ${
-                                displayStatus === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
-                              }`}
-                              title={r.numero}
-                            >
-                              {r.numero}
-                            </span>
+                            <span className="block truncate font-mono text-app-fg-subtle">—</span>
                           )}
-                          {r.bolle.length > 0 && (
-                            <div className="mt-0.5 space-y-0.5">
+                        </td>
+                        <td className="w-0 max-w-[7rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
+                          {r.bolle.length > 0 ? (
+                            <div className="space-y-0.5">
                               {r.bolle.map((b) => (
-                                <div key={b.id} className="flex items-baseline gap-1.5">
-                                  <OpenDocumentInAppButton
-                                    bollaId={b.id}
-                                    fileUrl={r.fattura?.file_url ?? undefined}
-                                    stopTriggerPropagation
-                                    className="block min-w-0 max-w-full truncate text-[10px] font-mono text-sky-300 underline-offset-2 hover:underline"
-                                    title={`Bolla: ${b.numero_bolla ?? '—'}`}
-                                  >
-                                    {b.numero_bolla ?? '—'}
-                                  </OpenDocumentInAppButton>
-
-                                </div>
+                                <OpenDocumentInAppButton
+                                  key={b.id}
+                                  bollaId={b.id}
+                                  fileUrl={r.fattura?.file_url ?? undefined}
+                                  stopTriggerPropagation
+                                  className="block w-full truncate text-left font-mono font-bold text-sky-300 underline-offset-2 hover:underline"
+                                  title={`${t.statements.docKindBolla}: ${b.numero_bolla ?? '—'}`}
+                                >
+                                  {b.numero_bolla ?? '—'}
+                                </OpenDocumentInAppButton>
                               ))}
                             </div>
+                          ) : (
+                            <span className="block truncate font-mono text-app-fg-subtle">—</span>
                           )}
                         </td>
 
                         <td className="w-0 max-w-[7rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
+                          {!isNotaCredito && (
                           <span
                             className={`inline-flex w-max max-w-full items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none whitespace-nowrap ${displayCfg.cls}`}
                             title={displayCfg.label}
@@ -7053,25 +7054,22 @@ export function VerificationStatusTab({
                             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${displayCfg.dot}`} />
                             <span className="min-w-0 truncate">{displayCfg.label}</span>
                           </span>
+                          )}
                           {isNotaCredito && (
-                            <span className="mt-1 inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200 ring-1 ring-amber-500/30">
-                              Nota credito
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-200 ring-1 ring-emerald-500/30">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                              {t.statements.docKindNotaCredito}
                             </span>
                           )}
                         </td>
 
                         <td
-                          className="w-0 whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
-                          title={`${t.statements.tripleColStmtDate}: ${stmtDateLabel}`}
+                          className={`w-0 whitespace-nowrap px-1 py-2 align-middle tabular-nums ${
+                            datesDiffer ? 'text-amber-300 font-bold' : 'text-app-fg-muted'
+                          }`}
+                          title={dateTitle}
                         >
-                          {stmtDateLabel}
-                        </td>
-
-                        <td
-                          className="w-0 whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
-                          title={`${t.statements.tripleColSysDate}: ${sysDateLabel}`}
-                        >
-                          {sysDateLabel}
+                          {dateLabel}
                         </td>
 
                         <td
@@ -7221,7 +7219,7 @@ export function VerificationStatusTab({
                         {formatCurrency(stmtTotals.dbSum, countryCode, resolvedCurrency)}
                       </td>
                       <td className="w-0 whitespace-nowrap px-1 py-2 text-right align-middle text-xs font-bold tabular-nums text-app-fg-subtle">
-                        {stmtTotals.bollaSum > 0 ? formatCurrency(stmtTotals.bollaSum, countryCode, resolvedCurrency) : '—'}
+                        {stmtTotals.stmtSum > 0 ? formatCurrency(stmtTotals.stmtSum, countryCode, resolvedCurrency) : '—'}
                       </td>
                       <td colSpan={2} />
                     </tr>

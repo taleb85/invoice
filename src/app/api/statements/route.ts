@@ -387,6 +387,7 @@ export async function GET(req: NextRequest) {
   // Pulizia automatica: fire-and-forget, non blocca la risposta.
   cleanupBadStatements(service).catch(() => {})
   cleanupDuplicateStatementsByPeriod(service, sedeId ?? undefined).catch(() => {})
+  cleanupDuplicateStatementRows(service).catch(() => {})
   autoConvertInvoiceStatements(service).catch(() => {})
   autoCleanupDuplicateFatture(service).catch(() => {})
 
@@ -650,6 +651,45 @@ async function cleanupBadStatements(supabase: ReturnType<typeof createServiceCli
           .eq('id', doc.id)
       }
     }
+  }
+}
+
+/** Elimina righe duplicate da statement_rows (stesso numero_doc + fornitore_id in statement diversi).
+ *  Mantiene la riga dello statement più vecchio. */
+async function cleanupDuplicateStatementRows(supabase: ReturnType<typeof createServiceClient>) {
+  const { data: dupes } = await supabase
+    .from('statement_rows')
+    .select('id, numero_doc, fornitore_id, statement_id')
+    .not('numero_doc', 'is', null)
+    .not('fornitore_id', 'is', null)
+    .order('created_at', { ascending: true })
+    .limit(2000)
+
+  if (!dupes?.length) return
+
+  // Raggruppa per (numero_doc, fornitore_id)
+  const groups = new Map<string, { id: string; statement_id: string }[]>()
+  for (const r of dupes) {
+    const key = `${(r.numero_doc as string).trim()}|${r.fornitore_id as string}`
+    const list = groups.get(key) ?? []
+    list.push({ id: r.id as string, statement_id: r.statement_id as string })
+    groups.set(key, list)
+  }
+
+  const toDelete: string[] = []
+  for (const [, list] of groups) {
+    if (list.length <= 1) continue
+    // Salta il primo (più vecchio), segna i restanti per eliminazione
+    for (let i = 1; i < list.length; i++) toDelete.push(list[i]!.id)
+  }
+
+  if (!toDelete.length) return
+
+  // Elimina a lotti per non superare i limiti di Supabase
+  const BATCH = 100
+  for (let i = 0; i < toDelete.length; i += BATCH) {
+    const batch = toDelete.slice(i, i + BATCH)
+    await supabase.from('statement_rows').delete().in('id', batch)
   }
 }
 

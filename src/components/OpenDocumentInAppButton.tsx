@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CategoriaDropdown } from '@/components/CategoriaDropdown'
 import { AiAnalysisButton } from '@/components/AiAnalysisButton'
@@ -137,6 +137,67 @@ export function OpenDocumentInAppButton({
   const imageZoomRef = useRef(1)
   /** Tracks the current blob: URL so we can revoke it when no longer needed. */
   const blobUrlRef = useRef<string | null>(null)
+
+  // Drag state
+  const modalRef = useRef<HTMLDivElement>(null)
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 })
+  const isDragging = useRef(false)
+  const dragStart = useRef({ x: 0, y: 0, px: 0, py: 0 })
+
+  // Resize state
+  const [modalSize, setModalSize] = useState<{ w: number | null; h: number | null }>({ w: null, h: null })
+  const isResizing = useRef(false)
+  const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 })
+
+  const onDragStart = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true
+    dragStart.current = { x: e.clientX, y: e.clientY, px: dragPos.x, py: dragPos.y }
+    e.preventDefault()
+  }, [dragPos])
+
+  const onResizeStart = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    isResizing.current = true
+    const el = modalRef.current
+    if (!el) return
+    resizeStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      w: el.offsetWidth,
+      h: el.offsetHeight,
+    }
+  }, [])
+
+  // Global move/up for drag and resize
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (isDragging.current) {
+        setDragPos({
+          x: dragStart.current.px + (e.clientX - dragStart.current.x),
+          y: dragStart.current.py + (e.clientY - dragStart.current.y),
+        })
+      }
+      if (isResizing.current) {
+        const dx = e.clientX - resizeStart.current.x
+        const dy = e.clientY - resizeStart.current.y
+        setModalSize({
+          w: Math.max(320, resizeStart.current.w + dx),
+          h: Math.max(200, resizeStart.current.h + dy),
+        })
+      }
+    }
+    const onMouseUp = () => {
+      isDragging.current = false
+      isResizing.current = false
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
 
   const hrefs = resolveOpenDocumentHrefs({ bollaId, fatturaId, logId, documentoId, statementId, confermaOrdineId })
   const jsonHref = hrefs?.jsonHref ?? ''
@@ -345,12 +406,34 @@ export function OpenDocumentInAppButton({
         role="presentation"
       >
         <div
+          ref={modalRef}
           className="app-aurora-doc-modal-shell relative flex h-[min(68dvh,calc(100dvh-7.5rem))] max-h-[min(68dvh,calc(100dvh-7.5rem))] w-full max-w-[min(92vw,1440px)] flex-col overflow-hidden rounded-xl border border-app-line-28 shadow-2xl md:h-[calc(100dvh-1.5rem)] md:max-h-[calc(100dvh-1.5rem)] md:max-w-[min(96vw,1440px)] md:rounded-lg backdrop-blur-xl"
+          style={{
+            transform: dragPos.x !== 0 || dragPos.y !== 0 ? `translate(${dragPos.x}px, ${dragPos.y}px)` : undefined,
+            width: modalSize.w != null ? `${modalSize.w}px` : undefined,
+            height: modalSize.h != null ? `${modalSize.h}px` : undefined,
+            maxWidth: modalSize.w != null ? undefined : undefined,
+            maxHeight: modalSize.h != null ? undefined : undefined,
+          }}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
           aria-label={t.common.attachment}
         >
+          {/* Drag handle bar */}
+          <div
+            className="absolute inset-x-0 top-0 z-10 h-10 cursor-grab active:cursor-grabbing"
+            onMouseDown={onDragStart}
+          />
+          {/* Resize handle — bottom-right corner */}
+          <div
+            className="absolute bottom-0 right-0 z-30 h-4 w-4 cursor-se-resize"
+            onMouseDown={onResizeStart}
+          >
+            <svg className="h-full w-full text-app-fg-muted/40" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5}>
+              <path d="M16 16V0M16 16H0" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
           <div className="absolute right-2 top-2 z-20 flex items-center gap-1.5">
             {tabHref && (
               <a

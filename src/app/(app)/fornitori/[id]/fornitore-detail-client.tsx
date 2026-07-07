@@ -6495,6 +6495,7 @@ function FornitoreDetailClient({
     if (supplierReadOnlyMobile && MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return 'dashboard'
     return tab
   }, [supplierReadOnlyMobile, tab])
+  const [searchQuery, setSearchQuery] = useState('')
 
   const setTab = useCallback(
     (next: Tab) => {
@@ -7290,6 +7291,33 @@ function FornitoreDetailClient({
                     )}
                   </button>
                 ))}
+              </div>
+
+              {/* Search input */}
+              <div
+                className={`relative flex ${SUPPLIER_DESKTOP_TAB_ROW_H} w-44 shrink-0 items-center gap-1 rounded-lg border border-app-line-35 bg-white/[0.025] px-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]`}
+              >
+                <svg className="h-3 w-3 shrink-0 text-app-fg-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search…"
+                  className="min-w-0 flex-1 bg-transparent text-xs text-app-fg outline-none placeholder:text-app-fg-muted/40"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="shrink-0 text-app-fg-muted/50 hover:text-app-fg-muted"
+                  >
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
 
               <div

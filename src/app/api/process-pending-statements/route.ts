@@ -302,7 +302,7 @@ export async function POST(req: NextRequest) {
 
     // ── 5. Insert statement_rows ────────────────────────────────────────────
     const rowsByNumero = new Map(rows.map(r => [r.numero, r]))
-    const rowInserts = checkResults.map(r => ({
+    let rowInserts = checkResults.map(r => ({
       statement_id:   statementId,
       numero_doc:     r.numero,
       importo:        r.importoStatement,
@@ -314,6 +314,26 @@ export async function POST(req: NextRequest) {
       fornitore_id:   r.fornitore?.id ?? fornitoreId,
       bolle_json:     r.bolle.length ? r.bolle : null,
     }))
+
+    // Dedup: evita di inserire righe con numero_doc già presente in altri statement dello stesso fornitore
+    if (fornitoreId && rowInserts.length > 0) {
+      const existingDocNums = rowInserts.map(r => r.numero_doc).filter(Boolean)
+      if (existingDocNums.length > 0) {
+        const { data: existingRows } = await supabase
+          .from('statement_rows')
+          .select('numero_doc')
+          .in('numero_doc', existingDocNums)
+          .eq('fornitore_id', fornitoreId)
+          .limit(rowInserts.length)
+        const seen = new Set((existingRows ?? []).map(r => (r as { numero_doc: string }).numero_doc))
+        if (seen.size > 0) {
+          const before = rowInserts.length
+          rowInserts = rowInserts.filter(r => !seen.has(r.numero_doc))
+          const skipped = before - rowInserts.length
+          if (skipped > 0) logger.info(`[PENDING-STMT] Saltate ${skipped} righe già presenti in altri statement (stesso fornitore)`)
+        }
+      }
+    }
 
     const { error: rowsErr } = await supabase
       .from('statement_rows')
