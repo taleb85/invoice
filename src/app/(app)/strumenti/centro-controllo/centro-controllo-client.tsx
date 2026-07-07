@@ -52,6 +52,7 @@ import { interpolateTemplate } from '@/lib/interpolate-template'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import CentroControlloSediSection from './centro-controllo-sedi-section'
 import { SollecitiSettingsLinkCard } from './centro-controllo-impostazioni-section'
+import { SessionPolicyCard } from './session-policy-card'
 import ImpostazioniSedeAdminBlocks from '@/components/ImpostazioniSedeAdminBlocks'
 
 INITIALIZE_COMMANDS()
@@ -1586,6 +1587,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
 
               {/* Solleciti automatici */}
               <SollecitiSettingsLinkCard />
+
+              {/* Session policy — timeout di sessione e inattività */}
+              <SessionPolicyCard />
 
             </div>
           </details>

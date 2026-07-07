@@ -14,6 +14,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { SESSION_POLICY, type UserRole } from './session-policy'
+import { SESSION_POLICY_CHIAVI } from './session-policy-store'
 
 const ACTIVITY_KEY     = 'last_activity'
 const SESSION_START_KEY = 'session_start'
@@ -70,19 +71,61 @@ export async function recordSessionStart(
 }
 
 /**
+ * Resolve effective policy for a role, merging DB overrides on top of
+ * the code defaults in `SESSION_POLICY`.
+ */
+async function resolvePolicy(
+  supabase: SupabaseClient,
+  role: UserRole,
+): Promise<{ maxAgeSeconds: number; inactivitySeconds: number }> {
+  const code = SESSION_POLICY[role]
+  const chiavi = SESSION_POLICY_CHIAVI[role as keyof typeof SESSION_POLICY_CHIAVI]
+  if (!chiavi) return code // fallback for unknown roles
+
+  try {
+    const allChiavi = [chiavi.maxAge, chiavi.inactivity]
+    const { data: rows } = await supabase
+      .from('configurazioni_app')
+      .select('chiave, valore')
+      .in('chiave', allChiavi)
+
+    const byKey: Record<string, string> = {}
+    for (const r of (rows ?? []) as Array<{ chiave: string; valore: string }>) {
+      byKey[r.chiave] = r.valore
+    }
+
+    function parse(raw: string | undefined, fallback: number): number {
+      if (raw == null) return fallback
+      const n = Number(raw.trim())
+      return Number.isFinite(n) && n > 0 ? n : fallback
+    }
+
+    return {
+      maxAgeSeconds:     parse(byKey[chiavi.maxAge], code.maxAgeSeconds),
+      inactivitySeconds: parse(byKey[chiavi.inactivity], code.inactivitySeconds),
+    }
+  } catch {
+    return code
+  }
+}
+
+/**
  * Check whether the session is still within policy limits.
  * Returns `{ valid: true }` when everything is fine, or
  * `{ valid: false, reason: 'inactivity' | 'max_age' }` when expired.
  *
  * A missing `session_start` record is treated as valid (user may have
  * logged in before this feature was deployed).
+ *
+ * Policy values are resolved from `configurazioni_app` (dynamic)
+ * with fallback to the hardcoded defaults in `SESSION_POLICY`.
  */
 export async function checkSessionValid(
   supabase: SupabaseClient,
   userId: string,
   role: UserRole,
 ): Promise<{ valid: boolean; reason?: 'inactivity' | 'max_age' }> {
-  const policy = SESSION_POLICY[role]
+  const policy = await resolvePolicy(supabase, role)
   const now = Date.now()
 
   const { data: rows } = await supabase
