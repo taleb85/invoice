@@ -204,10 +204,10 @@ const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'ver
 const MOBILE_SELF_HEADED_TABS: Tab[] = ['verifica', 'documenti']
 
 /** Altezza uniforme pulsanti barra sticky fornitore (desktop). */
-const SUPPLIER_DESKTOP_HEADER_ACTION_H = 'h-7'
+const SUPPLIER_DESKTOP_HEADER_ACTION_H = 'h-6'
 
 /** Altezza riga tab + navigatore periodo (allineati). */
-const SUPPLIER_DESKTOP_TAB_ROW_H = 'h-7 xl:h-8'
+const SUPPLIER_DESKTOP_TAB_ROW_H = 'h-6 xl:h-8'
 
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
@@ -1542,8 +1542,8 @@ function DashboardTab({
               {!readOnly ? (
               <button
                 onClick={(e) => { e.stopPropagation(); openAdd() }}
-                className="flex items-center gap-1 px-2.5 py-1 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors">
-                <svg className={`w-3 h-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                className="flex items-center gap-1 px-2.5 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold h-6 box-border rounded-lg transition-colors">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                 {t.common.add}
               </button>
               ) : null}
@@ -2468,42 +2468,51 @@ function BolleTab({
     <>
     <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}>
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
-      {!readOnly && bolleRefreshBatch.length > 0 ? (
-        <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <svg className={`h-5 w-5 shrink-0 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-              <div className="min-w-0">
-                <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.bolle.title}</h3>
-                <p className="text-xs text-app-fg-muted">{t.bolle.description}</p>
-              </div>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <DocumentOcrRefreshButton
-                  hasFile
-                  batch={bolleRefreshBatch}
-                  className="px-2.5 py-1 h-auto min-h-0"
-                  onLedgerMutated={() => {
-                    onLedgerMutated?.()
-                    setOcrEpoch((e) => e + 1)
-                  }}
-                  onProcessingChange={(id) => {
-                    if (id && processingIdRef.current && processingIdRef.current !== id) {
-                      setProcessedFlash(processingIdRef.current)
-                      window.setTimeout(() => setProcessedFlash((prev) => prev === processingIdRef.current ? null : prev), 1200)
-                    }
-                    processingIdRef.current = id
-                    setProcessingId(id)
-                  }}
-                />
-              </div>
+      <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg className={`h-5 w-5 shrink-0 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.bolle.title}</h3>
+              <p className="text-xs text-app-fg-muted">{t.bolle.description}</p>
             </div>
           </div>
+          {!readOnly ? (
+          <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {bolleRefreshBatch.length > 0 ? (
+              <DocumentOcrRefreshButton
+                hasFile
+                batch={bolleRefreshBatch}
+                className="px-2.5 h-6 box-border"
+                onLedgerMutated={() => {
+                  onLedgerMutated?.()
+                  setOcrEpoch((e) => e + 1)
+                }}
+                onProcessingChange={(id) => {
+                  if (id && processingIdRef.current && processingIdRef.current !== id) {
+                    setProcessedFlash(processingIdRef.current)
+                    window.setTimeout(() => setProcessedFlash((prev) => prev === processingIdRef.current ? null : prev), 1200)
+                  }
+                  processingIdRef.current = id
+                  setProcessingId(id)
+                }}
+              />
+              ) : (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-30 bg-app-line-10 px-2.5 h-6 box-border text-[11px] font-bold text-app-fg-muted opacity-50 cursor-not-allowed">
+                <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {t.fatture.refreshDateFromDoc}
+              </span>
+              )}
+            </div>
+          </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
       {ocrError ? (
         <p className="border-b border-rose-500/25 bg-rose-500/10 px-4 py-2 text-center text-xs text-rose-200" role="alert">
           {ocrError}
@@ -2605,7 +2614,7 @@ function BolleTab({
       </div>
 
       <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
-        <table className={SUPPLIER_LEDGER_TABLE}>
+        <table className={`${SUPPLIER_LEDGER_TABLE} table-fixed`}>
           <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
             <tr className={supplierLedgerTableHeadRow('bolle')}>
               <th className={SUPPLIER_LEDGER_TH}>{t.common.date}</th>
@@ -2613,7 +2622,6 @@ function BolleTab({
               <th className={SUPPLIER_LEDGER_TH}>{'Tipo'}</th>
               <th className={SUPPLIER_LEDGER_TH}>{t.bolle.colAttachmentKind}</th>
               <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.statements.colAmount}</th>
-              <th className={SUPPLIER_LEDGER_TH_AMOUNT}>{t.bolle.colQuantita}</th>
               <th className={SUPPLIER_LEDGER_TH_RIGHT}>{t.common.actions}</th>
             </tr>
           </thead>
@@ -2627,7 +2635,7 @@ function BolleTab({
                 onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
               >
                 <td className={SUPPLIER_LEDGER_TD_DATE}>{formatDate(b.data)}</td>
-                <td className={`${SUPPLIER_LEDGER_TD} font-mono text-xs`}>
+                <td className={`${SUPPLIER_LEDGER_TD} font-mono text-center`}>
                   <span className="break-words">{numeroInElenco(b) || '—'}</span>
                   {!readOnly ? (
                     <DuplicateLedgerRowExtras
@@ -2643,8 +2651,8 @@ function BolleTab({
                     />
                   ) : null}
                 </td>
-                <td className={`${SUPPLIER_LEDGER_TD} font-sans text-[10px]`}>
-                  <span className="inline-flex items-center gap-1">
+                <td className={`${SUPPLIER_LEDGER_TD} font-sans text-center`}>
+                  <span className="inline-flex items-center justify-center gap-1">
                     <button
                       type="button"
                       onClick={!readOnly && b.file_url ? (e) => { e.stopPropagation(); setTipoEditingBollaId((prev) => prev === b.id ? null : b.id) } : undefined}
@@ -2674,7 +2682,7 @@ function BolleTab({
                     ) : null}
                   </span>
                 </td>
-                <td className={SUPPLIER_LEDGER_TD}>
+                <td className={`${SUPPLIER_LEDGER_TD} text-center`}>
                   {!fileKind ? (
                     <span className="text-app-fg-muted">—</span>
                   ) : (
@@ -2685,9 +2693,6 @@ function BolleTab({
                 </td>
                 <td className={SUPPLIER_LEDGER_TD_AMOUNT} onClick={e => e.stopPropagation()}>
                   <BollaImportoInline id={b.id} importo={b.importo} currency={currency ?? 'EUR'} locale={locale} />
-                </td>
-                <td className={SUPPLIER_LEDGER_TD_AMOUNT}>
-                  {formatBollaQuantita(quantitaInElenco(b), locale)}
                 </td>
                 <td className={SUPPLIER_LEDGER_TD_ACTIONS}>
                   <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
@@ -3229,40 +3234,40 @@ function FattureTab({
         className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}
       >
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
-      {!readOnly && toolbarRefreshBatch.length > 0 ? (
-        <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <svg className={`h-5 w-5 shrink-0 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <div className="min-w-0">
-                <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.fatture.title}</h3>
-                <p className="text-xs text-app-fg-muted">{t.fatture.description}</p>
-              </div>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <DocumentOcrRefreshButton
-                  hasFile
-                  batch={toolbarRefreshBatch}
-                  className="px-2.5 py-1 h-auto min-h-0"
-                  onLedgerMutated={onLedgerMutated}
-                  onProcessingChange={(id) => {
-                    if (id && processingIdRef.current && processingIdRef.current !== id) {
-                      setProcessedFlash(processingIdRef.current)
-                      window.setTimeout(() => setProcessedFlash((prev) => prev === processingIdRef.current ? null : prev), 1200)
-                    }
-                    processingIdRef.current = id
-                    setProcessingId(id)
-                  }}
-                />
-                {listinoButton}
-              </div>
+      <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4 mx-2 mt-2 mb-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg className={`h-5 w-5 shrink-0 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-app-fg uppercase tracking-wider">{t.fatture.title}</h3>
+              <p className="text-xs text-app-fg-muted">{t.fatture.description}</p>
             </div>
           </div>
+          {!readOnly && toolbarRefreshBatch.length > 0 ? (
+          <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <DocumentOcrRefreshButton
+                hasFile
+                batch={toolbarRefreshBatch}
+                className="px-2.5 h-6 box-border"
+                onLedgerMutated={onLedgerMutated}
+                onProcessingChange={(id) => {
+                  if (id && processingIdRef.current && processingIdRef.current !== id) {
+                    setProcessedFlash(processingIdRef.current)
+                    window.setTimeout(() => setProcessedFlash((prev) => prev === processingIdRef.current ? null : prev), 1200)
+                  }
+                  processingIdRef.current = id
+                  setProcessingId(id)
+                }}
+              />
+              {listinoButton}
+            </div>
+          </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
       <div className="min-w-0 flex-1">
         {!readOnly && fattureWithFile.length > 0 && toolbarFatturaId ? (
           <FatturaListinoAutoSync
@@ -3385,7 +3390,7 @@ function FattureTab({
         </div>
 
         <div className={SUPPLIER_LEDGER_TABLE_WRAP}>
-          <table className={SUPPLIER_LEDGER_TABLE}>
+          <table className={`${SUPPLIER_LEDGER_TABLE} table-fixed`}>
             <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
               <tr className={supplierLedgerTableHeadRow('fatture')}>
                 <th className={SUPPLIER_LEDGER_TH}>{t.common.date}</th>
@@ -3421,7 +3426,7 @@ function FattureTab({
                       <span className="tabular-nums">{formatDate(f.data)}</span>
                     </td>
                     <td
-                      className={`${SUPPLIER_LEDGER_TD} font-mono text-xs`}>
+                      className={`${SUPPLIER_LEDGER_TD} font-mono text-center`}>
                       {editingCell?.id === f.id && editingCell.field === 'numero_fattura' ? (
                         <input
                           autoFocus
@@ -3436,7 +3441,7 @@ function FattureTab({
                         <>
                           <span className="break-words">{f.numero_fattura ?? '—'}</span>
                           {supplierMismatch ? (
-                            <span className="mt-1 block font-sans text-[10px] font-normal not-italic text-amber-200/95">
+                            <span className="mt-1 block font-sans text-xs font-normal not-italic text-amber-200/95">
                               {t.log.supplierSuggested}:{' '}
                               <span className="font-semibold text-amber-50">{supplierMismatch}</span>
                             </span>
@@ -3460,9 +3465,9 @@ function FattureTab({
                         </>
                       )}
                     </td>
-                    <td className={`${SUPPLIER_LEDGER_TD} font-sans text-[10px]`}>
+                    <td className={`${SUPPLIER_LEDGER_TD} font-sans text-center`}>
                       {f.file_url ? (
-                        <span className="inline-flex items-center gap-1">
+                        <span className="inline-flex items-center justify-center gap-1">
                           <button
                             type="button"
                             className={`${!readOnly ? 'cursor-pointer underline decoration-dotted hover:text-app-fg-muted' : ''} text-app-fg-muted/60`}
@@ -3490,7 +3495,7 @@ function FattureTab({
                         <span className="text-app-fg-muted/60">—</span>
                       )}
                     </td>
-                    <td className={SUPPLIER_LEDGER_TD}>
+                    <td className={`${SUPPLIER_LEDGER_TD} text-center`}>
                       {!fileKind ? (
                         <span className="text-app-fg-muted">—</span>
                       ) : (
@@ -4832,7 +4837,7 @@ function ListinoTab({
               </div>
               <div className="flex items-center gap-2">
               {nListinoProducts > 0 && (
-                <span className="rounded-full border border-app-soft-border app-workspace-inset-bg px-2 py-0.5 text-[10px] font-medium text-app-fg-muted">
+                <span className="rounded-full border border-app-soft-border app-workspace-inset-bg px-2 text-[10px] font-medium h-6 box-border inline-flex items-center text-app-fg-muted">
                   {listinoSpendFilter !== 'all' ? `${nFilteredProducts} / ${nListinoProducts}` : nListinoProducts}{' '}
                   {t.fornitori.listinoProdottiTracked}
                 </span>
@@ -4844,7 +4849,7 @@ function ListinoTab({
                 onClick={handleAutoImport}
                 disabled={autoImporting}
                 title="Importa automaticamente prezzi e prodotti da fatture, bolle e ordini non ancora analizzati"
-                className="hidden md:flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
+                className="hidden md:flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/15 px-2.5 text-[11px] font-bold h-6 box-border text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
               >
                 {autoImporting ? (
                   <div className="h-3 w-3 animate-spin rounded-full border border-[rgba(34,211,238,0.15)] border-t-transparent" />
@@ -4858,7 +4863,7 @@ function ListinoTab({
               <button
                 onClick={() => setShowMergeDialog(true)}
                 disabled={autoImporting || listino.length === 0}
-                className="hidden md:flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-bold text-indigo-200 transition-colors hover:bg-indigo-500/20 disabled:opacity-50"
+                className="hidden md:flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 text-[11px] font-bold h-6 box-border text-indigo-200 transition-colors hover:bg-indigo-500/20 disabled:opacity-50"
                 title="Unisci due prodotti duplicati"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
@@ -4866,7 +4871,7 @@ function ListinoTab({
               </button>
               <button
                 onClick={openImport}
-                className="hidden md:flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-violet-500"
+                className="hidden md:flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 text-[11px] font-bold h-6 box-border text-white transition-colors hover:bg-violet-500"
               >
                 <svg className={`w-3 h-3 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                 {t.appStrings.fromInvoiceBtn}
@@ -4877,7 +4882,7 @@ function ListinoTab({
                   void handleAutoImport()
                 }}
                 disabled={autoImporting}
-                className="hidden md:flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-200 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
+                className="hidden md:flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 text-[11px] font-bold h-6 box-border text-amber-200 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
               >
                 {autoImporting ? (
                   <div className="h-3 w-3 animate-spin rounded-full border border-amber-400/50 border-t-transparent" />
@@ -4893,9 +4898,9 @@ function ListinoTab({
                   setSaveError(null)
                   setFormForceOutdated(false)
                 }}
-                className="flex items-center gap-1 px-2.5 py-1 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors"
+                className="flex items-center gap-1 px-2.5 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold h-6 box-border rounded-lg transition-colors"
               >
-                <svg className={`w-3 h-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                 {t.common.add}
               </button>
               </>
@@ -7234,7 +7239,7 @@ function FornitoreDetailClient({
                 href={hrefWithReturnTo(`/fornitori/${fornitore.id}/edit`, supplierReturnPath)}
                 onClick={() => saveScrollForListPath(supplierReturnPath)}
                 title={t.fornitori.editTitle}
-                className={`flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} w-7 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg`}
+                className={`flex ${SUPPLIER_DESKTOP_HEADER_ACTION_H} w-6 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg`}
               >
                 <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />

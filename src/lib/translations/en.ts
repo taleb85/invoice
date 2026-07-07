@@ -1557,7 +1557,7 @@ const translations: Translations = {
     tripleColSysDate: 'System date',
     tripleColStmtAmount: 'Stmt amount',
     tripleColSysAmount: 'Invoice amount',
-    tripleColBollaAmount: 'Bolla amount',
+    tripleColBollaAmount: 'DN amount',
     tripleColChecks: 'Checks',
     statusCheckPending: 'Pending',
     statementVerifyBanner: 'Statement verification',

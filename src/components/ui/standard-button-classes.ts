@@ -40,7 +40,7 @@ export const BTN_SIZE_MD = 'h-10 min-h-10 px-4 py-2.5 text-xs rounded-xl'
  * `sm` – pill in tabelle, azioni compatte inline
  *   h-8, rounded-lg, text-[11px], px-3, py-1.5
  */
-export const BTN_SIZE_SM = 'h-8 min-h-8 px-3 py-1.5 text-[11px] rounded-lg'
+export const BTN_SIZE_SM = 'h-6 min-h-6 px-3 py-1 text-[11px] rounded-lg'
 
 /**
  * `xs` – toolbar compatta desktop

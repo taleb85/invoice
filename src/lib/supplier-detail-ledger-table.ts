@@ -25,7 +25,7 @@ export const SUPPLIER_LEDGER_TABLE_WRAP = 'hidden overflow-x-auto rounded-lg bor
 export const SUPPLIER_LEDGER_TABLE = 'w-full min-w-[640px] text-sm'
 
 export const SUPPLIER_LEDGER_TH =
-  'px-1 py-1.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-1.5 md:py-2'
+  'px-1 py-1.5 text-center text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-1.5 md:py-2'
 
 export const SUPPLIER_LEDGER_TH_RIGHT =
   'px-1 py-1.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted md:px-1.5 md:py-2'

@@ -120,7 +120,7 @@ export default function FatturaListinoAutoSync({
         type="button"
         onClick={handleAutoSync}
         disabled={loading || !fatturaId}
-        className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-3 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+        className="inline-flex items-center justify-center rounded-lg bg-violet-600 px-3 text-[11px] font-bold h-6 box-border text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
       >
         {loading ? t.appStrings.autoSyncBtnLoading : t.appStrings.autoSyncBtn}
       </button>

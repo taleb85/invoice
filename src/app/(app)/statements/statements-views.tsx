@@ -327,12 +327,10 @@ function StatementTripleColHead({
       title={label}
     >
       {secondary ? (
-        <>
-          <span className="block text-[9px] font-semibold normal-case tracking-normal text-app-fg-subtle">
-            {primary}
-          </span>
-          <span>{secondary}</span>
-        </>
+        <span>
+          <span className="font-semibold normal-case tracking-normal text-app-fg-subtle">{primary}</span>
+          {' '}{secondary}
+        </span>
       ) : (
         <span>{primary}</span>
       )}
@@ -462,9 +460,9 @@ function StmtPdfSummaryInline({
     <>
       {rows.map((r, idx) => (
         <Fragment key={r.label}>
-          {idx > 0 ? <span className="shrink-0 text-slate-500" aria-hidden>·</span> : null}
-          <span className="font-semibold text-slate-300 text-[10px]">{r.label}</span>
-          <span className="font-medium tabular-nums text-slate-100 text-[10px]">{r.value}</span>
+          {idx > 0 ? <span className="shrink-0 text-app-fg-muted/40" aria-hidden>·</span> : null}
+          <span className="text-xs font-medium text-app-fg-muted">{r.label}</span>
+          <span className="text-xs font-semibold tabular-nums text-app-fg">{r.value}</span>
         </Fragment>
       ))}
     </>
@@ -5230,7 +5228,7 @@ export function VerificationStatusTab({
 
   const stmtNavBtnCls = vsEmbeddedSupplier
     ? vsCompactS1
-      ? 'inline-flex h-11 w-11 items-center justify-center rounded-lg border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation md:h-7 md:w-7 md:rounded-md'
+      ? 'inline-flex h-11 w-11 items-center justify-center rounded-lg border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation md:h-6 md:w-6 md:rounded-md'
       : 'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-app-line-28 bg-white/[0.04] text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40'
     : 'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-app-line-28 bg-white/[0.04] text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40'
 
@@ -5407,8 +5405,8 @@ export function VerificationStatusTab({
                   vsEmbeddedSupplier
                     ? vsCompactS1
                       ? `${vsS1HeaderActionBtn} max-md:basis-full border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40`
-                      : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
-                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
+                      : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
+                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
                 }
               >
                 <svg className={`${vsCompactS1 ? vsS1HeaderActionIcon : 'h-3.5 w-3.5'} shrink-0 opacity-90 ${icon.statements}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -5476,8 +5474,8 @@ export function VerificationStatusTab({
                 vsEmbeddedSupplier
                   ? vsCompactS1
                     ? `${vsS1HeaderActionBtn} border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50`
-                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
-                  : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
+                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
+                  : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-white/[0.04] px-2.5 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
               }
             >
               <svg
@@ -5516,7 +5514,9 @@ export function VerificationStatusTab({
                   void runAllStmtsRecheck()
                 }
               }}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:pointer-events-none disabled:opacity-45"
+              className={`inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 text-xs font-semibold h-6 box-border text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:pointer-events-none disabled:opacity-45 ${
+                vsCompactS1 ? 'md:min-h-0 md:py-1 md:text-[11px] md:rounded-md md:px-2 md:gap-1 md:whitespace-nowrap' : ''
+              }`}
             >
               <svg
                 className="h-3.5 w-3.5 shrink-0 opacity-90 text-sky-400"
@@ -5928,7 +5928,7 @@ export function VerificationStatusTab({
                 <OpenDocumentInAppButton
                   statementId={selectedStmt.id}
                   fileUrl={selectedStmt.file_url}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 text-xs font-semibold h-6 box-border text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                   categoria={t.statements.tabVerifica}
                 >
                   {t.statements.openPdf}
@@ -5944,43 +5944,36 @@ export function VerificationStatusTab({
             }`}
           >
             <div className="flex w-full flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0 pr-0 md:pr-2">
-              <p className="truncate text-sm font-semibold text-app-fg">
+              <span className="truncate text-xs font-semibold text-app-fg">
                 {selectedStmtPrimaryLabel ||
                   (selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement')}
-              </p>
+              </span>
               {hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) && (
                 <div className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                  <span className="text-xs font-semibold text-app-fg-muted">
                     {t.statements.stmtPdfSummaryTitle}
                   </span>
                   <StmtPdfSummaryInline pdf={selectedStmt.extracted_pdf_dates as StmtExtractedPdfDates} t={t} formatStmtDate={formatStmtDate} />
                 </div>)}
               <div
-                className={`flex flex-wrap items-center gap-x-1 gap-y-1 text-xs font-normal text-app-fg-muted ${hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'}`}
+                className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-normal text-app-fg-muted`}
               >
-                <span className="text-app-fg-muted">
-                  {statementOfficialDateIso(selectedStmt) ? t.statements.labelDocDate : t.statements.receivedOn}
-                </span>{' '}
-                <span className="tabular-nums text-app-fg">{formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}</span>
                 {selectedStmt.file_url && (
-                  <>
-                    <span className="text-app-fg-muted"> · </span>
-                    <OpenDocumentInAppButton
+                  <OpenDocumentInAppButton
                       statementId={selectedStmt.id}
                       fileUrl={selectedStmt.file_url}
-                      className="ml-0.5 inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
+                      className="ml-0.5 inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 text-xs font-semibold h-6 box-border text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                       categoria={t.statements.tabVerifica}
                     >
                       {t.statements.openPdf}
                     </OpenDocumentInAppButton>
-                  </>
                 )}
               </div>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-1.5 self-start">
               {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && selectedStmt.linked_fattura_id ? (
                 <span
-                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200"
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 text-xs font-semibold h-6 box-border text-emerald-200"
                   title={t.statements.alsoFatturaCreataTitle}
                 >
                   <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -6108,7 +6101,7 @@ export function VerificationStatusTab({
                     setAlsoFatturaOcr({ phase: 'idle', filled: { numero: false, importo: false }, sources: { numero: null, importo: null }, sourceStmtId: null, error: null })
                   }}
                   disabled={alsoFatturaBusy}
-                  className="rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:bg-app-line-10 disabled:opacity-50"
+                  className="rounded-lg border border-app-line-28 bg-transparent px-3 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:bg-app-line-10 disabled:opacity-50"
                 >
                   {t.common.cancel}
                 </button>
@@ -6149,7 +6142,7 @@ export function VerificationStatusTab({
                       setAlsoFatturaBusy(false)
                     }
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-3 text-xs font-semibold h-6 box-border text-emerald-100 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
                 >
                   {alsoFatturaBusy ? (
                     <>
@@ -6459,7 +6452,7 @@ export function VerificationStatusTab({
                             key={chip.id}
                             type="button"
                             onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-2 text-xs font-semibold transition-all ${
+                            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 text-xs font-semibold h-6 box-border transition-all ${
                               checkFilter === chip.id ? chipActiveCls : chipIdleCls
                             }`}
                           >
@@ -6481,7 +6474,7 @@ export function VerificationStatusTab({
                           onClick={() =>
                             verificaProdottoRaw ? clearVerificaDeepLinkFilters() : setCheckFilter('all')
                           }
-                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                         >
                           <svg
                             className={`h-4 w-4 shrink-0 opacity-90 ${icon.settingsTools}`}
@@ -6509,7 +6502,7 @@ export function VerificationStatusTab({
                           key={chip.id}
                           type="button"
                           onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
-                          className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-xs font-semibold transition-all ${
+                          className={`flex items-center gap-1 whitespace-nowrap rounded-lg border px-2.5 text-xs font-semibold transition-all h-6 box-border ${
                             checkFilter === chip.id ? chipActiveCls : chipIdleCls
                           }`}
                         >
@@ -6527,7 +6520,7 @@ export function VerificationStatusTab({
                         onClick={() =>
                           verificaProdottoRaw ? clearVerificaDeepLinkFilters() : setCheckFilter('all')
                         }
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
                       >
                         <svg
                           className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.settingsTools}`}
@@ -6620,7 +6613,7 @@ export function VerificationStatusTab({
                   <button
                     type="button"
                     onClick={() => clearVerificaDeepLinkFilters()}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-2.5 text-xs font-semibold h-6 box-border text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
                   >
                     {t.statements.clearFilter}
                   </button>
@@ -6760,7 +6753,7 @@ export function VerificationStatusTab({
                         <OpenDocumentInAppButton
                           fatturaId={r.fattura.id}
                           fileUrl={r.fattura.file_url}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 text-xs font-semibold h-6 box-border text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                         >
                           PDF
                         </OpenDocumentInAppButton>
@@ -7288,9 +7281,9 @@ export function VerificationStatusTab({
             </div>
             <div className="flex shrink-0 items-center justify-end gap-2 border-t border-app-line-22 px-5 py-3">
               <button type="button" onClick={() => { setAssignOpen(false); setAssignRow(null) }}
-                className="rounded-lg border border-app-line-22 bg-transparent px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-10">Annulla</button>
+                className="rounded-lg border border-app-line-22 bg-transparent px-3 text-xs font-medium h-6 box-border text-app-fg-muted transition-colors hover:bg-app-line-10">Annulla</button>
               <button type="button" onClick={handleAssignConfirm} disabled={!assignSelected || assignConfirming}
-                className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-purple-500 disabled:opacity-50">
+                className="rounded-lg bg-purple-600 px-3 text-xs font-semibold h-6 box-border text-white transition-colors hover:bg-purple-500 disabled:opacity-50">
                 {assignConfirming ? 'Assegnazione...' : 'Conferma'}
               </button>
             </div>
