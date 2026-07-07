@@ -5,6 +5,7 @@ import { getRequestAuth, getProfile } from '@/utils/supabase/server'
 import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supabase-detail-for-viewer'
 import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
 import ToggleStato from './ToggleStato'
+import EditBollaImporto from './EditBollaImporto'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
@@ -101,14 +102,12 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
               <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.date}</dt>
               <dd className="text-app-fg-muted">{formatDate(bolla.data)}</dd>
             </div>
-            {bolla.importo != null && (
-              <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-app-fg-muted">{t.statements.colAmount}</dt>
-                <dd className="font-semibold text-app-fg">
-                  £ {Number(bolla.importo).toFixed(2)}
-                </dd>
-              </div>
-            )}
+            <div className="flex gap-2">
+              <dt className="w-28 shrink-0 text-app-fg-muted">{t.statements.colAmount}</dt>
+              <dd>
+                <EditBollaImporto id={bolla.id} importo={bolla.importo} />
+              </dd>
+            </div>
             <div className="flex gap-2">
               <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.status}</dt>
               <dd>

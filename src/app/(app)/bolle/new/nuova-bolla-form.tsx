@@ -547,6 +547,33 @@ export default function NuovaBollaForm() {
       quantita.trim() !== '' && Number.isFinite(parseFloat(quantita))
         ? parseFloat(quantita)
         : null
+    const importoFinaleBolla = importo.trim() !== '' ? parseFloat(importo) : null
+
+    // ── Controllo duplicati bolla: stesso fornitore + numero + importo ──
+    const bollaNumero = numeroBolla.trim()
+    let bollaDuplicata = false
+    if (bollaNumero) {
+      const { data: bolleEsistenti } = await supabase
+        .from('bolle')
+        .select('id, importo')
+        .eq('fornitore_id', fornitoreId)
+        .eq('numero_bolla', bollaNumero)
+      if (bolleEsistenti?.length) {
+        if (importoFinaleBolla != null) {
+          bollaDuplicata = bolleEsistenti.some(
+            (b) => b.importo != null && Math.abs(b.importo - importoFinaleBolla) < 0.01,
+          )
+        } else {
+          bollaDuplicata = true
+        }
+      }
+    }
+    if (bollaDuplicata) {
+      setError('Bolla già esistente con gli stessi dati (fornitore, data, numero e importo).')
+      setSaving(false)
+      return
+    }
+
     const { error: insertError } = await supabase.from('bolle').insert([{
       fornitore_id: fornitoreId,
       sede_id: sedeId,
@@ -555,7 +582,7 @@ export default function NuovaBollaForm() {
       stato: 'in attesa',
       registrato_da: registratoDa.trim().toUpperCase() || null,
       numero_bolla: numeroBolla.trim() || null,
-      importo: null,
+      importo: importoFinaleBolla,
       ...(quantitaFinale != null ? { quantita: quantitaFinale } : {}),
     }])
 
@@ -791,21 +818,41 @@ export default function NuovaBollaForm() {
               </div>
             </div>
           ) : (
-            <div className="border-t border-app-line-10 app-workspace-inset-bg-soft p-4">
-              <label className={fieldLabelCls}>
-                {t.bolle.labelQuantitaTotale}{' '}
-                <span className={fieldHintCls}>({t.bolle.labelQuantitaHint})</span>
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                placeholder="0"
-                value={quantita}
-                onChange={e => setQuantita(e.target.value)}
-                className={fieldInputCls}
-              />
-            </div>
+            <>
+              <div className="border-t border-app-line-10 app-workspace-inset-bg-soft p-4">
+                <label className={fieldLabelCls}>
+                  {t.appStrings.labelImportoTotale}{' '}
+                  <span className={fieldHintCls}>(IVA inclusa, opzionale)</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold text-app-fg-muted">£</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={importo}
+                    onChange={e => setImporto(e.target.value)}
+                    className={`flex-1 ${fieldInputCls}`}
+                  />
+                </div>
+              </div>
+              <div className="border-t border-app-line-10 app-workspace-inset-bg-soft p-4">
+                <label className={fieldLabelCls}>
+                  {t.bolle.labelQuantitaTotale}{' '}
+                  <span className={fieldHintCls}>({t.bolle.labelQuantitaHint})</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0"
+                  value={quantita}
+                  onChange={e => setQuantita(e.target.value)}
+                  className={fieldInputCls}
+                />
+              </div>
+            </>
           )}
         </div>
 

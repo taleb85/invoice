@@ -5044,13 +5044,15 @@ export function VerificationStatusTab({
     if (!filteredCheckResults) return null
     let stmtSum = 0
     let dbSum = 0
+    let bollaSum = 0
     let count = 0
     for (const r of filteredCheckResults) {
       stmtSum += r.importoStatement ?? 0
       dbSum += r.fattura?.importo ?? 0
+      bollaSum += r.bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
       count++
     }
-    return count > 0 ? { stmtSum, dbSum } : null
+    return count > 0 ? { stmtSum, dbSum, bollaSum } : null
   }, [filteredCheckResults])
 
   /** Raggruppa le righe dei check results per mese (YYYY-MM) in base a data_doc. */
@@ -5634,8 +5636,9 @@ export function VerificationStatusTab({
                               )}
                             </>
                           ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
-                              {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
+                            <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
+                              <GlyphCheck className="h-3 w-3" aria-hidden />
+                              OK
                             </span>
                           )}
                         </div>
@@ -6395,11 +6398,16 @@ export function VerificationStatusTab({
           <div className="min-w-0 w-full">
             {/* ── Inline header: title + filter chips + clear ── */}
             {(() => {
-              const countOk   = checkResults.filter(r => r.status === 'ok').length
-              const countFM   = checkResults.filter(r => r.status === 'fattura_mancante').length
-              const countBM   = checkResults.filter(r => r.status === 'bolle_mancanti').length
-              const countEI   = checkResults.filter(r => r.status === 'errore_importo').length
-              const countRK   = checkResults.filter(r => r.status === 'rekki_prezzo_discordanza').length
+              const cnPrefix = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i
+              const displayCheckStatus = (r: CheckResult): CheckStatus =>
+                cnPrefix.test(r.numero) && (r.status === 'bolle_mancanti' || r.status === 'errore_importo')
+                  ? 'ok'
+                  : r.status
+              const countOk   = checkResults.filter(r => displayCheckStatus(r) === 'ok').length
+              const countFM   = checkResults.filter(r => displayCheckStatus(r) === 'fattura_mancante').length
+              const countBM   = checkResults.filter(r => displayCheckStatus(r) === 'bolle_mancanti').length
+              const countEI   = checkResults.filter(r => displayCheckStatus(r) === 'errore_importo').length
+              const countRK   = checkResults.filter(r => displayCheckStatus(r) === 'rekki_prezzo_discordanza').length
               const chips: { id: typeof checkFilter; dot: string; label: string; count: number }[] = [
                 { id: 'ok',               dot: 'bg-green-500',  label: t.statements.kpiVerifiedOk,       count: countOk  },
                 { id: 'fattura_mancante', dot: 'bg-orange-500', label: t.statements.statusFatturaMancante, count: countFM  },
@@ -6801,6 +6809,12 @@ export function VerificationStatusTab({
                         {formatCurrency(stmtTotals.dbSum, countryCode, resolvedCurrency)}
                       </span>
                     </div>
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wide text-app-fg-muted">{t.statements.tripleColBollaAmount}</span>
+                      <span className="text-sm font-bold tabular-nums text-app-fg-subtle">
+                        {stmtTotals.bollaSum > 0 ? formatCurrency(stmtTotals.bollaSum, countryCode, resolvedCurrency) : '—'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -6866,49 +6880,67 @@ export function VerificationStatusTab({
                         </tr>
                       )}
                   {rows.map(r => {
-                    const cfg        = STATUS_CONFIG[r.status]
-                    const needAction =
-                      r.status === 'fattura_mancante' ||
-                      r.status === 'bolle_mancanti' ||
-                      r.status === 'errore_importo' ||
-                      r.status === 'rekki_prezzo_discordanza'
                     const isNotaCredito = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.numero)
+                    // Le note di credito non richiedono bolle e l'importo può avere
+                    // segno opposto tra statement e DB → override visivo a 'ok'.
+                    const displayStatus: CheckStatus =
+                      isNotaCredito && (r.status === 'bolle_mancanti' || r.status === 'errore_importo')
+                        ? 'ok'
+                        : r.status
+                    const displayCfg = STATUS_CONFIG[displayStatus]
+                    const needAction =
+                      displayStatus === 'fattura_mancante' ||
+                      displayStatus === 'errore_importo' ||
+                      displayStatus === 'rekki_prezzo_discordanza'
                     const sollEntry  = solleciti[r.numero] ?? { status: 'idle' }
                     const sollecitoState = sollEntry.status
                     const hasEmail   = !!(r.fornitore?.email)
                     const stmtDateLabel = r.data_doc ? formatStmtDate(r.data_doc) : '—'
                     const sysDateLabel = r.fattura?.data ? formatStmtDate(r.fattura.data) : '—'
-                    const stmtAmountLabel = formatCurrency(r.importoStatement, countryCode, resolvedCurrency)
-                    const sysAmountLabel =
-                      r.fattura?.importo != null
-                        ? formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)
-                        : '—'
-                    const bolleSum = r.bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
+                    const stmtAmountLabel = formatCurrency(
+                      isNotaCredito ? -Math.abs(r.importoStatement) : r.importoStatement,
+                      countryCode,
+                      resolvedCurrency,
+                    )
+                    const sysImporto = r.fattura?.importo != null
+                      ? (isNotaCredito ? -Math.abs(r.fattura.importo) : r.fattura.importo)
+                      : null
+                    const sysAmountLabel = sysImporto != null
+                      ? formatCurrency(sysImporto, countryCode, resolvedCurrency)
+                      : '—'
+                    const bolleImports = r.bolle.map((b) => b.importo)
+                    const bolleSum = bolleImports.reduce<number>((s, v) => s + (v ?? 0), 0)
                     const bollaAmountLabel = bolleSum > 0
                       ? formatCurrency(bolleSum, countryCode, resolvedCurrency)
                       : '—'
+                    const bollaTitle =
+                      r.bolle.length === 0
+                        ? `${t.statements.tripleColBollaAmount}: —`
+                        : bolleImports.some((v) => v != null)
+                          ? `${t.statements.tripleColBollaAmount}: ${bollaAmountLabel}`
+                          : `${t.statements.tripleColBollaAmount}: ${r.bolle.length} bolla${r.bolle.length > 1 ? 'e' : ''} collegata${r.bolle.length > 1 ? 'e' : ''}, importo non disponibile`
 
                     const checkLabels = [
-                      r.status !== 'pending' ? '✅ Stato elaborato' : '⏳ Stato in attesa',
+                      displayStatus !== 'pending' ? '✅ Stato elaborato' : '⏳ Stato in attesa',
                       r.fattura !== null ? `✅ ${isNotaCredito ? 'Nota credito' : 'Fattura'} trovata` : `❌ ${isNotaCredito ? 'Nota credito' : 'Fattura'} mancante`,
-                      r.bolle.length > 0 ? '✅ Bolle collegate' : '❌ Bolle mancanti',
-                      r.status === 'ok' || r.status === 'bolle_mancanti' || r.status === 'rekki_prezzo_discordanza'
+                      isNotaCredito ? '⏳ Non richiede bolle' : r.bolle.length > 0 ? '✅ Bolle collegate' : '❌ Bolle mancanti',
+                      displayStatus === 'ok' || displayStatus === 'rekki_prezzo_discordanza'
                         ? '✅ Importo verificato' : '❌ Importo errato',
                     ]
                     const checks = [
-                      r.status !== 'pending',
+                      displayStatus !== 'pending',
                       r.fattura !== null,
-                      r.bolle.length > 0,
-                      r.status === 'ok' || r.status === 'bolle_mancanti' || r.status === 'rekki_prezzo_discordanza',
+                      isNotaCredito || r.bolle.length > 0,
+                      displayStatus === 'ok' || displayStatus === 'rekki_prezzo_discordanza',
                     ]
 
                     return (
                       <tr
                         key={r.id}
                         className={`transition-colors hover:bg-cyan-500/[0.06] ${
-                        r.status === 'rekki_prezzo_discordanza'
+                        displayStatus === 'rekki_prezzo_discordanza'
                           ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
-                          : r.status === 'errore_importo'
+                          : displayStatus === 'errore_importo'
                             ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15'
                             : ''
                       }`}
@@ -6920,7 +6952,7 @@ export function VerificationStatusTab({
                               fileUrl={r.fattura.file_url ?? ''}
                               stopTriggerPropagation
                               className={`block w-full truncate text-left font-mono font-bold underline-offset-2 hover:underline ${
-                                r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-cyan-500'
+                                displayStatus === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-cyan-500'
                               }`}
                               title={r.numero}
                               categoria={isNotaCredito ? t.fatture.creditNote : t.fatture.invoice}
@@ -6930,7 +6962,7 @@ export function VerificationStatusTab({
                           ) : (
                             <span
                               className={`block truncate font-mono font-bold ${
-                                r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
+                                displayStatus === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
                               }`}
                               title={r.numero}
                             >
@@ -6959,11 +6991,11 @@ export function VerificationStatusTab({
 
                         <td className="w-0 max-w-[7rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
                           <span
-                            className={`inline-flex w-max max-w-full items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none whitespace-nowrap ${cfg.cls}`}
-                            title={cfg.label}
+                            className={`inline-flex w-max max-w-full items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none whitespace-nowrap ${displayCfg.cls}`}
+                            title={displayCfg.label}
                           >
-                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
-                            <span className="min-w-0 truncate">{cfg.label}</span>
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${displayCfg.dot}`} />
+                            <span className="min-w-0 truncate">{displayCfg.label}</span>
                           </span>
                           {isNotaCredito && (
                             <span className="mt-1 inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200 ring-1 ring-amber-500/30">
@@ -6988,7 +7020,7 @@ export function VerificationStatusTab({
 
                         <td
                           className={`w-0 whitespace-nowrap px-1 py-2 text-right align-middle font-bold tabular-nums ${
-                            r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-app-fg'
+                            displayStatus === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-app-fg'
                           }`}
                           title={`${t.statements.tripleColStmtAmount}: ${stmtAmountLabel}`}
                         >
@@ -6997,9 +7029,9 @@ export function VerificationStatusTab({
 
                         <td
                           className={`w-0 whitespace-nowrap px-1 py-2 text-right align-middle tabular-nums ${
-                            r.status === 'errore_importo'
+                            displayStatus === 'errore_importo'
                               ? 'text-red-300 font-bold'
-                              : r.status === 'rekki_prezzo_discordanza'
+                              : displayStatus === 'rekki_prezzo_discordanza'
                                 ? 'text-amber-400 font-bold'
                                 : r.fattura?.importo != null
                                   ? 'text-app-fg'
@@ -7008,7 +7040,7 @@ export function VerificationStatusTab({
                           title={`${t.statements.tripleColSysAmount}: ${sysAmountLabel}`}
                         >
                           {sysAmountLabel}
-                          {r.status === 'rekki_prezzo_discordanza' && r.deltaImporto !== null && (
+                          {displayStatus === 'rekki_prezzo_discordanza' && r.deltaImporto !== null && (
                             <span className="ml-1 text-[10px] font-bold text-amber-400">
                               Δ{r.deltaImporto > 0 ? '+' : ''}{formatCurrency(Math.abs(r.deltaImporto), countryCode, resolvedCurrency)}
                             </span>
@@ -7016,7 +7048,7 @@ export function VerificationStatusTab({
                         </td>
 
                         <td className="w-0 whitespace-nowrap px-1 py-2 text-right align-middle tabular-nums text-app-fg-subtle"
-                          title={`${t.statements.tripleColBollaAmount}: ${bollaAmountLabel}`}>
+                          title={bollaTitle}>
                           {bollaAmountLabel}
                         </td>
 
@@ -7024,7 +7056,7 @@ export function VerificationStatusTab({
                           <div className="mx-auto flex w-11 items-center justify-center gap-px">
                             {checks.map((pass, i) => {
                               const isLast = i === 3
-                              if (r.status === 'rekki_prezzo_discordanza' && isLast) {
+                              if (displayStatus === 'rekki_prezzo_discordanza' && isLast) {
                                 return (
                                   <div
                                     key={i}
@@ -7131,6 +7163,9 @@ export function VerificationStatusTab({
                       </td>
                       <td className="w-0 whitespace-nowrap px-1 py-2 text-right align-middle text-xs font-bold tabular-nums text-app-fg">
                         {formatCurrency(stmtTotals.dbSum, countryCode, resolvedCurrency)}
+                      </td>
+                      <td className="w-0 whitespace-nowrap px-1 py-2 text-right align-middle text-xs font-bold tabular-nums text-app-fg-subtle">
+                        {stmtTotals.bollaSum > 0 ? formatCurrency(stmtTotals.bollaSum, countryCode, resolvedCurrency) : '—'}
                       </td>
                       <td colSpan={2} />
                     </tr>

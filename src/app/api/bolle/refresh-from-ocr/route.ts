@@ -9,7 +9,7 @@ import {
 } from '@/lib/resolve-document-date-from-ocr'
 import { quantitaForBollaFromOcrOrText } from '@/lib/bolla-quantita'
 import { extractPdfText } from '@/lib/pdf-parse-utils'
-import { shouldClearBollaImportoAfterBollaDdtReocr } from '@/lib/ocr-tipo-documento'
+import { importoForBollaFromOcr, shouldClearBollaImportoAfterBollaDdtReocr } from '@/lib/ocr-tipo-documento'
 
 function resolvedContentType(url: string, header: string | null): string {
   const h = (header ?? '').toLowerCase()
@@ -114,11 +114,12 @@ export async function POST(req: NextRequest) {
   }
 
   let dateResolution: ReturnType<typeof resolveDocumentDateFromOcrContext>
+  let ocr: Awaited<ReturnType<typeof ocrInvoice>> | null = null
   let ocrNumero: string | null = null
   let ocrQty: number | null = null
   let ocrTipo: string | null = null
   try {
-    const ocr = await ocrInvoice(new Uint8Array(buffer), contentType, undefined, {
+    ocr = await ocrInvoice(new Uint8Array(buffer), contentType, undefined, {
       preferVisionForPdf: true,
     })
     dateResolution = resolveDocumentDateFromOcrContext({
@@ -165,8 +166,17 @@ export async function POST(req: NextRequest) {
   if (ocrQty != null && ocrQty !== bolla.quantita) {
     updates.quantita = ocrQty
   }
+  const ocrImporto = importoForBollaFromOcr(ocr ?? undefined)
   if (shouldClearBollaImportoAfterBollaDdtReocr(ocrTipo, bolla.importo)) {
-    updates.importo = null
+    // Se il nuovo OCR non ha estratto un importo valido, azzera
+    // (l'importo precedente era probabilmente un falso positivo).
+    if (ocrImporto == null) {
+      updates.importo = null
+    }
+  }
+  // Se l'OCR ha un importo diverso da quello salvato, aggiornalo
+  if (ocrImporto != null && ocrImporto !== bolla.importo) {
+    updates.importo = ocrImporto
   }
 
   if (Object.keys(updates).length === 0) {
@@ -179,6 +189,8 @@ export async function POST(req: NextRequest) {
       numero_bolla_changed: false,
       quantita: bolla.quantita ?? null,
       quantita_changed: false,
+      importo: bolla.importo,
+      importo_changed: false,
       info: dateRejectInfo ?? 'Nessun campo aggiornato: i dati sono già allineati al documento.',
     })
   }
@@ -197,6 +209,8 @@ export async function POST(req: NextRequest) {
     numero_bolla_changed: updates.numero_bolla !== undefined,
     quantita: updates.quantita ?? bolla.quantita ?? null,
     quantita_changed: updates.quantita !== undefined,
+    importo: updates.importo !== undefined ? updates.importo : bolla.importo,
+    importo_changed: updates.importo !== undefined,
     info: dateRejectInfo,
   })
 }

@@ -80,6 +80,7 @@ import {
 import { listinoImportApiBody, listinoImportTable } from '@/lib/listino-import-document'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import DocumentOcrRefreshButton from '@/components/DocumentOcrRefreshButton'
+import BollaImportoInline from '@/components/BollaImportoInline'
 import FornitoreDocDetailLayer from '@/components/FornitoreDocDetailLayer'
 import { createClient } from '@/utils/supabase/client'
 import { statementMatchesCalendarWindow } from '@/lib/rekki-price-anomalies'
@@ -2344,7 +2345,7 @@ function BolleTab({
   const bolleRefreshBatch = useMemo(
     () =>
       bolle
-        .filter((b) => b.file_url?.trim())
+        .filter((b) => b.file_url?.trim() && b.importo == null)
         .map((b) => ({
           kind: 'bolla' as const,
           bollaId: b.id,
@@ -2359,6 +2360,9 @@ function BolleTab({
             const fu = b.file_url?.trim()
             if (fu) setQuantitaByFileUrl((prev) => ({ ...prev, [fu]: q }))
             setBolle((prev) => prev.map((r) => (r.id === b.id ? { ...r, quantita: q } : r)))
+          },
+          onImportoUpdated: (v: number) => {
+            setBolle((prev) => prev.map((r) => (r.id === b.id ? { ...r, importo: v } : r)))
           },
         })),
     [bolle],
@@ -2679,12 +2683,8 @@ function BolleTab({
                     </span>
                   )}
                 </td>
-                <td className={SUPPLIER_LEDGER_TD_AMOUNT}>
-                  <span className={`font-mono text-xs font-semibold tabular-nums ${
-                    b.importo != null ? 'text-app-fg' : 'text-app-fg-muted'
-                  }`}>
-                    {b.importo != null ? formatCurrency(b.importo, currency ?? 'EUR', locale) : '—'}
-                  </span>
+                <td className={SUPPLIER_LEDGER_TD_AMOUNT} onClick={e => e.stopPropagation()}>
+                  <BollaImportoInline id={b.id} importo={b.importo} currency={currency ?? 'EUR'} locale={locale} />
                 </td>
                 <td className={SUPPLIER_LEDGER_TD_AMOUNT}>
                   {formatBollaQuantita(quantitaInElenco(b), locale)}

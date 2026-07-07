@@ -135,6 +135,13 @@ function bollaDupKey(r: BollaDupProbe): string | null {
   })
 }
 
+/** Chiave duplicato bolla SENZA data: stesso fornitore + numero + importo (date diverse non bloccano). */
+function bollaDupKeyNoDate(r: BollaDupProbe): string | null {
+  const num = normalizeNumeroFattura(r.numero_bolla)
+  if (!num || !r.fornitore_id) return null
+  return `${r.fornitore_id}\0${num.toLowerCase()}\0${r.importo ?? ''}`
+}
+
 function looksLikeRekkiEmailMessageId(value: string): boolean {
   return /^\d{7,9}$/.test(value.trim())
 }
@@ -621,9 +628,10 @@ export function analyzeBolleDuplicatesForDeletion(
   rows: BollaDupListRow[],
 ): FatturaDuplicateDeletionAnalysis {
   const byNumero = analyzeDuplicatesForDeletion(rows, bollaDupKey, bollaCanonicalSort, false)
+  const byNumeroNoDate = analyzeDuplicatesForDeletion(rows, bollaDupKeyNoDate, bollaCanonicalSort, false)
   const byOrphan = analyzeBolleOrphanNumeroDuplicates(rows)
   const byFile = analyzeBolleSameFileUrlDuplicates(rows)
-  return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumero, byOrphan), byFile)
+  return mergeDuplicateAnalyses(mergeDuplicateAnalyses(byNumero, byOrphan), mergeDuplicateAnalyses(byNumeroNoDate, byFile))
 }
 
 /**

@@ -25,6 +25,20 @@ export const STATEMENT_ANOMALY_STATUS_ORDER: StatementAnomalyStatus[] = [
 
 type StmtRow = { id: string }
 
+const CREDIT_NOTE_PREFIX = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i
+
+/** Per le note di credito, bolle_mancanti ed errore_importo contano come ok. */
+function effectiveStatus(checkStatus: string, numeroDoc: string | null): string {
+  if (
+    numeroDoc &&
+    CREDIT_NOTE_PREFIX.test(numeroDoc) &&
+    (checkStatus === 'bolle_mancanti' || checkStatus === 'errore_importo')
+  ) {
+    return 'ok'
+  }
+  return checkStatus
+}
+
 function countsMapToSortedArray(
   counts: Map<StatementAnomalyStatus, number>,
 ): StatementAnomalyCountByStatus[] {
@@ -35,6 +49,7 @@ function countsMapToSortedArray(
 
 /**
  * Allega `anomaly_by_status` a ogni statement con `missing_rows > 0`.
+ * Le note di credito con `errore_importo`/`bolle_mancanti` vengono conteggiate come `ok`.
  */
 export async function attachStatementAnomalyPreviews<T extends StmtRow>(
   supabase: SupabaseClient,
@@ -51,17 +66,19 @@ export async function attachStatementAnomalyPreviews<T extends StmtRow>(
   const ids = withIssues.map((s) => s.id)
   const { data: rows } = await supabase
     .from('statement_rows')
-    .select('statement_id, check_status')
+    .select('statement_id, check_status, numero_doc')
     .in('statement_id', ids)
     .in('check_status', [...STATEMENT_ANOMALY_STATUSES])
 
   const byStmt = new Map<string, Map<StatementAnomalyStatus, number>>()
   for (const row of rows ?? []) {
     const sid = row.statement_id as string
-    const status = row.check_status as string
-    if (!STATEMENT_ANOMALY_STATUSES.includes(status as StatementAnomalyStatus)) continue
+    const rawStatus = row.check_status as string
+    const numeroDoc = row.numero_doc as string | null
+    const resolvedStatus = effectiveStatus(rawStatus, numeroDoc)
+    if (!STATEMENT_ANOMALY_STATUSES.includes(resolvedStatus as StatementAnomalyStatus)) continue
     const counts = byStmt.get(sid) ?? new Map<StatementAnomalyStatus, number>()
-    const key = status as StatementAnomalyStatus
+    const key = resolvedStatus as StatementAnomalyStatus
     counts.set(key, (counts.get(key) ?? 0) + 1)
     byStmt.set(sid, counts)
   }
@@ -82,17 +99,19 @@ export async function fetchAnomalyByStatusMap(
 
   const { data: rows } = await supabase
     .from('statement_rows')
-    .select('statement_id, check_status')
+    .select('statement_id, check_status, numero_doc')
     .in('statement_id', ids)
     .in('check_status', [...STATEMENT_ANOMALY_STATUSES])
 
   const byStmt = new Map<string, Map<StatementAnomalyStatus, number>>()
   for (const row of rows ?? []) {
     const sid = row.statement_id as string
-    const status = row.check_status as string
-    if (!STATEMENT_ANOMALY_STATUSES.includes(status as StatementAnomalyStatus)) continue
+    const rawStatus = row.check_status as string
+    const numeroDoc = row.numero_doc as string | null
+    const resolvedStatus = effectiveStatus(rawStatus, numeroDoc)
+    if (!STATEMENT_ANOMALY_STATUSES.includes(resolvedStatus as StatementAnomalyStatus)) continue
     const counts = byStmt.get(sid) ?? new Map<StatementAnomalyStatus, number>()
-    const key = status as StatementAnomalyStatus
+    const key = resolvedStatus as StatementAnomalyStatus
     counts.set(key, (counts.get(key) ?? 0) + 1)
     byStmt.set(sid, counts)
   }

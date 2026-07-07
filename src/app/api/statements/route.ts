@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { findStatementRowByNumeroDoc } from '@/lib/fattura-duplicate-check'
-import { runTripleCheck } from '@/lib/triple-check' // bolle obbligatorie v2
+import { CREDIT_NOTE_PREFIX, runTripleCheck } from '@/lib/triple-check' // bolle obbligatorie v2
 import {
   attachStatementAnomalyPreviews,
   fetchAnomalyByStatusMap,
@@ -136,10 +136,12 @@ export async function GET(req: NextRequest) {
 
     // Per fornitori che emettono DDT, manteniamo lo storico: una 'ok' senza
     // bolle viene forzata a 'bolle_mancanti'. Per fornitori "no-DDT" la
-    // 'ok' resta valida.
+    // 'ok' resta valida. Le note di credito sono escluse (non richiedono bolle).
     const results = emetteBolleForRecheck
       ? rawResults.map(r =>
-          r.status === 'ok' && r.bolle.length === 0 ? { ...r, status: 'bolle_mancanti' as const } : r
+          r.status === 'ok' && r.bolle.length === 0 && !CREDIT_NOTE_PREFIX.test(r.numero)
+            ? { ...r, status: 'bolle_mancanti' as const }
+            : r
         )
       : rawResults
 

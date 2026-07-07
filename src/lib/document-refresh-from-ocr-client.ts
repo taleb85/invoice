@@ -16,6 +16,8 @@ export type BollaRefreshOcrResponse = {
   numero_bolla_changed?: boolean
   quantita?: number | null
   quantita_changed?: boolean
+  importo?: number | null
+  importo_changed?: boolean
 }
 
 export type ConfermaRefreshOcrResponse = {
@@ -34,6 +36,7 @@ export type BollaRefreshOcrCallbacks = {
   onDataUpdated: (newIsoDate: string) => void
   onNumeroBollaUpdated?: (newNumero: string) => void
   onQuantitaUpdated?: (newQuantita: number) => void
+  onImportoUpdated?: (newImporto: number) => void
 }
 
 export type ConfermaRefreshOcrCallbacks = {
@@ -63,10 +66,13 @@ export function applyBollaRefreshOcrResponse(
   const dataChanged = j.data_changed === true && Boolean(j.data)
   const numeroChanged = j.numero_bolla_changed === true && j.numero_bolla != null
   const quantitaChanged = j.quantita_changed === true && j.quantita != null
+  const importoVal = j.importo != null && Number.isFinite(Number(j.importo)) ? Math.round(Number(j.importo) * 100) / 100 : null
+  const importoChanged = j.importo_changed === true && importoVal != null
   if (j.data && dataChanged) callbacks.onDataUpdated(j.data)
   if (numeroChanged) callbacks.onNumeroBollaUpdated?.(j.numero_bolla as string)
   if (quantitaChanged) callbacks.onQuantitaUpdated?.(j.quantita as number)
-  return dataChanged || numeroChanged || quantitaChanged
+  if (importoVal != null) callbacks.onImportoUpdated?.(importoVal)
+  return dataChanged || numeroChanged || quantitaChanged || importoChanged
 }
 
 export async function fetchConfermaRefreshFromOcr(

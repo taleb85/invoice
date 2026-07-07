@@ -72,7 +72,7 @@ export interface CheckSummary {
 }
 
 /** Prefissi numero documento che indicano nota di credito (non richiede bolle collegate). */
-const CREDIT_NOTE_PREFIX = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i
+export const CREDIT_NOTE_PREFIX = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i
 
 /** Tolleranza generale triple-check (fattura ↔ riga estratto ↔ bolle). Bolle obbligatorie. */
 export const TRIPLE_CHECK_TOLERANCE = 0.05
@@ -191,12 +191,16 @@ function resolveCheckStatus(
   bolle: TripleCheckBollaRow[],
   emetteBolle: boolean,
 ): { status: CheckStatus; delta: number } {
-  // Se la fattura non ha importo, usa l'importo dello statement come riferimento
-  const dbImporto = rawFattura.importo ?? line.importo
-  const delta = parseFloat((line.importo - dbImporto).toFixed(2))
-  const importiCombaciano = amountsMatchForTripleCheck(line.importo, dbImporto)
-
   const isNotaCredito = CREDIT_NOTE_PREFIX.test(line.numero)
+
+  // Per le note di credito, confronta i valori assoluti (lo statement può avere
+  // segno negativo mentre la fattura nel DB è positiva, o viceversa).
+  const stmtAmount = isNotaCredito ? Math.abs(line.importo) : line.importo
+  const dbImporto = rawFattura.importo != null
+    ? (isNotaCredito ? Math.abs(rawFattura.importo) : rawFattura.importo)
+    : stmtAmount
+  const delta = parseFloat((stmtAmount - dbImporto).toFixed(2))
+  const importiCombaciano = amountsMatchForTripleCheck(stmtAmount, dbImporto)
 
   let status: CheckStatus
   if (!importiCombaciano) {
@@ -220,7 +224,7 @@ function resolveCheckStatus(
       status = 'ok'
     } else {
       const bolleOk =
-        amountsMatchForTripleCheck(bolleSum, line.importo) &&
+        amountsMatchForTripleCheck(bolleSum, stmtAmount) &&
         amountsMatchForTripleCheck(bolleSum, dbImporto)
       status = bolleOk ? 'ok' : 'bolle_mancanti'
     }
