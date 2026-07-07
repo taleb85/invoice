@@ -442,6 +442,35 @@ function StmtPdfSummaryGrid({
   )
 }
 
+/** Versione inline di StmtPdfSummaryGrid: mostra solo i dati chiave (account, data emissione) su una riga, senza wrapper. */
+function StmtPdfSummaryInline({
+  pdf,
+  t,
+  formatStmtDate,
+}: {
+  pdf: StmtExtractedPdfDates
+  t: ReturnType<typeof useT>
+  formatStmtDate: (d: string | null) => string
+}) {
+  const rows: { label: string; value: string }[] = []
+  const acc = pdf.account_no?.trim()
+  if (acc) rows.push({ label: t.statements.stmtPdfMetaAccountNo, value: acc })
+  const issued = pdf.issued_date?.trim()
+  if (issued) rows.push({ label: t.statements.stmtPdfMetaIssuedDate, value: formatStmtDate(issued) })
+  if (!rows.length) return null
+  return (
+    <>
+      {rows.map((r, idx) => (
+        <Fragment key={r.label}>
+          {idx > 0 ? <span className="shrink-0 text-slate-500" aria-hidden>·</span> : null}
+          <span className="font-semibold text-slate-300 text-[10px]">{r.label}</span>
+          <span className="font-medium tabular-nums text-slate-100 text-[10px]">{r.value}</span>
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
 /** React hook returning a locale/timezone-aware fmt function. */
 function useFmt() {
   const { locale, timezone } = useLocale()
@@ -2201,6 +2230,18 @@ export function PendingMatchesTab({
     [docs],
   )
 
+  /** Raggruppa i documenti per mese (YYYY-MM) per la suddivisione nella lista. */
+  const docsGroupedByMonth = useMemo(() => {
+    const groups = new Map<string, typeof docs>()
+    for (const d of docs) {
+      const iso = officialDateIsoForPendingDoc(d) ?? d.created_at?.slice(0, 10)
+      const key = iso ? iso.slice(0, 7) : 'other'
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(d)
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => b.localeCompare(a))
+  }, [docs])
+
   /** Documenti in lista con tipo già scelto e fornitore collegato: pronti per `finalizza_da_tipo` come sulla riga. */
   const finalizeReadyIdsByKind = useMemo(() => {
     const out: Record<'ordine' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'statement', string[]> = {
@@ -2586,8 +2627,17 @@ export function PendingMatchesTab({
               />
             </div>
           ) : null}
-          {docs.map(doc => {
-            const stato          = actions[doc.id] ?? 'idle'
+          {(() => {
+            return docsGroupedByMonth.length > 0
+              ? docsGroupedByMonth.map(([monthKey, monthDocs]) => (
+                <div key={monthKey}>
+                  {monthKey !== 'other' && (
+                    <p className="px-2.5 pb-1.5 pt-2 text-xs font-semibold text-app-fg-muted">
+                      {t.statements.months[Number(monthKey.split('-')[1]) - 1] ?? monthKey.split('-')[1]} {monthKey.split('-')[0]}
+                    </p>
+                  )}
+                  {monthDocs.map(doc => {
+                    const stato          = actions[doc.id] ?? 'idle'
             const isImage        = doc.content_type?.startsWith('image/')
             const thumb          = isImage ? thumbnailUrl(doc.file_url) : null
             const nomeFornitore  = (doc.fornitore as { nome: string } | null)?.nome ?? null
@@ -3396,6 +3446,10 @@ export function PendingMatchesTab({
             )
           })}
         </div>
+      ))
+    : null
+  })()}
+        </div>
       )}
 
       {rememberBar && (
@@ -3852,6 +3906,8 @@ export function VerificationStatusTab({
   }
 
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
+  /** Mese delle righe per ogni statement: { [statementId]: ["2026-06", "2026-05", ...] }. */
+  const [statementRowMonths, setStatementRowMonths] = useState<Record<string, string[]>>({})
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
   const [needsMigration, setNeedsMigration] = useState(false)
   const [selectedStmt,   setSelectedStmt]   = useState<StmtRecord | null>(null)
@@ -4401,6 +4457,20 @@ export function VerificationStatusTab({
   type SollecitoEntry = { status: 'idle'|'loading'|'sent'|'error'; sentAt?: string }
   const [solleciti,      setSolleciti]      = useState<Record<string, SollecitoEntry>>({})
   const [checkFilter,    setCheckFilter]    = useState<'all'|'ok'|'fattura_mancante'|'bolle_mancanti'|'errore_importo'|'rekki_prezzo_discordanza'>('all')
+  /** Filtro mese per le righe dell'estratto conto aperto. `null` = tutti i mesi. */
+  const [stmtMonthFilter, setStmtMonthFilter] = useState<string | null>(null)
+
+  /** Mesi unici (YYYY-MM) disponibili nelle righe caricate, in ordine decrescente. */
+  const uniqueRowMonths = useMemo(() => {
+    if (!checkResults) return []
+    const months = new Set<string>()
+    for (const r of checkResults) {
+      const key = r.data_doc ? r.data_doc.slice(0, 7) : null
+      if (key) months.add(key)
+    }
+    return Array.from(months).sort((a, b) => b.localeCompare(a))
+  }, [checkResults])
+
   const searchParams = useSearchParams()
   useEffect(() => {
     const raw = searchParams.get('stato')?.trim().toLowerCase()
@@ -4573,8 +4643,23 @@ export function VerificationStatusTab({
           } catch { /* non-critical */ }
         }
         setStmts(sortStatementsByDocumentDateDesc(list))
-        setNeedsMigration(json.needsMigration ?? false)
 
+        // Fetch row months for virtual split of multi-month statements
+        if (list.length > 0) {
+          try {
+            const mRes = await fetch(
+              `/api/statements?action=row_months&ids=${encodeURIComponent(list.map(s => s.id).join(','))}`,
+            )
+            if (mRes.ok) {
+              const mJson = await mRes.json() as { months: Record<string, string[]> }
+              setStatementRowMonths(mJson.months ?? {})
+            }
+          } catch { /* non-critical */ }
+        } else {
+          setStatementRowMonths({})
+        }
+
+        setNeedsMigration(json.needsMigration ?? false)
         // Auto-open the most recent done statement (with or without anomalies).
         // Skipped in supplier panel — there we always show the list first.
         if (autoOpenLatest && !isSupplierPanel && list.length > 0) {
@@ -4898,6 +4983,20 @@ export function VerificationStatusTab({
     setCheckResults(mapped)
     checkResultsRef.current = mapped
 
+    // Auto-seleziona il mese più recente tra le righe caricate,
+    // MA rispetta il filtro mese già impostato (es. click su split virtuale).
+    const months = new Set<string>()
+    for (const r of mapped) {
+      const key = r.data_doc ? r.data_doc.slice(0, 7) : null
+      if (key) months.add(key)
+    }
+    const sortedMonths = Array.from(months).sort((a, b) => b.localeCompare(a))
+    if (stmtMonthFilter && sortedMonths.includes(stmtMonthFilter)) {
+      // Mantieni il filtro già impostato (dallo split virtuale)
+    } else {
+      setStmtMonthFilter(sortedMonths.length > 1 ? sortedMonths[0]! : null)
+    }
+
     // Aggiorna il badge nella lista con il conteggio corretto (bolle obbligatorie)
     const correctedMissing = mapped.filter(r => r.status !== 'ok' && r.status !== 'pending').length
     setStmts(prev => prev.map(s => s.id === stmt.id ? { ...s, missing_rows: correctedMissing } : s))
@@ -4958,17 +5057,28 @@ export function VerificationStatusTab({
     [stmtsForDisplay],
   )
 
-  /** Raggruppa gli account statement per mese (YYYY-MM). */
+  /** Raggruppa gli account statement per mese (YYYY-MM). Usa `received_at` come fallback se la data ufficiale non è disponibile.
+   *  Se uno statement ha righe in più mesi (statementRowMonths), viene duplicato virtualmente in ogni mese delle sue righe. */
   const groupedStmtsByMonth = useMemo(() => {
     const groups = new Map<string, typeof accountStatementStmts>()
     for (const s of accountStatementStmts) {
-      const iso = statementOfficialDateIso(s)
+      // Se lo statement ha righe in più mesi, crea un'entrata virtuale per ogni mese
+      const rowMs = statementRowMonths[s.id]
+      if (rowMs && rowMs.length > 1) {
+        for (const m of rowMs) {
+          if (!groups.has(m)) groups.set(m, [])
+          groups.get(m)!.push({ ...s, _virtualMonth: m } as StmtRecord & { _virtualMonth: string })
+        }
+        continue
+      }
+      // Comportamento normale: data ufficiale o received_at
+      const iso = statementOfficialDateIso(s) ?? s.received_at?.slice(0, 10)
       const key = iso ? iso.slice(0, 7) : 'other'
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)!.push(s)
     }
     return Array.from(groups.entries()).sort(([a], [b]) => b.localeCompare(a))
-  }, [accountStatementStmts])
+  }, [accountStatementStmts, statementRowMonths])
 
   const navigableStmts = useMemo(
     () => accountStatementStmts.filter((s) => s.status !== 'error'),
@@ -5071,8 +5181,11 @@ export function VerificationStatusTab({
     }
     const sorted = Array.from(groups.entries()).sort(([a], [b]) => b.localeCompare(a))
     if (other.length > 0) sorted.push(['other', other])
+    if (stmtMonthFilter) {
+      return sorted.filter(([key]) => key === stmtMonthFilter)
+    }
     return sorted
-  }, [filteredCheckResults])
+  }, [filteredCheckResults, stmtMonthFilter])
 
   const clearVerificaDeepLinkFilters = useCallback(() => {
     setCheckFilter('all')
@@ -5143,9 +5256,11 @@ export function VerificationStatusTab({
   const vsS1StmtDetailOpen = vsCompactS1 && Boolean(selectedStmt)
   const selectedStmtPrimaryLabel = selectedStmt
     ? fornitoreId
-      ? (selectedStmt.email_subject?.trim() ||
-          formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at))
-      : (selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement')
+      ? (selectedStmt.fornitore_nome
+          ? `${selectedStmt.fornitore_nome.trim().toUpperCase()} STATEMENT`
+          : selectedStmt.email_subject?.trim() ||
+            formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at))
+      : (selectedStmt.fornitore_nome?.toUpperCase() ?? selectedStmt.email_subject ?? 'Statement')
     : ''
 
   return (
@@ -5182,7 +5297,7 @@ export function VerificationStatusTab({
                     setCheckResults(null)
                     setCheckError(null)
                   }}
-                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-3 text-xs font-semibold text-app-fg touch-manipulation transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg touch-manipulation transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
                 >
                   <svg
                     className={`${vsS1HeaderActionIcon} shrink-0 opacity-90 ${icon.statements}`}
@@ -5209,7 +5324,7 @@ export function VerificationStatusTab({
                       onClick={() => {
                         if (prevNavStmt) void loadStatementRows(prevNavStmt)
                       }}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-md text-app-fg transition-colors hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-app-fg transition-colors hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation"
                     >
                       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -5231,7 +5346,7 @@ export function VerificationStatusTab({
                       onClick={() => {
                         if (nextNavStmt) void loadStatementRows(nextNavStmt)
                       }}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-md text-app-fg transition-colors hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-app-fg transition-colors hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-40 touch-manipulation"
                     >
                       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -5401,16 +5516,10 @@ export function VerificationStatusTab({
                   void runAllStmtsRecheck()
                 }
               }}
-              className={
-                vsEmbeddedSupplier
-                  ? vsCompactS1
-                    ? `${vsS1HeaderActionBtn} border border-amber-500/40 bg-amber-500/10 text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:pointer-events-none disabled:opacity-45`
-                    : 'inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:pointer-events-none disabled:opacity-45'
-                  : 'inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:pointer-events-none disabled:opacity-45'
-              }
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:pointer-events-none disabled:opacity-45"
             >
               <svg
-                className={`${vsCompactS1 ? vsS1HeaderActionIcon : 'h-3.5 w-3.5'} shrink-0 opacity-90 ${icon.emailSync} ${stmtRecheckBusy ? 'animate-spin' : ''}`}
+                className="h-3.5 w-3.5 shrink-0 opacity-90 text-sky-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -5484,7 +5593,7 @@ export function VerificationStatusTab({
                 return (
                 <div key={monthKey} className={monthKey !== groupedStmtsByMonth[0][0] ? 'mt-3 border-t border-app-line-15 pt-2' : ''}>
                   {monthKey !== 'other' && (
-                    <p className={`px-3 pb-1.5 font-semibold text-app-fg-muted ${vsCompactS1 ? 'text-[11px]' : 'text-xs'}`}>
+                    <p className={`px-3 pb-1.5 font-semibold text-app-fg-muted uppercase ${vsCompactS1 ? 'text-[11px]' : 'text-xs'}`}>
                       {monthLabel}
                     </p>
                   )}
@@ -5492,15 +5601,21 @@ export function VerificationStatusTab({
               {stmts.map(s => {
                 const stmtOfficialIso = statementOfficialDateIso(s)
                 const stmtListPrimary = fornitoreId
-                  ? (s.email_subject?.trim() ||
-                      formatStmtDate(stmtOfficialIso ?? s.received_at))
-                  : (s.fornitore_nome ?? s.email_subject ?? 'Statement')
+                  ? (s.fornitore_nome
+                      ? `${s.fornitore_nome.trim().toUpperCase()} STATEMENT`
+                      : s.email_subject?.trim() ||
+                        formatStmtDate(stmtOfficialIso ?? s.received_at))
+                  : (s.fornitore_nome?.toUpperCase() ?? s.email_subject ?? 'Statement')
                 return (
                 <div
-                  key={s.id}
+                  key={`${s.id}-${(s as StmtRecord & { _virtualMonth?: string })._virtualMonth ?? ''}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => loadStatementRows(s)}
+                  onClick={() => {
+                    const vMonth = (s as StmtRecord & { _virtualMonth?: string })._virtualMonth
+                    if (vMonth) setStmtMonthFilter(vMonth)
+                    loadStatementRows(s)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
@@ -5528,57 +5643,49 @@ export function VerificationStatusTab({
                     s.missing_rows > 0 ? 'bg-red-400' : 'bg-green-400'
                   }`} />
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`line-clamp-2 font-medium ${vsCompactS1 && vsEmbeddedSupplier ? 'text-xs' : 'text-sm'} text-app-fg`}
-                    >
+                  <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0">
+                    <p className="truncate text-sm font-medium text-app-fg">
                       {stmtListPrimary}
                     </p>
-                    {!fornitoreId && s.email_subject && s.fornitore_nome && (
-                      <p className="truncate text-xs text-app-fg-muted">
+                    {!fornitoreId && s.email_subject && s.fornitore_nome ? (
+                      <span className="truncate text-sm text-app-fg-muted">
                         {s.email_subject}
-                      </p>
-                    )}
-                    {(() => {
-                      const onSupplierPage = Boolean(fornitoreId)
-                      const noSubject = !s.email_subject?.trim()
-                      if (
-                        onSupplierPage &&
-                        noSubject &&
-                        stmtOfficialIso &&
-                        stmtListPrimary === formatStmtDate(stmtOfficialIso)
-                      ) {
-                        return (
-                          <p className="mt-0.5 text-xs text-app-fg-muted">
-                            {t.statements.labelReceived} {formatStmtDate(s.received_at)}
-                          </p>
+                      </span>
+                    ) : null}
+                    <span className="truncate text-sm text-app-fg-muted">
+                      {(() => {
+                        const onSupplierPage = Boolean(fornitoreId)
+                        const noSubject = !s.email_subject?.trim()
+                        if (
+                          onSupplierPage &&
+                          noSubject &&
+                          stmtOfficialIso &&
+                          stmtListPrimary === formatStmtDate(stmtOfficialIso)
+                        ) {
+                          return <>{t.statements.labelReceived} {formatStmtDate(s.received_at)}</>
+                        }
+                        if (
+                          onSupplierPage &&
+                          noSubject &&
+                          stmtListPrimary === formatStmtDate(stmtOfficialIso ?? s.received_at)
+                        ) {
+                          return null
+                        }
+                        return stmtOfficialIso ? (
+                          <>
+                            <span className="font-medium tabular-nums text-app-fg">
+                              {formatStmtDate(stmtOfficialIso)}
+                            </span>
+                            <span className="text-app-fg-muted"> · </span>
+                            <span className="text-app-fg-muted">
+                              {t.statements.labelReceived} {formatStmtDate(s.received_at)}
+                            </span>
+                          </>
+                        ) : (
+                          formatStmtDate(s.received_at)
                         )
-                      }
-                      if (
-                        onSupplierPage &&
-                        noSubject &&
-                        stmtListPrimary === formatStmtDate(stmtOfficialIso ?? s.received_at)
-                      ) {
-                        return null
-                      }
-                      return (
-                        <p className="mt-0.5 text-xs text-app-fg-muted">
-                          {stmtOfficialIso ? (
-                            <>
-                              <span className="font-medium tabular-nums text-app-fg">
-                                {formatStmtDate(stmtOfficialIso)}
-                              </span>
-                              <span className="text-app-fg-muted"> · </span>
-                              <span className="text-app-fg-muted">
-                                {t.statements.labelReceived} {formatStmtDate(s.received_at)}
-                              </span>
-                            </>
-                          ) : (
-                            formatStmtDate(s.received_at)
-                          )}
-                        </p>
-                      )
-                    })()}
+                      })()}
+                    </span>
                   </div>
                   {vsCompactS1 && vsEmbeddedSupplier ? (
                     <svg
@@ -5606,13 +5713,13 @@ export function VerificationStatusTab({
                     <span className="text-xs text-red-500 font-medium">{t.statements.stmtListParseError}</span>
                   ) : (
                     <>
-                    <div className={`min-w-0 shrink-0 text-right ${vsCompactS1 && vsEmbeddedSupplier ? 'max-w-none max-md:flex-1' : 'max-w-[10.5rem] sm:max-w-[12rem]'}`}>
+                    <div className={`flex flex-wrap items-center gap-x-2 gap-y-0 text-right ${vsCompactS1 && vsEmbeddedSupplier ? 'max-w-none max-md:flex-1' : 'max-w-[10.5rem] sm:max-w-[12rem]'}`}>
                       <p className="text-xs font-semibold text-app-fg-muted">
                         {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
                       </p>
                       {s.missing_rows > 0 ? (
                         <div
-                          className="mt-0.5 flex max-w-full flex-col items-end gap-0.5"
+                          className="flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-0"
                           aria-label={t.statements.stmtAnomalyPreviewAria}
                         >
                           {(s.anomaly_by_status?.length ?? 0) > 0 ? (
@@ -5649,7 +5756,7 @@ export function VerificationStatusTab({
                           )}
                         </div>
                       ) : (
-                        <span className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
                           <GlyphCheck className="h-3 w-3" aria-hidden />
                           OK
                         </span>
@@ -5668,6 +5775,7 @@ export function VerificationStatusTab({
                         statementId={s.id}
                         fileUrl={s.file_url}
                         fornitoreId={s.fornitore_id ?? fornitoreId ?? null}
+                        iconOnly
                       />
                     ) : null}
                     </>
@@ -5820,53 +5928,12 @@ export function VerificationStatusTab({
                 <OpenDocumentInAppButton
                   statementId={selectedStmt.id}
                   fileUrl={selectedStmt.file_url}
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-app-cyan-400/40 bg-transparent px-3 text-xs font-semibold text-app-cyan-200 touch-manipulation transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                   categoria={t.statements.tabVerifica}
                 >
                   {t.statements.openPdf}
                 </OpenDocumentInAppButton>
               ) : null}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {(me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && selectedStmt.linked_fattura_id ? (
-                <span
-                  className={`${vsS1HeaderActionBtn} col-span-2 border border-emerald-500/35 bg-emerald-500/10 text-emerald-200`}
-                  title={t.statements.alsoFatturaCreataTitle}
-                >
-                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {t.statements.alsoFatturaCreata}
-                </span>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => void runStmtRecheck(selectedStmt)}
-                disabled={stmtRecheckBusy}
-                aria-busy={stmtRecheckBusy}
-                title={t.statements.recheckTripleCheckTitle}
-                className={`${vsS1HeaderActionBtn} ${
-                  (me?.is_admin || me?.is_admin_sede) && selectedStmt.fornitore_nome && !selectedStmt.linked_fattura_id
-                    ? ''
-                    : 'col-span-2'
-                } border border-amber-500/40 bg-amber-500/10 text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:opacity-50`}
-              >
-                <svg
-                  className={`${vsS1HeaderActionIcon} shrink-0 opacity-90 ${icon.emailSync} ${stmtRecheckBusy ? 'animate-spin' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
-              </button>
             </div>
           </div>
         ) : null}
@@ -5876,19 +5943,18 @@ export function VerificationStatusTab({
               vsS1StmtDetailOpen ? 'hidden px-4 md:flex' : vsCompactS1 ? 'flex-col px-3 md:flex-row md:px-4' : 'px-4'
             }`}
           >
-            <div className="min-w-0 w-full flex-1 pr-0 md:pr-2">
+            <div className="flex w-full flex-1 flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0 pr-0 md:pr-2">
               <p className="truncate text-sm font-semibold text-app-fg">
                 {selectedStmtPrimaryLabel ||
                   (selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement')}
               </p>
               {hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) && (
-                <StmtPdfSummaryGrid
-                  pdf={selectedStmt.extracted_pdf_dates as StmtExtractedPdfDates}
-                  t={t}
-                  formatStmtDate={formatStmtDate}
-                  countryCode={countryCode}
-                />
-              )}
+                <div className="inline-flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                    {t.statements.stmtPdfSummaryTitle}
+                  </span>
+                  <StmtPdfSummaryInline pdf={selectedStmt.extracted_pdf_dates as StmtExtractedPdfDates} t={t} formatStmtDate={formatStmtDate} />
+                </div>)}
               <div
                 className={`flex flex-wrap items-center gap-x-1 gap-y-1 text-xs font-normal text-app-fg-muted ${hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'}`}
               >
@@ -5902,7 +5968,7 @@ export function VerificationStatusTab({
                     <OpenDocumentInAppButton
                       statementId={selectedStmt.id}
                       fileUrl={selectedStmt.file_url}
-                      className="ml-0.5 inline-flex shrink-0 items-center rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
+                      className="ml-0.5 inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                       categoria={t.statements.tabVerifica}
                     >
                       {t.statements.openPdf}
@@ -5923,24 +5989,6 @@ export function VerificationStatusTab({
                   {t.statements.alsoFatturaCreata}
                 </span>
               ) : null}
-              <button
-                type="button"
-                onClick={() => void runStmtRecheck(selectedStmt)}
-                disabled={stmtRecheckBusy}
-                aria-busy={stmtRecheckBusy}
-                title={t.statements.recheckTripleCheckTitle}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/35 disabled:opacity-50"
-              >
-                <svg className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.emailSync} ${stmtRecheckBusy ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                {stmtRecheckBusy ? t.common.loading : t.statements.recheckTripleCheck}
-              </button>
             </div>
           </div>
         ) : null}
@@ -6411,7 +6459,7 @@ export function VerificationStatusTab({
                             key={chip.id}
                             type="button"
                             onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
-                            className={`flex min-h-11 touch-manipulation items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all ${
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-2 text-xs font-semibold transition-all ${
                               checkFilter === chip.id ? chipActiveCls : chipIdleCls
                             }`}
                           >
@@ -6433,7 +6481,7 @@ export function VerificationStatusTab({
                           onClick={() =>
                             verificaProdottoRaw ? clearVerificaDeepLinkFilters() : setCheckFilter('all')
                           }
-                          className={`${vsS1HeaderActionBtn} w-full border border-app-line-28 bg-transparent text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40`}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                         >
                           <svg
                             className={`h-4 w-4 shrink-0 opacity-90 ${icon.settingsTools}`}
@@ -6498,6 +6546,43 @@ export function VerificationStatusTab({
               )
             })()}
 
+            {checkResults && uniqueRowMonths.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1.5 border-b border-app-soft-border bg-transparent px-4 py-2">
+                <span className="mr-1 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                  {t.statements.colDate}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setStmtMonthFilter(null)}
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold transition-all ${
+                    stmtMonthFilter === null
+                      ? 'border-app-cyan-400/45 bg-cyan-500/15 text-app-fg'
+                      : 'border-app-line-28 bg-transparent text-app-fg-muted hover:border-app-line-40 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {t.statements.tabAll}
+                </button>
+                {uniqueRowMonths.map((m) => {
+                  const [yr, mo] = m.split('-')
+                  const label = `${MONTHS[Number(mo) - 1] ?? mo} ${yr}`
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setStmtMonthFilter(stmtMonthFilter === m ? null : m)}
+                      className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold transition-all ${
+                        stmtMonthFilter === m
+                          ? 'border-app-cyan-400/45 bg-cyan-500/15 text-app-fg'
+                          : 'border-app-line-28 bg-transparent text-app-fg-muted hover:border-app-line-40 hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
             {verificaDisplayMode !== 'strict' && verificaDisplayMode !== 'empty' ? (
               <div
                 className={`border-b border-amber-500/25 bg-amber-950/30 px-4 py-3 ${
@@ -6535,7 +6620,7 @@ export function VerificationStatusTab({
                   <button
                     type="button"
                     onClick={() => clearVerificaDeepLinkFilters()}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1]"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
                   >
                     {t.statements.clearFilter}
                   </button>
@@ -6675,7 +6760,7 @@ export function VerificationStatusTab({
                         <OpenDocumentInAppButton
                           fatturaId={r.fattura.id}
                           fileUrl={r.fattura.file_url}
-                          className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 text-xs font-semibold text-app-cyan-200 touch-manipulation"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 touch-manipulation"
                         >
                           PDF
                         </OpenDocumentInAppButton>

@@ -33,8 +33,8 @@ function entityIdsFromItem(item: DocumentActionItem) {
     case 'documento_da_processare':
       return { documentoId: item.id }
     case 'riga_statement':
-      return { statementId: item.id }
     case 'statement':
+    case 'statement_inbox':
       return { statementId: item.id }
     default:
       return {}

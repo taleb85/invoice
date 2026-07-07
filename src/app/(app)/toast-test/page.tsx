@@ -1,12 +1,21 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { useToast } from '@/lib/toast-context'
 import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 /** Test lettura sulla barra `#app-desktop-header-nav-progress` (desktop) e toast mobile. */
 export default function ToastTestPage() {
   const { showToast } = useToast()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
+      router.replace('/')
+    }
+  }, [router])
 
   const longSample =
     'Messaggio lungo da prova leggibilità: 113 documenti in attesa · 4 errori di sincronizzazione IMAP sulle ultime 24 ore · Ricorda di verificare gli estratti conto in sospeso.'

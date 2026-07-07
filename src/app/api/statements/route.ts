@@ -49,6 +49,80 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ by_statement_id })
   }
 
+  // ── Mesi distinti delle righe per statement multi-mese (split virtuale lista) ──
+  if (action === 'row_months' && !statementId) {
+    const ids = (searchParams.get('ids') ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .slice(0, 500)
+    if (!ids.length) {
+      return NextResponse.json({ months: {} as Record<string, string[]> })
+    }
+    const { data: rows } = await supabase
+      .from('statement_rows')
+      .select('statement_id, data_doc, fattura_id')
+      .in('statement_id', ids)
+    const months: Record<string, Set<string>> = {}
+    for (const r of rows ?? []) {
+      const sid = r.statement_id as string
+      const m = (r.data_doc as string | null)?.slice(0, 7)
+      if (m) {
+        if (!months[sid]) months[sid] = new Set()
+        months[sid].add(m)
+      }
+    }
+    // Fallback: per le righe senza data_doc, prova dalla fattura collegata
+    const rowsWithFattura = (rows ?? []).filter(r => r.fattura_id && !r.data_doc)
+    if (rowsWithFattura.length > 0) {
+      const fatturaIds = [...new Set(rowsWithFattura.map(r => r.fattura_id as string))]
+      const { data: fatture } = await supabase
+        .from('fatture')
+        .select('id, data')
+        .in('id', fatturaIds)
+      const fatturaDateMap: Record<string, string> = {}
+      for (const f of fatture ?? []) {
+        fatturaDateMap[f.id] = f.data
+      }
+      for (const r of rowsWithFattura) {
+        const sid = r.statement_id as string
+        const fd = fatturaDateMap[r.fattura_id as string]
+        if (!fd) continue
+        const m = fd.slice(0, 7)
+        if (!months[sid]) months[sid] = new Set()
+        months[sid].add(m)
+      }
+    }
+    const result: Record<string, string[]> = {}
+    for (const [sid, ms] of Object.entries(months)) {
+      result[sid] = Array.from(ms).sort((a, b) => b.localeCompare(a))
+    }
+
+    // Fallback finale: per gli statement senza mesi rilevati dalle righe,
+    // usa i metadati dello statement (document_date, extracted_pdf_dates, received_at)
+    const idsWithoutMonths = ids.filter(id => !result[id] || result[id]!.length <= 1)
+    if (idsWithoutMonths.length > 0) {
+      const { data: stmts } = await supabase
+        .from('statements')
+        .select('id, document_date, extracted_pdf_dates, received_at')
+        .in('id', idsWithoutMonths)
+      for (const s of stmts ?? []) {
+        const dates: string[] = []
+        const pdfDates = (s.extracted_pdf_dates as Record<string, string> | null)
+        if (pdfDates?.issued_date) dates.push(pdfDates.issued_date.slice(0, 7))
+        if (pdfDates?.last_payment_date) dates.push(pdfDates.last_payment_date.slice(0, 7))
+        if (s.document_date) dates.push(s.document_date.slice(0, 7))
+        if (s.received_at) dates.push(s.received_at.slice(0, 7))
+        const uniqueMonths = [...new Set(dates)].sort((a, b) => b.localeCompare(a))
+        if (uniqueMonths.length > 1) {
+          result[s.id] = uniqueMonths
+        }
+      }
+    }
+
+    return NextResponse.json({ months: result })
+  }
+
   // ── Get rows for one statement ──────────────────────────────────────────
   if (statementId && action !== 'recheck') {
     const { data: rows, error } = await supabase

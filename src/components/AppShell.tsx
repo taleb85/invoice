@@ -281,7 +281,7 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
           ? openDocumentUrl({ bollaId: item.id, json: true })
           : item.origine === 'fattura'
             ? openDocumentUrl({ fatturaId: item.id, json: true })
-            : item.origine === 'riga_statement' || item.origine === 'statement'
+            : item.origine === 'riga_statement' || item.origine === 'statement' || item.origine === 'statement_inbox'
               ? openDocumentUrl({ statementId: item.id, json: true })
               : openDocumentUrl({ documentoId: item.id, json: true })
       const res = await fetch(jsonHref)

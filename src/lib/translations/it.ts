@@ -1300,7 +1300,7 @@ const translations: Translations = {
       'Tutto: comportamento predefinito. Nuovo fornitore: solo mittenti non in rubrica. Bolla / Fattura: forza il tipo di bozza creata. Estratto conto: solo messaggi con oggetto da estratto (statement).',
     emailSyncDocumentKindAll: 'Tutti i documenti',
     emailSyncDocumentKindFornitore: 'Nuovo fornitore',
-    emailSyncDocumentKindBolla: 'Consignment Note',
+    emailSyncDocumentKindBolla: 'Bolla / DDT',
     emailSyncDocumentKindFattura: 'Fattura',
     emailSyncDocumentKindEstratto: 'Estratto conto',
     syncing: 'Sincronizzazione...',

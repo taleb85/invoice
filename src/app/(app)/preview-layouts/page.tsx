@@ -1,10 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 /* ─── Mock data ──────────────────────────────────────────────────── */
-
-const MOCK_DOCS = [
   { id: '1', color: 'green',  badge: 'Matched',         number: 'INV-AM-350', supplier: 'Amalfi Produce London', date: '12 Mar 2025', amount: '£ 310.00', actions: ['View', 'Email'] },
   { id: '2', color: 'orange', badge: 'Missing Invoice',  number: 'DDT-OB-220', supplier: 'Oral-B UK',             date: '08 Mar 2025', amount: '£  25.00', actions: ['Email'] },
   { id: '3', color: 'red',    badge: 'Amount Error',     number: 'INV-AM-348', supplier: 'Amalfi Produce London', date: '01 Mar 2025', amount: '£ 120.00', actions: ['View', 'Email'] },
@@ -1041,6 +1040,14 @@ const DESKTOP_COMPONENTS: Record<string, React.ReactNode> = {
 }
 
 export default function PreviewLayoutsPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
+      router.replace('/')
+    }
+  }, [router])
+
   const [active, setActive] = useState('0')
   const [mode, setMode] = useState<'mobile' | 'desktop'>('mobile')
   const current = TABS.find(t => t.id === active)!

@@ -17,12 +17,10 @@ import {
 
 type FloatingBarCtx = {
   setActions: (actions: ReactNode | null) => void
-  setPadding: (active: boolean) => void
 }
 
 const Ctx = createContext<FloatingBarCtx>({
   setActions: () => {},
-  setPadding: () => {},
 })
 
 /**
@@ -31,20 +29,14 @@ const Ctx = createContext<FloatingBarCtx>({
  */
 export function FloatingBarProvider({ children }: { children: ReactNode }) {
   const [actions, setActions] = useState<ReactNode | null>(null)
-  const [paddingActive, setPaddingActive] = useState(false)
 
   const handleSetActions = useCallback((a: ReactNode | null) => setActions(a), [])
-  const handleSetPadding = useCallback((v: boolean) => setPaddingActive(v), [])
 
   return (
-    <Ctx.Provider value={{ setActions: handleSetActions, setPadding: handleSetPadding }}>
+    <Ctx.Provider value={{ setActions: handleSetActions }}>
       {children}
       {actions && (
-        <div
-          className={`fixed bottom-0 left-0 right-0 z-50 hidden border-t border-app-soft-border bg-[#0b1524]/85 backdrop-blur-lg md:block lg:left-12 ${
-            paddingActive ? '' : ''
-          }`}
-        >
+        <div className="fixed bottom-0 left-0 right-0 z-50 hidden border-t border-app-soft-border bg-[#0b1524]/85 backdrop-blur-lg md:block lg:left-12">
           <div className="mx-auto flex max-w-full items-center gap-2 px-3 py-1.5 xl:px-4 xl:py-2">
             {actions}
           </div>
@@ -59,14 +51,12 @@ export function FloatingBarProvider({ children }: { children: ReactNode }) {
  * Le azioni vengono automaticamente rimosse quando la pagina si smonta.
  */
 export function useFloatingActions(actions: ReactNode | null) {
-  const { setActions, setPadding } = useContext(Ctx)
+  const { setActions } = useContext(Ctx)
 
   useEffect(() => {
     setActions(actions)
-    setPadding(actions !== null)
     return () => {
       setActions(null)
-      setPadding(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actions !== null ? 'has-actions' : 'no-actions'])

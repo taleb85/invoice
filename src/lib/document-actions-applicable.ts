@@ -61,6 +61,7 @@ const BY_ORIGINE: Record<string, CommandId[]> = {
   documento_da_processare: PENDING_ACTIONS,
   riga_statement: STATEMENT_ROW_ACTIONS,
   statement: STATEMENT_INBOX_ACTIONS,
+  statement_inbox: STATEMENT_INBOX_ACTIONS,
   documento: FALLBACK_ACTIONS,
   conferma_ordine: ['documento.apri'],
 }
