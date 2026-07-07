@@ -561,7 +561,7 @@ export default function NuovaBollaForm() {
       if (bolleEsistenti?.length) {
         if (importoFinaleBolla != null) {
           bollaDuplicata = bolleEsistenti.some(
-            (b) => b.importo != null && Math.abs(b.importo - importoFinaleBolla) < 0.01,
+            (b: { id: string; importo: number | null }) => b.importo != null && Math.abs(b.importo - importoFinaleBolla) < 0.01,
           )
         } else {
           bollaDuplicata = true
