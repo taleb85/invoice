@@ -104,7 +104,7 @@ export default function FornitoriListSection({
         {/* Nuovo Fornitore: visible on mobile (header CTAs are md:hidden on sm and below) */}
         <NewFornitoreLink
           href="/fornitori/new"
-          className="app-glow-cyan md:hidden inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-app-cyan-500 px-3 text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 touch-manipulation"
+          className="app-glow-cyan md:hidden inline-flex shrink-0 items-center gap-1.5 rounded-md bg-app-cyan-500 px-3 py-1.5 text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 touch-manipulation"
           aria-label={t.fornitori.new}
         >
           <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

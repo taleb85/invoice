@@ -47,8 +47,8 @@ export default function DashboardFiscalYearHeaderSelect({
 
   const shellCls =
     layout === 'periodToolbar'
-      ? 'flex min-w-0 w-full max-w-full flex-[1_1_auto] flex-row flex-wrap items-center justify-end gap-x-2 gap-y-2 sm:w-auto sm:flex-nowrap sm:justify-end md:gap-3'
-      : 'hidden min-w-0 max-w-[min(100%,22rem)] flex-[1_1_auto] flex-row flex-wrap items-center justify-end gap-x-2 gap-y-2 sm:flex sm:max-w-[min(28rem,calc(100vw-21rem))] sm:flex-nowrap md:gap-3 lg:max-w-none'
+      ? 'flex min-w-0 w-full max-w-full flex-[1_1_auto] flex-row flex-nowrap items-center justify-end gap-x-2 gap-y-2 sm:w-auto sm:justify-end md:gap-3'
+      : 'hidden min-w-0 max-w-[min(100%,22rem)] flex-[1_1_auto] flex-row flex-nowrap items-center justify-end gap-x-2 gap-y-2 sm:flex sm:max-w-[min(28rem,calc(100vw-21rem))] md:gap-3 lg:max-w-none'
 
   return (
     <label className={shellCls}>

@@ -631,8 +631,8 @@ export default function Sidebar({ onClose, compact }: SidebarProps) {
                               </span>
                               <span className="min-w-0 flex-1 truncate">{item.label}</span>
                               {hasBadge ? <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-red-500 notification-dot" /> : null}
-                               {itemCount != null && itemCount > 0 ? (
-                                 <span className="ml-auto shrink-0 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-0.5 text-[9px] font-bold tabular-nums text-white notification-dot">
+                              {itemCount != null && itemCount > 0 ? (
+                                <span className="ml-auto shrink-0 flex h-4 min-w-[18px] items-center justify-center rounded-md bg-amber-500 px-0.5 text-[9px] font-bold tabular-nums text-white">
                                   {itemCount > 99 ? '99+' : itemCount}
                                 </span>
                               ) : null}
@@ -703,7 +703,7 @@ export default function Sidebar({ onClose, compact }: SidebarProps) {
                   <span className="truncate flex-1 min-w-0">{item.label}</span>
                   {hasBadge && <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500 notification-dot" />}
                   {itemCount != null && itemCount > 0 && (
-                    <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white notification-dot">
+                    <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-md bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white">
                       {itemCount > 99 ? '99+' : itemCount}
                     </span>
                   )}

@@ -432,6 +432,12 @@ function analyzeFatturaSameFileUrlDuplicates(rows: FatturaDupListRow[]): Fattura
     ) {
       continue
     }
+    // Se due fatture con lo stesso file_url hanno numeri diversi (entrambi valorizzati),
+    // sono documenti diversi che condividono lo stesso filename, non duplicati.
+    const numeriNonVuoti = new Set(
+      arr.map((r) => normalizeNumeroFattura(r.numero_fattura)).filter(Boolean),
+    )
+    if (numeriNonVuoti.size > 1) continue
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,
@@ -610,6 +616,12 @@ function analyzeBolleSameFileUrlDuplicates(rows: BollaDupListRow[]): FatturaDupl
     ) {
       continue
     }
+    // Se due bolle con lo stesso file_url hanno numeri diversi (entrambi valorizzati),
+    // sono documenti diversi che condividono lo stesso filename, non duplicati.
+    const numeriNonVuoti = new Set(
+      arr.map((r) => normalizeNumeroFattura(r.numero_bolla)).filter(Boolean),
+    )
+    if (numeriNonVuoti.size > 1) continue
     const slice = analyzeDuplicatesForDeletion(
       arr,
       () => `fileurl\u0000${url}`,

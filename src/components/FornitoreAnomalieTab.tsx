@@ -211,7 +211,7 @@ export default function FornitoreAnomalieTab({
   const renderRowActions = (row: SupplierAnomalieApiRow) => {
     const docItem = documentActionItemFromAnomalieRow(row, fornitoreId, '')
     return (
-    <div className="inline-flex max-w-full flex-nowrap items-center justify-end gap-1.5">
+    <div className="flex w-full flex-nowrap items-center justify-end gap-1.5 md:inline-flex md:w-auto">
       {docItem ? (
         <DocumentRowActions
           item={docItem}
@@ -226,7 +226,7 @@ export default function FornitoreAnomalieTab({
           type="button"
           disabled={resolvingId === row.id}
           onClick={() => void resolvePriceAnomaly(row.id)}
-          className="rounded-lg border border-app-line-30 px-2 py-1 text-[11px] font-semibold text-app-fg-muted hover:bg-app-line-15"
+          className="w-full rounded-lg border border-app-line-30 px-2 py-1 text-[11px] font-semibold text-app-fg-muted hover:bg-app-line-15 md:w-auto"
         >
           {resolvingId === row.id ? '…' : t.fornitori.anomalieRisolvi}
         </button>
@@ -235,21 +235,21 @@ export default function FornitoreAnomalieTab({
         <button
           type="button"
           onClick={() => openDetail(row)}
-          className="rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-200"
+          className="w-full rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-200 md:w-auto"
         >
           {t.common.detail}
         </button>
       ) : row.kind === 'documento_coda' ? (
         <Link
           href={fornitoreDocumentiQueueHref(pathname, searchParams, 'tutti')}
-          className="inline-flex shrink-0 items-center rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold whitespace-nowrap text-cyan-200"
+          className="inline-flex w-full shrink-0 items-center rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold whitespace-nowrap text-cyan-200 md:w-auto"
         >
           {t.fornitori.anomalieApriCoda}
         </Link>
       ) : row.kind === 'fornitore_stesso_dominio' && row.meta?.peerFornitoreId ? (
         <Link
           href={`/fornitori/${encodeURIComponent(fornitoreId)}/edit?merge_source=${encodeURIComponent(row.meta.peerFornitoreId)}`}
-          className="rounded-lg border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-100"
+          className="w-full rounded-lg border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-100 md:w-auto"
         >
           {t.fornitori.anomalieUnisciFornitore}
         </Link>

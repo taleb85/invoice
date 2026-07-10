@@ -309,24 +309,18 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: withFiscalYearQuery('/inbox-ai', fy, { tab: 'panoramica' }),
+      href: withFiscalYearQuery('/inbox-ai', fy, { tab: k.documentiDaRevisionare > 0 ? 'docs' : 'panoramica' }),
       label: t.dashboard.kpiDocumentiDaRevisionareTitle,
       value: k.documentiDaRevisionare,
       sub: t.dashboard.kpiDocumentiDaRevisionareSub,
       icon: (
         <svg
           className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4)}`}
-          fill="none"
-          stroke="currentColor"
           viewBox="0 0 24 24"
+          fill="currentColor"
           aria-hidden
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
-          />
+          <path d="M12 2C12 2 14 8 16 10C18 12 22 12 22 12C22 12 18 12 16 14C14 16 12 22 12 22C12 22 10 16 8 14C6 12 2 12 2 12C2 12 6 12 8 10C10 8 12 2 12 2Z" />
         </svg>
       ),
     },

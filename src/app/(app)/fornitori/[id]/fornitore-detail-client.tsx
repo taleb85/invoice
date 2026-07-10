@@ -7023,7 +7023,7 @@ function FornitoreDetailClient({
       <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden">
         <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
-          <div className="flex items-start gap-3 border-t border-app-line-10 px-3 py-2.5 text-app-fg bg-transparent">
+          <div className="flex items-center gap-3 border-t border-app-line-10 px-3 py-2.5 text-app-fg bg-transparent">
             <FornitoreAvatar nome={fornitoreLabelAvatar} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitoreNomeVisual}</h1>

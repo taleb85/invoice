@@ -125,7 +125,7 @@ export const DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS = [
   'text-violet-400',
   'text-emerald-400',
   'text-amber-400',
-  'text-orange-400',
+  'text-violet-400',
 ] as const
 
 /**

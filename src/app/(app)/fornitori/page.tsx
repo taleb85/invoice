@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { NewFornitoreLink } from '@/components/NewFornitoreLink'
-import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
+import { getRequestAuth } from '@/utils/supabase/server'
 import { getCookieStore } from '@/lib/locale-server'
 import { Fornitore } from '@/types'
 import FornitoriListSection from '@/components/FornitoriListSection'
@@ -31,11 +31,12 @@ async function getFornitori(): Promise<{
   let sedeNome: string | null = null
 
   if (sedeId) {
-    const { data: sede } = await createServiceClient().from('sedi').select('nome').eq('id', sedeId).maybeSingle()
+    const { data: sede } = await supabase.from('sedi').select('nome').eq('id', sedeId).maybeSingle()
     sedeNome = sede?.nome ?? null
   }
 
-  let q = supabase.from('fornitori').select('*').order('created_at', { ascending: false })
+  // Nota: .order('created_at') non esiste sulla tabella fornitori — causa errore.
+  let q = supabase.from('fornitori').select('*')
   if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
 
   const { data } = await q

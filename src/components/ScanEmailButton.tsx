@@ -548,7 +548,7 @@ export default function ScanEmailButton({
       title={disabledProp && disabledReasonTitle ? disabledReasonTitle : undefined}
       className={[
         'flex flex-col',
-        isSupplierVariant ? 'gap-1' : 'gap-1.5',
+        isSupplierVariant ? 'max-md:hidden gap-1' : 'gap-1.5',
         alwaysShowLabel
           ? isSupplierVariant
             ? 'min-w-0 w-full max-w-full'
@@ -563,7 +563,7 @@ export default function ScanEmailButton({
       <div
         className={
           isSupplierVariant
-            ? 'flex w-full flex-col gap-1 md:w-auto md:flex-row md:flex-wrap md:items-center md:gap-x-2 md:gap-y-1.5 xl:h-9 xl:w-full xl:flex-nowrap xl:items-center xl:justify-end'
+            ? 'hidden w-full flex-col gap-1 md:flex md:flex-row md:flex-wrap md:items-center md:gap-x-2 md:gap-y-1.5 xl:h-9 xl:w-full xl:flex-nowrap xl:items-center xl:justify-end'
             : alwaysShowLabel
               ? 'flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-nowrap sm:items-center sm:gap-2 md:gap-2.5'
               : 'flex flex-wrap items-center justify-end gap-1.5'
