@@ -857,6 +857,36 @@ export default function InboxAiClient(props: {
     }
   }
 
+  const scartaSimilari = async (doc: PendingDocRow) => {
+    setActionBusy(doc.id)
+    try {
+      const res = await postDoc({ id: doc.id, azione: 'scarta_similari' })
+      setDocs((d) => d.filter((x) => x.id !== doc.id))
+      setSuggestions((s) => {
+        const n = { ...s }
+        delete n[doc.id]
+        return n
+      })
+
+      // Se la risposta contiene quanti documenti sono stati scartati in totale
+      const scartati = (res as Record<string, unknown> | undefined)?.scartati as number | undefined
+      if (scartati && scartati > 1) {
+        showToast(t.log.inboxAiDiscardSimilarToast.replace('{n}', String(scartati)), 'success')
+      } else {
+        showToast(t.log.activityDocDiscardedToast, 'success')
+      }
+
+      const n = bumpResolved(scartati ?? 1)
+      setResolvedToday(n)
+      await loadDocs({ silent: true })
+      router.refresh()
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : t.log.inboxAiOperationFailed, 'error')
+    } finally {
+      setActionBusy(null)
+    }
+  }
+
   const ignoreSenderAndDiscard = async (doc: PendingDocRow) => {
     const email = extractEmailFromSenderHeader(doc.mittente ?? '')
     if (!email?.includes('@')) {
@@ -1561,6 +1591,13 @@ export default function InboxAiClient(props: {
                               disabled: busyRow,
                               onClick: () => { void ignoreDoc(d.id) },
                             },
+                            ...(d.mittente || d.file_name ? [{
+                              key: 'scarta-similari',
+                              label: t.log.activityInboxDiscardSimilar,
+                              danger: true as const,
+                              disabled: busyRow,
+                              onClick: () => { void scartaSimilari(d) },
+                            }] : []),
                             {
                               key: 'doc-actions',
                               label: t.log.inboxAiMoreActions,

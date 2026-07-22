@@ -1441,6 +1441,7 @@ export type Translations = {
     inboxAiAnalyzeFailed: string
     inboxAiAutoDiscardFailed: string
     inboxAiOperationFailed: string
+    inboxAiDiscardSimilarToast: string
     inboxAiConfirmAllNone: string
     inboxAiAuditLoading: string
     inboxAiAuditCount: string
@@ -1474,6 +1475,7 @@ export type Translations = {
     activityInboxIgnoreSender: string
     activityInboxAddSupplier: string
     activityInboxDiscard: string
+    activityInboxDiscardSimilar: string
     activityAddSupplierModalTitle: string
     activityPdfNameLabel: string
     activityNeedEmailOnRow: string

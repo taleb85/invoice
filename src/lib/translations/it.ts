@@ -2341,6 +2341,7 @@ const translations: Translations = {
     inboxAiAnalyzeFailed: 'Analisi non riuscita',
     inboxAiAutoDiscardFailed: 'Scarto automatico non riuscito',
     inboxAiOperationFailed: 'Operazione non riuscita',
+    inboxAiDiscardSimilarToast: 'Scartati {n} documenti simili',
     inboxAiConfirmAllNone:
       'Nessun documento pronto per la conferma massiva: serve fornitore associato e tipo (fattura, bolla, listino, ordine, estratto) riconosciuto dall’AI.',
     inboxAiAuditLoading: 'Caricamento…',
@@ -2378,6 +2379,7 @@ const translations: Translations = {
     activityInboxIgnoreSender: 'Ignora mittente',
     activityInboxAddSupplier: 'Aggiungi fornitore',
     activityInboxDiscard: 'Scarta',
+    activityInboxDiscardSimilar: 'Scarta simili',
     activityAddSupplierModalTitle: 'Aggiungi fornitore',
     activityPdfNameLabel: 'Sul PDF',
     activityNeedEmailOnRow: 'Manca un indirizzo email nel mittente di questa riga.',

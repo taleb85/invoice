@@ -10,6 +10,9 @@ import {
   extractStatementFromSupplierName,
   statementEmailSubjectMatchesFornitore,
 } from '@/lib/statement-supplier-subject'
+import { resolveConfermaOrdineNumero } from '@/lib/extract-doc-type'
+import { totaleFromDocMetadata } from '@/lib/conferme-ordine-importo'
+import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 
 const BATCH = 100
 
@@ -38,6 +41,8 @@ export type AutoReinferResult = {
   fornitoreCreated: number
   ghostEmailsRemoved: number
   statementDriftFixed: number
+  /** Ordini finalizzati automaticamente (fornitore noto + data documento). */
+  ordineAutoFinalized: number
 }
 
 async function fornitoreAssignmentContradictsOcr(
@@ -113,6 +118,7 @@ export async function autoReinferSuppliers(
     fornitoreCreated: 0,
     ghostEmailsRemoved: 0,
     statementDriftFixed: 0,
+    ordineAutoFinalized: 0,
   }
 
   try {
@@ -264,5 +270,183 @@ export async function autoReinferSuppliers(
     }
   }
 
+  // ── Auto-finalizza ordini con fornitore e data noti ──────────────────────
+  if (result.ordineAutoFinalized === 0) {
+    // Solo se la passata qualità non ha già messo ordini in coda più recente;
+    // esegue una query dedicata per intercettare eventuali ordini già con fornitore
+    result.ordineAutoFinalized = await autoFinalizeOrdineDocuments(supabase, { sedeId: sedeFilter })
+  }
+
   return result
+}
+
+/**
+ * Finalizza automaticamente i documenti con `pending_kind = 'ordine'`,
+ * fornitore noto e data documento presente.
+ * Crea un record in `conferme_ordine` e aggiorna lo stato a `associato`.
+ */
+async function autoFinalizeOrdineDocuments(
+  supabase: SupabaseClient,
+  opts?: { sedeId?: string | null },
+): Promise<number> {
+  const sedeFilter = opts?.sedeId?.trim() || null
+  let count = 0
+
+  try {
+    // Query documenti ordine in attesa con fornitore e data noti
+    let q = supabase
+      .from('documenti_da_processare')
+      .select('id, fornitore_id, sede_id, mittente, oggetto_mail, file_name, file_url, data_documento, metadata')
+      .eq('stato', 'da_associare')
+      .not('fornitore_id', 'is', null)
+      .not('data_documento', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (sedeFilter) q = q.eq('sede_id', sedeFilter)
+
+    const { data: docs, error: docsErr } = await q
+    if (docsErr) {
+      logger.error('[AUTO-REINFER][ORDINE] Errore query:', docsErr.message)
+      return 0
+    }
+    if (!docs?.length) return 0
+
+    // Filtra quelli con pending_kind = 'ordine'
+    const ordineDocs = docs.filter((d) => {
+      const meta = d.metadata && typeof d.metadata === 'object' && !Array.isArray(d.metadata)
+        ? (d.metadata as Record<string, unknown>)
+        : {}
+      return typeof meta.pending_kind === 'string' && meta.pending_kind === 'ordine'
+    })
+
+    if (!ordineDocs.length) return 0
+
+    for (const doc of ordineDocs) {
+      try {
+        const meta = doc.metadata as Record<string, unknown> | undefined
+        const mitt = typeof doc.mittente === 'string' ? doc.mittente : null
+        const titolo = typeof doc.oggetto_mail === 'string' ? doc.oggetto_mail : null
+        const fileName = typeof doc.file_name === 'string' ? doc.file_name : null
+        const numeroFatturaMeta =
+          meta && typeof meta.numero_fattura === 'string' && meta.numero_fattura.trim()
+            ? meta.numero_fattura.trim()
+            : null
+
+        const numeroOrdineResolved = resolveConfermaOrdineNumero({
+          titolo: null,
+          fileName,
+          numeroFatturaMetadata: numeroFatturaMeta,
+          oggettoMail: titolo,
+        })
+        const numeroOrdine = numeroOrdineResolved ? normalizeNumeroFattura(numeroOrdineResolved) : null
+        const titoloOrdine = numeroOrdineResolved || titolo
+        const dataDoc = typeof doc.data_documento === 'string' ? doc.data_documento.trim() : null
+
+        if (!dataDoc) continue
+
+        // ── Duplicate check by file_url ──
+        const fileUrl = typeof doc.file_url === 'string' ? doc.file_url.trim() : ''
+        if (fileUrl) {
+          const { data: dupByUrl } = await supabase
+            .from('conferme_ordine')
+            .select('id')
+            .eq('fornitore_id', doc.fornitore_id)
+            .eq('file_url', fileUrl)
+            .limit(1)
+          if (dupByUrl?.[0]) {
+            await supabase
+              .from('documenti_da_processare')
+              .update({ stato: 'associato', bolla_id: null, fattura_id: null })
+              .eq('id', doc.id)
+            count++
+            continue
+          }
+        }
+
+        // ── Duplicate check by numero_ordine + data ──
+        if (numeroOrdine && dataDoc) {
+          const { data: dupByNum } = await supabase
+            .from('conferme_ordine')
+            .select('id')
+            .eq('fornitore_id', doc.fornitore_id)
+            .eq('numero_ordine', numeroOrdine)
+            .eq('data_ordine', dataDoc)
+            .limit(1)
+          if (dupByNum?.[0]) {
+            await supabase
+              .from('documenti_da_processare')
+              .update({ stato: 'associato', bolla_id: null, fattura_id: null })
+              .eq('id', doc.id)
+            count++
+            continue
+          }
+        }
+
+        // ── Righe prodotto (Rekki) ──
+        const righe = Array.isArray(meta?.rekki_lines)
+          ? (meta!.rekki_lines as unknown[])
+          : null
+
+        // ── Importo ──
+        const importoOrdine = meta ? totaleFromDocMetadata(meta) : null
+
+        // ── Sede definitiva ──
+        const { data: fornitoreRow } = await supabase
+          .from('fornitori')
+          .select('sede_id')
+          .eq('id', doc.fornitore_id)
+          .maybeSingle()
+        const sedeDefinitiva = fornitoreRow?.sede_id ?? doc.sede_id ?? null
+
+        // ── Insert in conferme_ordine ──
+        const confermaPayload: Record<string, unknown> = {
+          fornitore_id: doc.fornitore_id,
+          sede_id: sedeDefinitiva,
+          file_url: doc.file_url,
+          file_name: fileName,
+          titolo: titoloOrdine,
+          numero_ordine: numeroOrdine,
+          data_ordine: dataDoc,
+          note: null,
+        }
+        if (righe) confermaPayload.righe = righe
+        if (importoOrdine != null) confermaPayload.importo_totale = importoOrdine
+
+        const { error: coErr } = await supabase.from('conferme_ordine').insert([confermaPayload])
+
+        if (coErr && coErr.message?.includes('conferme_ordine')) {
+          // Tabella non disponibile — log e skip silenzioso
+          logger.warn('[AUTO-REINFER][ORDINE] Tabella conferme_ordine non disponibile:', coErr.message)
+          continue
+        }
+        if (coErr) {
+          logger.warn('[AUTO-REINFER][ORDINE] Errore insert conferma ordine:', coErr.message)
+          continue
+        }
+
+        // ── Update documento → associato ──
+        await supabase
+          .from('documenti_da_processare')
+          .update({
+            stato: 'associato',
+            bolla_id: null,
+            fattura_id: null,
+            ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+          })
+          .eq('id', doc.id)
+
+        count++
+        logger.info(
+          `[AUTO-REINFER][ORDINE] ✅ Finalizzato ordine ${numeroOrdine || titoloOrdine || doc.id} per fornitore ${doc.fornitore_id}`,
+        )
+      } catch (e) {
+        logger.warn('[AUTO-REINFER][ORDINE] Errore finalizzazione:', e)
+      }
+    }
+  } catch (e) {
+    logger.error('[AUTO-REINFER][ORDINE] Errore generale:', e)
+  }
+
+  return count
 }

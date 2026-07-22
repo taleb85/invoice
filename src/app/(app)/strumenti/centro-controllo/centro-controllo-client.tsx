@@ -1255,8 +1255,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
       </div>
 
       {/* ── Estratti + strumenti avanzati (sotto la coda) ─────────────────── */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="flex min-w-0 flex-col gap-6">
+      <div className="flex min-w-0 flex-col gap-6">
           {/* ── Statement ── */}
           {statementStats && (
             <SectionCard
@@ -1524,76 +1523,72 @@ export default function CentroControlloClient({ sedeId }: Props) {
               </div>
             </SectionCard>
           )}
-        </div>
 
-        <div className="flex min-w-0 flex-col gap-6">
+        {/* ── Strumenti di Manutenzione Avanzata (collassabile) ── */}
+        <details className="group w-full">
+          <summary className="flex cursor-pointer list-none select-none items-center gap-2 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-app-fg-muted transition-colors hover:bg-app-line-15 [&::-webkit-details-marker]:hidden">
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
+            {t.strumentiCentroControllo.advTools}
+          </summary>
+          <div className="mt-4 flex flex-col gap-4">
 
-          {/* ── Strumenti di Manutenzione Avanzata (collassabile) ── */}
-          <details className="group xl:sticky xl:top-4 xl:self-start">
-            <summary className="flex cursor-pointer list-none select-none items-center gap-2 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-app-fg-muted transition-colors hover:bg-app-line-15 [&::-webkit-details-marker]:hidden">
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-90" />
-              {t.strumentiCentroControllo.advTools}
-            </summary>
-            <div className="mt-4 flex flex-col gap-4">
+            <SectionCard title={t.strumentiCentroControllo.advOcrQuality}>
+              <div className="px-4 py-3">
+                <AuditAndFixAllCard />
+              </div>
+            </SectionCard>
 
-              <SectionCard title={t.strumentiCentroControllo.advOcrQuality}>
+            <SectionCard title={t.strumentiCentroControllo.advSyncEmail}>
+              <div className="divide-y divide-app-line-10">
                 <div className="px-4 py-3">
-                  <AuditAndFixAllCard />
-                </div>
-              </SectionCard>
-
-              <SectionCard title={t.strumentiCentroControllo.advSyncEmail}>
-                <div className="divide-y divide-app-line-10">
-                  <div className="px-4 py-3">
-                    <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advHistoricSyncTitle}</p>
-                    <p className="mt-1 text-xs text-app-fg-muted">
-                      {t.strumentiCentroControllo.advHistoricSyncDesc}
-                    </p>
-                    <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-100/90">
-                      {t.strumentiCentroControllo.advHistoricSyncWarning}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={historicSyncLoading}
-                        onClick={handleHistoricSync}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/45 bg-violet-500/12 px-3 py-1.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:opacity-50"
-                      >
-                        {historicSyncLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Calendar className="w-3 h-3" />
-                        )}
-                        {t.strumentiCentroControllo.advHistoricSyncStart}
-                      </button>
-                      {historicSyncError && <span className="text-xs text-rose-300">{historicSyncError}</span>}
-                    </div>
-                    {historicProgressLine && (
-                      <p className="mt-2 text-xs text-app-fg-muted">{historicProgressLine}</p>
-                    )}
-                    {historicSyncResult && (
-                      <p className="mt-2 whitespace-pre-line text-xs text-emerald-200/90">{historicSyncResult}</p>
-                    )}
+                  <p className="text-xs font-semibold text-app-fg">{t.strumentiCentroControllo.advHistoricSyncTitle}</p>
+                  <p className="mt-1 text-xs text-app-fg-muted">
+                    {t.strumentiCentroControllo.advHistoricSyncDesc}
+                  </p>
+                  <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-100/90">
+                    {t.strumentiCentroControllo.advHistoricSyncWarning}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={historicSyncLoading}
+                      onClick={handleHistoricSync}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/45 bg-violet-500/12 px-3 py-1.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:opacity-50"
+                    >
+                      {historicSyncLoading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Calendar className="w-3 h-3" />
+                      )}
+                      {t.strumentiCentroControllo.advHistoricSyncStart}
+                    </button>
+                    {historicSyncError && <span className="text-xs text-rose-300">{historicSyncError}</span>}
                   </div>
+                  {historicProgressLine && (
+                    <p className="mt-2 text-xs text-app-fg-muted">{historicProgressLine}</p>
+                  )}
+                  {historicSyncResult && (
+                    <p className="mt-2 whitespace-pre-line text-xs text-emerald-200/90">{historicSyncResult}</p>
+                  )}
                 </div>
+              </div>
+            </SectionCard>
+
+            {/* Impostazioni sede — OCR nomi, scarto documenti, approvazione fatture */}
+            {sedeId && (
+              <SectionCard title="Impostazioni sede">
+                <ImpostazioniSedeAdminBlocks sedeId={sedeId} />
               </SectionCard>
+            )}
 
-              {/* Impostazioni sede — OCR nomi, scarto documenti, approvazione fatture */}
-              {sedeId && (
-                <SectionCard title="Impostazioni sede">
-                  <ImpostazioniSedeAdminBlocks sedeId={sedeId} />
-                </SectionCard>
-              )}
+            {/* Solleciti automatici */}
+            <SollecitiSettingsLinkCard />
 
-              {/* Solleciti automatici */}
-              <SollecitiSettingsLinkCard />
+            {/* Session policy — timeout di sessione e inattività */}
+            <SessionPolicyCard />
 
-              {/* Session policy — timeout di sessione e inattività */}
-              <SessionPolicyCard />
-
-            </div>
-          </details>
-        </div>
+          </div>
+        </details>
       </div>
 
       {/* ── Sedi / Aziende ── */}

@@ -993,6 +993,65 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── scarta_similari — scarta altri documenti in coda con stesso mittente o nome file simile ──
+  if (azioneNorm === 'scarta_similari') {
+    const mittRaw = String(doc.mittente ?? '').trim();
+    const fileName = String(doc.file_name ?? '').trim();
+    const sedeDelDoc = doc.sede_id ?? body.sede_id ?? null;
+    const processableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa'];
+
+    // Costruisci pattern nome file rimuovendo numeri finali (es. "Sales Order Confirmation-553065.pdf" → "Sales Order Confirmation")
+    const filePattern = fileName
+      .replace(/\.\w+$/, '')               // estensione
+      .replace(/[-\s_]*\d+[-\s_]*$/, '')   // numeri finali
+      .replace(/[-\s_]+$/, '')              // trattini/spazi finali
+      .trim();
+
+    const matchedIds: string[] = [id];
+
+    // 1. Match per stesso mittente
+    if (mittRaw) {
+      const mittLower = mittRaw.toLowerCase();
+      let q1 = supabase
+        .from('documenti_da_processare')
+        .select('id')
+        .in('stato', processableStates)
+        .neq('id', id)
+        .ilike('mittente', `%${mittLower}%`);
+      if (sedeDelDoc) q1 = q1.eq('sede_id', sedeDelDoc);
+      const { data: bySender } = await q1.limit(50);
+      if (bySender?.length) {
+        for (const r of bySender) {
+          if (!matchedIds.includes(r.id)) matchedIds.push(r.id);
+        }
+      }
+    }
+
+    // 2. Match per pattern nome file (stesso prefisso)
+    if (filePattern && filePattern.length >= 5) {
+      let q2 = supabase
+        .from('documenti_da_processare')
+        .select('id')
+        .in('stato', processableStates)
+        .neq('id', id)
+        .ilike('file_name', `${filePattern}%`);
+      if (sedeDelDoc) q2 = q2.eq('sede_id', sedeDelDoc);
+      const { data: byFile } = await q2.limit(50);
+      if (byFile?.length) {
+        for (const r of byFile) {
+          if (!matchedIds.includes(r.id)) matchedIds.push(r.id);
+        }
+      }
+    }
+
+    await supabase
+      .from('documenti_da_processare')
+      .update({ stato: 'scartato' })
+      .in('id', matchedIds);
+
+    return NextResponse.json({ ok: true, scartati: matchedIds.length })
+  }
+
   // ── ignora_mittente ───────────────────────────────────────────────────────
   if (azioneNorm === 'ignora_mittente') {
     const mittRaw = String(doc.mittente ?? '').trim()
@@ -1015,8 +1074,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Scarta anche tutti gli altri documenti in attesa dello stesso mittente
+    const processableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa']
+    let discardCount = 1
+    if (mittRaw) {
+      const mittLower = mittRaw.toLowerCase()
+      let q = supabase
+        .from('documenti_da_processare')
+        .select('id')
+        .in('stato', processableStates)
+        .neq('id', id as string)
+        .ilike('mittente', `%${mittLower}%`)
+      if (sedeDelDoc) q = q.eq('sede_id', sedeDelDoc)
+      const { data: otherPending } = await q.limit(50)
+      if (otherPending?.length) {
+        const otherIds = otherPending.map((r: { id: string }) => r.id)
+        if (otherIds.length) {
+          await supabase
+            .from('documenti_da_processare')
+            .update({ stato: 'scartato' })
+            .in('id', otherIds)
+          discardCount += otherIds.length
+        }
+      }
+    }
+
     await supabase.from('documenti_da_processare').update({ stato: 'scartato' }).eq('id', id)
-    return NextResponse.json({ ok: true, ignored: true })
+    return NextResponse.json({ ok: true, ignored: true, scartati: discardCount })
   }
 
   // ── associa ───────────────────────────────────────────────────────────────
