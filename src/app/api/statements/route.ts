@@ -19,6 +19,7 @@ import { dedupeStatementsForList, type StatementListRow } from '@/lib/statement-
 import type { StatementExtractedPdfDates } from '@/lib/statement-official-date'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
+import { ocrStatement } from '@/lib/ocr-statement'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -171,7 +172,7 @@ export async function GET(req: NextRequest) {
   if (statementId && action === 'recheck') {
     const { data: stmt } = await supabase
       .from('statements')
-      .select('id, sede_id, fornitore_id')
+      .select('id, sede_id, fornitore_id, file_url')
       .eq('id', statementId)
       .single()
 
@@ -187,6 +188,44 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, rechecked: 0, status: 'error' })
     }
 
+    // ── Tenta di ri-estrarre righe dal PDF (es. note di credito perse da bug precedente) ──
+    let newRowsInserted = 0
+    if (stmt.file_url) {
+      try {
+        const dl = await downloadStorageObjectByFileUrl(service, stmt.file_url)
+        if (!('error' in dl)) {
+          const contentType = stmt.file_url.toLowerCase().includes('.pdf') ? 'application/pdf' : (dl.contentType ?? 'application/octet-stream')
+          const ocr = await ocrStatement(new Uint8Array(dl.data), contentType)
+          const existingNumeri = new Set(existingRows.map(r => r.numero_doc?.trim().toLowerCase()).filter(Boolean))
+          for (const newRow of ocr.rows) {
+            const normNumero = newRow.numero.trim().toLowerCase()
+            if (!normNumero || existingNumeri.has(normNumero)) continue
+            // Nuova riga trovata dal PDF — inseriscila
+            await service.from('statement_rows').insert([{
+              statement_id: statementId,
+              numero_doc: newRow.numero,
+              importo: newRow.importo,
+              data_doc: newRow.data,
+              fornitore_id: stmt.fornitore_id,
+              check_status: 'pending',
+            }])
+            existingNumeri.add(normNumero)
+            newRowsInserted++
+          }
+        }
+      } catch (e) {
+        console.warn('[RECHECK] Errore ri-estrazione PDF statement:', e)
+      }
+    }
+
+    // ── Ricarica righe (incluse quelle nuove) ────────────────────────────
+    const { data: allRows } = await supabase
+      .from('statement_rows')
+      .select('id, numero_doc, importo, data_doc')
+      .eq('statement_id', statementId)
+
+    if (!allRows?.length) return NextResponse.json({ ok: true, rechecked: 0 })
+
     // Leggi flag `emette_bolle` del fornitore (default true se NULL o colonna
     // non ancora migrata). Quando false NON forziamo 'ok'→'bolle_mancanti'.
     let emetteBolleForRecheck = true
@@ -201,7 +240,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const lines = existingRows.map(r => ({
+    const lines = allRows.map(r => ({
       numero: r.numero_doc ?? '',
       importo: Number(r.importo),
       data: r.data_doc ?? null,
@@ -220,7 +259,7 @@ export async function GET(req: NextRequest) {
       : rawResults
 
     for (const r of results) {
-      const existingRow = findStatementRowByNumeroDoc(existingRows, r.numero)
+      const existingRow = findStatementRowByNumeroDoc(allRows, r.numero)
       if (!existingRow) continue
 
       const bolle_json =
@@ -279,10 +318,11 @@ export async function GET(req: NextRequest) {
     const missingRows = results.filter(r => r.status !== 'ok').length
     await service.from('statements').update({
       status:       'done',
+      total_rows: results.length,
       missing_rows: missingRows,
     }).eq('id', statementId)
 
-    return NextResponse.json({ ok: true, rechecked: results.length, missing_rows: missingRows })
+    return NextResponse.json({ ok: true, rechecked: results.length, missing_rows: missingRows, newRowsInserted })
   }
 
   // ── List statements for a sede ─────────────────────────────────────────

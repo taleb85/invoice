@@ -119,8 +119,9 @@ function toRows(arr: unknown[]): StatementRow[] {
     const importo =
       row.importo !== null && row.importo !== undefined ? Number(row.importo) : NaN
     const data = row.data ? String(row.data).trim() : null
-    if (!numero || isNaN(importo) || importo <= 0) return []
-    return [{ numero, importo, data: data ?? null }]
+    if (!numero || isNaN(importo) || importo === 0) return []
+    // Conserva importi negativi (es. note di credito) prendendone il valore assoluto
+    return [{ numero, importo: Math.abs(importo), data: data ?? null }]
   })
 }
 
