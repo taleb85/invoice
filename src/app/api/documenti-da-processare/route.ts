@@ -981,24 +981,18 @@ export async function POST(req: NextRequest) {
     return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id, kindToUse)
   }
 
-  // ── Check processableStates per tutte le altre azioni ──
-  const processableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa']
-  if (!processableStates.includes(doc.stato)) {
-    return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
-  }
-
-  // ── scarta ────────────────────────────────────────────────────────────────
+  // ── scarta — sempre consentito anche su documenti già processati ────────────
   if (azioneNorm === 'scarta') {
     await supabase.from('documenti_da_processare').update({ stato: 'scartato' }).eq('id', id)
     return NextResponse.json({ ok: true })
   }
 
-  // ── scarta_similari — scarta altri documenti in coda con stesso mittente o nome file simile ──
+  // ── scarta_similari — sempre consentito ─────────────────────────────────
   if (azioneNorm === 'scarta_similari') {
     const mittRaw = String(doc.mittente ?? '').trim();
     const fileName = String(doc.file_name ?? '').trim();
     const sedeDelDoc = doc.sede_id ?? body.sede_id ?? null;
-    const processableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa'];
+    const searchableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa'];
 
     // Costruisci pattern nome file rimuovendo numeri finali (es. "Sales Order Confirmation-553065.pdf" → "Sales Order Confirmation")
     const filePattern = fileName
@@ -1015,7 +1009,7 @@ export async function POST(req: NextRequest) {
       let q1 = supabase
         .from('documenti_da_processare')
         .select('id')
-        .in('stato', processableStates)
+        .in('stato', searchableStates)
         .neq('id', id)
         .ilike('mittente', `%${mittLower}%`);
       if (sedeDelDoc) q1 = q1.eq('sede_id', sedeDelDoc);
@@ -1032,7 +1026,7 @@ export async function POST(req: NextRequest) {
       let q2 = supabase
         .from('documenti_da_processare')
         .select('id')
-        .in('stato', processableStates)
+        .in('stato', searchableStates)
         .neq('id', id)
         .ilike('file_name', `${filePattern}%`);
       if (sedeDelDoc) q2 = q2.eq('sede_id', sedeDelDoc);
@@ -1050,6 +1044,12 @@ export async function POST(req: NextRequest) {
       .in('id', matchedIds);
 
     return NextResponse.json({ ok: true, scartati: matchedIds.length })
+  }
+
+  // ── Check processableStates per le azioni che richiedono stato in attesa ──
+  const processableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa']
+  if (!processableStates.includes(doc.stato)) {
+    return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
   }
 
   // ── ignora_mittente ───────────────────────────────────────────────────────

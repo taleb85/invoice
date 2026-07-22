@@ -745,10 +745,11 @@ export default function InboxAiClient(props: {
       credentials: 'include',
       body: JSON.stringify(body),
     })
-    const j = (await res.json()) as { error?: string; ok?: boolean }
+    const j = (await res.json()) as Record<string, unknown> & { error?: string }
     if (!res.ok) {
       throw new Error(translateDocumentiDaProcessareError(j.error, t) || `HTTP ${res.status}`)
     }
+    return j
   }
 
   const finalizeWithKind = async (
