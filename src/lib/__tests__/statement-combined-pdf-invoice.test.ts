@@ -38,7 +38,7 @@ describe('pickInvoiceSegmentFromPdfSegments', () => {
       {
         tipo_documento: 'estratto_conto',
         numero_fattura: null,
-        numero_e_account_no: null,
+        numero_e_account_no: false,
         pagina_inizio: 1,
         pagina_fine: 2,
         data_fattura: null,

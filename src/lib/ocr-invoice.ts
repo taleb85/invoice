@@ -449,7 +449,7 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
     const rawTotale = parsed.totale_iva_inclusa
     const importo_raw = rawTotale != null ? String(rawTotale) : null
     const formato_importo = importo_raw ? detectFormatoImporto(importo_raw) : null
-    let totale_iva_inclusa =
+    const totale_iva_inclusa =
       typeof rawTotale === 'number'
         ? rawTotale
         : importo_raw

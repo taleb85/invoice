@@ -7,7 +7,6 @@ import {
 
 function row(partial: Partial<ConfermaOrdineListRow> & { id: string }): ConfermaOrdineListRow {
   return {
-    id: partial.id,
     file_url: 'https://x/doc.pdf',
     file_name: null,
     titolo: null,
@@ -21,7 +20,8 @@ function row(partial: Partial<ConfermaOrdineListRow> & { id: string }): Conferma
     fornitore_id: 'f1',
     data_ordine_display: null,
     ...partial,
-  }
+    id: partial.id,
+  } as ConfermaOrdineListRow
 }
 
 describe('sortConfermeOrdineByDocumentDateDesc', () => {

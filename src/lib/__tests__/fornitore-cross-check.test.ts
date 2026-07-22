@@ -23,6 +23,9 @@ function testOcr(fields: {
     numero_fattura: null,
     tipo_documento: null,
     totale_iva_inclusa: null,
+    nome: fields.ragione_sociale ?? null,
+    piva: fields.p_iva ?? null,
+    data: null,
   }
 }
 

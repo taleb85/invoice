@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     const CREDIT_NOTE_PREFIX = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i
     const results = emetteBolle
       ? rawResults.map((r) =>
-          r.status === 'ok' && r.bolle.length === 0 && !CREDIT_NOTE_PREFIX.test(r.numero)
+          r.status === 'ok' && r.bolle.length === 0 && !CREDIT_NOTE_PREFIX.test(r.numero) && !(r.fattura?.numero_fattura && CREDIT_NOTE_PREFIX.test(r.fattura.numero_fattura))
             ? { ...r, status: 'bolle_mancanti' as const }
             : r,
         )

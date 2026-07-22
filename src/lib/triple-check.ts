@@ -104,6 +104,7 @@ type FatturaMatchInput = {
 type FatturaRow = {
   id: string; numero_fattura: string | null; importo: number | null
   data: string; file_url: string | null; fornitore_id: string; bolla_id: string | null
+  is_credit_note: boolean | null
   fornitori: { id: string; nome: string; email: string | null; emette_bolle?: boolean | null } |
              { id: string; nome: string; email: string | null; emette_bolle?: boolean | null }[] | null
 }
@@ -191,7 +192,9 @@ function resolveCheckStatus(
   bolle: TripleCheckBollaRow[],
   emetteBolle: boolean,
 ): { status: CheckStatus; delta: number } {
-  const isNotaCredito = CREDIT_NOTE_PREFIX.test(line.numero)
+  const isNotaCredito = CREDIT_NOTE_PREFIX.test(line.numero) ||
+    (!!rawFattura?.numero_fattura && CREDIT_NOTE_PREFIX.test(rawFattura.numero_fattura)) ||
+    rawFattura?.is_credit_note === true
 
   // Per le note di credito, confronta i valori assoluti (lo statement può avere
   // segno negativo mentre la fattura nel DB è positiva, o viceversa).
@@ -247,7 +250,7 @@ export async function runTripleCheck(
 
   const baseFattureQ = supabase
     .from('fatture')
-    .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, fornitori(id, nome, email, emette_bolle)')
+    .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, is_credit_note, fornitori(id, nome, email, emette_bolle)')
   let fattureQ: typeof baseFattureQ = baseFattureQ
   if (sede_id)      fattureQ = fattureQ.eq('sede_id',      sede_id)
   if (fornitore_id) fattureQ = fattureQ.eq('fornitore_id', fornitore_id)
@@ -315,10 +318,12 @@ export async function runTripleCheck(
     const fattura      = {
       id: rawFattura.id, numero_fattura: rawFattura.numero_fattura,
       importo: rawFattura.importo, data: rawFattura.data,
-      file_url: rawFattura.file_url, fornitore_id: rawFattura.fornitore_id,
+      file_url: rawFattura.file_url, fornitore_id: rawFattura.fornitore_id, is_credit_note: rawFattura.is_credit_note ?? false,
     }
 
-    const isNotaCredito = CREDIT_NOTE_PREFIX.test(line.numero)
+    const isNotaCredito = CREDIT_NOTE_PREFIX.test(line.numero) ||
+      (!!rawFattura?.numero_fattura && CREDIT_NOTE_PREFIX.test(rawFattura.numero_fattura)) ||
+      rawFattura?.is_credit_note === true
     const bolle = findMatchingBolleForFattura(rawFattura, bollePool, line.importo, isNotaCredito)
 
     // Merge bolle linked via junction table fattura_bolle (multi-bolla associations)

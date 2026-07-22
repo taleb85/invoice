@@ -11,7 +11,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { BackButton } from '@/components/BackButton'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
-import { formatDate, formatDateTime } from '@/lib/locale'
+import { formatDate, formatDateTime, formatMonthYearUppercase } from '@/lib/locale'
 import type { Translations } from '@/lib/translations'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
@@ -136,6 +136,21 @@ function StatoBadge({ stato, statoConfig }: { stato: string; statoConfig: Record
       {cfg.label}
     </span>
   )
+}
+
+/** Raggruppa un array di documenti per mese (da `created_at`). */
+function groupByMonth<T extends { created_at: string | null }>(items: T[]): Map<string, T[]> {
+  const groups = new Map<string, T[]>()
+  for (const item of items) {
+    const key = item.created_at?.slice(0, 7) ?? '??' // "2026-07" oppure "??"
+    let bucket = groups.get(key)
+    if (!bucket) {
+      bucket = []
+      groups.set(key, bucket)
+    }
+    bucket.push(item)
+  }
+  return groups
 }
 
 export default function VerificaDocumentiPage() {
@@ -433,80 +448,94 @@ export default function VerificaDocumentiPage() {
                 {data.documenti_bloccati.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">{v.noBlockedHint}</p>
                 ) : (
-                  <div className="overflow-x-auto rounded-lg border border-app-line-22">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">{v.colStato}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colMittente}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colPendingKind}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colDays}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colActions}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-app-line-10">
-                        {data.documenti_bloccati.map((doc) => (
-                          <tr key={doc.id} className="text-app-fg hover:bg-white/[0.02]">
-                            <td className="py-2 pr-3"><StatoBadge stato={doc.stato} statoConfig={STATO_CONFIG} /></td>
-                            <td className="py-2 pr-3">{doc.mittente ?? '—'}</td>
-                            <td className="py-2 pr-3 max-w-[200px] truncate" title={doc.file_name ?? ''}>
-                              {doc.file_name ? (
-                                doc.file_url ? (
-                                  <OpenDocumentInAppButton
-                                    documentoId={doc.id}
-                                    fileUrl={doc.file_url}
-                                    title={doc.file_name ?? undefined}
-                                    className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
-                                  >
-                                    {doc.file_name}
-                                  </OpenDocumentInAppButton>
-                                ) : (
-                                  doc.file_name
-                                )
-                              ) : '—'}
-                            </td>
-                            <td className="py-2 pr-3">
-                              <span className="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px]">
-                                {doc.pending_kind ?? '—'}
-                              </span>
-                            </td>
-                            <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}{v.daysSuffix}</td>
-                            <td className="py-2 pr-3 text-app-fg-muted">
-                              {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
-                            </td>
-                            <td className="py-2 pr-3">
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  disabled={actionLoading.has(doc.id)}
-                                  onClick={() => handleRiprocessa(doc.id)}
-                                  className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15 disabled:opacity-40"
-                                >
-                                  {actionLoading.has(doc.id) ? (
-                                    <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
-                                  ) : (
-                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                  )}
-                                  {v.actionRetry}
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={actionLoading.has(doc.id)}
-                                  onClick={() => handleScarta(doc.id)}
-                                  className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/8 px-2 py-1 text-[10px] font-bold text-rose-200 transition-colors hover:bg-rose-500/15 disabled:opacity-40"
-                                >
-                                  {v.actionDiscard}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-6">
+                    {Array.from(groupByMonth(data.documenti_bloccati).entries())
+                      .sort(([a], [b]) => b.localeCompare(a))
+                      .map(([ym, docs]) => (
+                        <div key={ym}>
+                          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-app-fg-muted">
+                            {ym === '??' ? 'Senza data' : formatMonthYearUppercase(ym + '-01', locale)}
+                            <span className="ml-2 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-normal">
+                              {docs.length}
+                            </span>
+                          </h3>
+                          <div className="overflow-x-auto rounded-lg border border-app-line-22">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="text-app-fg-muted">
+                                  <th className="pb-2 pr-3 font-semibold">{v.colStato}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colMittente}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colPendingKind}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colDays}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colActions}</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-app-line-10">
+                                {docs.map((doc) => (
+                                  <tr key={doc.id} className="text-app-fg hover:bg-white/[0.02]">
+                                    <td className="py-2 pr-3"><StatoBadge stato={doc.stato} statoConfig={STATO_CONFIG} /></td>
+                                    <td className="py-2 pr-3">{doc.mittente ?? '—'}</td>
+                                    <td className="py-2 pr-3 max-w-[200px] truncate" title={doc.file_name ?? ''}>
+                                      {doc.file_name ? (
+                                        doc.file_url ? (
+                                          <OpenDocumentInAppButton
+                                            documentoId={doc.id}
+                                            fileUrl={doc.file_url}
+                                            title={doc.file_name ?? undefined}
+                                            className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
+                                          >
+                                            {doc.file_name}
+                                          </OpenDocumentInAppButton>
+                                        ) : (
+                                          doc.file_name
+                                        )
+                                      ) : '—'}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      <span className="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px]">
+                                        {doc.pending_kind ?? '—'}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}{v.daysSuffix}</td>
+                                    <td className="py-2 pr-3 text-app-fg-muted">
+                                      {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          disabled={actionLoading.has(doc.id)}
+                                          onClick={() => handleRiprocessa(doc.id)}
+                                          className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15 disabled:opacity-40"
+                                        >
+                                          {actionLoading.has(doc.id) ? (
+                                            <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
+                                          ) : (
+                                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                          )}
+                                          {v.actionRetry}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={actionLoading.has(doc.id)}
+                                          onClick={() => handleScarta(doc.id)}
+                                          className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/8 px-2 py-1 text-[10px] font-bold text-rose-200 transition-colors hover:bg-rose-500/15 disabled:opacity-40"
+                                        >
+                                          {v.actionDiscard}
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
               </CollapsibleSection>
@@ -519,62 +548,76 @@ export default function VerificaDocumentiPage() {
                 {data.documenti_da_revisionare.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">{v.noToReviewHint}</p>
                 ) : (
-                  <div className="overflow-x-auto rounded-lg border border-app-line-22">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">{v.colMittente}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colPendingKind}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colDaysInState}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colAction}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-app-line-10">
-                        {data.documenti_da_revisionare.map((doc) => (
-                          <tr key={doc.id} className="text-app-fg hover:bg-white/[0.02]">
-                            <td className="py-2 pr-3">{doc.mittente ?? '—'}</td>
-                            <td className="py-2 pr-3 max-w-[200px] truncate" title={doc.file_name ?? ''}>
-                              {doc.file_name ? (
-                                doc.file_url ? (
-                                  <OpenDocumentInAppButton
-                                    documentoId={doc.id}
-                                    fileUrl={doc.file_url}
-                                    title={doc.file_name ?? undefined}
-                                    className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
-                                  >
-                                    {doc.file_name}
-                                  </OpenDocumentInAppButton>
-                                ) : (
-                                  doc.file_name
-                                )
-                              ) : '—'}
-                            </td>
-                            <td className="py-2 pr-3">
-                              <span className="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px]">
-                                {doc.pending_kind ?? '—'}
-                              </span>
-                            </td>
-                            <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}{v.daysSuffix}</td>
-                            <td className="py-2 pr-3 text-app-fg-muted">
-                              {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
-                            </td>
-                            <td className="py-2 pr-3">
-                              <Link
-                                href="/inbox-ai"
-                                className="inline-flex items-center gap-1 rounded-md border border-indigo-500/30 bg-indigo-500/8 px-2 py-1 text-[10px] font-bold text-indigo-200 transition-colors hover:bg-indigo-500/15"
-                              >
-                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
-                                {v.actionReview}
-                              </Link>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-6">
+                    {Array.from(groupByMonth(data.documenti_da_revisionare).entries())
+                      .sort(([a], [b]) => b.localeCompare(a))
+                      .map(([ym, docs]) => (
+                        <div key={ym}>
+                          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-app-fg-muted">
+                            {ym === '??' ? 'Senza data' : formatMonthYearUppercase(ym + '-01', locale)}
+                            <span className="ml-2 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-normal">
+                              {docs.length}
+                            </span>
+                          </h3>
+                          <div className="overflow-x-auto rounded-lg border border-app-line-22">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="text-app-fg-muted">
+                                  <th className="pb-2 pr-3 font-semibold">{v.colMittente}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colPendingKind}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colDaysInState}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colAction}</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-app-line-10">
+                                {docs.map((doc) => (
+                                  <tr key={doc.id} className="text-app-fg hover:bg-white/[0.02]">
+                                    <td className="py-2 pr-3">{doc.mittente ?? '—'}</td>
+                                    <td className="py-2 pr-3 max-w-[200px] truncate" title={doc.file_name ?? ''}>
+                                      {doc.file_name ? (
+                                        doc.file_url ? (
+                                          <OpenDocumentInAppButton
+                                            documentoId={doc.id}
+                                            fileUrl={doc.file_url}
+                                            title={doc.file_name ?? undefined}
+                                            className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
+                                          >
+                                            {doc.file_name}
+                                          </OpenDocumentInAppButton>
+                                        ) : (
+                                          doc.file_name
+                                        )
+                                      ) : '—'}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      <span className="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px]">
+                                        {doc.pending_kind ?? '—'}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}{v.daysSuffix}</td>
+                                    <td className="py-2 pr-3 text-app-fg-muted">
+                                      {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      <Link
+                                        href="/inbox-ai"
+                                        className="inline-flex items-center gap-1 rounded-md border border-indigo-500/30 bg-indigo-500/8 px-2 py-1 text-[10px] font-bold text-indigo-200 transition-colors hover:bg-indigo-500/15"
+                                      >
+                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                        </svg>
+                                        {v.actionReview}
+                                      </Link>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
               </CollapsibleSection>
@@ -587,57 +630,71 @@ export default function VerificaDocumentiPage() {
                 {data.statement_con_problemi.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">{v.noStatementHint}</p>
                 ) : (
-                  <div className="overflow-x-auto rounded-lg border border-app-line-22">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">{v.colSupplier}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colMissingRows}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
-                          <th className="pb-2 pr-3 font-semibold">{v.colActions}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-app-line-10">
-                        {data.statement_con_problemi.map((stmt) => (
-                          <tr key={stmt.id} className="text-app-fg hover:bg-white/[0.02]">
-                            <td className="py-2 pr-3 font-medium text-app-fg">{stmt.fornitore_nome ?? stmt.fornitore_id ?? '—'}</td>
-                            <td className="py-2 pr-3 max-w-[200px] truncate" title={stmt.file_url ?? ''}>
-                              {stmt.file_url ? (
-                                <OpenDocumentInAppButton
-                                  statementId={stmt.id}
-                                  fileUrl={stmt.file_url}
-                                  className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
-                                >
-                                  {stmt.file_url.split('/').pop() ?? stmt.file_url}
-                                </OpenDocumentInAppButton>
-                              ) : '—'}
-                            </td>
-                            <td className="py-2 pr-3 font-semibold tabular-nums text-amber-200">{stmt.missing_rows}</td>
-                            <td className="py-2 pr-3 text-app-fg-muted">
-                              {stmt.created_at ? formatDate(stmt.created_at, locale) : '—'}
-                            </td>
-                            <td className="py-2 pr-3">
-                              <button
-                                type="button"
-                                disabled={actionLoading.has(stmt.id)}
-                                onClick={() => handleRiprocessa(stmt.id)}
-                                className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15 disabled:opacity-40"
-                              >
-                                {actionLoading.has(stmt.id) ? (
-                                  <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
-                                ) : (
-                                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                )}
-                                {v.actionRetry}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-6">
+                    {Array.from(groupByMonth(data.statement_con_problemi).entries())
+                      .sort(([a], [b]) => b.localeCompare(a))
+                      .map(([ym, docs]) => (
+                        <div key={ym}>
+                          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-app-fg-muted">
+                            {ym === '??' ? 'Senza data' : formatMonthYearUppercase(ym + '-01', locale)}
+                            <span className="ml-2 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-normal">
+                              {docs.length}
+                            </span>
+                          </h3>
+                          <div className="overflow-x-auto rounded-lg border border-app-line-22">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="text-app-fg-muted">
+                                  <th className="pb-2 pr-3 font-semibold">{v.colSupplier}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colFile}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colMissingRows}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colCreatedAt}</th>
+                                  <th className="pb-2 pr-3 font-semibold">{v.colActions}</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-app-line-10">
+                                {docs.map((stmt) => (
+                                  <tr key={stmt.id} className="text-app-fg hover:bg-white/[0.02]">
+                                    <td className="py-2 pr-3 font-medium text-app-fg">{stmt.fornitore_nome ?? stmt.fornitore_id ?? '—'}</td>
+                                    <td className="py-2 pr-3 max-w-[200px] truncate" title={stmt.file_url ?? ''}>
+                                      {stmt.file_url ? (
+                                        <OpenDocumentInAppButton
+                                          statementId={stmt.id}
+                                          fileUrl={stmt.file_url}
+                                          className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
+                                        >
+                                          {stmt.file_url.split('/').pop() ?? stmt.file_url}
+                                        </OpenDocumentInAppButton>
+                                      ) : '—'}
+                                    </td>
+                                    <td className="py-2 pr-3 font-semibold tabular-nums text-amber-200">{stmt.missing_rows}</td>
+                                    <td className="py-2 pr-3 text-app-fg-muted">
+                                      {stmt.created_at ? formatDate(stmt.created_at, locale) : '—'}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      <button
+                                        type="button"
+                                        disabled={actionLoading.has(stmt.id)}
+                                        onClick={() => handleRiprocessa(stmt.id)}
+                                        className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15 disabled:opacity-40"
+                                      >
+                                        {actionLoading.has(stmt.id) ? (
+                                          <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
+                                        ) : (
+                                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                          </svg>
+                                        )}
+                                        {v.actionRetry}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
               </CollapsibleSection>

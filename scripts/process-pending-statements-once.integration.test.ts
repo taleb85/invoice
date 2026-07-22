@@ -79,11 +79,10 @@ describe.skipIf(!enabled)('process-pending-statements-once', () => {
           continue
         }
 
-        const documentDate = resolveStatementDocumentDate({
-          dataDocumento: doc.data_documento,
-          extractedPdfDates: ocr.extractedPdfDates,
-          emailSubject: doc.oggetto_mail,
-        })
+        const documentDate = resolveStatementDocumentDate(
+          ocr.extractedPdfDates,
+          doc.data_documento,
+        )
 
         const { data: stmt, error: insErr } = await supabase
           .from('statements')
@@ -112,17 +111,16 @@ describe.skipIf(!enabled)('process-pending-statements-once', () => {
         const rowPayloads = rows.map((r, idx) => ({
           statement_id: stmt.id,
           row_index: idx,
-          numero_doc: r.numero_doc,
+          numero_doc: r.numero,
           importo: r.importo,
-          data_doc: r.data_doc,
-          descrizione: r.descrizione ?? null,
+          data_doc: r.data,
           check_status: 'pending',
         }))
         await supabase.from('statement_rows').insert(rowPayloads)
 
         const { results } = await runTripleCheck(
           supabase,
-          rows.map((r) => ({ numero: r.numero_doc ?? '', importo: r.importo ?? 0, data: r.data_doc ?? null })),
+          rows.map((r) => ({ numero: r.numero, importo: r.importo, data: r.data })),
           doc.sede_id,
           doc.fornitore_id,
         )

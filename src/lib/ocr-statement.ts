@@ -94,10 +94,11 @@ The "documentHeader" object is optional but should be included when the document
 Use two-digit years from the document as 20YY when clearly 2000s (e.g. 19/05/25 → 2025-05-19). If unsure, use null — never invent dates or amounts.
 
 Rules:
-- "numero": the invoice or document reference exactly as printed (e.g. INV-001, AM-101, 2024/0042, FAT-2026-03).
-- "importo": plain positive number. Strip all currency symbols (£, €, $, CHF, kr, zł…) and thousand separators. Treat both comma and dot as decimal separators — e.g. "1.234,56" → 1234.56.
+- "numero": the invoice or document reference exactly as printed (e.g. INV-001, AM-101, 2024/0042, FAT-2026-03, CN-001, SCN-2026/05, NC 24, CRN-123).
+- "importo": the amount as a plain positive number (use Math.abs). Strip all currency symbols (£, €, $, CHF, kr, zł…) and thousand separators. Treat both comma and dot as decimal separators — e.g. "1.234,56" → 1234.56. **IMPORTANT: credit notes / credit memo rows that appear with a negative amount (e.g. -152.93, (152.93), CR 152.93) MUST still be included — report the absolute value.**
 - "data": transaction or invoice date in YYYY-MM-DD format, or null if absent.
 - Include a row ONLY if it has BOTH a document reference AND an amount.
+- **Include credit note rows even when the amount is shown as negative, in parentheses, or in a separate 'Credit' column.**
 - Skip header rows, total/subtotal lines, account metadata, free-text notes, and balance-forward rows.
 - If the document has multiple sections or pages, extract from all of them.`
 

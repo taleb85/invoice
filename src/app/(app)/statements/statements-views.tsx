@@ -3504,7 +3504,7 @@ interface CheckResult {
   importoStatement: number
   status:           CheckStatus
   data_doc:         string | null
-  fattura: { id: string; numero_fattura: string | null; importo: number | null; data: string; file_url: string | null; fornitore_id: string } | null
+  fattura: { id: string; numero_fattura: string | null; importo: number | null; data: string; file_url: string | null; fornitore_id: string; is_credit_note: boolean } | null
   bolle:   { id: string; numero_bolla: string | null; importo: number | null; data: string }[]
   deltaImporto: number | null
   fornitore: { id: string; nome: string; email: string | null } | null
@@ -4932,6 +4932,7 @@ export function VerificationStatusTab({
       fattura_data: string | null
       fattura_file_url: string | null
       fattura_importo: number | null
+      fattura_is_credit_note: boolean | null
     }
     const raw = await res.json()
     if (!Array.isArray(raw)) {
@@ -4955,6 +4956,7 @@ export function VerificationStatusTab({
         fattura:          r.fattura_id ? {
           id: r.fattura_id, numero_fattura: r.fattura_numero, importo: r.fattura_importo,
           data: r.fattura_data ?? '', file_url: r.fattura_file_url ?? null, fornitore_id: r.fornitore_id ?? '',
+          is_credit_note: r.fattura_is_credit_note ?? false,
         } : null,
         bolle,
         deltaImporto:     r.delta_importo,
@@ -5128,7 +5130,9 @@ export function VerificationStatusTab({
     let count = 0
     const seenCnNumeri = new Set<string>()
     for (const r of filteredCheckResults) {
-      const isCn = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.numero)
+      const isCn = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.numero) ||
+        (r.fattura?.numero_fattura && /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.fattura.numero_fattura)) ||
+        r.fattura?.is_credit_note === true
       const cnDeduped = isCn && seenCnNumeri.has(r.numero)
       if (isCn) seenCnNumeri.add(r.numero)
       stmtSum += cnDeduped ? 0 : (isCn ? -(r.importoStatement ?? 0) : (r.importoStatement ?? 0))
@@ -6934,7 +6938,9 @@ export function VerificationStatusTab({
                         </tr>
                       )}
                   {rows.map(r => {
-                    const isNotaCredito = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.numero)
+                    const isNotaCredito = /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.numero) ||
+                      (r.fattura?.numero_fattura && /^(?:SCN|CN[\s-]|NC[\s-]|CRN[\s-]|CR[\s-]|RTN|RET)/i.test(r.fattura.numero_fattura)) ||
+                      r.fattura?.is_credit_note === true
                     // Le note di credito non richiedono bolle e l'importo può avere
                     // segno opposto tra statement e DB → override visivo a 'ok'.
                     const displayStatus: CheckStatus =

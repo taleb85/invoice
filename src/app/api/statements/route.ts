@@ -19,7 +19,6 @@ import { dedupeStatementsForList, type StatementListRow } from '@/lib/statement-
 import type { StatementExtractedPdfDates } from '@/lib/statement-official-date'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
-import { ocrStatement } from '@/lib/ocr-statement'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -148,12 +147,14 @@ export async function GET(req: NextRequest) {
     const fatturaDateMap: Record<string, string> = {}
     const fatturaFileUrlMap: Record<string, string | null> = {}
     const fatturaImportoMap: Record<string, number | null> = {}
+    const fatturaIsCreditNoteMap: Record<string, boolean> = {}
     if (fatturaIds.length) {
-      const { data: fRows } = await service.from('fatture').select('id, data, file_url, importo').in('id', fatturaIds)
+      const { data: fRows } = await service.from('fatture').select('id, data, file_url, importo, is_credit_note').in('id', fatturaIds)
       for (const f of fRows ?? []) {
         fatturaDateMap[f.id] = f.data
         fatturaFileUrlMap[f.id] = f.file_url ?? null
         fatturaImportoMap[f.id] = f.importo
+        fatturaIsCreditNoteMap[f.id] = f.is_credit_note ?? false
       }
     }
 
@@ -163,6 +164,7 @@ export async function GET(req: NextRequest) {
       fattura_data: fatturaDateMap[(r.fattura_id as string) ?? ''] ?? null,
       fattura_file_url: fatturaFileUrlMap[(r.fattura_id as string) ?? ''] ?? null,
       fattura_importo: fatturaImportoMap[(r.fattura_id as string) ?? ''] ?? null,
+      fattura_is_credit_note: fatturaIsCreditNoteMap[(r.fattura_id as string) ?? ''] ?? false,
     }))
 
     return NextResponse.json(enriched)
@@ -188,43 +190,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, rechecked: 0, status: 'error' })
     }
 
-    // ── Tenta di ri-estrarre righe dal PDF (es. note di credito perse da bug precedente) ──
-    let newRowsInserted = 0
-    if (stmt.file_url) {
-      try {
-        const dl = await downloadStorageObjectByFileUrl(service, stmt.file_url)
-        if (!('error' in dl)) {
-          const contentType = stmt.file_url.toLowerCase().includes('.pdf') ? 'application/pdf' : (dl.contentType ?? 'application/octet-stream')
-          const ocr = await ocrStatement(new Uint8Array(dl.data), contentType)
-          const existingNumeri = new Set(existingRows.map(r => r.numero_doc?.trim().toLowerCase()).filter(Boolean))
-          for (const newRow of ocr.rows) {
-            const normNumero = newRow.numero.trim().toLowerCase()
-            if (!normNumero || existingNumeri.has(normNumero)) continue
-            // Nuova riga trovata dal PDF — inseriscila
-            await service.from('statement_rows').insert([{
-              statement_id: statementId,
-              numero_doc: newRow.numero,
-              importo: newRow.importo,
-              data_doc: newRow.data,
-              fornitore_id: stmt.fornitore_id,
-              check_status: 'pending',
-            }])
-            existingNumeri.add(normNumero)
-            newRowsInserted++
-          }
-        }
-      } catch (e) {
-        console.warn('[RECHECK] Errore ri-estrazione PDF statement:', e)
-      }
-    }
-
-    // ── Ricarica righe (incluse quelle nuove) ────────────────────────────
-    const { data: allRows } = await supabase
-      .from('statement_rows')
-      .select('id, numero_doc, importo, data_doc')
-      .eq('statement_id', statementId)
-
-    if (!allRows?.length) return NextResponse.json({ ok: true, rechecked: 0 })
+    // ── Usa le righe esistenti (nessuna ri-estrazione dal PDF) ───────────
+    const allRows = existingRows
 
     // Leggi flag `emette_bolle` del fornitore (default true se NULL o colonna
     // non ancora migrata). Quando false NON forziamo 'ok'→'bolle_mancanti'.
@@ -252,7 +219,7 @@ export async function GET(req: NextRequest) {
     // 'ok' resta valida. Le note di credito sono escluse (non richiedono bolle).
     const results = emetteBolleForRecheck
       ? rawResults.map(r =>
-          r.status === 'ok' && r.bolle.length === 0 && !CREDIT_NOTE_PREFIX.test(r.numero)
+          r.status === 'ok' && r.bolle.length === 0 && !CREDIT_NOTE_PREFIX.test(r.numero) && !(r.fattura?.numero_fattura && CREDIT_NOTE_PREFIX.test(r.fattura.numero_fattura))
             ? { ...r, status: 'bolle_mancanti' as const }
             : r
         )
@@ -322,7 +289,7 @@ export async function GET(req: NextRequest) {
       missing_rows: missingRows,
     }).eq('id', statementId)
 
-    return NextResponse.json({ ok: true, rechecked: results.length, missing_rows: missingRows, newRowsInserted })
+    return NextResponse.json({ ok: true, rechecked: results.length, missing_rows: missingRows })
   }
 
   // ── List statements for a sede ─────────────────────────────────────────
