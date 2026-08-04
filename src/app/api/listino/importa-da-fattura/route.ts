@@ -69,6 +69,7 @@ import {
   parseInvoiceTableLinesFromText,
   type ListinoImportLineInput,
 } from '@/lib/listino-invoice-line-normalize'
+import { detectLayout, parseWithLayout, type ParsedInvoiceLine } from '@/lib/layout-fornitori-parser'
 
 function toLineItem(row: ListinoImportLineInput): LineItem {
   return {
@@ -262,19 +263,55 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Impossibile scaricare il file: ${String(err)}` }, { status: 502 })
   }
 
-  let rawResponse: string
+  let rawResponse = ''
   let pdfText: string | null = null
+  let textOnlyItems: LineItem[] | null = null
+  let detectedLayoutName: string | null = null
 
   if (contentType.includes('pdf')) {
     const text = await extractPdfText(fileBuffer)
     pdfText = text || null
     if (text) {
-      try {
-        const res = await geminiGenerateText(SYSTEM_PROMPT, text.slice(0, 6000), 1500)
-        rawResponse = res.text
-      } catch (err) {
-        console.error('[listino] Gemini error on PDF testo:', err)
-        return NextResponse.json({ error: 'Errore estrazione testo PDF.' }, { status: 500 })
+      // 1) Layout-based parser (auto-detects fornitore da firma testuale nel PDF)
+      const layout = detectLayout(text)
+      if (layout) {
+        detectedLayoutName = layout.nome
+        const parsed = parseWithLayout(text, layout)
+        if (parsed.length > 0) {
+          textOnlyItems = parsed.map((p: ParsedInvoiceLine) => toLineItem({
+            prodotto: p.prodotto,
+            codice_prodotto: p.codice_prodotto,
+            prezzo: p.prezzo,
+            quantita: p.quantita,
+            importo_linea: p.importo_linea,
+            unita: p.unita,
+            aliquota_iva: p.aliquota_iva,
+            note: null,
+          }))
+          console.log(
+            `[listino] Layout ${layout.nome}: ${textOnlyItems.length} righe, Gemini saltato`,
+          )
+        }
+      }
+      // 2) Fallback: parsing tabella generico
+      if (!textOnlyItems || textOnlyItems.length === 0) {
+        const textLines = parseInvoiceTableLinesFromText(text)
+        if (textLines.length > 0) {
+          textOnlyItems = textLines.map(toLineItem)
+          console.log(
+            `[listino] Generic parser: ${textOnlyItems.length} righe, Gemini saltato`,
+          )
+        }
+      }
+      // 3) Ultima risorsa: Gemini
+      if (!textOnlyItems || textOnlyItems.length === 0) {
+        try {
+          const res = await geminiGenerateText(SYSTEM_PROMPT, text.slice(0, 6000), 1500)
+          rawResponse = res.text
+        } catch (err) {
+          console.error('[listino] Gemini error on PDF testo:', err)
+          return NextResponse.json({ error: 'Errore estrazione testo PDF.' }, { status: 500 })
+        }
       }
     } else {
       // Scanned PDF — send directly to Gemini vision
@@ -310,14 +347,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const parsed = parseLineItems(rawResponse)
-  const data_fattura = parsed.data_fattura
-  let items = parsed.items
-
-  if (pdfText) {
-    const textLines = parseInvoiceTableLinesFromText(pdfText)
-    items = mergeImportLinesWithPdfText(items as ListinoImportLineInput[], textLines).map(toLineItem)
+  let items: LineItem[]
+  if (textOnlyItems && textOnlyItems.length > 0) {
+    // Usa direttamente il risultato del parsing testuale (layout o generico)
+    items = textOnlyItems
+  } else {
+    const parsed = parseLineItems(rawResponse)
+    items = parsed.items
+    if (pdfText) {
+      const textLines = parseInvoiceTableLinesFromText(pdfText)
+      items = mergeImportLinesWithPdfText(items as ListinoImportLineInput[], textLines).map(toLineItem)
+    }
   }
+  const data_fattura = (textOnlyItems && textOnlyItems.length > 0 ? null : parseLineItems(rawResponse).data_fattura)
+    ?? docData
+    ?? new Date().toISOString().split('T')[0]
 
   const { data: listinoRows } = await service
     .from('listino_prezzi')

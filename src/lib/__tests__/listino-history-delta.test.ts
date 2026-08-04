@@ -22,13 +22,15 @@ describe('listinoHistoryDeltaPercent', () => {
 })
 
 describe('previousPlausiblePrimaryPriceByRowId', () => {
-  it('computes delta on per-bottle prices for 6x75cl', () => {
+  it('computes delta on per-bottle prices for 6x75cl (premium wine)', () => {
+    // With new display logic, £63-64 are bottle prices, not case totals.
+    // A new entry at £64.84 should have < 2% delta vs prior £64.20.
     const sorted = [
       { id: '1', prezzo: 63.66, data_prezzo: '2025-01-01' },
       { id: '2', prezzo: 64.2, data_prezzo: '2026-01-01' },
     ]
     const prev = previousPlausiblePrimaryPriceByRowId(sorted, '6x75cl')
-    const pct = listinoHistoryDeltaPercent(10.7, prev.get('2'))
+    const pct = listinoHistoryDeltaPercent(64.84, prev.get('2'))
     expect(pct).not.toBeNull()
     expect(Math.abs(pct!)).toBeLessThan(2)
   })

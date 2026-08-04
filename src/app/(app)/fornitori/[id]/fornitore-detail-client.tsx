@@ -4406,10 +4406,27 @@ function ListinoTab({
           const saveJson = (await saveRes.json().catch(() => ({}))) as { inserted?: number }
           if (saveRes.ok) {
             totalInserted += saveJson.inserted ?? rows.length
-            await supabase
-              .from(listinoImportTable(doc.tipo))
-              .update({ analizzata: true })
-              .eq('id', doc.id)
+            // Salva dati estratti in modo permanente (così il PDF può essere cancellato)
+            try {
+              await supabase
+                .from(listinoImportTable(doc.tipo))
+                .update({
+                  analizzata: true,
+                  dati_estratti: {
+                    righe: json.items,
+                    data_fattura: docDate,
+                    estratto_il: new Date().toISOString(),
+                    metodo: 'rianalizza_ui',
+                  },
+                })
+                .eq('id', doc.id)
+            } catch {
+              // Column might not exist yet — just mark analyzed
+              await supabase
+                .from(listinoImportTable(doc.tipo))
+                .update({ analizzata: true })
+                .eq('id', doc.id)
+            }
             documentiProcessed++
           }
         } catch { /* continua con il prossimo documento */ }
@@ -5685,8 +5702,8 @@ function ListinoTab({
                               : t.fornitori.listinoSummaryFlatTitle,
                         meta:
                           up || down
-                            ? `${priceChangeDateLabel} · ${fmtListinoPrice(Math.abs(priceDelta), listinoPriceCtx)} (${pctLabel})`
-                            : priceChangeDateLabel,
+                            ? `${fmtListinoPrice(Math.abs(priceDelta), listinoPriceCtx)} (${pctLabel})`
+                            : '',
                       }
                 const showCodiceBadge =
                   parsed.codice &&
@@ -5844,6 +5861,7 @@ function ListinoTab({
 
                       {/* ── COLONNA 2: Prezzo ── */}
                       <div className="flex flex-col gap-0.5 border-t border-app-line-22/90 pt-1.5 md:col-start-2 md:border-t-0 md:items-end md:pt-0 md:text-right">
+                        {/* Riga 1: Prezzo principale + badge OK/Anomalia */}
                         <div className="flex flex-wrap items-center justify-end gap-1.5">
                           <p
                             className={`text-lg font-bold font-mono tabular-nums tracking-tight sm:text-xl lg:text-xl xl:text-[1.65rem] ${
@@ -5858,24 +5876,24 @@ function ListinoTab({
                           </p>
                           <div className="hidden shrink-0 md:block">{listinoRowStatusBadge}</div>
                         </div>
-                        {rowShowsVatLabel(listinoPriceCtx) ? (
-                          <p className="text-[9px] font-medium font-mono tabular-nums text-app-fg-muted/80 leading-tight">
-                            {fmtListinoPriceExVat(listinoPrices.primaryPrice)} IVA esclusa
+
+                        {/* Riga 2: Esente IVA / confezione — unificate */}
+                        {(rowShowsVatLabel(listinoPriceCtx) || (listinoPrices.packPrice != null && listinoPrices.packSize != null)) ? (
+                          <p className="text-[11px] font-medium font-mono tabular-nums text-app-fg-muted">
+                            {rowShowsVatLabel(listinoPriceCtx) ? (
+                              <span>{fmtListinoPriceExVat(listinoPrices.primaryPrice)} + IVA</span>
+                            ) : null}
+                            {rowShowsVatLabel(listinoPriceCtx) && listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
+                              <span> · </span>
+                            ) : null}
+                            {listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
+                              <span>{fmtListinoPrice(listinoPrices.packPrice, listinoPriceCtx)} conf. ({listinoPrices.packSize} pz)</span>
+                            ) : null}
                           </p>
                         ) : null}
-                        {listinoPrices.packPrice != null && listinoPrices.packSize != null ? (
-                          <p className="text-[10px] font-medium font-mono tabular-nums text-app-fg-muted lg:text-[11px]">
-                            {t.fornitori.listinoPackPrice
-                              .replace('{price}', fmtListinoPrice(listinoPrices.packPrice, listinoPriceCtx))
-                              .replace('{n}', String(listinoPrices.packSize))}
-                          </p>
-                        ) : null}
-                        {rowShowsVatLabel(listinoPriceCtx) ? (
-                          <p className="text-[9px] font-medium uppercase tracking-wide text-app-fg-muted/80">
-                            {t.fornitori.listinoPriceInclVatHint}
-                          </p>
-                        ) : null}
-                        <p className="text-[10px] font-medium text-app-fg-muted">
+
+                        {/* Riga 3: Data · storico */}
+                        <p className="text-[11px] font-medium text-app-fg-muted">
                           {formatDateLib(displayRow.data_prezzo, locale, timezone, {
                             day: 'numeric',
                             month: 'short',
@@ -5888,27 +5906,16 @@ function ListinoTab({
                             </span>
                           ) : null}
                         </p>
-                        <div className="mt-0.5 hidden flex-wrap items-center justify-end gap-1 md:flex">
-                          {ref && Math.abs(priceDelta) > 0.001 ? (
-                            <span
-                              className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
-                                up
-                                  ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40'
-                                  : 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
-                              }`}
-                            >
-                              {up ? '▲' : '▼'}
-                              {fmtListinoPrice(Math.abs(priceDelta), listinoPriceCtx)}
-                              <span className="opacity-70">({pctLabel})</span>
-                            </span>
-                          ) : null}
-                          {rekkiLinked && ultimo.rekki_product_id ? (
+
+                        {/* Riga 4: Rekki badge (desktop) — il delta è già nel box riepilogo Colonna 3 */}
+                        {rekkiLinked && ultimo.rekki_product_id ? (
+                          <div className="mt-0.5 hidden flex-wrap items-center justify-end gap-1 md:flex">
                             <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide">
                               <GlyphCheck className="h-3 w-3" aria-hidden />
                               Rekki
                             </StatusBadge>
-                          ) : null}
-                        </div>
+                          </div>
+                        ) : null}
                       </div>
 
                       {/* ── COLONNA 3: Stato + origine + Rekki (affiancati) ── */}
@@ -6254,15 +6261,21 @@ function ListinoTab({
                               month: 'short',
                               year: 'numeric',
                             })
+                            const prevPrice = prevPrimaryPlausibleById.get(entry.id)
+                            const deltaValue =
+                              prevPrice != null
+                                ? historyDisplayPrice - prevPrice
+                                : null
                             const deltaLabel =
                               deltaPct == null ? (
                                 '—'
                               ) : Math.abs(deltaPct) < 0.05 ? (
                                 '0.0%'
-                              ) : deltaPct > 0 ? (
-                                `+${deltaPct.toFixed(1)}%`
                               ) : (
-                                `${deltaPct.toFixed(1)}%`
+                                `${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}%` +
+                                (deltaValue != null && Math.abs(deltaValue) > 0.001
+                                  ? ` · ${deltaValue > 0 ? '▲' : '▼'}${fmtListinoPrice(Math.abs(deltaValue), listinoPriceCtx)}`
+                                  : '')
                               )
                             const deltaTone =
                               deltaPct == null || Math.abs(deltaPct) < 0.05

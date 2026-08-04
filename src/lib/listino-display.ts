@@ -862,16 +862,19 @@ export function listinoPerPiecePriceHint(opts: {
 
   const unita = opts.unita ?? ''
   const bottlePack = listinoUnitaIsBottlePack(unita)
-  const minCaseTotalForHint = packSize * 2.5
+  // Soglia più alta: prezzi fino a £6/bottiglia (×6 = £36) sono considerati prezzo unitario,
+  // non totale cassa. Evita che vini da £15-£30/bottiglia vengano divisi per 6.
+  const minCaseTotalForHint = packSize * 6
 
-  // Prezzo già a bottiglia/pezzo (es. £10,61 con unità 6x75cl), non dividere.
+  // Prezzo già a bottiglia/pezzo (es. £20 con unità 6x75cl), non dividere.
   if (bottlePack && opts.displayUnitPrice < minCaseTotalForHint) return null
 
   const hist = opts.otherPrices.filter((p) => Number.isFinite(p) && p > 0)
   if (hist.length > 0) {
     const ref = listinoHistRefForLineInference(hist)
+    // Se il prezzo è stabile rispetto allo storico, è un prezzo unitario, non totale cassa.
     if (listinoPriceAmountsClose(opts.displayUnitPrice, ref, 0.18)) {
-      return { packSize, perPiecePrice }
+      return null
     }
     if (opts.displayUnitPrice > ref * 1.2) {
       return { packSize, perPiecePrice }

@@ -230,6 +230,24 @@ export async function syncListinoFromFattureForFornitore(
     const saveJson = (await save.json().catch(() => ({}))) as { inserted?: number; error?: string }
     if (save.ok) {
       listinoInserted += saveJson.inserted ?? rowsOut.length
+
+      // Salva i dati estratti in modo permanente sul documento,
+      // così anche se il PDF viene cancellato i prezzi restano recuperabili.
+      try {
+        await service
+          .from(listinoImportTable(doc.tipo))
+          .update({
+            dati_estratti: {
+              righe: json.items,
+              data_fattura: json.data_fattura ?? docDate,
+              estratto_il: new Date().toISOString(),
+            },
+          })
+          .eq('id', doc.id)
+      } catch {
+        // Non bloccare se il salvataggio dati estratti fallisce
+      }
+
       await markDocAnalyzed(service, doc)
       for (const r of rowsOut) {
         const p = r.prodotto.trim()

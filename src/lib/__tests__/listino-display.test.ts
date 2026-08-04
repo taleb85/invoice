@@ -511,27 +511,30 @@ describe('listinoPerPiecePriceHint', () => {
     ).toBeNull()
   })
 
-  it('shows per-piece when history is case-level (Gavi 6x75cl)', () => {
+  it('keeps stable premium bottle price as-is (Gavi 6x75cl)', () => {
+    // £61.5 con storico £58-62: prezzi stabili → prezzo a bottiglia, non a cassa.
     const hint = listinoPerPiecePriceHint({
       displayUnitPrice: 61.5,
       unita: '6x75cl',
       otherPrices: [58, 60, 62],
     })
-    expect(hint).toEqual({ packSize: 6, perPiecePrice: 10.25 })
+    expect(hint).toBeNull()
   })
 
-  it('shows per-piece for slash unit format (Gavi 6/75cl)', () => {
+  it('keeps stable premium bottle price as-is for slash format (Gavi 6/75cl)', () => {
     const hint = listinoPerPiecePriceHint({
       displayUnitPrice: 62.64,
       unita: '6/75cl',
       otherPrices: [60, 61.5, 62],
     })
-    expect(hint).toEqual({ packSize: 6, perPiecePrice: 10.44 })
+    expect(hint).toBeNull()
   })
 })
 
 describe('listinoDisplayPrimaryAndPackPrices', () => {
-  it('uses per-unit as primary and pack total as secondary (Gavi 6/75cl)', () => {
+  it('keeps premium bottle price as-is when stable with history (Gavi 6/75cl)', () => {
+    // Prezzo £62.64 con storico £60-62: è un vino premium, non una cassa.
+    // La soglia packSize*6=36: £62.64 > £36, ma i prezzi sono stabili → prezzo unitario.
     expect(
       listinoDisplayPrimaryAndPackPrices({
         displayUnitPrice: 62.64,
@@ -540,10 +543,10 @@ describe('listinoDisplayPrimaryAndPackPrices', () => {
         otherPrices: [60, 61.5, 62],
       }),
     ).toEqual({
-      primaryPrice: 10.44,
-      packPrice: 62.64,
-      packSize: 6,
-      refPrimaryPrice: 10,
+      primaryPrice: 62.64,
+      packPrice: null,
+      packSize: null,
+      refPrimaryPrice: 60,
     })
   })
 
@@ -565,18 +568,21 @@ describe('listinoDisplayPrimaryAndPackPrices', () => {
 })
 
 describe('listinoRowPrimaryDisplayPrice', () => {
-  it('normalizes OCR outlier to per-bottle for 6x75cl (Chianti)', () => {
+  it('keeps stable bottle prices as-is for 6x75cl (Chianti premium)', () => {
+    // Prezzi £63-64 sono prezzi a bottiglia, non a cassa. Con storico stabile,
+    // il sistema non deve dividerli per 6.
     const sorted = [
       { id: '1', prezzo: 63.66, data_prezzo: '2025-01-01', note: 'unita:6x75cl' },
       { id: '2', prezzo: 1.77, data_prezzo: '2025-06-01', note: 'unita:6x75cl' },
       { id: '3', prezzo: 64.2, data_prezzo: '2026-01-01', note: 'unita:6x75cl' },
     ]
-    expect(listinoRowPrimaryDisplayPrice(sorted[0]!, sorted, '6x75cl')).toBeCloseTo(10.61, 1)
+    expect(listinoRowPrimaryDisplayPrice(sorted[0]!, sorted, '6x75cl')).toBeCloseTo(63.66, 1)
+    // OCR qty outlier (1.77) viene corretto dal sistema al prezzo unitario corretto (10.61)
     expect(listinoRowPrimaryDisplayPrice(sorted[1]!, sorted, '6x75cl')).toBeCloseTo(10.61, 1)
-    expect(listinoRowPrimaryDisplayPrice(sorted[2]!, sorted, '6x75cl')).toBeCloseTo(10.7, 1)
+    expect(listinoRowPrimaryDisplayPrice(sorted[2]!, sorted, '6x75cl')).toBeCloseTo(64.2, 1)
   })
 
-  it('normalizes OCR outlier with only one peer case price (Chianti)', () => {
+  it('keeps single-peer case price as bottle price for 6x75cl', () => {
     const sorted = [
       { id: '1', prezzo: 63.66, data_prezzo: '2025-01-01', note: 'unita:6x75cl' },
       { id: '2', prezzo: 1.77, data_prezzo: '2025-06-01', note: 'unita:6x75cl' },

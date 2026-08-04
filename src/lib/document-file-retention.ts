@@ -103,6 +103,8 @@ type FileRef = {
   file_url: string
   docDate: string
   protected: boolean
+  /** true se il documento ha dati_estratti salvati (OCR già eseguito e preservato). */
+  hasDatiEstratti: boolean
 }
 
 async function fetchFileRefsForSede(
@@ -114,7 +116,7 @@ async function fetchFileRefsForSede(
 
   const pushRows = (
     table: string,
-    rows: { id: string; file_url: string | null; docDate: string | null; protected: boolean }[],
+    rows: { id: string; file_url: string | null; docDate: string | null; protected: boolean; hasDatiEstratti?: boolean }[],
   ) => {
     for (const row of rows) {
       const url = row.file_url?.trim()
@@ -126,6 +128,7 @@ async function fetchFileRefsForSede(
         file_url: url,
         docDate,
         protected: row.protected,
+        hasDatiEstratti: row.hasDatiEstratti ?? false,
       })
     }
   }
@@ -133,7 +136,7 @@ async function fetchFileRefsForSede(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await service
       .from('fatture')
-      .select('id, file_url, data, approval_status')
+      .select('id, file_url, data, approval_status, dati_estratti')
       .eq('sede_id', sedeId)
       .not('file_url', 'is', null)
       .range(from, from + PAGE - 1)
@@ -146,6 +149,7 @@ async function fetchFileRefsForSede(
         file_url: r.file_url as string | null,
         docDate: r.data as string | null,
         protected: r.approval_status === 'pending',
+        hasDatiEstratti: r.dati_estratti != null,
       })),
     )
     if (chunk.length < PAGE) break
@@ -154,7 +158,7 @@ async function fetchFileRefsForSede(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await service
       .from('bolle')
-      .select('id, file_url, data, stato')
+      .select('id, file_url, data, stato, dati_estratti')
       .eq('sede_id', sedeId)
       .not('file_url', 'is', null)
       .range(from, from + PAGE - 1)
@@ -167,6 +171,7 @@ async function fetchFileRefsForSede(
         file_url: r.file_url as string | null,
         docDate: r.data as string | null,
         protected: r.stato === 'in attesa',
+        hasDatiEstratti: r.dati_estratti != null,
       })),
     )
     if (chunk.length < PAGE) break
@@ -175,7 +180,7 @@ async function fetchFileRefsForSede(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await service
       .from('documenti_da_processare')
-      .select('id, file_url, data_documento, stato')
+      .select('id, file_url, data_documento, stato, dati_estratti')
       .eq('sede_id', sedeId)
       .not('file_url', 'is', null)
       .range(from, from + PAGE - 1)
@@ -188,6 +193,7 @@ async function fetchFileRefsForSede(
         file_url: r.file_url as string | null,
         docDate: r.data_documento as string | null,
         protected: DOC_PROTECTED_STATI.has(String(r.stato ?? '')),
+        hasDatiEstratti: r.dati_estratti != null,
       })),
     )
     if (chunk.length < PAGE) break
@@ -221,7 +227,7 @@ async function fetchFileRefsForSede(
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await service
       .from('conferme_ordine')
-      .select('id, file_url, data_ordine, created_at')
+      .select('id, file_url, data_ordine, created_at, dati_estratti')
       .eq('sede_id', sedeId)
       .not('file_url', 'is', null)
       .range(from, from + PAGE - 1)
@@ -237,6 +243,7 @@ async function fetchFileRefsForSede(
         file_url: r.file_url as string | null,
         docDate: (r.data_ordine as string | null) ?? (r.created_at as string | null)?.slice(0, 10) ?? null,
         protected: false,
+        hasDatiEstratti: r.dati_estratti != null,
       })),
     )
     if (chunk.length < PAGE) break
@@ -303,7 +310,9 @@ async function purgeSede(
   const coldRefs: FileRef[] = []
 
   for (const ref of refs) {
-    if (ref.protected || isHot(ref.docDate, cutoff)) {
+    // Proteggi documenti senza dati_estratti: il PDF è l'unica fonte per l'estrazione prezzi.
+    // Una volta che i dati sono salvati nel DB, il PDF può essere cancellato.
+    if (ref.protected || isHot(ref.docDate, cutoff) || !ref.hasDatiEstratti) {
       urlsToKeep.add(ref.file_url)
     } else {
       coldRefs.push(ref)

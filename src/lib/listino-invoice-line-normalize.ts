@@ -161,6 +161,58 @@ export function parseInvoiceTableLinesFromText(text: string): ListinoImportLineI
       continue
     }
 
+    // Formato Hallgarten / vino con colonna alcol%:
+    // CODE  DESC  ALC%  QTY  PACK  UNITPRICE  VALUE
+    // es: "61811NVA Champagne Bernard Remy Brut 12 1 6X75cl 20.00 120.00"
+    const winePattern = new RegExp(
+      '^' +
+      '(\\S+)' +                              // 1: codice
+      '\\s+(.+?)' +                           // 2: descrizione (lazy, include asterischi)
+      '\\s+(\\d+(?:[.,]\\d+)?)' +             // 3: alcol % (o altro campo numerico)
+      '\\s+(\\d+(?:[.,]\\d+)?)' +             // 4: quantità
+      '\\s+(\\S+)' +                          // 5: formato (6X75cl)
+      '\\s+(\\d{1,7}[.,]\\d{2})' +            // 6: prezzo unitario
+      '\\s+(\\d{1,7}[.,]\\d{2})' +            // 7: totale riga
+      '\\s*$', 'i',
+    )
+    const wineMatch = t.match(winePattern)
+    if (wineMatch) {
+      const codiceCol = wineMatch[1]!.toUpperCase()
+      const desc = wineMatch[2]!.trim()
+      const maybeAlc = parseFloat(wineMatch[3]!.replace(',', '.'))
+      const qty = parseFloat(wineMatch[4]!.replace(',', '.'))
+      const pack = wineMatch[5]!
+      const unitPrice = parseMoneyToken(wineMatch[6]!)
+      const lineTotal = parseMoneyToken(wineMatch[7]!)
+
+      if (unitPrice && lineTotal && qty >= 1 && qty <= 999) {
+        // Estrai il pack size dal formato (es. "6X75cl" → 6)
+        const packNumberMatch = pack.match(/^(\d+)/);
+        const packSize = packNumberMatch ? parseInt(packNumberMatch[1], 10) : null;
+
+        // Verifica: per vino, prezzo × q.tà × packSize ≈ totale (prezzo a bottiglia)
+        const computedCase = unitPrice * qty * (packSize ?? 1);
+        // Fallback: prezzo × q.tà ≈ totale (prezzo a cassa)
+        const computedSimple = unitPrice * qty;
+
+        const ok = Math.abs(computedCase - lineTotal) <= Math.max(0.05, lineTotal * 0.05) ||
+                   Math.abs(computedSimple - lineTotal) <= Math.max(0.05, lineTotal * 0.05);
+
+        if (ok) {
+          const fromCells = parsePackStyleFromCells([
+            codiceCol,
+            desc,
+            String(qty),
+            pack,
+            wineMatch[6]!,
+            wineMatch[7]!,
+          ])
+          if (fromCells) pushParsedInvoiceLine(out, seen, fromCells)
+          continue
+        }
+      }
+    }
+
     const packStyle = t.match(
       /^(\S+)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s*$/i,
     )
