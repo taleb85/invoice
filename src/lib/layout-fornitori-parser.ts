@@ -23,6 +23,8 @@ export interface LayoutProfilo {
   multiriga: boolean
   // Per multiriga: come capire se una linea è continuazione
   lineaContinuazione?: RegExp
+  // Quantità di default se assente dal pattern (es. 1 per A&F Gelati)
+  quantitaDefault?: number
 }
 
 export interface ParsedLine {
@@ -121,6 +123,100 @@ export const LAYOUTS: LayoutProfilo[] = [
     multiriga: false,
   },
 
+  // ── La Tua Pasta ──
+  // TA01 1 1KG TAGLIATELLE EGG 1KG £7.42 10.00 £6.68
+  // Gruppi: 1=codice, 2=qty, 3=pack, 4=prodotto, 5=prezzo, 6=importo(net)
+  {
+    nome: 'la_tua_pasta',
+    firma: /La\s+Tua\s+Pasta|latuapasta\.com|Nucleus\s+Park/i,
+    pattern: /^([A-Z]{2,4}\d{2,4})\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(.+?)\s+£\s*(\d+(?:[.,]\d+)?)\s+(?:\d+(?:[.,]\d+)?)\s+£\s*(\d+(?:[.,]\d+)?)\s*$/i,
+    gruppi: ['codice_prodotto', 'quantita', 'unita', 'prodotto', 'prezzo', 'importo_linea'],
+    multiriga: false,
+  },
+
+  // ── Enotria Winecellars ──
+  // 25366125 Gavi di Gavi Minaia 25 Bergaglio 6/75 5 6x75cl 62.64 313.22
+  // Gruppi: 1=codice, 2=prodotto, 3=pack_desc, 4=qty, 5=pack, 6=prezzo, 7=importo
+  {
+    nome: 'enotria_wine',
+    firma: /Enotria\s+Winecellars|Cumberland\s+Avenue|NW10\s+7RX/i,
+    pattern: /^(\d+[A-Z]?\d*)\s+(.+?)\s+(\d+\/\d+)\s+(\d+)\s+(\d+\s*[xX×]\s*\d+\s*(?:cl|ml|l)?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s*$/i,
+    gruppi: ['codice_prodotto', 'prodotto', null, 'quantita', 'unita', 'prezzo', 'importo_linea'],
+    multiriga: false,
+  },
+
+  // ── Berkmann Wine Cellars ──
+  // 541140-NV Prosecco Extra Dry, Serena 1881 NV 75cl 9.547 6 57.28
+  // Gruppi: 1=codice, 2=prodotto, 3=vintage, 4=unit, 5=prezzo, 6=qty, 7=importo
+  {
+    nome: 'berkmann_wine',
+    firma: /Berkmann\s+Wine|Rosebery\s+Avenue|70\s+Rosebery/i,
+    pattern: /^(\d+[A-Z]*-[A-Z]+)\s+(.+?)\s+(?:NV\s+)?(\d+.+?)\s+(\S+)\s+(\d+(?:[.,]\d+)?)\s+(\d+)\s+(\d+(?:[.,]\d+)?)\s*$/i,
+    gruppi: ['codice_prodotto', 'prodotto', null, 'unita', 'prezzo', 'quantita', 'importo_linea'],
+    multiriga: false,
+  },
+
+  // ── Donovan Bros ──
+  // CLIN01 25.38    ROLL    6.00    30cmx300M CLING FILM CUTTER BX 32C08-8 4.23
+  // MW8000TR 64.96   X400    1.00    M8000TR CLEAR FLAT LIDS for M8000 64.96
+  // Columns: CODE, LINE_TOTAL, PACK, QTY, DESC, UNIT_PRICE
+  // Gruppi: 1=codice, 2=importo, 3=pack, 4=qty, 5=prodotto, 6=prezzo
+  {
+    nome: 'donovan_bros',
+    firma: /Donovan\s+Bros|Lagoon\s+Road|Orpington|BR5\s+3QX/i,
+    pattern: /^([A-Z]{2,6}\d{2,5}[A-Z]{0,3})\s+(\d+(?:[.,]\d+)?)\s+(\S+)\s+(\d+(?:[.,]\d+)?)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s*$/i,
+    gruppi: ['codice_prodotto', 'importo_linea', null, 'quantita', 'prodotto', 'prezzo'],
+    multiriga: false,
+  },
+
+  // ── G Lawrence Wholesale Meat ──
+  // 200004 VEAL FILLETS 4 WGT 3.60 KGS 30.00 KGS 108.00
+  // Gruppi: 1=codice, 2=prodotto, 3=qty, 4=pack, 5=peso, 6=prezzo, 7=uom, 8=importo
+  {
+    nome: 'g_lawrence_meat',
+    firma: /G\s+Lawrence\s+Wholesale|Smithfield|glawrencemeats/i,
+    pattern: /^(\d{5,8})\s+(.+?)\s+(\d+)\s+(WGT|PACK|KG)\s+(\d+(?:[.,]\d+)?)\s+(KGS|KG)\s+(\d+(?:[.,]\d+)?)\s+(KGS|KG)\s+(\d+(?:[.,]\d+)?)\s*$/i,
+    gruppi: ['codice_prodotto', 'prodotto', 'quantita', null, null, null, 'prezzo', null, 'importo_linea'],
+    multiriga: false,
+  },
+
+  // ── Alivini Group ──
+  // £134.40 4 SAFFRON CHIQUILIN 50x125mg PACKETS    UNITS   SZ      £33.60  £37.33
+  // Gruppi: 1=importo_netto, 2=qty, 3=prodotto, 4=pack, 5=vatcode, 6=prezzo, 7=listino
+  {
+    nome: 'alivini',
+    firma: /Alivini\s+Group|Eade\s+Road|N4\s+1DN|cc@alivini\.com/i,
+    pattern: /^£?\s*(\d+(?:[.,]\d+)?)\s+(\d+)\s+(.+?)\s+(UNITS?|PACKS?)\s+(S[ZS])\s+£?\s*(\d+(?:[.,]\d+)?)\s+£?\s*(\d+(?:[.,]\d+)?)\s*$/i,
+    gruppi: ['importo_linea', 'quantita', 'prodotto', 'unita', null, 'prezzo', null],
+    multiriga: false,
+  },
+
+  // ── A&F Gelati Italiani / Stella Coffee / Stella Imports ──
+  // GELATO - VANILLA - 2L - SPECIAL 3(24/04) 3.00 14.15 20% 42.45
+  // 8 M71001 Molinari Intenso Beans 1kg £13.90 £111.20 Z
+  // Gruppi: 1=qty(opz), 2=codice(opz), 3=prodotto, 4=prezzo, 5=importo
+  {
+    nome: 'gelati_stella',
+    firma: /A&F\s+Gelati|Ariela.s\s+Gelato|Stella\s+Imports|stellacoffeeandtea/i,
+    // Supporta sia formato A&F (14.15 20% 42.45) che Stella (£13.90 £111.20 Z)
+    // Esclude righe VAT/Company/Subtotal/Total
+    pattern: /^(?:\d+\s+)?(?:[A-Z]\d{4,6}\s+)?(.+?)\s+£?\s*(\d+(?:[.,]\d+)?)\s+(?:\d+(?:[.,]\d+)?%?\s+)?£?\s*(\d+(?:[.,]\d+)?)(?:\s+[SZ])?\s*$/i,
+    gruppi: ['prodotto', 'prezzo', 'importo_linea'],
+    quantitaDefault: 1,
+    multiriga: false,
+  },
+
+  // ── Ital Cutlery ──
+  // 1.00 Knife Sharpening and Rental 20.00 20.00 20.00 4.00
+  // Gruppi: 1=qty, 2=prodotto, 3=prezzo, 4=importo
+  {
+    nome: 'ital_cutlery',
+    firma: /Ital\s+Cutlery|Wickham\s+Mews|enquiries@italcutlery/i,
+    pattern: /^(\d+(?:[.,]\d+)?)\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+\d+(?:[.,]\d+)?\s+\d+(?:[.,]\d+)?\s*$/i,
+    gruppi: ['quantita', 'prodotto', 'prezzo', 'importo_linea'],
+    multiriga: false,
+  },
+
   // ── Generico (fallback) ──
   // Prova pattern comune: CODICE? DESCRIZIONE QTA QUALCOSA PREZZO TOTALE
   // Gruppi: 1=codice(opt), 2=prodotto, 3=qty, 4=prezzo, 5=importo
@@ -211,6 +307,8 @@ export function parseWithLayout(text: string, layout: LayoutProfilo): ParsedInvo
   const seen = new Set<string>()
 
   for (const line of merged) {
+    // Salta righe note non-prodotto (VAT, intestazioni, subtotali, etc.)
+    if (/^(?:VAT\s*(?:Reg|Registration|Code|Analysis|Rate)?\b|Company\s+Registration|SUBTOTAL|TOTAL\s+(?:GBP|TAX|VAT)|CARRIAGE|BALANCE\s+DUE|Grand\s+Total|Net\s+Total|Net\s+Amount|Invoice\s+Total|Payment\s+Due|Due\s+Date|Page\s+\d|Order\s+No|Order\s+Ref|Account\s+No|Bank\s+Details|Sort\s+Code|Account\s+Name|IBAN|SWIFT|BIC|Please\s+check|Reservation\s+of\s+Title)/i.test(line.trim())) continue
     const m = line.match(layout.pattern)
     if (!m) continue
 
@@ -251,7 +349,7 @@ export function parseWithLayout(text: string, layout: LayoutProfilo): ParsedInvo
 
     // Validazione minima
     if (!parsed.prodotto || !parsed.prezzo || parsed.prezzo <= 0) continue
-    if (!parsed.quantita || parsed.quantita < 0.01) parsed.quantita = 1
+    if (!parsed.quantita || parsed.quantita < 0.01) parsed.quantita = layout.quantitaDefault ?? 1
 
     // Deduplica
     const key = (parsed.prodotto + '|' + parsed.prezzo).toLowerCase()
